@@ -45,7 +45,7 @@ function StepArrow() {
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-accent py-20">
+    <section id="how-it-works" className="scroll-reveal bg-accent py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Jednoduché ako 1-2-3</Badge>

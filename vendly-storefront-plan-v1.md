@@ -47,16 +47,20 @@
 - [x] SocialProofBar: уменьшены fade masks и spacing на 375px
 - [x] Footer: уменьшен gap на mobile
 
-### П6 — Интеграция в vendly
-- [ ] Ссылки на реальную платформу
-- [ ] Реальные демо-сайты в BusinessTypes
-- [ ] Аналитика (Google Analytics / Plausible)
+### П6 — Полировка: SEO, smooth scroll, scroll animations ✅
+- [x] SEO: title, meta description, Open Graph (og:title, og:description, og:image, og:url, og:locale)
+- [x] SEO: Twitter card (summary_large_image), canonical URL via metadataBase
+- [x] Smooth scroll: html { scroll-behavior: smooth }
+- [x] Scroll animations: .scroll-reveal class с animation-timeline: view() на секциях below fold
+- [x] Якоря проверены: #features, #how-it-works, #pricing, #faq — все совпадают с id секций
+- [x] pnpm build: 0 ошибок, 0 warnings, static prerender OK
 
 ## 3. Phase 2 (после MVP)
 
+- [ ] Интеграция в vendly: ссылки на реальную платформу, демо-сайты, аналитика
 - [ ] Блог (MDX)
-- [ ] SEO оптимизация (meta tags, Open Graph, sitemap)
 - [ ] A/B тесты (разные варианты Hero, CTA)
 - [ ] Страница с отзывами клиентов
 - [ ] Мультиязычность (sk/cz/ua/de)
 - [ ] Интеграция с CMS для контента
+- [ ] og-image.png — создать реальное OG изображение 1200×630

@@ -12,10 +12,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://vendshop.shop";
+const title = "VendShop — Váš online obchod za 5 minút";
+const description =
+  "Vytvorte si profesionálny online obchod bez technických znalostí. Platforma pre malý biznis v SK, CZ, UA a DE. Zadarmo.";
+
 export const metadata: Metadata = {
-  title: "VendShop — Váš online obchod za 5 minút",
-  description:
-    "Vytvorte si profesionálny online obchod bez technických znalostí. Platforma pre malý biznis v SK, CZ, UA a DE.",
+  title,
+  description,
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "sk_SK",
+    url: siteUrl,
+    siteName: "VendShop",
+    title,
+    description,
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "VendShop — online obchod pre malý biznis",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

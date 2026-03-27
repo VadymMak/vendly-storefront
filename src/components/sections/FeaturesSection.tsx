@@ -62,7 +62,7 @@ const FEATURE_ICONS: Record<string, React.ReactNode> = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="bg-white py-20">
+    <section id="features" className="scroll-reveal bg-white py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Všetko v jednom</Badge>

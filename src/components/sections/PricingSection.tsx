@@ -23,7 +23,7 @@ function CheckIcon({ highlighted }: { highlighted: boolean }) {
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="bg-gray-50 py-20">
+    <section id="pricing" className="scroll-reveal bg-gray-50 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Transparentný cenník</Badge>

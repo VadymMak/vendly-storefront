@@ -21,9 +21,22 @@
   --animate-accordion-open: accordion-open 0.3s ease-out both;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);
+}
+
+/* Scroll-driven reveal animation for sections */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: fade-in-up 0.7s ease-out both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 30%;
 }
 
 @keyframes fade-in-up {

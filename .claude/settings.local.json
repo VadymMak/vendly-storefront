@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(ls /Users/vadymmak/Documents/projects/vendly-storefront/.env*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm config:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(pnpm build:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\(''messages/$f.json''\\)\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(done)"
+    ]
+  }
+}

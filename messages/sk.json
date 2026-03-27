@@ -281,5 +281,33 @@
     "storeTypeRepair": "Opravovňa",
     "storeTypeDigital": "Digitálne produkty",
     "storeTypeRestaurant": "Reštaurácia"
+  },
+  "aiWizard": {
+    "step1Title": "Povedzte nám o svojom biznise",
+    "step1Subtitle": "AI vytvorí váš obchod, popis a prvé produkty za niekoľko sekúnd",
+    "businessName": "Názov biznisu",
+    "businessNamePlaceholder": "Napr. Pekáreň Mária, Auto Servis Novák...",
+    "businessDesc": "Čo predávate? (nepovinné)",
+    "businessDescPlaceholder": "Napr. domáci chlieb, torty na objednávku, manikúra...",
+    "businessType": "Typ biznisu",
+    "shopLanguage": "Jazyk obchodu",
+    "slug": "URL adresa obchodu",
+    "slugHint": "napr. pekaren-maria → pekaren-maria.vendshop.shop",
+    "generateBtn": "Vytvoriť s AI",
+    "skipBtn": "Nastaviť manuálne",
+    "step2Title": "AI tvorí váš obchod...",
+    "step2Subtitle": "Trvá to len chvíľu",
+    "step3Title": "Váš obchod je pripravený!",
+    "step3Subtitle": "Skontrolujte a prípadne upravte vygenerovaný obsah",
+    "generatedDesc": "Popis obchodu",
+    "generatedColor": "Farebná schéma",
+    "colorReason": "Prečo táto schéma:",
+    "generatedItems": "Štartovacie produkty",
+    "confirmBtn": "Vytvoriť obchod",
+    "backBtn": "Späť",
+    "errorGenerate": "AI generovanie zlyhalo. Skúste znovu.",
+    "errorSlug": "Zadajte URL adresu obchodu.",
+    "creating": "Vytvárame váš obchod...",
+    "price": "Cena"
   }
 }

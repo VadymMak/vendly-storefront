@@ -3,15 +3,30 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getStoreByUserId } from '@/lib/shop-queries';
 import SettingsForm from '@/components/dashboard/SettingsForm';
+import AiSetupWizard from '@/components/dashboard/AiSetupWizard';
 
 export const metadata = { title: 'Settings | Dashboard' };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ manual?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
-  const t = await getTranslations('dashboardSettings');
 
   const store = await getStoreByUserId(session.user.id);
+  const params = await searchParams;
+
+  // New store + no ?manual=1 → show AI wizard
+  if (!store && params.manual !== '1') {
+    return (
+      <AiSetupWizard userId={session.user.id} />
+    );
+  }
+
+  // Existing store or manual mode → regular form
+  const t = await getTranslations('dashboardSettings');
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -23,7 +38,7 @@ export default async function SettingsPage() {
           {store ? t('descEdit') : t('descNew')}
         </p>
       </div>
-      <SettingsForm userId={session.user.id!} store={store} />
+      <SettingsForm userId={session.user.id} store={store} />
     </div>
   );
 }

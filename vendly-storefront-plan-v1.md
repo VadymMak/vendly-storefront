@@ -25,9 +25,12 @@
 - [x] BusinessTypes: 6 карточек с inline SVG, hover эффекты, responsive grid 1→2→3
 - [x] Demo URL бейджи и стрелка-ссылка на каждой карточке
 
-### П3 — HowItWorks
-- [ ] Скриншоты каждого шага
-- [ ] Анимация при скролле (intersection observer)
+### П3 — HowItWorks + FeaturesSection ✅
+- [x] HowItWorks: 3 шага с inline SVG иконками, номерами, пунктирными стрелками между карточками
+- [x] HowItWorks: CSS fade-in-up анимация с staggered delay
+- [x] FeaturesSection: 8 фич (AI, multi-lang, payments, WhatsApp, mobile, analytics, SSL, domains)
+- [x] FeaturesSection: inline SVG иконки, чередующийся фон (white/accent), hover с инверсией иконки
+- [x] Feature тип и FEATURES данные вынесены в types.ts/constants.ts
 
 ### П4 — Pricing
 - [ ] Красивые карточки с hover эффектами

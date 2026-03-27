@@ -41,3 +41,9 @@ export interface SocialProofItem {
   name: string;
   logo: string;
 }
+
+export interface Feature {
+  id: string;
+  title: string;
+  description: string;
+}

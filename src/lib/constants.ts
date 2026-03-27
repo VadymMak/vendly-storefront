@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -133,6 +133,49 @@ export const PRICING_PLANS: PricingPlan[] = [
     ],
     highlighted: false,
     cta: 'Vybrať Pro',
+  },
+];
+
+export const FEATURES: Feature[] = [
+  {
+    id: 'ai-descriptions',
+    title: 'AI popisky produktov',
+    description: 'Automaticky generované popisky produktov pomocou AI. Ušetrite hodiny písania.',
+  },
+  {
+    id: 'multilang',
+    title: 'Multi-jazyk (5 jazykov)',
+    description: 'Obchod v slovenčine, češtine, ukrajinčine, nemčine aj angličtine — automaticky.',
+  },
+  {
+    id: 'payments',
+    title: 'Stripe & PayPal platby',
+    description: 'Prijímajte platby kartou cez Stripe, PayPal alebo lokálne platobné brány.',
+  },
+  {
+    id: 'whatsapp',
+    title: 'WhatsApp integrácia',
+    description: 'Zákazníci vás kontaktujú priamo cez WhatsApp. Objednávky aj chat na jednom mieste.',
+  },
+  {
+    id: 'mobile',
+    title: 'Mobilný dizajn',
+    description: 'Váš obchod vyzerá skvele na každom zariadení — telefón, tablet aj počítač.',
+  },
+  {
+    id: 'analytics',
+    title: 'Analytika predajov',
+    description: 'Sledujte predaje, návštevnosť a konverzie v reálnom čase.',
+  },
+  {
+    id: 'security',
+    title: 'SSL & GDPR',
+    description: 'SSL certifikát, GDPR compliance a bezpečné platby zadarmo pre každý obchod.',
+  },
+  {
+    id: 'custom-domain',
+    title: 'Vlastná doména',
+    description: 'Pripojte si vlastnú doménu alebo použite bezplatnú subdoménu vendshop.shop.',
   },
 ];
 

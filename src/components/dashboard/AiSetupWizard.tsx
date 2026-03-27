@@ -295,18 +295,19 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
               <label className="mb-1 block text-sm font-medium text-secondary">
                 {t('slug')} *
               </label>
-              <div className="flex items-center rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-primary">
+              <label htmlFor="wizard-slug" className="flex cursor-text items-center rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-primary">
                 <span className="select-none pl-4 text-sm text-gray-400">vendshop.shop/</span>
                 <input
+                  id="wizard-slug"
                   type="text"
                   value={slug}
                   onChange={(e) =>
                     setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))
                   }
-                  className="flex-1 py-2.5 pr-4 text-sm focus:outline-none"
-                  placeholder="moj-obchod"
+                  className="flex-1 bg-transparent py-2.5 pl-1 pr-4 text-sm focus:outline-none"
+                  placeholder="smak-shop"
                 />
-              </div>
+              </label>
               <p className="mt-1 text-xs text-gray-400">{t('slugHint')}</p>
             </div>
           </div>

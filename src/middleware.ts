@@ -10,11 +10,12 @@ export function middleware(request: NextRequest) {
   // Remove port for local development (localhost:3000 → localhost)
   const currentHost = hostname.replace(/:\d+$/, '');
 
-  // If this is the root domain or localhost → pass through to main app
+  // If this is the root domain, localhost, or Vercel preview URL → pass through to main app
   if (
     currentHost === ROOT_DOMAIN ||
     currentHost === `www.${ROOT_DOMAIN}` ||
-    currentHost === 'localhost'
+    currentHost === 'localhost' ||
+    currentHost.endsWith('.vercel.app')
   ) {
     return NextResponse.next();
   }

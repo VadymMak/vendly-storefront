@@ -10,9 +10,8 @@ const schema = z.object({
   category: z.string().optional(),
 });
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(request: Request) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Neautorizovaný' }, { status: 401 });
 

@@ -20,10 +20,10 @@
 - [x] Интерактивный selector типа бизнеса с live preview mockup
 - [x] Responsive для mobile
 
-### П2 — BusinessTypes секция
-- [ ] Интерактивный превью демо-сайтов
-- [ ] Hover эффекты и анимации
-- [ ] Iframe или screenshot превью
+### П2 — SocialProofBar + BusinessTypes секции ✅
+- [x] SocialProofBar: бегущая строка (CSS marquee) с inline SVG иконками и разделителями
+- [x] BusinessTypes: 6 карточек с inline SVG, hover эффекты, responsive grid 1→2→3
+- [x] Demo URL бейджи и стрелка-ссылка на каждой карточке
 
 ### П3 — HowItWorks
 - [ ] Скриншоты каждого шага

@@ -17,6 +17,7 @@
   --animate-slide-in-right: slide-in-right 0.4s ease-out both;
   --animate-scale-in: scale-in 0.3s ease-out both;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-marquee: marquee 30s linear infinite;
 }
 
 body {
@@ -65,4 +66,9 @@ body {
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }

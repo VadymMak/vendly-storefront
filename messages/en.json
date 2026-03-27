@@ -1,0 +1,36 @@
+{
+  "common": {
+    "appName": "VendShop",
+    "login": "Sign in",
+    "register": "Sign up",
+    "logout": "Sign out",
+    "dashboard": "Dashboard",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "An error occurred"
+  },
+  "landing": {
+    "tagline": "Your online store in 5 minutes",
+    "subtitle": "Create a professional online store without technical skills. Sell products, accept orders and grow with VendShop.",
+    "cta": "Start for free",
+    "demo": "View demo"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "registerTitle": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Your name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "stores": "Your stores",
+    "createStore": "Create store",
+    "orders": "Orders",
+    "settings": "Settings"
+  }
+}

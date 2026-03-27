@@ -1,0 +1,36 @@
+{
+  "common": {
+    "appName": "VendShop",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "dashboard": "Dashboard",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "loading": "Lädt...",
+    "error": "Ein Fehler ist aufgetreten"
+  },
+  "landing": {
+    "tagline": "Ihr Online-Shop in 5 Minuten",
+    "subtitle": "Erstellen Sie einen professionellen Online-Shop ohne technische Kenntnisse. Verkaufen Sie Produkte, nehmen Sie Bestellungen an und wachsen Sie mit VendShop.",
+    "cta": "Kostenlos starten",
+    "demo": "Demo ansehen"
+  },
+  "auth": {
+    "loginTitle": "Anmeldung",
+    "registerTitle": "Registrierung",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "name": "Ihr Name",
+    "noAccount": "Kein Konto?",
+    "hasAccount": "Bereits ein Konto?"
+  },
+  "dashboard": {
+    "welcome": "Willkommen",
+    "stores": "Ihre Shops",
+    "createStore": "Shop erstellen",
+    "orders": "Bestellungen",
+    "settings": "Einstellungen"
+  }
+}

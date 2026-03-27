@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// Пользователь платформы (владелец магазина)
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String?
+  name            String?
+  uiLanguage      String   @default("sk")
+  plan            Plan     @default(FREE)
+  stripeAccountId String?
+  aiUsageCount    Int      @default(0)
+  aiUsageMonth    String?
+  stores          Store[]
+  createdAt       DateTime @default(now())
+}
+
+// Магазин (один пользователь может иметь несколько)
+model Store {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  customDomain String?   @unique
+  templateId   String
+  shopLanguage String    @default("sk")
+  name         String
+  description  String?
+  logo         String?
+  settings     Json
+  isPublished  Boolean   @default(false)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  items        Item[]
+  orders       Order[]
+  bookings     Booking[]
+  reviews      Review[]
+  blogPosts    BlogPost[]
+  createdAt    DateTime  @default(now())
+}
+
+// Гибкая сущность (продукт / услуга / пункт меню / проект)
+model Item {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  type        ItemType
+  name        String
+  description String?
+  price       Float?
+  currency    String   @default("EUR")
+  category    String?
+  images      String[]
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
+
+// Заказ
+model Order {
+  id              String      @id @default(cuid())
+  storeId         String
+  store           Store       @relation(fields: [storeId], references: [id])
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+  items           Json
+  total           Float
+  platformFee     Float
+  stripeSessionId String?
+  status          OrderStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+}
+
+// Бронирование / заявка
+model Booking {
+  id        String        @id @default(cuid())
+  storeId   String
+  store     Store         @relation(fields: [storeId], references: [id])
+  service   String?
+  name      String
+  phone     String
+  email     String?
+  datetime  DateTime?
+  message   String?
+  status    BookingStatus @default(NEW)
+  createdAt DateTime      @default(now())
+}
+
+// Отзыв
+model Review {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  author    String
+  rating    Int
+  text      String
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// Блог платформы
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  content     String
+  excerpt     String?
+  coverImage  String?
+  language    String    @default("sk")
+  isPublished Boolean   @default(false)
+  storeId     String?
+  store       Store?    @relation(fields: [storeId], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// AI использование
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  month     String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, month])
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum ItemType {
+  PRODUCT
+  SERVICE
+  MENU_ITEM
+  PORTFOLIO
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  NEW
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}

@@ -1,0 +1,36 @@
+{
+  "common": {
+    "appName": "VendShop",
+    "login": "Přihlásit se",
+    "register": "Zaregistrovat se",
+    "logout": "Odhlásit se",
+    "dashboard": "Dashboard",
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "delete": "Smazat",
+    "loading": "Načítá se...",
+    "error": "Došlo k chybě"
+  },
+  "landing": {
+    "tagline": "Váš online obchod za 5 minut",
+    "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
+    "cta": "Začít zdarma",
+    "demo": "Zobrazit demo"
+  },
+  "auth": {
+    "loginTitle": "Přihlášení",
+    "registerTitle": "Registrace",
+    "email": "Email",
+    "password": "Heslo",
+    "name": "Vaše jméno",
+    "noAccount": "Nemáte účet?",
+    "hasAccount": "Již máte účet?"
+  },
+  "dashboard": {
+    "welcome": "Vítejte",
+    "stores": "Vaše obchody",
+    "createStore": "Vytvořit obchod",
+    "orders": "Objednávky",
+    "settings": "Nastavení"
+  }
+}

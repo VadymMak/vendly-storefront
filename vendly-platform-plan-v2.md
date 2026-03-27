@@ -39,12 +39,25 @@
 - [x] Register page: full form with POST /api/register, auto-login, link to /login
 - [x] Product edit page: /dashboard/products/[id]/edit — fetch item, check ownership, ProductForm with defaultValues
 
-## Фаза G — Следующие шаги
-- [ ] Онбординг визард (5 шагов)
-- [ ] AI генерация магазина (OpenAI)
-- [ ] Stripe Connect checkout
-- [ ] Загрузка фото (sharp → WebP)
-- [ ] Email уведомления (Resend)
-- [ ] Кастомные домены (Vercel API)
-- [ ] Блог платформы
+## Фаза G — Dashboard i18n + Production deploy ✅
+- [x] next-intl интегрирован в дашборд (server + client components)
+- [x] DashboardNav: language switcher (SK/EN/UK/CS/DE), useTranslations('dashboardNav')
+- [x] Login / Register: useTranslations('auth') — все 5 языков
+- [x] Dashboard Overview: getTranslations('dashboardOverview')
+- [x] Dashboard Products: getTranslations('dashboardProducts')
+- [x] Dashboard Orders: getTranslations('dashboardOrders')
+- [x] Dashboard Settings / SettingsForm: useTranslations('dashboardSettings')
+- [x] Архитектура: interface language (next-intl cookie) ≠ shop language (DB field)
+- [x] Production deploy на Vercel — регистрация и логин работают
+- [x] Neon DB: pnpm db:push выполнен, схема актуальна
+
+## Фаза H — Следующие шаги
+- [ ] Загрузка фото товаров и логотипа (Vercel Blob / Sharp → WebP)
+- [ ] Stripe Connect checkout (оплата заказов)
+- [ ] Email уведомления при новом заказе (Resend)
+- [ ] Онбординг визард (5 шагов) для нового пользователя
+- [ ] AI генерация описания товара (OpenAI, уже есть route)
+- [ ] Кастомные домены (Vercel API + DNS)
+- [ ] SEO hreflang теги для всех языков
 - [ ] Следующие шаблоны (restaurant, barber, workshop, portfolio)
+- [ ] Блог платформы

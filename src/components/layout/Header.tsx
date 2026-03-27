@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import Link from 'next/link';
 import Button from '@/components/ui/Button';
 
 const LOCALE_OPTIONS = [
@@ -52,10 +54,32 @@ function ChevronDownIcon() {
   );
 }
 
+function UserIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="8" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
+  const currentLocale = useLocale();
+  const router = useRouter();
+
+  const switchLocale = async (code: string) => {
+    setLangOpen(false);
+    await fetch('/api/locale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale: code }),
+    });
+    router.refresh();
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
@@ -90,7 +114,7 @@ export default function Header() {
               className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-neutral transition-colors hover:border-primary/30 hover:text-secondary cursor-pointer"
             >
               <GlobeIcon />
-              <span>SK</span>
+              <span>{currentLocale.toUpperCase()}</span>
               <ChevronDownIcon />
             </button>
 
@@ -99,8 +123,12 @@ export default function Header() {
                 {LOCALE_OPTIONS.map((locale) => (
                   <button
                     key={locale.code}
-                    onClick={() => setLangOpen(false)}
-                    className="flex w-full items-center px-3 py-1.5 text-xs font-medium text-neutral transition-colors hover:bg-accent hover:text-primary cursor-pointer"
+                    onClick={() => switchLocale(locale.code)}
+                    className={`flex w-full items-center px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                      currentLocale === locale.code
+                        ? 'bg-accent text-primary'
+                        : 'text-neutral hover:bg-accent hover:text-primary'
+                    }`}
                   >
                     {locale.label}
                   </button>
@@ -108,6 +136,15 @@ export default function Header() {
               </div>
             )}
           </div>
+
+          {/* Login link */}
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral transition-colors hover:text-secondary"
+          >
+            <UserIcon />
+            <span>{tCommon('login')}</span>
+          </Link>
 
           <Button size="sm" href="#pricing">
             {t('cta')}
@@ -138,6 +175,15 @@ export default function Header() {
                 {t(item.key)}
               </a>
             ))}
+            {/* Mobile login link */}
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-accent hover:text-secondary"
+            >
+              <UserIcon />
+              {tCommon('login')}
+            </Link>
           </nav>
 
           {/* Mobile language pills */}
@@ -145,7 +191,12 @@ export default function Header() {
             {LOCALE_OPTIONS.map((locale) => (
               <button
                 key={locale.code}
-                className="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-neutral hover:border-primary/30 hover:text-primary cursor-pointer"
+                onClick={() => { switchLocale(locale.code); setMenuOpen(false); }}
+                className={`rounded-md border px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                  currentLocale === locale.code
+                    ? 'border-primary bg-accent text-primary'
+                    : 'border-gray-200 text-neutral hover:border-primary/30 hover:text-primary'
+                }`}
               >
                 {locale.label}
               </button>

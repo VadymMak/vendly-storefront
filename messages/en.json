@@ -281,5 +281,33 @@
     "storeTypeRepair": "Repair shop",
     "storeTypeDigital": "Digital products",
     "storeTypeRestaurant": "Restaurant"
+  },
+  "aiWizard": {
+    "step1Title": "Tell us about your business",
+    "step1Subtitle": "AI will create your shop, description and starter products in seconds",
+    "businessName": "Business name",
+    "businessNamePlaceholder": "E.g. Maria's Bakery, Auto Service Novak...",
+    "businessDesc": "What do you sell? (optional)",
+    "businessDescPlaceholder": "E.g. homemade bread, custom cakes, manicure...",
+    "businessType": "Business type",
+    "shopLanguage": "Shop language",
+    "slug": "Shop URL",
+    "slugHint": "e.g. marias-bakery → marias-bakery.vendshop.shop",
+    "generateBtn": "Create with AI",
+    "skipBtn": "Set up manually",
+    "step2Title": "AI is creating your shop...",
+    "step2Subtitle": "This will just take a moment",
+    "step3Title": "Your shop is ready!",
+    "step3Subtitle": "Review and edit the generated content if needed",
+    "generatedDesc": "Shop description",
+    "generatedColor": "Color scheme",
+    "colorReason": "Why this scheme:",
+    "generatedItems": "Starter products",
+    "confirmBtn": "Create shop",
+    "backBtn": "Back",
+    "errorGenerate": "AI generation failed. Please try again.",
+    "errorSlug": "Please enter a shop URL.",
+    "creating": "Creating your shop...",
+    "price": "Price"
   }
 }

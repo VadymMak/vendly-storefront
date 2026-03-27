@@ -190,6 +190,24 @@ export interface AdminUser {
   createdAt: string;
 }
 
+// ===== AI Setup Wizard types =====
+
+export interface AiSetupItem {
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  category: string;
+  type: ItemType;
+}
+
+export interface AiSetupResult {
+  shopDescription: string;
+  colorScheme: 'light' | 'dark' | 'warm' | 'bold';
+  colorReason: string;
+  items: AiSetupItem[];
+}
+
 export interface ColorSchemeTokens {
   bg: string;
   bgCard: string;

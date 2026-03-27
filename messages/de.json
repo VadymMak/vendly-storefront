@@ -281,5 +281,33 @@
     "storeTypeRepair": "Reparaturwerkstatt",
     "storeTypeDigital": "Digitale Produkte",
     "storeTypeRestaurant": "Restaurant"
+  },
+  "aiWizard": {
+    "step1Title": "Erzählen Sie uns von Ihrem Unternehmen",
+    "step1Subtitle": "AI erstellt Ihren Shop, eine Beschreibung und erste Produkte in Sekunden",
+    "businessName": "Unternehmensname",
+    "businessNamePlaceholder": "z.B. Bäckerei Maria, Auto Service Novak...",
+    "businessDesc": "Was verkaufen Sie? (optional)",
+    "businessDescPlaceholder": "z.B. hausgemachtes Brot, Torten nach Maß, Maniküre...",
+    "businessType": "Art des Unternehmens",
+    "shopLanguage": "Shopsprache",
+    "slug": "Shop-URL",
+    "slugHint": "z.B. baeckerei-maria → baeckerei-maria.vendshop.shop",
+    "generateBtn": "Mit AI erstellen",
+    "skipBtn": "Manuell einrichten",
+    "step2Title": "AI erstellt Ihren Shop...",
+    "step2Subtitle": "Das dauert nur einen Moment",
+    "step3Title": "Ihr Shop ist bereit!",
+    "step3Subtitle": "Überprüfen und bearbeiten Sie den generierten Inhalt",
+    "generatedDesc": "Shop-Beschreibung",
+    "generatedColor": "Farbschema",
+    "colorReason": "Warum dieses Schema:",
+    "generatedItems": "Startprodukte",
+    "confirmBtn": "Shop erstellen",
+    "backBtn": "Zurück",
+    "errorGenerate": "AI-Generierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "errorSlug": "Bitte geben Sie eine Shop-URL ein.",
+    "creating": "Erstelle Ihren Shop...",
+    "price": "Preis"
   }
 }

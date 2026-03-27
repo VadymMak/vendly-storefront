@@ -281,5 +281,33 @@
     "storeTypeRepair": "Ремонтна майстерня",
     "storeTypeDigital": "Цифрові продукти",
     "storeTypeRestaurant": "Ресторан"
+  },
+  "aiWizard": {
+    "step1Title": "Розкажіть про свій бізнес",
+    "step1Subtitle": "AI створить ваш магазин, опис і перші товари за кілька секунд",
+    "businessName": "Назва бізнесу",
+    "businessNamePlaceholder": "Напр. Пекарня Марія, Автосервіс Новак...",
+    "businessDesc": "Що ви продаєте? (необов'язково)",
+    "businessDescPlaceholder": "Напр. домашній хліб, торти на замовлення, манікюр...",
+    "businessType": "Тип бізнесу",
+    "shopLanguage": "Мова магазину",
+    "slug": "URL-адреса магазину",
+    "slugHint": "напр. pekarnya-mariya → pekarnya-mariya.vendshop.shop",
+    "generateBtn": "Створити з AI",
+    "skipBtn": "Налаштувати вручну",
+    "step2Title": "AI створює ваш магазин...",
+    "step2Subtitle": "Це займе лише мить",
+    "step3Title": "Ваш магазин готовий!",
+    "step3Subtitle": "Перевірте та відредагуйте згенерований вміст",
+    "generatedDesc": "Опис магазину",
+    "generatedColor": "Кольорова схема",
+    "colorReason": "Чому ця схема:",
+    "generatedItems": "Стартові товари",
+    "confirmBtn": "Створити магазин",
+    "backBtn": "Назад",
+    "errorGenerate": "Генерація AI не вдалася. Спробуйте ще раз.",
+    "errorSlug": "Введіть URL-адресу магазину.",
+    "creating": "Створюємо ваш магазин...",
+    "price": "Ціна"
   }
 }

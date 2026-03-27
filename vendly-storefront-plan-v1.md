@@ -32,10 +32,12 @@
 - [x] FeaturesSection: inline SVG иконки, чередующийся фон (white/accent), hover с инверсией иконки
 - [x] Feature тип и FEATURES данные вынесены в types.ts/constants.ts
 
-### П4 — Pricing
-- [ ] Красивые карточки с hover эффектами
-- [ ] Toggle месячный/годовой биллинг
-- [ ] Анимация при появлении
+### П4 — PricingSection + FaqSection ✅
+- [x] PricingSection: 3 карточки (Free/Starter/Pro), Starter highlighted с зелёным bg и бейджем «Najobľúbenejší»
+- [x] PricingSection: inline SVG галочки, hover подъём, staggered fade-in-up
+- [x] FaqSection: 6 вопросов accordion (один открытый), CSS @keyframes accordion-open
+- [x] FaqSection: inline SVG иконки (question mark, chevron с rotate), активное состояние (accent bg, primary border)
+- [x] Bugfix: Fragment key в HowItWorks.tsx (React warning)
 
 ### П5 — Mobile responsive
 - [ ] Mobile menu (burger)

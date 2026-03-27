@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { HOW_IT_WORKS_STEPS } from '@/lib/constants';
 import Badge from '@/components/ui/Badge';
 
@@ -59,9 +60,8 @@ export default function HowItWorks() {
         {/* Steps grid with arrows */}
         <div className="mt-16 grid items-center gap-6 md:grid-cols-[1fr_auto_1fr_auto_1fr]">
           {HOW_IT_WORKS_STEPS.map((step, i) => (
-            <>
+            <Fragment key={step.id}>
               <div
-                key={step.id}
                 className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm"
                 style={{ animationDelay: `${i * 200}ms` }}
               >
@@ -86,9 +86,9 @@ export default function HowItWorks() {
 
               {/* Arrow between steps (not after the last one) */}
               {i < HOW_IT_WORKS_STEPS.length - 1 && (
-                <StepArrow key={`arrow-${i}`} />
+                <StepArrow />
               )}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>

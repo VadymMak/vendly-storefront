@@ -268,6 +268,18 @@
     "colorLight": "Світла",
     "colorDark": "Темна",
     "colorWarm": "Тепла",
-    "colorBold": "Яскрава"
+    "colorBold": "Яскрава",
+    "sectionBasic": "Основна інформація",
+    "sectionDesign": "Дизайн",
+    "sectionContact": "Контакт & соціальні мережі",
+    "sectionAbout": "Про магазин",
+    "publishedStatus": "Магазин публічний.",
+    "unpublishedStatus": "Магазин прихований.",
+    "storeTypeFood": "Їжа & продукти",
+    "storeTypePhysical": "Фізичний магазин",
+    "storeTypeBeauty": "Краса & велнес",
+    "storeTypeRepair": "Ремонтна майстерня",
+    "storeTypeDigital": "Цифрові продукти",
+    "storeTypeRestaurant": "Ресторан"
   }
 }

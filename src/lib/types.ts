@@ -111,6 +111,50 @@ export interface ShopReview {
   createdAt: string;
 }
 
+// ===== Dashboard types =====
+
+export interface DashboardStats {
+  itemCount: number;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface DashboardOrder {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface ProductFormData {
+  name: string;
+  description: string;
+  price: string;
+  currency: string;
+  category: string;
+  type: ItemType;
+  isAvailable: boolean;
+}
+
+export interface StoreSettingsFormData {
+  name: string;
+  description: string;
+  shopLanguage: string;
+  colorScheme: 'light' | 'dark' | 'warm' | 'bold';
+  currency: string;
+  whatsapp: string;
+  instagram: string;
+  facebook: string;
+  address: string;
+  phone: string;
+  openingHours: string;
+  deliveryInfo: string;
+  aboutText: string;
+  isPublished: boolean;
+}
+
 export interface ColorSchemeTokens {
   bg: string;
   bgCard: string;

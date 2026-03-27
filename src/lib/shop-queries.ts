@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { ShopData, ShopItem, ShopSettings, ShopReview } from './types';
+import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardStats, DashboardOrder } from './types';
 
 export async function getStoreBySlug(slug: string): Promise<ShopData | null> {
   const store = await db.store.findUnique({
@@ -106,6 +106,61 @@ export async function getStoreCategories(storeId: string): Promise<string[]> {
   return items
     .map((i) => i.category)
     .filter((c): c is string => c !== null);
+}
+
+// ===== Dashboard queries =====
+
+export async function getStoreByUserId(userId: string): Promise<ShopData | null> {
+  const store = await db.store.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!store) return null;
+
+  return {
+    id: store.id,
+    slug: store.slug,
+    name: store.name,
+    description: store.description,
+    logo: store.logo,
+    templateId: store.templateId,
+    shopLanguage: store.shopLanguage,
+    settings: store.settings as unknown as ShopSettings,
+    isPublished: store.isPublished,
+  };
+}
+
+export async function getDashboardStats(storeId: string): Promise<DashboardStats> {
+  const [itemCount, orderCount, orders] = await Promise.all([
+    db.item.count({ where: { storeId } }),
+    db.order.count({ where: { storeId } }),
+    db.order.findMany({
+      where: { storeId, status: { in: ['PAID', 'COMPLETED'] } },
+      select: { total: true },
+    }),
+  ]);
+
+  const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+
+  return { itemCount, orderCount, revenue };
+}
+
+export async function getDashboardOrders(storeId: string, limit = 20): Promise<DashboardOrder[]> {
+  const orders = await db.order.findMany({
+    where: { storeId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return orders.map((o) => ({
+    id: o.id,
+    customerName: o.customerName,
+    customerEmail: o.customerEmail,
+    total: o.total,
+    status: o.status,
+    createdAt: o.createdAt.toISOString(),
+  }));
 }
 
 export async function getStoreReviews(storeId: string): Promise<ShopReview[]> {

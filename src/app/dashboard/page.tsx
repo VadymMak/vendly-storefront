@@ -1,20 +1,184 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { getStoreByUserId, getDashboardStats, getDashboardOrders } from '@/lib/shop-queries';
+
+const STATUS_LABELS: Record<string, { label: string; class: string }> = {
+  PENDING:   { label: 'Čaká',      class: 'bg-yellow-100 text-yellow-800' },
+  PAID:      { label: 'Zaplatená', class: 'bg-green-100 text-green-800' },
+  SHIPPED:   { label: 'Odoslaná',  class: 'bg-blue-100 text-blue-800' },
+  COMPLETED: { label: 'Dokončená', class: 'bg-gray-100 text-gray-800' },
+  CANCELLED: { label: 'Zrušená',   class: 'bg-red-100 text-red-800' },
+};
 
 export default async function DashboardPage() {
   const session = await auth();
+  if (!session?.user?.id) redirect('/login');
 
-  if (!session?.user) {
-    redirect('/login');
+  const store = await getStoreByUserId(session.user.id);
+
+  if (!store) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" />
+            <path d="M16 10a4 4 0 01-8 0" />
+          </svg>
+        </div>
+        <h2 className="mt-4 text-xl font-bold text-secondary">Nemáte ešte žiadny obchod</h2>
+        <p className="mt-2 text-neutral">Vytvorte si prvý obchod a začnite predávať.</p>
+        <Link
+          href="/dashboard/settings"
+          className="mt-6 rounded-lg bg-primary px-6 py-3 font-semibold text-white hover:bg-primary-dark"
+        >
+          Vytvoriť obchod
+        </Link>
+      </div>
+    );
   }
 
+  const [stats, recentOrders] = await Promise.all([
+    getDashboardStats(store.id),
+    getDashboardOrders(store.id, 5),
+  ]);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold text-secondary">Dashboard</h1>
-      <p className="mt-2 text-neutral">
-        Vitajte, {session.user.name || session.user.email}!
-      </p>
-      {/* TODO: Dashboard checklist, store management */}
+    <div>
+      {/* Header */}
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-secondary">{store.name}</h1>
+          <p className="mt-1 text-sm text-neutral">
+            {store.isPublished ? (
+              <span className="inline-flex items-center gap-1 text-primary">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                Obchod je živý —{' '}
+                <a href={`https://${store.slug}.vendshop.shop`} target="_blank" rel="noopener noreferrer" className="underline">
+                  {store.slug}.vendshop.shop
+                </a>
+              </span>
+            ) : (
+              <span className="text-amber-600">Obchod nie je zverejnený</span>
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href={`/shop/${store.slug}`}
+            target="_blank"
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Zobraziť obchod
+          </Link>
+          <Link
+            href="/dashboard/products/new"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            + Pridať produkt
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Produkty"
+          value={stats.itemCount}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 01-8 0" />
+            </svg>
+          }
+          href="/dashboard/products"
+        />
+        <StatCard
+          label="Objednávky"
+          value={stats.orderCount}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+            </svg>
+          }
+          href="/dashboard/orders"
+        />
+        <StatCard
+          label="Tržby (zaplatené)"
+          value={`${stats.revenue.toFixed(2)} €`}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+          }
+        />
+      </div>
+
+      {/* Recent orders */}
+      <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <h2 className="font-semibold text-secondary">Posledné objednávky</h2>
+          <Link href="/dashboard/orders" className="text-sm text-primary hover:underline">
+            Všetky
+          </Link>
+        </div>
+        {recentOrders.length === 0 ? (
+          <div className="py-10 text-center text-neutral">
+            Zatiaľ žiadne objednávky.
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {recentOrders.map((order) => {
+              const status = STATUS_LABELS[order.status] || { label: order.status, class: 'bg-gray-100 text-gray-600' };
+              return (
+                <li key={order.id} className="flex items-center justify-between px-6 py-4">
+                  <div>
+                    <p className="font-medium text-secondary">{order.customerName}</p>
+                    <p className="text-sm text-neutral">{order.customerEmail}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.class}`}>
+                      {status.label}
+                    </span>
+                    <span className="font-semibold text-secondary">
+                      {order.total.toFixed(2)} €
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  href?: string;
+}) {
+  const content = (
+    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent text-primary">
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm text-neutral">{label}</p>
+        <p className="text-2xl font-bold text-secondary">{value}</p>
+      </div>
+    </div>
+  );
+
+  if (href) {
+    return <Link href={href} className="block hover:shadow-md transition-shadow">{content}</Link>;
+  }
+  return content;
 }

@@ -27,8 +27,12 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <a href="/" className="text-xl font-bold text-secondary">
-          {SITE_NAME}
+        <a href="/" className="inline-flex items-center gap-2">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="32" height="32" rx="7" fill="#2563EB" />
+            <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="18" fill="white">V.</text>
+          </svg>
+          <span className="text-xl font-bold text-blue-600">Vendly</span>
         </a>
 
         {/* Desktop nav */}

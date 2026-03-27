@@ -26,7 +26,13 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <h3 className="text-lg font-bold">{SITE_NAME}</h3>
+            <div className="flex items-center gap-2">
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="32" height="32" rx="7" fill="#2563EB" />
+                <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="18" fill="white">V.</text>
+              </svg>
+              <h3 className="text-lg font-bold">Vendly</h3>
+            </div>
             <p className="mt-2 text-sm text-gray-400">
               Platforma pre malý biznis v SK, CZ, UA a DE.
             </p>

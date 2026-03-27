@@ -55,6 +55,11 @@
 - [x] Якоря проверены: #features, #how-it-works, #pricing, #faq — все совпадают с id секций
 - [x] pnpm build: 0 ошибок, 0 warnings, static prerender OK
 
+### П7 — Favicon и логотип ✅
+- [x] Favicon: src/app/icon.svg — синий rounded square с «V.» белым текстом
+- [x] Header: inline SVG логотип (28×28) + «Vendly» text-blue-600
+- [x] Footer: inline SVG логотип (24×24) + «Vendly»
+
 ## 3. Phase 2 (после MVP)
 
 - [ ] Интеграция в vendly: ссылки на реальную платформу, демо-сайты, аналитика

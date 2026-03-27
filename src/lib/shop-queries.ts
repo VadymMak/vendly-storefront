@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardStats, DashboardOrder } from './types';
+import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardStats, DashboardOrder, BrowseStore, AdminStore, AdminUser } from './types';
 
 export async function getStoreBySlug(slug: string): Promise<ShopData | null> {
   const store = await db.store.findUnique({
@@ -160,6 +160,71 @@ export async function getDashboardOrders(storeId: string, limit = 20): Promise<D
     total: o.total,
     status: o.status,
     createdAt: o.createdAt.toISOString(),
+  }));
+}
+
+// ===== Browse (marketplace) queries =====
+
+export async function getPublishedStores(templateId?: string): Promise<BrowseStore[]> {
+  const where: Record<string, unknown> = { isPublished: true };
+  if (templateId) {
+    where.templateId = templateId;
+  }
+
+  const stores = await db.store.findMany({
+    where,
+    include: { _count: { select: { items: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return stores.map((s) => ({
+    id: s.id,
+    slug: s.slug,
+    name: s.name,
+    description: s.description,
+    logo: s.logo,
+    templateId: s.templateId,
+    itemCount: s._count.items,
+    createdAt: s.createdAt.toISOString(),
+  }));
+}
+
+// ===== Admin queries =====
+
+export async function getAllStoresAdmin(): Promise<AdminStore[]> {
+  const stores = await db.store.findMany({
+    include: {
+      _count: { select: { items: true } },
+      user: { select: { email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return stores.map((s) => ({
+    id: s.id,
+    slug: s.slug,
+    name: s.name,
+    templateId: s.templateId,
+    isPublished: s.isPublished,
+    itemCount: s._count.items,
+    userEmail: s.user.email,
+    createdAt: s.createdAt.toISOString(),
+  }));
+}
+
+export async function getAllUsersAdmin(): Promise<AdminUser[]> {
+  const users = await db.user.findMany({
+    include: { _count: { select: { stores: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return users.map((u) => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    plan: u.plan,
+    storeCount: u._count.stores,
+    createdAt: u.createdAt.toISOString(),
   }));
 }
 

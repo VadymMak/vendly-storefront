@@ -155,6 +155,41 @@ export interface StoreSettingsFormData {
   isPublished: boolean;
 }
 
+// ===== Browse (marketplace) types =====
+
+export interface BrowseStore {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  logo: string | null;
+  templateId: string;
+  itemCount: number;
+  createdAt: string;
+}
+
+// ===== Admin types =====
+
+export interface AdminStore {
+  id: string;
+  slug: string;
+  name: string;
+  templateId: string;
+  isPublished: boolean;
+  itemCount: number;
+  userEmail: string;
+  createdAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: string;
+  storeCount: number;
+  createdAt: string;
+}
+
 export interface ColorSchemeTokens {
   bg: string;
   bgCard: string;

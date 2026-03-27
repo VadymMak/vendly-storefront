@@ -268,6 +268,18 @@
     "colorLight": "Svetlá",
     "colorDark": "Tmavá",
     "colorWarm": "Teplá",
-    "colorBold": "Výrazná"
+    "colorBold": "Výrazná",
+    "sectionBasic": "Základné informácie",
+    "sectionDesign": "Dizajn",
+    "sectionContact": "Kontakt & sociálne siete",
+    "sectionAbout": "O obchode",
+    "publishedStatus": "Obchod je verejný.",
+    "unpublishedStatus": "Obchod je skrytý.",
+    "storeTypeFood": "Jedlo & potraviny",
+    "storeTypePhysical": "Fyzický obchod",
+    "storeTypeBeauty": "Krása & wellness",
+    "storeTypeRepair": "Opravovňa",
+    "storeTypeDigital": "Digitálne produkty",
+    "storeTypeRestaurant": "Reštaurácia"
   }
 }

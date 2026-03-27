@@ -268,6 +268,18 @@
     "colorLight": "Light",
     "colorDark": "Dark",
     "colorWarm": "Warm",
-    "colorBold": "Bold"
+    "colorBold": "Bold",
+    "sectionBasic": "Basic information",
+    "sectionDesign": "Design",
+    "sectionContact": "Contact & social media",
+    "sectionAbout": "About the store",
+    "publishedStatus": "Store is public.",
+    "unpublishedStatus": "Store is hidden.",
+    "storeTypeFood": "Food & products",
+    "storeTypePhysical": "Physical store",
+    "storeTypeBeauty": "Beauty & wellness",
+    "storeTypeRepair": "Repair shop",
+    "storeTypeDigital": "Digital products",
+    "storeTypeRestaurant": "Restaurant"
   }
 }

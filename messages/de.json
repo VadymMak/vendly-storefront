@@ -268,6 +268,18 @@
     "colorLight": "Hell",
     "colorDark": "Dunkel",
     "colorWarm": "Warm",
-    "colorBold": "Kräftig"
+    "colorBold": "Kräftig",
+    "sectionBasic": "Grundinformationen",
+    "sectionDesign": "Design",
+    "sectionContact": "Kontakt & soziale Medien",
+    "sectionAbout": "Über den Shop",
+    "publishedStatus": "Shop ist öffentlich.",
+    "unpublishedStatus": "Shop ist versteckt.",
+    "storeTypeFood": "Lebensmittel & Produkte",
+    "storeTypePhysical": "Physisches Geschäft",
+    "storeTypeBeauty": "Beauty & Wellness",
+    "storeTypeRepair": "Reparaturwerkstatt",
+    "storeTypeDigital": "Digitale Produkte",
+    "storeTypeRestaurant": "Restaurant"
   }
 }

@@ -11,6 +11,32 @@
     "loading": "Loading...",
     "error": "An error occurred"
   },
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "cta": "Start for free"
+  },
+  "hero": {
+    "badge": "New platform for small business",
+    "title": "Your online store in 5 minutes",
+    "subtitle": "Create a professional online store without technical skills. Sell products, accept orders and grow with VendShop.",
+    "cta": "Start for free",
+    "demo": "View demo"
+  },
+  "cta": {
+    "title": "Start selling online today",
+    "subtitle": "Enter your store name and get started in seconds. No commitment, no fees.",
+    "placeholder": "Store name...",
+    "button": "Create store",
+    "free": "Completely free",
+    "noCard": "No credit card",
+    "fast": "Ready in 5 minutes"
+  },
+  "footer": {
+    "copyright": "All rights reserved."
+  },
   "landing": {
     "tagline": "Your online store in 5 minutes",
     "subtitle": "Create a professional online store without technical skills. Sell products, accept orders and grow with VendShop.",
@@ -19,12 +45,18 @@
   },
   "auth": {
     "loginTitle": "Sign in",
+    "loginSubtitle": "Sign in to your VendShop account.",
     "registerTitle": "Create account",
+    "registerSubtitle": "Create an account and start selling online.",
     "email": "Email",
     "password": "Password",
     "name": "Your name",
+    "loginButton": "Sign in",
+    "registerButton": "Create account",
     "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?"
+    "hasAccount": "Already have an account?",
+    "errorInvalid": "Invalid email or password.",
+    "errorGeneric": "Something went wrong. Please try again."
   },
   "dashboard": {
     "welcome": "Welcome",

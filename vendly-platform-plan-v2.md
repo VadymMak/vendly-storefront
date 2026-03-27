@@ -31,7 +31,15 @@
 - [x] Protected by ADMIN_EMAIL env var
 - [x] Navigation between admin pages
 
-## Фаза F — Следующие шаги
+## Фаза F — i18n, Auth forms, Edit product ✅
+- [x] i18n messages: nav, hero, cta, footer, auth keys in all 5 languages (EN/SK/UK/CS/DE)
+- [x] Header: language switcher dropdown (SK/EN/UK/CS/DE) with globe icon, useTranslations for nav
+- [x] CtaSection: useTranslations for title, subtitle, button, perks
+- [x] Login page: full form with signIn('credentials'), error handling, link to /register
+- [x] Register page: full form with POST /api/register, auto-login, link to /login
+- [x] Product edit page: /dashboard/products/[id]/edit — fetch item, check ownership, ProductForm with defaultValues
+
+## Фаза G — Следующие шаги
 - [ ] Онбординг визард (5 шагов)
 - [ ] AI генерация магазина (OpenAI)
 - [ ] Stripe Connect checkout

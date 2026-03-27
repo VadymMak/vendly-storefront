@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { SITE_URL } from '@/lib/constants';
 
 function FreeIcon() {
@@ -42,14 +43,15 @@ function ArrowIcon() {
   );
 }
 
-const PERKS = [
-  { icon: <FreeIcon />, label: 'Úplne zadarmo' },
-  { icon: <NoCardIcon />, label: 'Bez kreditnej karty' },
-  { icon: <ClockIcon />, label: 'Hotové za 5 minút' },
-] as const;
-
 export default function CtaSection() {
   const [shopName, setShopName] = useState('');
+  const t = useTranslations('cta');
+
+  const perks = [
+    { icon: <FreeIcon />, label: t('free') },
+    { icon: <NoCardIcon />, label: t('noCard') },
+    { icon: <ClockIcon />, label: t('fast') },
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,11 +70,10 @@ export default function CtaSection() {
 
       <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
         <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
-          Začnite predávať online ešte dnes
+          {t('title')}
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-base text-white/80 sm:text-lg">
-          Zadajte názov vášho obchodu a začnite za&nbsp;pár&nbsp;sekúnd.
-          Žiadne záväzky, žiadne poplatky.
+          {t('subtitle')}
         </p>
 
         {/* Form */}
@@ -84,21 +85,21 @@ export default function CtaSection() {
             type="text"
             value={shopName}
             onChange={(e) => setShopName(e.target.value)}
-            placeholder="Názov obchodu..."
+            placeholder={t('placeholder')}
             className="flex-1 rounded-lg border-2 border-white/20 bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none backdrop-blur-sm transition-colors focus:border-white/60 sm:rounded-r-none sm:border-r-0"
           />
           <button
             type="submit"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-primary transition-colors hover:bg-white/90 cursor-pointer sm:rounded-l-none"
           >
-            <span>Vytvoriť obchod</span>
+            <span>{t('button')}</span>
             <ArrowIcon />
           </button>
         </form>
 
         {/* Perks */}
         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
-          {PERKS.map((perk) => (
+          {perks.map((perk) => (
             <div key={perk.label} className="flex items-center gap-2 text-sm text-white/70">
               {perk.icon}
               <span>{perk.label}</span>

@@ -11,6 +11,32 @@
     "loading": "Lädt...",
     "error": "Ein Fehler ist aufgetreten"
   },
+  "nav": {
+    "features": "Funktionen",
+    "howItWorks": "So funktioniert's",
+    "pricing": "Preise",
+    "faq": "FAQ",
+    "cta": "Kostenlos starten"
+  },
+  "hero": {
+    "badge": "Neue Plattform für Kleinunternehmen",
+    "title": "Ihr Online-Shop in 5 Minuten",
+    "subtitle": "Erstellen Sie einen professionellen Online-Shop ohne technische Kenntnisse. Verkaufen Sie Produkte, nehmen Sie Bestellungen an und wachsen Sie mit VendShop.",
+    "cta": "Kostenlos starten",
+    "demo": "Demo ansehen"
+  },
+  "cta": {
+    "title": "Starten Sie noch heute mit dem Online-Verkauf",
+    "subtitle": "Geben Sie Ihren Shopnamen ein und starten Sie in Sekunden. Keine Verpflichtung, keine Gebühren.",
+    "placeholder": "Shopname...",
+    "button": "Shop erstellen",
+    "free": "Völlig kostenlos",
+    "noCard": "Keine Kreditkarte",
+    "fast": "In 5 Minuten fertig"
+  },
+  "footer": {
+    "copyright": "Alle Rechte vorbehalten."
+  },
   "landing": {
     "tagline": "Ihr Online-Shop in 5 Minuten",
     "subtitle": "Erstellen Sie einen professionellen Online-Shop ohne technische Kenntnisse. Verkaufen Sie Produkte, nehmen Sie Bestellungen an und wachsen Sie mit VendShop.",
@@ -19,12 +45,18 @@
   },
   "auth": {
     "loginTitle": "Anmeldung",
+    "loginSubtitle": "Melden Sie sich bei Ihrem VendShop-Konto an.",
     "registerTitle": "Registrierung",
+    "registerSubtitle": "Erstellen Sie ein Konto und starten Sie den Online-Verkauf.",
     "email": "E-Mail",
     "password": "Passwort",
     "name": "Ihr Name",
+    "loginButton": "Anmelden",
+    "registerButton": "Konto erstellen",
     "noAccount": "Kein Konto?",
-    "hasAccount": "Bereits ein Konto?"
+    "hasAccount": "Bereits ein Konto?",
+    "errorInvalid": "Ungültige E-Mail oder Passwort.",
+    "errorGeneric": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut."
   },
   "dashboard": {
     "welcome": "Willkommen",

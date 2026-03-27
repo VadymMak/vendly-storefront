@@ -11,6 +11,32 @@
     "loading": "Načítá se...",
     "error": "Došlo k chybě"
   },
+  "nav": {
+    "features": "Funkce",
+    "howItWorks": "Jak to funguje",
+    "pricing": "Ceník",
+    "faq": "FAQ",
+    "cta": "Začít zdarma"
+  },
+  "hero": {
+    "badge": "Nová platforma pro malý byznys",
+    "title": "Váš online obchod za 5 minut",
+    "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
+    "cta": "Začít zdarma",
+    "demo": "Zobrazit demo"
+  },
+  "cta": {
+    "title": "Začněte prodávat online ještě dnes",
+    "subtitle": "Zadejte název obchodu a začněte za pár sekund. Žádné závazky, žádné poplatky.",
+    "placeholder": "Název obchodu...",
+    "button": "Vytvořit obchod",
+    "free": "Zcela zdarma",
+    "noCard": "Bez kreditní karty",
+    "fast": "Hotovo za 5 minut"
+  },
+  "footer": {
+    "copyright": "Všechna práva vyhrazena."
+  },
   "landing": {
     "tagline": "Váš online obchod za 5 minut",
     "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
@@ -19,12 +45,18 @@
   },
   "auth": {
     "loginTitle": "Přihlášení",
+    "loginSubtitle": "Přihlaste se do svého účtu VendShop.",
     "registerTitle": "Registrace",
+    "registerSubtitle": "Vytvořte si účet a začněte prodávat online.",
     "email": "Email",
     "password": "Heslo",
     "name": "Vaše jméno",
+    "loginButton": "Přihlásit se",
+    "registerButton": "Vytvořit účet",
     "noAccount": "Nemáte účet?",
-    "hasAccount": "Již máte účet?"
+    "hasAccount": "Již máte účet?",
+    "errorInvalid": "Nesprávný email nebo heslo.",
+    "errorGeneric": "Něco se pokazilo. Zkuste to znovu."
   },
   "dashboard": {
     "welcome": "Vítejte",

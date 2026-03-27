@@ -47,3 +47,79 @@ export interface Feature {
   title: string;
   description: string;
 }
+
+// ===== Shop (storefront) types =====
+
+export interface ShopData {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  logo: string | null;
+  templateId: string;
+  shopLanguage: string;
+  settings: ShopSettings;
+  isPublished: boolean;
+}
+
+export interface ShopSettings {
+  colorScheme: 'light' | 'dark' | 'warm' | 'bold';
+  currency: string;
+  whatsapp?: string;
+  instagram?: string;
+  facebook?: string;
+  address?: string;
+  phone?: string;
+  openingHours?: string;
+  deliveryInfo?: string;
+  aboutText?: string;
+}
+
+export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';
+
+export interface ShopItem {
+  id: string;
+  type: ItemType;
+  name: string;
+  description: string | null;
+  price: number | null;
+  currency: string;
+  category: string | null;
+  images: string[];
+  isAvailable: boolean;
+  sortOrder: number;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface CartItem {
+  item: ShopItem;
+  quantity: number;
+}
+
+export interface OrderFormData {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  note?: string;
+}
+
+export interface ShopReview {
+  id: string;
+  author: string;
+  rating: number;
+  text: string;
+  createdAt: string;
+}
+
+export interface ColorSchemeTokens {
+  bg: string;
+  bgCard: string;
+  text: string;
+  textMuted: string;
+  accent: string;
+  accentHover: string;
+  border: string;
+  headerBg: string;
+  footerBg: string;
+  footerText: string;
+}

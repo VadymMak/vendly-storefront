@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -211,3 +211,74 @@ export const FAQ_ITEMS: FaqItem[] = [
     answer: 'Základný obchod si vytvoríte za 5 minút. Pridanie produktov a nastavenie dizajnu zvyčajne zaberie 1-2 hodiny.',
   },
 ];
+
+// ===== Shop color schemes =====
+
+export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
+  light: {
+    bg: 'bg-white',
+    bgCard: 'bg-gray-50',
+    text: 'text-gray-900',
+    textMuted: 'text-gray-500',
+    accent: 'bg-primary text-white',
+    accentHover: 'hover:bg-primary-dark',
+    border: 'border-gray-200',
+    headerBg: 'bg-white',
+    footerBg: 'bg-gray-50',
+    footerText: 'text-gray-600',
+  },
+  dark: {
+    bg: 'bg-gray-950',
+    bgCard: 'bg-gray-900',
+    text: 'text-white',
+    textMuted: 'text-gray-400',
+    accent: 'bg-primary text-white',
+    accentHover: 'hover:bg-primary-light',
+    border: 'border-gray-800',
+    headerBg: 'bg-gray-950',
+    footerBg: 'bg-gray-900',
+    footerText: 'text-gray-400',
+  },
+  warm: {
+    bg: 'bg-amber-50',
+    bgCard: 'bg-white',
+    text: 'text-amber-950',
+    textMuted: 'text-amber-700',
+    accent: 'bg-amber-600 text-white',
+    accentHover: 'hover:bg-amber-700',
+    border: 'border-amber-200',
+    headerBg: 'bg-white',
+    footerBg: 'bg-amber-100',
+    footerText: 'text-amber-800',
+  },
+  bold: {
+    bg: 'bg-indigo-950',
+    bgCard: 'bg-indigo-900',
+    text: 'text-white',
+    textMuted: 'text-indigo-300',
+    accent: 'bg-pink-500 text-white',
+    accentHover: 'hover:bg-pink-600',
+    border: 'border-indigo-800',
+    headerBg: 'bg-indigo-950',
+    footerBg: 'bg-indigo-900',
+    footerText: 'text-indigo-300',
+  },
+};
+
+// ===== Shop item category labels =====
+
+export const ITEM_TYPE_LABELS: Record<string, string> = {
+  PRODUCT: 'Produkty',
+  SERVICE: 'Služby',
+  MENU_ITEM: 'Menu',
+  PORTFOLIO: 'Portfólio',
+};
+
+// ===== Default shop currency format =====
+
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  EUR: '€',
+  CZK: 'Kč',
+  UAH: '₴',
+  USD: '$',
+};

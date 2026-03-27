@@ -1,13 +1,15 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { getStoreByUserId, getDashboardOrders } from '@/lib/shop-queries';
 import OrderStatusBadge from '@/components/dashboard/OrderStatusBadge';
 
-export const metadata = { title: 'Objednávky | Dashboard' };
+export const metadata = { title: 'Orders | Dashboard' };
 
 export default async function OrdersPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
+  const t = await getTranslations('dashboardOrders');
 
   const store = await getStoreByUserId(session.user.id);
   if (!store) redirect('/dashboard');
@@ -17,8 +19,8 @@ export default async function OrdersPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-secondary">Objednávky</h1>
-        <p className="mt-1 text-sm text-neutral">{orders.length} objednávok celkom</p>
+        <h1 className="text-2xl font-bold text-secondary">{t('title')}</h1>
+        <p className="mt-1 text-sm text-neutral">{orders.length} {t('totalOrders')}</p>
       </div>
 
       {orders.length === 0 ? (
@@ -26,19 +28,19 @@ export default async function OrdersPage() {
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
           </svg>
-          <p className="mt-3 font-medium text-secondary">Zatiaľ žiadne objednávky</p>
-          <p className="mt-1 text-sm text-neutral">Objednávky sa objavia tu keď zákazníci nakúpia.</p>
+          <p className="mt-3 font-medium text-secondary">{t('noOrders')}</p>
+          <p className="mt-1 text-sm text-neutral">{t('noOrdersDesc')}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium text-neutral">Zákazník</th>
-                <th className="hidden px-4 py-3 font-medium text-neutral sm:table-cell">E-mail</th>
-                <th className="px-4 py-3 font-medium text-neutral">Suma</th>
-                <th className="px-4 py-3 font-medium text-neutral">Stav</th>
-                <th className="hidden px-4 py-3 font-medium text-neutral md:table-cell">Dátum</th>
+                <th className="px-4 py-3 font-medium text-neutral">{t('colCustomer')}</th>
+                <th className="hidden px-4 py-3 font-medium text-neutral sm:table-cell">{t('colEmail')}</th>
+                <th className="px-4 py-3 font-medium text-neutral">{t('colTotal')}</th>
+                <th className="px-4 py-3 font-medium text-neutral">{t('colStatus')}</th>
+                <th className="hidden px-4 py-3 font-medium text-neutral md:table-cell">{t('colDate')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>

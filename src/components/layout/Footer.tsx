@@ -1,25 +1,30 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { SITE_NAME } from '@/lib/constants';
 
-const footerLinks = {
-  product: [
-    { label: 'Funkcie', href: '#features' },
-    { label: 'Cenník', href: '#pricing' },
-    { label: 'Šablóny', href: '#' },
-    { label: 'Príklady', href: '#' },
-  ],
-  support: [
-    { label: 'Dokumentácia', href: '#' },
-    { label: 'Kontakt', href: '#' },
-    { label: 'Status', href: '#' },
-  ],
-  legal: [
-    { label: 'Podmienky', href: '#' },
-    { label: 'Súkromie', href: '#' },
-    { label: 'GDPR', href: '#' },
-  ],
-};
-
 export default function Footer() {
+  const t = useTranslations('footer');
+
+  const footerLinks = {
+    product: [
+      { label: t('features'), href: '#features' },
+      { label: t('pricing'), href: '#pricing' },
+      { label: t('templates'), href: '#' },
+      { label: t('examples'), href: '#' },
+    ],
+    support: [
+      { label: t('docs'), href: '#' },
+      { label: t('contact'), href: '#' },
+      { label: t('status'), href: '#' },
+    ],
+    legal: [
+      { label: t('terms'), href: '#' },
+      { label: t('privacy'), href: '#' },
+      { label: t('gdpr'), href: '#' },
+    ],
+  };
+
   return (
     <footer className="border-t border-gray-100 bg-secondary text-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -34,13 +39,13 @@ export default function Footer() {
               <h3 className="text-lg font-bold text-primary">Vendly</h3>
             </div>
             <p className="mt-2 text-sm text-gray-400">
-              Platforma pre malý biznis v SK, CZ, UA a DE.
+              {t('description')}
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Produkt</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('product')}</h4>
             <ul className="mt-4 space-y-2">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
@@ -54,7 +59,7 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Podpora</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('support')}</h4>
             <ul className="mt-4 space-y-2">
               {footerLinks.support.map((link) => (
                 <li key={link.label}>
@@ -68,7 +73,7 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Právne</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('legal')}</h4>
             <ul className="mt-4 space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.label}>
@@ -82,7 +87,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} {SITE_NAME}. Všetky práva vyhradené.
+          &copy; {new Date().getFullYear()} {SITE_NAME}. {t('copyright')}
         </div>
       </div>
     </footer>

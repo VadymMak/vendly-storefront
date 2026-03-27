@@ -1,6 +1,6 @@
 'use client';
 
-import { PRICING_PLANS } from '@/lib/constants';
+import { useTranslations } from 'next-intl';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
@@ -21,22 +21,30 @@ function CheckIcon({ highlighted }: { highlighted: boolean }) {
   );
 }
 
+const PLANS = [
+  { id: 'free', name: 'Free', price: 0, highlighted: false, featureKeys: ['free_f1', 'free_f2', 'free_f3', 'free_f4'] },
+  { id: 'starter', name: 'Starter', price: 12, highlighted: true, featureKeys: ['starter_f1', 'starter_f2', 'starter_f3', 'starter_f4', 'starter_f5', 'starter_f6'] },
+  { id: 'pro', name: 'Pro', price: 29, highlighted: false, featureKeys: ['pro_f1', 'pro_f2', 'pro_f3', 'pro_f4', 'pro_f5', 'pro_f6', 'pro_f7'] },
+] as const;
+
 export default function PricingSection() {
+  const t = useTranslations('pricing');
+
   return (
     <section id="pricing" className="scroll-reveal bg-gray-50 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
-          <Badge variant="primary">Transparentný cenník</Badge>
+          <Badge variant="primary">{t('badge')}</Badge>
           <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
-            Jednoduchý cenník
+            {t('title')}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
-            Začnite zadarmo. Platíte len keď rastie váš biznis.
+            {t('subtitle')}
           </p>
         </div>
 
         <div className="mx-auto mt-14 grid max-w-5xl gap-8 lg:grid-cols-3">
-          {PRICING_PLANS.map((plan, i) => (
+          {PLANS.map((plan, i) => (
             <div
               key={plan.id}
               className={`animate-fade-in-up relative flex flex-col rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-8 ${
@@ -52,54 +60,49 @@ export default function PricingSection() {
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M6 1l1.5 3L11 5l-2.5 2.5.5 3L6 9l-3 1.5.5-3L1 5l3.5-1L6 1z" fill="#facc15" />
                     </svg>
-                    Najobľúbenejší
+                    {t('popular')}
                   </span>
                 </div>
               )}
 
-              {/* Plan name */}
               <h3 className={`text-lg font-bold ${plan.highlighted ? 'text-white' : 'text-secondary'}`}>
                 {plan.name}
               </h3>
 
-              {/* Price */}
               <div className="mt-4 flex items-baseline gap-1">
                 <span className={`text-4xl font-extrabold tracking-tight sm:text-5xl ${plan.highlighted ? 'text-white' : 'text-secondary'}`}>
                   {plan.price === 0 ? '0' : `${plan.price}`}
                 </span>
                 <div className={`flex flex-col text-sm ${plan.highlighted ? 'text-white/70' : 'text-neutral'}`}>
-                  <span>{plan.currency}</span>
-                  <span>/{plan.period}</span>
+                  <span>€</span>
+                  <span>/{t('month')}</span>
                 </div>
               </div>
 
               <p className={`mt-3 text-sm ${plan.highlighted ? 'text-white/80' : 'text-neutral'}`}>
-                {plan.description}
+                {t(`${plan.id}_desc`)}
               </p>
 
-              {/* Divider */}
               <div className={`my-6 h-px ${plan.highlighted ? 'bg-white/20' : 'bg-gray-200'}`} />
 
-              {/* Features */}
               <ul className="flex-1 space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2.5 text-sm">
+                {plan.featureKeys.map((fKey) => (
+                  <li key={fKey} className="flex items-start gap-2.5 text-sm">
                     <CheckIcon highlighted={plan.highlighted} />
                     <span className={plan.highlighted ? 'text-white' : 'text-secondary'}>
-                      {feature}
+                      {t(fKey)}
                     </span>
                   </li>
                 ))}
               </ul>
 
-              {/* CTA */}
               <div className="mt-8">
                 <Button
                   variant={plan.highlighted ? 'secondary' : 'outline'}
                   className="w-full"
                   href="#"
                 >
-                  {plan.cta}
+                  {t(`${plan.id}_cta`)}
                 </Button>
               </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FAQ_ITEMS } from '@/lib/constants';
+import { useTranslations } from 'next-intl';
 import Badge from '@/components/ui/Badge';
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -38,8 +38,11 @@ function QuestionIcon() {
   );
 }
 
+const FAQ_IDS = ['1', '2', '3', '4', '5', '6'] as const;
+
 export default function FaqSection() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const t = useTranslations('faq');
 
   const toggle = (id: string) => {
     setOpenId(openId === id ? null : id);
@@ -49,21 +52,21 @@ export default function FaqSection() {
     <section id="faq" className="scroll-reveal bg-white py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
-          <Badge variant="primary">FAQ</Badge>
+          <Badge variant="primary">{t('badge')}</Badge>
           <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
-            Často kladené otázky
+            {t('title')}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
-            Odpovede na najčastejšie otázky o VendShop.
+            {t('subtitle')}
           </p>
         </div>
 
         <div className="mt-12 space-y-3">
-          {FAQ_ITEMS.map((item) => {
-            const isOpen = openId === item.id;
+          {FAQ_IDS.map((num) => {
+            const isOpen = openId === num;
             return (
               <div
-                key={item.id}
+                key={num}
                 className={`rounded-xl border transition-all duration-300 ${
                   isOpen
                     ? 'border-primary/30 bg-accent shadow-sm'
@@ -71,18 +74,18 @@ export default function FaqSection() {
                 }`}
               >
                 <button
-                  onClick={() => toggle(item.id)}
+                  onClick={() => toggle(num)}
                   className="flex w-full items-center gap-3 px-4 py-4 text-left cursor-pointer sm:px-6 sm:py-5"
                   aria-expanded={isOpen}
                 >
                   <QuestionIcon />
-                  <span className="flex-1 font-medium text-secondary">{item.question}</span>
+                  <span className="flex-1 font-medium text-secondary">{t(`q${num}`)}</span>
                   <ChevronIcon open={isOpen} />
                 </button>
 
                 {isOpen && (
                   <div className="animate-accordion-open overflow-hidden border-t border-primary/10 px-4 text-sm text-neutral leading-relaxed sm:px-6 sm:text-base">
-                    {item.answer}
+                    {t(`a${num}`)}
                   </div>
                 )}
               </div>

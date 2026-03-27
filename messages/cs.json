@@ -1,68 +1,51 @@
 {
-  "common": {
-    "appName": "VendShop",
-    "login": "Přihlásit se",
-    "register": "Zaregistrovat se",
-    "logout": "Odhlásit se",
-    "dashboard": "Dashboard",
-    "save": "Uložit",
-    "cancel": "Zrušit",
-    "delete": "Smazat",
-    "loading": "Načítá se...",
-    "error": "Došlo k chybě"
+  "common": { "appName": "VendShop", "login": "Přihlásit se", "register": "Zaregistrovat se", "logout": "Odhlásit se", "dashboard": "Dashboard", "save": "Uložit", "cancel": "Zrušit", "delete": "Smazat", "loading": "Načítá se...", "error": "Došlo k chybě" },
+  "nav": { "features": "Funkce", "howItWorks": "Jak to funguje", "pricing": "Ceník", "faq": "FAQ", "cta": "Začít zdarma" },
+  "hero": { "badge": "Nová platforma pro malý byznys", "title": "Váš online obchod za 5 minut", "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.", "cta": "Začít zdarma", "demo": "Zobrazit demo" },
+  "socialProof": { "text": "Důvěřují nám stovky podnikatelů v SK, CZ, UA a DE" },
+  "businessTypes": {
+    "title": "Pro každý typ byznysu", "subtitle": "Ať prodáváte zboží, jídlo nebo služby — VendShop se přizpůsobí vašemu podnikání.", "viewDemo": "Zobrazit demo",
+    "physical_title": "Obchod se zbožím", "physical_desc": "Prodávejte fyzické produkty online s jednoduchým katalogem a správou objednávek.",
+    "food_title": "Jídlo a produkty", "food_desc": "Domácí jídlo, pekárna, farmářské produkty — přijímejte objednávky online.",
+    "restaurant_title": "Restaurace", "restaurant_desc": "Online menu, rezervace a objednávky pro vaši restauraci nebo kavárnu.",
+    "beauty_title": "Krása a wellness", "beauty_desc": "Salón krásy, masáže, kosmetika — online rezervace a prodej produktů.",
+    "repair_title": "Opravna", "repair_desc": "Oprava telefonů, počítačů, aut — správa zakázek a online objednávky.",
+    "digital_title": "Digitální produkty", "digital_desc": "Kurzy, e-booky, šablony — prodávejte digitální obsah bez starostí."
   },
-  "nav": {
-    "features": "Funkce",
-    "howItWorks": "Jak to funguje",
-    "pricing": "Ceník",
-    "faq": "FAQ",
-    "cta": "Začít zdarma"
+  "howItWorks": {
+    "badge": "Jednoduché jako 1-2-3", "title": "Jak to funguje", "subtitle": "Tři jednoduché kroky k vašemu online obchodu.",
+    "step1Title": "Zaregistrujte se", "step1Desc": "Vytvořte si účet zdarma za 30 sekund. Žádná kreditní karta.",
+    "step2Title": "Nastavte si obchod", "step2Desc": "Přidejte produkty, vyberte design a nastavte platby.",
+    "step3Title": "Začněte prodávat", "step3Desc": "Sdílejte odkaz a přijímejte objednávky od zákazníků."
   },
-  "hero": {
-    "badge": "Nová platforma pro malý byznys",
-    "title": "Váš online obchod za 5 minut",
-    "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
-    "cta": "Začít zdarma",
-    "demo": "Zobrazit demo"
+  "features": {
+    "badge": "Vše v jednom", "title": "Vše, co potřebujete", "subtitle": "Funkce, které pomohou vašemu byznysu růst online.",
+    "aiDescriptions_title": "AI popisky produktů", "aiDescriptions_desc": "Automaticky generované popisky produktů pomocí AI. Ušetřete hodiny psaní.",
+    "multilang_title": "Multi-jazyk (5 jazyků)", "multilang_desc": "Obchod v slovenštině, češtině, ukrajinštině, němčině i angličtině — automaticky.",
+    "payments_title": "Stripe & PayPal platby", "payments_desc": "Přijímejte platby kartou přes Stripe, PayPal nebo lokální platební brány.",
+    "whatsapp_title": "WhatsApp integrace", "whatsapp_desc": "Zákazníci vás kontaktují přímo přes WhatsApp. Objednávky i chat na jednom místě.",
+    "mobile_title": "Mobilní design", "mobile_desc": "Váš obchod vypadá skvěle na každém zařízení — telefon, tablet i počítač.",
+    "analytics_title": "Analytika prodejů", "analytics_desc": "Sledujte prodeje, návštěvnost a konverze v reálném čase.",
+    "security_title": "SSL & GDPR", "security_desc": "SSL certifikát, GDPR compliance a bezpečné platby zdarma pro každý obchod.",
+    "customDomain_title": "Vlastní doména", "customDomain_desc": "Připojte si vlastní doménu nebo použijte bezplatnou subdoménu vendshop.shop."
   },
-  "cta": {
-    "title": "Začněte prodávat online ještě dnes",
-    "subtitle": "Zadejte název obchodu a začněte za pár sekund. Žádné závazky, žádné poplatky.",
-    "placeholder": "Název obchodu...",
-    "button": "Vytvořit obchod",
-    "free": "Zcela zdarma",
-    "noCard": "Bez kreditní karty",
-    "fast": "Hotovo za 5 minut"
+  "pricing": {
+    "badge": "Transparentní ceník", "title": "Jednoduchý ceník", "subtitle": "Začněte zdarma. Platíte jen když roste váš byznys.", "popular": "Nejoblíbenější", "month": "měsíc",
+    "free_desc": "Pro začátečníky, kteří chtějí vyzkoušet platformu.", "free_cta": "Začít zdarma", "free_f1": "Až 10 produktů", "free_f2": "Základní šablony", "free_f3": "vendshop.shop subdoména", "free_f4": "E-mailová podpora",
+    "starter_desc": "Pro rostoucí byznysy, které potřebují víc.", "starter_cta": "Vybrat Starter", "starter_f1": "Až 100 produktů", "starter_f2": "Vlastní doména", "starter_f3": "Všechny šablony", "starter_f4": "Prioritní podpora", "starter_f5": "Analytika prodejů", "starter_f6": "Bez reklam VendShop",
+    "pro_desc": "Pro profesionály, kteří chtějí maximum.", "pro_cta": "Vybrat Pro", "pro_f1": "Neomezené produkty", "pro_f2": "Vlastní doména", "pro_f3": "Prémiové šablony", "pro_f4": "API přístup", "pro_f5": "Pokročilá analytika", "pro_f6": "Prioritní podpora 24/7", "pro_f7": "Multi-jazyk obchod"
   },
-  "footer": {
-    "copyright": "Všechna práva vyhrazena."
+  "faq": {
+    "badge": "FAQ", "title": "Často kladené dotazy", "subtitle": "Odpovědi na nejčastější dotazy o VendShop.",
+    "q1": "Kolik stojí vytvoření obchodu?", "a1": "Začít můžete zcela zdarma. Placený plán začíná od 12€ měsíčně a obsahuje vlastní doménu, víc produktů a pokročilé funkce.",
+    "q2": "Potřebuji technické znalosti?", "a2": "Ne. VendShop je navržen pro lidi bez technických znalostí. Obchod si vytvoříte za pár minut pomocí jednoduchého editoru.",
+    "q3": "Jaké platební metody podporujete?", "a3": "Podporujeme Stripe, PayPal a bankovní převody. V SK/CZ také podporujeme platby kartou přes lokální platební brány.",
+    "q4": "Mohu použít vlastní doménu?", "a4": "Ano! Na plánech Starter a Pro si můžete připojit vlastní doménu. Na Free plánu máte subdoménu vendshop.shop.",
+    "q5": "Je možné prodávat digitální produkty?", "a5": "Ano, VendShop podporuje prodej digitálních produktů — e-booky, kurzy, šablony a další soubory ke stažení.",
+    "q6": "Jak dlouho trvá vytvoření obchodu?", "a6": "Základní obchod si vytvoříte za 5 minut. Přidání produktů a nastavení designu obvykle zabere 1-2 hodiny."
   },
-  "landing": {
-    "tagline": "Váš online obchod za 5 minut",
-    "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
-    "cta": "Začít zdarma",
-    "demo": "Zobrazit demo"
-  },
-  "auth": {
-    "loginTitle": "Přihlášení",
-    "loginSubtitle": "Přihlaste se do svého účtu VendShop.",
-    "registerTitle": "Registrace",
-    "registerSubtitle": "Vytvořte si účet a začněte prodávat online.",
-    "email": "Email",
-    "password": "Heslo",
-    "name": "Vaše jméno",
-    "loginButton": "Přihlásit se",
-    "registerButton": "Vytvořit účet",
-    "noAccount": "Nemáte účet?",
-    "hasAccount": "Již máte účet?",
-    "errorInvalid": "Nesprávný email nebo heslo.",
-    "errorGeneric": "Něco se pokazilo. Zkuste to znovu."
-  },
-  "dashboard": {
-    "welcome": "Vítejte",
-    "stores": "Vaše obchody",
-    "createStore": "Vytvořit obchod",
-    "orders": "Objednávky",
-    "settings": "Nastavení"
-  }
+  "cta": { "title": "Začněte prodávat online ještě dnes", "subtitle": "Zadejte název obchodu a začněte za pár sekund. Žádné závazky, žádné poplatky.", "placeholder": "Název obchodu...", "button": "Vytvořit obchod", "free": "Zcela zdarma", "noCard": "Bez kreditní karty", "fast": "Hotovo za 5 minut" },
+  "footer": { "description": "Platforma pro malý byznys v SK, CZ, UA a DE.", "product": "Produkt", "support": "Podpora", "legal": "Právní", "features": "Funkce", "pricing": "Ceník", "templates": "Šablony", "examples": "Příklady", "docs": "Dokumentace", "contact": "Kontakt", "status": "Status", "terms": "Podmínky", "privacy": "Soukromí", "gdpr": "GDPR", "copyright": "Všechna práva vyhrazena." },
+  "auth": { "loginTitle": "Přihlášení", "loginSubtitle": "Přihlaste se do svého účtu VendShop.", "registerTitle": "Registrace", "registerSubtitle": "Vytvořte si účet a začněte prodávat online.", "email": "Email", "password": "Heslo", "name": "Vaše jméno", "loginButton": "Přihlásit se", "registerButton": "Vytvořit účet", "noAccount": "Nemáte účet?", "hasAccount": "Již máte účet?", "errorInvalid": "Nesprávný email nebo heslo.", "errorGeneric": "Něco se pokazilo. Zkuste to znovu." },
+  "dashboard": { "welcome": "Vítejte", "stores": "Vaše obchody", "createStore": "Vytvořit obchod", "orders": "Objednávky", "settings": "Nastavení" }
 }

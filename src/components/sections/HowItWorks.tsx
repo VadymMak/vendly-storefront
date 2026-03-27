@@ -1,5 +1,7 @@
+'use client';
+
 import { Fragment } from 'react';
-import { HOW_IT_WORKS_STEPS } from '@/lib/constants';
+import { useTranslations } from 'next-intl';
 import Badge from '@/components/ui/Badge';
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
@@ -43,23 +45,31 @@ function StepArrow() {
   );
 }
 
+const STEPS = [
+  { id: 'register', step: 1, titleKey: 'step1Title', descKey: 'step1Desc' },
+  { id: 'customize', step: 2, titleKey: 'step2Title', descKey: 'step2Desc' },
+  { id: 'sell', step: 3, titleKey: 'step3Title', descKey: 'step3Desc' },
+] as const;
+
 export default function HowItWorks() {
+  const t = useTranslations('howItWorks');
+
   return (
     <section id="how-it-works" className="scroll-reveal bg-accent py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
-          <Badge variant="primary">Jednoduché ako 1-2-3</Badge>
+          <Badge variant="primary">{t('badge')}</Badge>
           <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
-            Ako to funguje
+            {t('title')}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
-            Tri jednoduché kroky k vášmu online obchodu.
+            {t('subtitle')}
           </p>
         </div>
 
         {/* Steps grid with arrows */}
         <div className="mt-16 grid items-center gap-6 md:grid-cols-[1fr_auto_1fr_auto_1fr]">
-          {HOW_IT_WORKS_STEPS.map((step, i) => (
+          {STEPS.map((step, i) => (
             <Fragment key={step.id}>
               <div
                 className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8"
@@ -76,16 +86,16 @@ export default function HowItWorks() {
                 </div>
 
                 <h3 className="mt-5 text-xl font-semibold text-secondary">
-                  {step.title}
+                  {t(step.titleKey)}
                 </h3>
 
                 <p className="mt-3 text-neutral leading-relaxed">
-                  {step.description}
+                  {t(step.descKey)}
                 </p>
               </div>
 
               {/* Arrow between steps (not after the last one) */}
-              {i < HOW_IT_WORKS_STEPS.length - 1 && (
+              {i < STEPS.length - 1 && (
                 <StepArrow />
               )}
             </Fragment>

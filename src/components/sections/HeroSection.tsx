@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SITE_TAGLINE, BUSINESS_TYPES } from '@/lib/constants';
+import { useTranslations } from 'next-intl';
+import { BUSINESS_TYPES } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
@@ -128,6 +129,8 @@ function PreviewMockup({ businessId }: { businessId: string }) {
 
 export default function HeroSection() {
   const [activeType, setActiveType] = useState(BUSINESS_TYPES[0].id);
+  const t = useTranslations('hero');
+  const tBiz = useTranslations('businessTypes');
 
   return (
     <section className="relative overflow-hidden">
@@ -141,23 +144,22 @@ export default function HeroSection() {
       <div className="relative mx-auto max-w-7xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
         {/* Top section — text */}
         <div className="text-center animate-fade-in-up">
-          <Badge variant="primary">Nová platforma pre malý biznis</Badge>
+          <Badge variant="primary">{t('badge')}</Badge>
 
           <h1 className="mt-6 text-3xl font-bold tracking-tight text-secondary sm:text-5xl lg:text-6xl">
-            {SITE_TAGLINE}
+            {t('title')}
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-neutral sm:text-lg">
-            Vytvorte si profesionálny online obchod bez technických znalostí.
-            Predávajte produkty, prijímajte objednávky a rastite s&nbsp;VendShop.
+            {t('subtitle')}
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" href="#pricing">
-              Začať zadarmo
+              {t('cta')}
             </Button>
             <Button size="lg" variant="outline" href={`https://${BUSINESS_TYPES.find((b) => b.id === activeType)?.demo}`}>
-              Pozrieť demo
+              {t('demo')}
             </Button>
           </div>
         </div>
@@ -177,7 +179,7 @@ export default function HeroSection() {
                 }`}
               >
                 <span className="text-base">{type.icon}</span>
-                <span className="hidden sm:inline">{type.title}</span>
+                <span className="hidden sm:inline">{tBiz(`${type.id}_title`)}</span>
               </button>
             ))}
           </div>

@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { BUSINESS_TYPES } from '@/lib/constants';
 
 const BUSINESS_ICONS: Record<string, React.ReactNode> = {
@@ -63,15 +66,17 @@ function ArrowIcon() {
 }
 
 export default function BusinessTypes() {
+  const t = useTranslations('businessTypes');
+
   return (
     <section id="business-types" className="scroll-reveal bg-white py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <h2 className="text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
-            Pre každý typ biznisu
+            {t('title')}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
-            Či predávate tovar, jedlo alebo služby — VendShop sa prispôsobí vášmu podnikaniu.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -90,16 +95,16 @@ export default function BusinessTypes() {
               </div>
 
               <h3 className="mt-5 text-lg font-semibold text-secondary">
-                {type.title}
+                {t(`${type.id}_title`)}
               </h3>
 
               <p className="mt-2 text-sm leading-relaxed text-neutral">
-                {type.description}
+                {t(`${type.id}_desc`)}
               </p>
 
               {/* Demo link */}
               <div className="mt-5 flex items-center gap-1.5 text-sm font-medium text-primary">
-                <span>Pozrieť demo</span>
+                <span>{t('viewDemo')}</span>
                 <ArrowIcon />
               </div>
 

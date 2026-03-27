@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { BUSINESS_TYPES } from '@/lib/constants';
 
 const BUSINESS_ICONS: Record<string, React.ReactNode> = {
@@ -71,10 +74,12 @@ function MarqueeItem({ id, title, demo }: { id: string; title: string; demo: str
 }
 
 export default function SocialProofBar() {
+  const t = useTranslations('socialProof');
+
   return (
     <section className="overflow-hidden border-y border-gray-100 bg-gray-50/70 py-5">
       <p className="mb-4 px-4 text-center text-xs font-semibold uppercase tracking-wider text-neutral/60 sm:tracking-widest">
-        Dôverujú nám stovky podnikateľov v&nbsp;SK, CZ, UA a&nbsp;DE
+        {t('text')}
       </p>
 
       <div className="relative">

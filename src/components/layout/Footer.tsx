@@ -28,8 +28,8 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2">
               <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect width="32" height="32" rx="7" fill="#2563EB" />
-                <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="18" fill="white">V.</text>
+                <rect width="32" height="32" rx="7" fill="#16a34a" />
+                <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fill="white">V.</text>
               </svg>
               <h3 className="text-lg font-bold">Vendly</h3>
             </div>

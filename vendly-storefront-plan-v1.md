@@ -56,9 +56,9 @@
 - [x] pnpm build: 0 ошибок, 0 warnings, static prerender OK
 
 ### П7 — Favicon и логотип ✅
-- [x] Favicon: src/app/icon.svg — синий rounded square с «V.» белым текстом
-- [x] Header: inline SVG логотип (28×28) + «Vendly» text-blue-600
-- [x] Footer: inline SVG логотип (24×24) + «Vendly»
+- [x] Favicon: src/app/icon.svg — зелёный (#16a34a) rounded square с «V.» белым текстом
+- [x] Header: inline SVG логотип (28×28, fill #16a34a) + «Vendly» text-secondary
+- [x] Footer: inline SVG логотип (24×24, fill #16a34a) + «Vendly»
 
 ## 3. Phase 2 (после MVP)
 

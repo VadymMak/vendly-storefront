@@ -29,10 +29,10 @@ export default function Header() {
         {/* Logo */}
         <a href="/" className="inline-flex items-center gap-2">
           <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect width="32" height="32" rx="7" fill="#2563EB" />
-            <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="18" fill="white">V.</text>
+            <rect width="32" height="32" rx="7" fill="#16a34a" />
+            <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fill="white">V.</text>
           </svg>
-          <span className="text-xl font-bold text-blue-600">Vendly</span>
+          <span className="text-xl font-bold text-secondary">Vendly</span>
         </a>
 
         {/* Desktop nav */}

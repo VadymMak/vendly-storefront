@@ -4,6 +4,7 @@ import { compare } from 'bcryptjs';
 import { db } from './db';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET,
   providers: [
     Credentials({
       name: 'credentials',

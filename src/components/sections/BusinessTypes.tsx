@@ -67,7 +67,7 @@ export default function BusinessTypes() {
     <section id="business-types" className="bg-white py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
-          <h2 className="text-3xl font-bold text-secondary sm:text-4xl">
+          <h2 className="text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
             Pre každý typ biznisu
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
@@ -82,7 +82,7 @@ export default function BusinessTypes() {
               href={`https://${type.demo}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+              className="group relative rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:p-6"
             >
               {/* Icon circle */}
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-white">

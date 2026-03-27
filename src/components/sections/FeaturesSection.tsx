@@ -66,7 +66,7 @@ export default function FeaturesSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Všetko v jednom</Badge>
-          <h2 className="mt-4 text-3xl font-bold text-secondary sm:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
             Všetko, čo potrebujete
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
@@ -78,7 +78,7 @@ export default function FeaturesSection() {
           {FEATURES.map((feature, i) => (
             <div
               key={feature.id}
-              className={`group animate-fade-in-up rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
+              className={`group animate-fade-in-up rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6 ${
                 i % 2 === 0
                   ? 'border-gray-200 bg-white hover:border-primary/20 hover:shadow-primary/5'
                   : 'border-primary/10 bg-accent hover:border-primary/30 hover:shadow-primary/5'

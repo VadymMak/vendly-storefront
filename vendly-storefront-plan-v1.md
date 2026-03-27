@@ -39,10 +39,13 @@
 - [x] FaqSection: inline SVG иконки (question mark, chevron с rotate), активное состояние (accent bg, primary border)
 - [x] Bugfix: Fragment key в HowItWorks.tsx (React warning)
 
-### П5 — Mobile responsive
-- [ ] Mobile menu (burger)
-- [ ] Все секции адаптивны
-- [ ] Тестирование на разных размерах экрана
+### П5 — CtaSection + Mobile Responsive ✅
+- [x] CtaSection: форма ввода имени магазина + редирект на /register?name=...
+- [x] CtaSection: gradient bg (primary → secondary), 3 перка с inline SVG (free, no card, 5 min)
+- [x] Header: burger menu (useState), mobile dropdown с анимацией, close on nav click
+- [x] Responsive аудит всех секций: уменьшены padding (p-8→p-6/p-5 на mobile), heading sizes (text-3xl→text-2xl)
+- [x] SocialProofBar: уменьшены fade masks и spacing на 375px
+- [x] Footer: уменьшен gap на mobile
 
 ### П6 — Интеграция в vendly
 - [ ] Ссылки на реальную платформу

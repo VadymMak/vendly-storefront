@@ -85,7 +85,7 @@ function PreviewMockup({ businessId }: { businessId: string }) {
       </div>
 
       {/* Store header */}
-      <div className="bg-primary px-6 py-4">
+      <div className="bg-primary px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">{business.icon}</span>
@@ -98,7 +98,7 @@ function PreviewMockup({ businessId }: { businessId: string }) {
       </div>
 
       {/* Products */}
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-neutral mb-3">
           {data.heading}
         </p>
@@ -106,7 +106,7 @@ function PreviewMockup({ businessId }: { businessId: string }) {
           {data.products.map((product, i) => (
             <div
               key={product}
-              className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/50 px-4 py-3 animate-slide-in-right"
+              className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2.5 animate-slide-in-right sm:px-4 sm:py-3"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <span className="text-sm font-medium text-secondary">{product}</span>
@@ -143,11 +143,11 @@ export default function HeroSection() {
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Nová platforma pre malý biznis</Badge>
 
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-secondary sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 text-3xl font-bold tracking-tight text-secondary sm:text-5xl lg:text-6xl">
             {SITE_TAGLINE}
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-neutral">
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-neutral sm:text-lg">
             Vytvorte si profesionálny online obchod bez technických znalostí.
             Predávajte produkty, prijímajte objednávky a rastite s&nbsp;VendShop.
           </p>

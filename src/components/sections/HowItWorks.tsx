@@ -49,7 +49,7 @@ export default function HowItWorks() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Jednoduché ako 1-2-3</Badge>
-          <h2 className="mt-4 text-3xl font-bold text-secondary sm:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
             Ako to funguje
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
@@ -62,7 +62,7 @@ export default function HowItWorks() {
           {HOW_IT_WORKS_STEPS.map((step, i) => (
             <Fragment key={step.id}>
               <div
-                className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm"
+                className="animate-fade-in-up rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8"
                 style={{ animationDelay: `${i * 200}ms` }}
               >
                 {/* Step number */}

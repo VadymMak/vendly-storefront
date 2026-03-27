@@ -27,7 +27,7 @@ export default function PricingSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">Transparentný cenník</Badge>
-          <h2 className="mt-4 text-3xl font-bold text-secondary sm:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
             Jednoduchý cenník
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
@@ -39,7 +39,7 @@ export default function PricingSection() {
           {PRICING_PLANS.map((plan, i) => (
             <div
               key={plan.id}
-              className={`animate-fade-in-up relative flex flex-col rounded-2xl border-2 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+              className={`animate-fade-in-up relative flex flex-col rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-8 ${
                 plan.highlighted
                   ? 'border-primary bg-primary shadow-lg shadow-primary/20'
                   : 'border-gray-200 bg-white hover:border-primary/30 hover:shadow-primary/5'
@@ -64,7 +64,7 @@ export default function PricingSection() {
 
               {/* Price */}
               <div className="mt-4 flex items-baseline gap-1">
-                <span className={`text-5xl font-extrabold tracking-tight ${plan.highlighted ? 'text-white' : 'text-secondary'}`}>
+                <span className={`text-4xl font-extrabold tracking-tight sm:text-5xl ${plan.highlighted ? 'text-white' : 'text-secondary'}`}>
                   {plan.price === 0 ? '0' : `${plan.price}`}
                 </span>
                 <div className={`flex flex-col text-sm ${plan.highlighted ? 'text-white/70' : 'text-neutral'}`}>

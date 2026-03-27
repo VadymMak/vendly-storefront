@@ -50,7 +50,7 @@ export default function FaqSection() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">FAQ</Badge>
-          <h2 className="mt-4 text-3xl font-bold text-secondary sm:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
             Často kladené otázky
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
@@ -72,7 +72,7 @@ export default function FaqSection() {
               >
                 <button
                   onClick={() => toggle(item.id)}
-                  className="flex w-full items-center gap-3 px-6 py-5 text-left cursor-pointer"
+                  className="flex w-full items-center gap-3 px-4 py-4 text-left cursor-pointer sm:px-6 sm:py-5"
                   aria-expanded={isOpen}
                 >
                   <QuestionIcon />
@@ -81,7 +81,7 @@ export default function FaqSection() {
                 </button>
 
                 {isOpen && (
-                  <div className="animate-accordion-open overflow-hidden border-t border-primary/10 px-6 text-neutral leading-relaxed">
+                  <div className="animate-accordion-open overflow-hidden border-t border-primary/10 px-4 text-sm text-neutral leading-relaxed sm:px-6 sm:text-base">
                     {item.answer}
                   </div>
                 )}

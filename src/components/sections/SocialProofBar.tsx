@@ -46,7 +46,7 @@ const BUSINESS_ICONS: Record<string, React.ReactNode> = {
 
 function DotSeparator() {
   return (
-    <svg width="6" height="6" viewBox="0 0 6 6" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="mx-6 shrink-0 text-gray-300">
+    <svg width="6" height="6" viewBox="0 0 6 6" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="mx-3 shrink-0 text-gray-300 sm:mx-6">
       <circle cx="3" cy="3" r="3" fill="currentColor" />
     </svg>
   );
@@ -73,14 +73,14 @@ function MarqueeItem({ id, title, demo }: { id: string; title: string; demo: str
 export default function SocialProofBar() {
   return (
     <section className="overflow-hidden border-y border-gray-100 bg-gray-50/70 py-5">
-      <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-neutral/60">
-        Dôverujú nám stovky podnikateľov v SK, CZ, UA a DE
+      <p className="mb-4 px-4 text-center text-xs font-semibold uppercase tracking-wider text-neutral/60 sm:tracking-widest">
+        Dôverujú nám stovky podnikateľov v&nbsp;SK, CZ, UA a&nbsp;DE
       </p>
 
       <div className="relative">
         {/* Left / right fade masks */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-gray-50/70 to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-gray-50/70 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-gray-50/70 to-transparent sm:w-16" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-gray-50/70 to-transparent sm:w-16" />
 
         <div className="flex animate-marquee items-center hover:[animation-play-state:paused]">
           {/* Duplicate the list so the loop is seamless */}

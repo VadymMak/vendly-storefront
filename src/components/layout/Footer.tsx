@@ -23,7 +23,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-gray-100 bg-secondary text-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <h3 className="text-lg font-bold">{SITE_NAME}</h3>

@@ -32,7 +32,7 @@ export default function Header() {
             <rect width="32" height="32" rx="7" fill="#16a34a" />
             <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fill="white">V.</text>
           </svg>
-          <span className="text-xl font-bold text-secondary">Vendly</span>
+          <span className="text-xl font-bold text-primary">Vendly</span>
         </a>
 
         {/* Desktop nav */}

@@ -2,8 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
+import { useLocale } from 'next-intl';
+
+const LOCALE_OPTIONS = [
+  { code: 'sk', label: 'SK' },
+  { code: 'en', label: 'EN' },
+  { code: 'uk', label: 'UK' },
+  { code: 'cs', label: 'CS' },
+  { code: 'de', label: 'DE' },
+] as const;
 
 interface DashboardNavProps {
   user: {
@@ -56,7 +65,20 @@ const NAV_LINKS = [
 
 export default function DashboardNav({ user }: DashboardNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const currentLocale = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+
+  const switchLocale = async (code: string) => {
+    setLangOpen(false);
+    await fetch('/api/locale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale: code }),
+    });
+    router.refresh();
+  };
 
   return (
     <header className="border-b border-gray-200 bg-white">
@@ -96,7 +118,38 @@ export default function DashboardNav({ user }: DashboardNavProps) {
         </nav>
 
         {/* User menu */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Language switcher */}
+          <div className="relative">
+            <button
+              onClick={() => setLangOpen(!langOpen)}
+              className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-2 text-sm text-gray-600 hover:bg-gray-50"
+            >
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M1 7h12M7 1c1.7 1.7 2.7 3.7 2.7 6s-1 4.3-2.7 6c-1.7-1.7-2.7-3.7-2.7-6s1-4.3 2.7-6z" stroke="currentColor" strokeWidth="1" />
+              </svg>
+              <span className="font-medium">{currentLocale.toUpperCase()}</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M2.5 3.75l2.5 2.5 2.5-2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-20 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                {LOCALE_OPTIONS.map((locale) => (
+                  <button
+                    key={locale.code}
+                    onClick={() => switchLocale(locale.code)}
+                    className={`w-full px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${
+                      currentLocale === locale.code ? 'font-semibold text-primary' : 'text-gray-700'
+                    }`}
+                  >
+                    {locale.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <span className="hidden text-sm text-gray-500 sm:block">
             {user.name || user.email}
           </span>

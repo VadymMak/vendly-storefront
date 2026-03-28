@@ -88,7 +88,7 @@ export interface ShopData {
 }
 
 export interface ShopSettings {
-  colorScheme: 'light' | 'dark' | 'warm' | 'bold';
+  colorScheme: 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant';
   currency: string;
   whatsapp?: string;
   instagram?: string;
@@ -173,7 +173,7 @@ export interface StoreSettingsFormData {
   name: string;
   description: string;
   shopLanguage: string;
-  colorScheme: 'light' | 'dark' | 'warm' | 'bold';
+  colorScheme: 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant';
   currency: string;
   whatsapp: string;
   instagram: string;
@@ -245,7 +245,7 @@ export interface AiSetupItem {
 
 export interface AiSetupResult {
   shopDescription: string;
-  colorScheme: 'light' | 'dark' | 'warm' | 'bold';
+  colorScheme: 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant';
   colorReason: string;
   items: AiSetupItem[];
 }

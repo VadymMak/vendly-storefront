@@ -18,10 +18,12 @@ const LANGUAGES = [
 ];
 
 const COLOR_SCHEMES = [
-  { value: 'light', preview: 'bg-white border-gray-300' },
-  { value: 'dark',  preview: 'bg-gray-900 border-gray-700' },
-  { value: 'warm',  preview: 'bg-amber-50 border-amber-200' },
-  { value: 'bold',  preview: 'bg-indigo-950 border-indigo-800' },
+  { value: 'light',   preview: 'bg-white border-gray-300' },
+  { value: 'dark',    preview: 'bg-gray-900 border-gray-700' },
+  { value: 'warm',    preview: 'bg-amber-50 border-amber-200' },
+  { value: 'bold',    preview: 'bg-indigo-950 border-indigo-800' },
+  { value: 'festive', preview: 'bg-red-50 border-red-300' },
+  { value: 'elegant', preview: 'bg-stone-50 border-rose-200' },
 ] as const;
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
@@ -110,7 +112,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     { value: 'events',      label: t('storeTypeEvents'),     hint: t('storeTypeEventsHint') },
   ];
   const COLOR_LABELS: Record<string, string> = {
-    light: t('colorLight'), dark: t('colorDark'), warm: t('colorWarm'), bold: t('colorBold'),
+    light: t('colorLight'), dark: t('colorDark'), warm: t('colorWarm'), bold: t('colorBold'), festive: t('colorFestive'), elegant: t('colorElegant'),
   };
 
   const [activeTab, setActiveTab] = useState<Tab>(isNew ? 'general' : initialTab);

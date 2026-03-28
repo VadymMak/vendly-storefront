@@ -69,12 +69,14 @@
 - [x] Категория скрывается при активном поиске
 - [x] 3 ключа переводов во всех 5 языках
 
-### J6 — Product Detail Page
-- [ ] Image gallery с thumbnails и zoom on hover
-- [ ] Breadcrumbs: Магазин → Категория → Товар
-- [ ] Related products секция ("Вам также может понравиться")
-- [ ] Structured data (JSON-LD Product schema) для SEO
-- [ ] Share button (WhatsApp, Copy link)
+### J6 — Product Detail Page ✅
+- [x] Image gallery: mouse-follow 2x zoom on hover, image counter, active ring на thumbnails
+- [x] Breadcrumbs: home icon → Магазин → Категория → Товар (chevron separators)
+- [x] Related products: getRelatedItems (same category → backfill), ProductCard grid
+- [x] Structured data: JSON-LD Product schema (name, images, brand, offers, availability)
+- [x] ShareButton: dropdown — Copy link (clipboard API) + WhatsApp share
+- [x] OpenGraph meta: image, store name в title
+- [x] 4 новых i18n ключа во всех 5 языках
 
 ---
 

@@ -90,6 +90,16 @@ export interface ShopData {
   ownerPlan: OwnerPlan;
 }
 
+export interface PromoBanner {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  enabled: boolean;
+}
+
 export interface ShopSettings {
   colorScheme: 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant';
   currency: string;
@@ -106,6 +116,7 @@ export interface ShopSettings {
   structuredHours?: WeekSchedule;
   orderAcceptance?: OrderAcceptanceSchedule;
   coordinates?: MapCoordinates;
+  promoBanners?: PromoBanner[];
 }
 
 export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';
@@ -213,6 +224,7 @@ export interface StoreSettingsFormData {
   structuredHours: WeekSchedule;
   orderAcceptance: OrderAcceptanceSchedule;
   coordinates: MapCoordinates | null;
+  promoBanners: PromoBanner[];
 }
 
 export interface QuickBadgeDefinition {

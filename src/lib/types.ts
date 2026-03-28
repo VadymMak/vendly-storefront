@@ -77,6 +77,7 @@ export interface MapCoordinates {
 export interface ShopData {
   id: string;
   slug: string;
+  customDomain: string | null;
   name: string;
   description: string | null;
   logo: string | null;

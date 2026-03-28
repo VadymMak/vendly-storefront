@@ -143,6 +143,12 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Custom domain state
+  const [customDomain, setCustomDomain] = useState(store?.customDomain || '');
+  const [domainSaving, setDomainSaving] = useState(false);
+  const [domainError, setDomainError] = useState<string | null>(null);
+  const [dnsStatus, setDnsStatus] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle');
+
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -185,6 +191,55 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
       setError(err instanceof Error ? err.message : t('errorSlug'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDomainSave = async () => {
+    if (!store || domainSaving) return;
+    const trimmed = customDomain.trim().toLowerCase();
+    if (!trimmed) { setDomainError('Enter a domain'); return; }
+    setDomainSaving(true);
+    setDomainError(null);
+    setDnsStatus('idle');
+    try {
+      const res = await fetch(`/api/stores/${store.id}/domain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setCustomDomain(trimmed);
+    } catch (err) {
+      setDomainError(err instanceof Error ? err.message : 'Error');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  const handleDomainRemove = async () => {
+    if (!store || domainSaving) return;
+    setDomainSaving(true);
+    try {
+      await fetch(`/api/stores/${store.id}/domain`, { method: 'DELETE' });
+      setCustomDomain('');
+      setDnsStatus('idle');
+    } catch {
+      // silent
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  const handleDnsVerify = async () => {
+    if (!store) return;
+    setDnsStatus('checking');
+    try {
+      const res = await fetch(`/api/stores/${store.id}/domain`);
+      const data = await res.json();
+      setDnsStatus(data.dnsConfigured ? 'ok' : 'fail');
+    } catch {
+      setDnsStatus('fail');
     }
   };
 
@@ -693,6 +748,103 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 </div>
               )}
               <SaveButton />
+
+              {/* ── Custom Domain ─────────────────────────────────────── */}
+              {store && (
+                <div className="mt-8">
+                  <SectionHeader title={t('customDomain')} subtitle={t('customDomainDesc')} />
+                  <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                    {userPlan === 'FREE' ? (
+                      <p className="text-sm text-neutral">{t('customDomainUpgrade')}</p>
+                    ) : (
+                      <>
+                        {/* Domain input + save */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={customDomain}
+                            onChange={(e) => { setCustomDomain(e.target.value); setDomainError(null); }}
+                            placeholder={t('customDomainPlaceholder')}
+                            className={INPUT_CLS}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleDomainSave}
+                            disabled={domainSaving || !customDomain.trim()}
+                            className="shrink-0 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                          >
+                            {domainSaving ? t('customDomainSaving') : t('customDomainSave')}
+                          </button>
+                          {store.customDomain && (
+                            <button
+                              type="button"
+                              onClick={handleDomainRemove}
+                              disabled={domainSaving}
+                              className="shrink-0 rounded-lg border border-red-200 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                            >
+                              {t('customDomainRemove')}
+                            </button>
+                          )}
+                        </div>
+                        {domainError && (
+                          <p className="text-sm text-red-600">{domainError}</p>
+                        )}
+
+                        {/* DNS status & verify */}
+                        {store.customDomain && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-neutral">{t('customDomainConnected')}:</span>
+                              <span className="font-medium text-secondary">{store.customDomain}</span>
+                              <button
+                                type="button"
+                                onClick={handleDnsVerify}
+                                disabled={dnsStatus === 'checking'}
+                                className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-secondary hover:bg-gray-50 disabled:opacity-50"
+                              >
+                                {dnsStatus === 'checking' ? t('customDomainVerifying') : t('customDomainVerify')}
+                              </button>
+                              {dnsStatus === 'ok' && (
+                                <span className="flex items-center gap-1 text-xs text-green-600">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                                  {t('customDomainOk')}
+                                </span>
+                              )}
+                              {dnsStatus === 'fail' && (
+                                <span className="text-xs text-red-500">{t('customDomainFail')}</span>
+                              )}
+                            </div>
+
+                            {/* DNS instructions */}
+                            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm">
+                              <p className="font-medium text-blue-900 mb-2">{t('customDomainDnsTitle')}</p>
+                              <ol className="list-decimal list-inside space-y-1.5 text-blue-800">
+                                <li>{t('customDomainDnsStep1')}</li>
+                                <li>
+                                  {t('customDomainDnsStep2')}
+                                  <div className="mt-1.5 ml-5 rounded border border-blue-200 bg-white p-2 font-mono text-xs">
+                                    <div className="flex gap-8">
+                                      <div>
+                                        <span className="text-blue-500">{t('customDomainDnsHost')}:</span>{' '}
+                                        <span className="font-semibold">@</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-blue-500">{t('customDomainDnsValue')}:</span>{' '}
+                                        <span className="font-semibold">cname.vercel-dns.com</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </li>
+                                <li>{t('customDomainDnsStep3')}</li>
+                              </ol>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

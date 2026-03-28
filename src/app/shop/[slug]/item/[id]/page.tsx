@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getStoreBySlug, getStoreItem } from '@/lib/shop-queries';
+import { getStoreBySlug, getStoreByDomain, getStoreItem } from '@/lib/shop-queries';
 import { COLOR_SCHEMES, CURRENCY_SYMBOLS } from '@/lib/constants';
 import ItemImageGallery from '@/components/shop/ItemImageGallery';
 import AddToCartButton from '@/components/shop/AddToCartButton';
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: ItemPageProps) {
 export default async function ItemPage({ params }: ItemPageProps) {
   const { slug, id } = await params;
   const [store, item] = await Promise.all([
-    getStoreBySlug(slug),
+    getStoreBySlug(slug).then(s => s || getStoreByDomain(slug)),
     getStoreItem(id),
   ]);
 

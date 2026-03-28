@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getStoreBySlug } from '@/lib/shop-queries';
+import { getStoreBySlug, getStoreByDomain } from '@/lib/shop-queries';
 import { COLOR_SCHEMES } from '@/lib/constants';
 import ShopHeader from '@/components/shop/ShopHeader';
 import ShopFooter from '@/components/shop/ShopFooter';
@@ -13,7 +13,7 @@ interface ShopLayoutProps {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const store = await getStoreBySlug(slug);
+  const store = await getStoreBySlug(slug) || await getStoreByDomain(slug);
 
   if (!store) return { title: 'Obchod nenájdený' };
 
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ShopLayout({ children, params }: ShopLayoutProps) {
   const { slug } = await params;
-  const store = await getStoreBySlug(slug);
+  const store = await getStoreBySlug(slug) || await getStoreByDomain(slug);
 
   if (!store || !store.isPublished) {
     notFound();

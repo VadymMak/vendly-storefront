@@ -129,6 +129,11 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
           max={5}
           label={t('fieldImages')}
           hint={t('fieldImagesHint')}
+          textAddPhoto={t('uploadAddPhoto')}
+          textRemove={t('uploadRemove')}
+          textUploading={t('uploadUploading')}
+          textMain={t('uploadMain')}
+          textError={t('uploadError')}
         />
 
         {/* Name */}

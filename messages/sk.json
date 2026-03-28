@@ -243,7 +243,12 @@
     "saving": "Ukladám...",
     "saveNew": "Pridať produkt",
     "saveEdit": "Uložiť zmeny",
-    "cancel": "Zrušiť"
+    "cancel": "Zrušiť",
+    "uploadAddPhoto": "Pridať foto",
+    "uploadRemove": "Odstrániť",
+    "uploadUploading": "Nahrávam...",
+    "uploadMain": "Hlavná",
+    "uploadError": "Nahrávanie zlyhalo"
   },
   "dashboardOrders": {
     "title": "Objednávky",
@@ -310,7 +315,18 @@
     "deleteConfirmBtn": "Áno, odstrániť natrvalo",
     "deleting": "Odstraňujem...",
     "bannerImage": "Hero / banner obrázok",
-    "bannerHint": "Širokouhlý obrázok zobrazený v hero sekcii. Odporúčame 1600×600 px."
+    "bannerHint": "Širokouhlý obrázok zobrazený v hero sekcii. Odporúčame 1600×600 px.",
+    "uploadImage": "Nahrať obrázok",
+    "uploadChange": "Zmeniť obrázok",
+    "uploadUploading": "Nahrávam...",
+    "uploadRemove": "Odstrániť",
+    "uploadAddPhoto": "Pridať foto",
+    "uploadMain": "Hlavná",
+    "uploadError": "Nahrávanie zlyhalo",
+    "uploadLogo": "Nahrať logo",
+    "uploadChangeLogo": "Zmeniť logo",
+    "storeLogo": "Logo obchodu",
+    "logoHint": "JPG, PNG alebo WEBP, max 5 MB. Odporúčame štvorec."
   },
   "aiWizard": {
     "step1Title": "Povedzte nám o svojom biznise",

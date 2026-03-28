@@ -243,7 +243,12 @@
     "saving": "Saving...",
     "saveNew": "Add product",
     "saveEdit": "Save changes",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "uploadAddPhoto": "Add photo",
+    "uploadRemove": "Remove",
+    "uploadUploading": "Uploading...",
+    "uploadMain": "Main",
+    "uploadError": "Upload failed"
   },
   "dashboardOrders": {
     "title": "Orders",
@@ -310,7 +315,18 @@
     "deleteConfirmBtn": "Yes, delete permanently",
     "deleting": "Deleting...",
     "bannerImage": "Hero / banner image",
-    "bannerHint": "Wide image displayed in the hero section. Recommended 1600×600 px."
+    "bannerHint": "Wide image displayed in the hero section. Recommended 1600×600 px.",
+    "uploadImage": "Upload image",
+    "uploadChange": "Change image",
+    "uploadUploading": "Uploading...",
+    "uploadRemove": "Remove",
+    "uploadAddPhoto": "Add photo",
+    "uploadMain": "Main",
+    "uploadError": "Upload failed",
+    "uploadLogo": "Upload logo",
+    "uploadChangeLogo": "Change logo",
+    "storeLogo": "Store logo",
+    "logoHint": "JPG, PNG or WEBP, max 5 MB. Square recommended."
   },
   "aiWizard": {
     "step1Title": "Tell us about your business",

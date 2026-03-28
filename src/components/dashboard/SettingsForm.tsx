@@ -263,8 +263,12 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
                   images={logo}
                   onChange={setLogo}
                   single
-                  label="Logo obchodu"
-                  hint="JPG, PNG alebo WEBP, max 5 MB. Odporúčame štvorec."
+                  label={t('storeLogo') || 'Logo obchodu'}
+                  hint={t('logoHint') || 'JPG, PNG alebo WEBP, max 5 MB. Odporúčame štvorec.'}
+                  textUpload={t('uploadLogo')}
+                  textChange={t('uploadChangeLogo')}
+                  textUploading={t('uploadUploading')}
+                  textRemove={t('uploadRemove')}
                 />
 
                 <Field label={`${t('storeName')} *`}>
@@ -329,8 +333,12 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
                   images={banner}
                   onChange={setBanner}
                   single
-                  label={t('bannerImage') || 'Hero / banner obrázok'}
-                  hint={t('bannerHint') || 'Širokouhlý obrázok zobrazený v hero sekcii. Odporúčame 1600×600 px.'}
+                  label={t('bannerImage')}
+                  hint={t('bannerHint')}
+                  textUpload={t('uploadImage')}
+                  textChange={t('uploadChange')}
+                  textUploading={t('uploadUploading')}
+                  textRemove={t('uploadRemove')}
                 />
 
                 <Field label={t('colorScheme')}>

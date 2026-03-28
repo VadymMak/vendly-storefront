@@ -9,6 +9,14 @@ interface ImageUploadProps {
   label?: string;
   hint?: string;
   single?: boolean; // for logo: single image, round preview
+  // i18n text overrides
+  textUpload?: string;      // "Nahrať logo" / "Upload"
+  textChange?: string;      // "Zmeniť logo" / "Change"
+  textUploading?: string;   // "Nahrávam..." / "Uploading..."
+  textRemove?: string;      // "Odstrániť" / "Remove"
+  textAddPhoto?: string;    // "Pridať foto" / "Add photo"
+  textMain?: string;        // "Hlavná" / "Main"
+  textError?: string;       // "Nahrávanie zlyhalo" / "Upload failed"
 }
 
 export default function ImageUpload({
@@ -18,6 +26,13 @@ export default function ImageUpload({
   label = 'Fotky',
   hint,
   single = false,
+  textUpload = 'Nahrať logo',
+  textChange = 'Zmeniť logo',
+  textUploading = 'Nahrávam...',
+  textRemove = 'Odstrániť',
+  textAddPhoto = 'Pridať foto',
+  textMain = 'Hlavná',
+  textError = 'Nahrávanie zlyhalo',
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -42,7 +57,7 @@ export default function ImageUpload({
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Nahrávanie zlyhalo');
+        setError(data.error || textError);
         break;
       }
       newUrls.push(data.url);
@@ -91,7 +106,7 @@ export default function ImageUpload({
               disabled={uploading}
               className="text-sm font-medium text-primary hover:underline disabled:opacity-50"
             >
-              {uploading ? 'Nahrávam...' : logo ? 'Zmeniť logo' : 'Nahrať logo'}
+              {uploading ? textUploading : logo ? textChange : textUpload}
             </button>
             {logo && (
               <button
@@ -99,7 +114,7 @@ export default function ImageUpload({
                 onClick={() => onChange([])}
                 className="ml-3 text-sm text-gray-400 hover:text-red-500"
               >
-                Odstrániť
+                {textRemove}
               </button>
             )}
             {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
@@ -131,7 +146,7 @@ export default function ImageUpload({
               type="button"
               onClick={() => removeImage(idx)}
               className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
-              aria-label="Odstrániť"
+              aria-label={textRemove}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -139,7 +154,7 @@ export default function ImageUpload({
             </button>
             {idx === 0 && (
               <span className="absolute bottom-1 left-1 rounded bg-black/50 px-1.5 py-0.5 text-xs text-white">
-                Hlavná
+                {textMain}
               </span>
             )}
           </div>
@@ -162,7 +177,7 @@ export default function ImageUpload({
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                <span className="text-xs">Pridať foto</span>
+                <span className="text-xs">{textAddPhoto}</span>
               </>
             )}
           </button>

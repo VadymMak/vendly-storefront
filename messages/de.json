@@ -243,7 +243,12 @@
     "saving": "Speichern...",
     "saveNew": "Produkt hinzufügen",
     "saveEdit": "Änderungen speichern",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "uploadAddPhoto": "Foto hinzufügen",
+    "uploadRemove": "Entfernen",
+    "uploadUploading": "Wird hochgeladen...",
+    "uploadMain": "Haupt",
+    "uploadError": "Upload fehlgeschlagen"
   },
   "dashboardOrders": {
     "title": "Bestellungen",
@@ -310,7 +315,18 @@
     "deleteConfirmBtn": "Ja, dauerhaft löschen",
     "deleting": "Lösche...",
     "bannerImage": "Hero- / Banner-Bild",
-    "bannerHint": "Breitbild für die Hero-Sektion. Empfohlen: 1600×600 px."
+    "bannerHint": "Breitbild für die Hero-Sektion. Empfohlen: 1600×600 px.",
+    "uploadImage": "Bild hochladen",
+    "uploadChange": "Bild ändern",
+    "uploadUploading": "Wird hochgeladen...",
+    "uploadRemove": "Entfernen",
+    "uploadAddPhoto": "Foto hinzufügen",
+    "uploadMain": "Haupt",
+    "uploadError": "Upload fehlgeschlagen",
+    "uploadLogo": "Logo hochladen",
+    "uploadChangeLogo": "Logo ändern",
+    "storeLogo": "Shop-Logo",
+    "logoHint": "JPG, PNG oder WEBP, max. 5 MB. Quadratisch empfohlen."
   },
   "aiWizard": {
     "step1Title": "Erzählen Sie uns von Ihrem Unternehmen",

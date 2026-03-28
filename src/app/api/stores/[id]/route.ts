@@ -17,7 +17,7 @@ const patchSchema = z.object({
   templateId:   z.string().optional(),
   shopLanguage: z.string().optional(),
   isPublished:  z.boolean().optional(),
-  colorScheme:  z.enum(['light', 'dark', 'warm', 'bold']).optional(),
+  colorScheme:  z.enum(['light', 'dark', 'warm', 'bold', 'festive', 'elegant']).optional(),
   currency:     z.string().optional(),
   whatsapp:     z.string().optional(),
   instagram:    z.string().optional(),

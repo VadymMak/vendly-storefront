@@ -31,7 +31,8 @@
     "statUptime": "99.9% uptime"
   },
   "socialProof": {
-    "text": "Důvěřují nám stovky podnikatelů v SK, CZ, UA a DE"
+    "text": "Důvěřují nám stovky podnikatelů v SK, CZ, UA a DE",
+    "poweredBy": "Postaveno na ověřených technologiích"
   },
   "businessTypes": {
     "title": "Pro každý typ byznysu",

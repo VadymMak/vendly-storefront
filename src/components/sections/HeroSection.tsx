@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { BUSINESS_TYPES } from '@/lib/constants';
 import Button from '@/components/ui/Button';
@@ -31,7 +31,13 @@ const PREVIEW_ITEMS: Record<string, { heading: string; products: string[] }> = {
     heading: 'Produkty',
     products: ['Online kurz foto', 'E-book marketing', 'Šablóny Canva'],
   },
+  events: {
+    heading: 'Služby',
+    products: ['Dekorácia osláv', 'Fotozone prenájom', 'Svadobné aranžmány'],
+  },
 };
+
+/* ── Inline SVG icons ── */
 
 function StorefrontIcon() {
   return (
@@ -63,6 +69,83 @@ function CheckIcon() {
   );
 }
 
+/* ── Stats icons ── */
+
+function StoreIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+    </svg>
+  );
+}
+
+function LanguageIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 8l6 6" />
+      <path d="M4 14l6-6 2-3" />
+      <path d="M2 5h12" />
+      <path d="M7 2h1" />
+      <path d="M22 22l-5-10-5 10" />
+      <path d="M14 18h6" />
+    </svg>
+  );
+}
+
+function UptimeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  );
+}
+
+/* ── Quick Answer Banner ── */
+
+function QuickAnswerBanner({ text }: { text: string }) {
+  return (
+    <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 text-sm font-medium text-primary animate-fade-in">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+/* ── Stats Bar ── */
+
+interface StatItem {
+  icon: React.ReactNode;
+  label: string;
+}
+
+function StatsBar({ items }: { items: StatItem[] }) {
+  return (
+    <div className="mt-16 flex flex-wrap items-center justify-center gap-6 sm:gap-10 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+      {items.map((item, i) => (
+        <div key={i} className="flex items-center gap-2.5 text-secondary/80">
+          <span className="text-primary">{item.icon}</span>
+          <span className="text-sm font-semibold sm:text-base">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Store Preview Mockup ── */
+
 function PreviewMockup({ businessId }: { businessId: string }) {
   const data = PREVIEW_ITEMS[businessId];
   const business = BUSINESS_TYPES.find((b) => b.id === businessId);
@@ -80,7 +163,7 @@ function PreviewMockup({ businessId }: { businessId: string }) {
         <div className="flex-1 flex justify-center">
           <div className="flex items-center gap-1.5 rounded-md bg-white px-3 py-1 text-xs text-neutral border border-gray-200">
             <StorefrontIcon />
-            <span>{business.demo}</span>
+            <span>{business.demo || `${business.id}.vendshop.shop`}</span>
           </div>
         </div>
       </div>
@@ -127,22 +210,68 @@ function PreviewMockup({ businessId }: { businessId: string }) {
   );
 }
 
+/* ── Main Hero Section ── */
+
+const AUTO_ROTATE_INTERVAL = 4000;
+
 export default function HeroSection() {
   const [activeType, setActiveType] = useState(BUSINESS_TYPES[0].id);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const t = useTranslations('hero');
   const tBiz = useTranslations('businessTypes');
 
+  // Auto-rotate through business types
+  const rotateNext = useCallback(() => {
+    setActiveType((current) => {
+      const idx = BUSINESS_TYPES.findIndex((b) => b.id === current);
+      return BUSINESS_TYPES[(idx + 1) % BUSINESS_TYPES.length].id;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const timer = setInterval(rotateNext, AUTO_ROTATE_INTERVAL);
+    return () => clearInterval(timer);
+  }, [isAutoPlaying, rotateNext]);
+
+  const handleTypeClick = (id: string) => {
+    setActiveType(id);
+    setIsAutoPlaying(false);
+    // Resume auto-play after 12 seconds of inactivity
+    const resume = setTimeout(() => setIsAutoPlaying(true), 12000);
+    return () => clearTimeout(resume);
+  };
+
+  const stats: StatItem[] = [
+    { icon: <StoreIcon />, label: t('statStores') },
+    { icon: <GlobeIcon />, label: t('statCountries') },
+    { icon: <LanguageIcon />, label: t('statLanguages') },
+    { icon: <UptimeIcon />, label: t('statUptime') },
+  ];
+
   return (
     <section className="relative overflow-hidden">
-      {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-accent via-white to-white" />
+      {/* Animated gradient background */}
+      <div
+        className="absolute inset-0 animate-gradient-shift"
+        style={{
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 25%, #f0fdf4 50%, #ecfdf5 75%, #f0fdf4 100%)',
+          backgroundSize: '300% 300%',
+        }}
+      />
 
-      {/* Decorative blobs */}
-      <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl animate-float" />
-      <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-primary/5 blur-3xl animate-float" style={{ animationDelay: '3s' }} />
+      {/* Decorative orbs with pulse */}
+      <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/8 blur-3xl animate-pulse-glow" />
+      <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-primary/6 blur-3xl animate-pulse-glow" style={{ animationDelay: '1.5s' }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-primary/3 blur-3xl animate-pulse-glow" style={{ animationDelay: '3s' }} />
 
       <div className="relative mx-auto max-w-7xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
-        {/* Top section — text */}
+        {/* Quick Answer Banner */}
+        <div className="text-center">
+          <QuickAnswerBanner text={t('quickAnswer')} />
+        </div>
+
+        {/* Main text */}
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">{t('badge')}</Badge>
 
@@ -158,11 +287,14 @@ export default function HeroSection() {
             <Button size="lg" href="#pricing">
               {t('cta')}
             </Button>
-            <Button size="lg" variant="outline" href={`https://${BUSINESS_TYPES.find((b) => b.id === activeType)?.demo}`}>
+            <Button size="lg" variant="outline" href={`https://${BUSINESS_TYPES.find((b) => b.id === activeType)?.demo || 'vendshop.shop'}`}>
               {t('demo')}
             </Button>
           </div>
         </div>
+
+        {/* Stats Bar */}
+        <StatsBar items={stats} />
 
         {/* Business type selector + preview */}
         <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
@@ -171,7 +303,7 @@ export default function HeroSection() {
             {BUSINESS_TYPES.map((type) => (
               <button
                 key={type.id}
-                onClick={() => setActiveType(type.id)}
+                onClick={() => handleTypeClick(type.id)}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer sm:px-5 sm:py-2.5 ${
                   activeType === type.id
                     ? 'bg-primary text-white shadow-md shadow-primary/25'
@@ -184,8 +316,24 @@ export default function HeroSection() {
             ))}
           </div>
 
+          {/* Auto-play indicator */}
+          {isAutoPlaying && (
+            <div className="mt-3 flex justify-center">
+              <div className="flex items-center gap-1.5">
+                {BUSINESS_TYPES.map((type) => (
+                  <div
+                    key={type.id}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      activeType === type.id ? 'w-6 bg-primary' : 'w-1.5 bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Preview area */}
-          <div className="mx-auto mt-10 max-w-lg sm:max-w-xl">
+          <div className="mx-auto mt-8 max-w-lg sm:max-w-xl">
             <PreviewMockup key={activeType} businessId={activeType} />
           </div>
         </div>

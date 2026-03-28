@@ -23,7 +23,12 @@
     "title": "Your online store in 5 minutes",
     "subtitle": "Create a professional online store without technical skills. Sell products, accept orders and grow with VendShop.",
     "cta": "Start for free",
-    "demo": "View demo"
+    "demo": "View demo",
+    "quickAnswer": "Free online store · 5 min setup · No credit card required",
+    "statStores": "500+ stores",
+    "statCountries": "4 countries",
+    "statLanguages": "5 languages",
+    "statUptime": "99.9% uptime"
   },
   "socialProof": {
     "text": "Trusted by hundreds of entrepreneurs in SK, CZ, UA and DE"

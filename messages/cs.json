@@ -23,7 +23,12 @@
     "title": "Váš online obchod za 5 minut",
     "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
     "cta": "Začít zdarma",
-    "demo": "Zobrazit demo"
+    "demo": "Zobrazit demo",
+    "quickAnswer": "Online obchod zdarma · 5 minut setup · Bez kreditní karty",
+    "statStores": "500+ obchodů",
+    "statCountries": "4 země",
+    "statLanguages": "5 jazyků",
+    "statUptime": "99.9% uptime"
   },
   "socialProof": {
     "text": "Důvěřují nám stovky podnikatelů v SK, CZ, UA a DE"

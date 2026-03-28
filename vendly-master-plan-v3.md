@@ -21,6 +21,7 @@
 | I | Quick badges, Working hours, AI translation | ✅ |
 | I.5 | Admin PRO override, Subdomains, Custom domains | ✅ |
 | П8 | Reviews/Testimonials система (storefront + dashboard) | ✅ |
+| J | Shop Storefront Polish (навигация, newsletter, i18n) | ✅ |
 
 ---
 
@@ -77,6 +78,17 @@
 - [x] ShareButton: dropdown — Copy link (clipboard API) + WhatsApp share
 - [x] OpenGraph meta: image, store name в title
 - [x] 4 новых i18n ключа во всех 5 языках
+
+### J7 — Shop Storefront Polish ✅
+- [x] ShopHeader.tsx: двухрядный layout — Row 1 (лого + секционная навигация + действия), Row 2 (dropdown категорий + quick pills)
+- [x] Якорная навигация со smooth scroll (#products, #reviews, #about, #contact)
+- [x] ShopNewsletter.tsx: секция подписки на рассылку с dark gradient фоном
+- [x] page.tsx: section IDs для всех секций + интеграция Newsletter
+- [x] layout.tsx: передача categories в ShopHeader
+- [x] shop-i18n.ts: 9 новых ключей (navProducts, navReviews, navAbout, navContact, newsletter*)
+- [x] Переводы: все 5 локалей обновлены (en, sk, uk, cs, de)
+- [x] Мобильное меню: секционные ссылки + категории + контакты
+- [x] npx tsc --noEmit — без ошибок
 
 ---
 
@@ -264,11 +276,12 @@
 ## Приоритет выполнения
 
 ```
-СЕЙЧАС:  J1 (i18n хардкод) → J2 (next/image) → J4 (footer) → J3 (cards)
-СКОРО:   J5 (search) → J6 (product detail) → K1-K4 (landing upgrade)
-ПОТОМ:   L1-L5 (core features) → M1-M3 (SEO/perf)
+СЕЙЧАС:  K1-K8 (landing upgrade — SmartContext.dev) → L1-L5 (core features)
+СКОРО:   M1-M3 (SEO/perf)
 WOW:     N5-V1 (AI advisor chat) → N5-V2 (smart suggestions)
 БУДУЩЕЕ: N1-N4 (blog, analytics, templates, AI tools) → N5-V3 (RAG/vector)
+
+ЗАВЕРШЕНО: A → B → C → D → E → F → G → H → I → I.5 → П8 → J
 ```
 
 ---

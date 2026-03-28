@@ -568,7 +568,16 @@
     "ownerReply": "Odpověď majitele",
     "cookieText": "Tento web používá cookies pro základní funkčnost a analytiku.",
     "cookieAccept": "Přijmout",
-    "cookieDecline": "Odmítnout"
+    "cookieDecline": "Odmítnout",
+    "navProducts": "Produkty",
+    "navReviews": "Recenze",
+    "navAbout": "O nás",
+    "navContact": "Kontakt",
+    "newsletterTitle": "Zůstaňte v kontaktu",
+    "newsletterDesc": "Přihlaste se k odběru novinek o nových produktech a speciálních nabídkách.",
+    "newsletterPlaceholder": "Váš email",
+    "newsletterButton": "Přihlásit se",
+    "newsletterSuccess": "Děkujeme za přihlášení!"
   },
   "dashboardReviews": {
     "title": "Recenze",

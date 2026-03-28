@@ -93,6 +93,17 @@ export interface ShopFrontMessages {
   cookieText: string;
   cookieAccept: string;
   cookieDecline: string;
+  // Navigation (anchor links)
+  navProducts: string;
+  navReviews: string;
+  navAbout: string;
+  navContact: string;
+  // Newsletter
+  newsletterTitle: string;
+  newsletterDesc: string;
+  newsletterPlaceholder: string;
+  newsletterButton: string;
+  newsletterSuccess: string;
 }
 
 const VALID_LOCALES = new Set(['en', 'sk', 'uk', 'cs', 'de']);

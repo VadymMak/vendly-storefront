@@ -9,6 +9,7 @@ import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
 import StoreStatus from '@/components/shop/StoreStatus';
 import ReviewsSection from '@/components/shop/ReviewsSection';
 import SearchBar from '@/components/shop/SearchBar';
+import ShopNewsletter from '@/components/shop/ShopNewsletter';
 import CookieConsent from '@/components/shop/CookieConsent';
 
 interface ShopPageProps {
@@ -174,7 +175,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       )}
 
       {/* ── CATALOG ─────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <section id="products" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 scroll-mt-28">
         {/* Section header + search */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -235,6 +236,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       </section>
 
       {/* ── REVIEWS ──────────────────────────────────────────────────────── */}
+      <div id="reviews" className="scroll-mt-20" />
       <ReviewsSection
         reviews={reviews}
         avgRating={ratingData.avg}
@@ -246,7 +248,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
       {/* ── ABOUT ───────────────────────────────────────────────────────── */}
       {s.aboutText && (
-        <section className={`border-t ${scheme.border}`}>
+        <section id="about" className={`border-t ${scheme.border} scroll-mt-20`}>
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-3xl">
               <h2 className="mb-4 text-2xl font-bold">{t.aboutUs}</h2>
@@ -256,9 +258,12 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         </section>
       )}
 
+      {/* ── NEWSLETTER ────────────────────────────────────────────────── */}
+      <ShopNewsletter storeId={store.id} scheme={scheme} t={t} />
+
       {/* ── CONTACT ─────────────────────────────────────────────────────── */}
       {(s.phone || s.address || s.openingHours || s.instagram || s.facebook || s.whatsapp) && (
-        <section className={`border-t ${scheme.border} ${scheme.bgCard}`}>
+        <section id="contact" className={`border-t ${scheme.border} ${scheme.bgCard} scroll-mt-20`}>
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <h2 className="mb-8 text-2xl font-bold">{t.contact}</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

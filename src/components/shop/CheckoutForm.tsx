@@ -50,7 +50,7 @@ export default function CheckoutForm({ slug, scheme, t }: CheckoutFormProps) {
     setError(null);
 
     try {
-      const response = await fetch('/api/orders', {
+      const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -71,9 +71,15 @@ export default function CheckoutForm({ slug, scheme, t }: CheckoutFormProps) {
         throw new Error(data.error || t.orderError);
       }
 
-      const { orderId } = await response.json();
+      const { orderId, url } = await response.json() as { orderId: string; url: string | null };
       clearCart();
-      router.push(`/checkout/success?order=${orderId}`);
+
+      // Redirect to Stripe Checkout if payment is needed, otherwise go to success
+      if (url) {
+        window.location.href = url;
+      } else {
+        router.push(`/checkout/success?order=${orderId}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t.somethingWrong);
     } finally {

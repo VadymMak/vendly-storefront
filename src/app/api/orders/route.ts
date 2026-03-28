@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { resolveUserPlan } from '@/lib/shop-queries';
+import { sendOrderConfirmation, sendNewOrderNotification } from '@/lib/email';
 
 const orderSchema = z.object({
   slug: z.string().min(1),
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     // Find store by slug
     const store = await db.store.findUnique({
       where: { slug: data.slug },
-      select: { id: true, userId: true, isPublished: true },
+      select: { id: true, slug: true, name: true, userId: true, isPublished: true },
     });
 
     if (!store || !store.isPublished) {
@@ -60,6 +61,27 @@ export async function POST(request: Request) {
         platformFee,
         status: 'PENDING',
       },
+    });
+
+    // Send notification emails (fire-and-forget)
+    void sendOrderConfirmation({
+      to: data.customerEmail,
+      customerName: data.customerName,
+      orderId: order.id,
+      storeName: store.name,
+      total: data.total,
+      items: data.items as Array<{ name: string; quantity: number; price: number | null }>,
+    });
+
+    void sendNewOrderNotification({
+      to: user.email,
+      ownerName: '',
+      orderId: order.id,
+      storeName: store.name,
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      total: data.total,
+      items: data.items as Array<{ name: string; quantity: number; price: number | null }>,
     });
 
     return NextResponse.json({ orderId: order.id }, { status: 201 });

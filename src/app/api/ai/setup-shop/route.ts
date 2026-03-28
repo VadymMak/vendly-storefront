@@ -17,13 +17,14 @@ const LANG_NAMES: Record<string, string> = {
 };
 
 // Smart color scheme defaults based on business type
-const COLOR_DEFAULTS: Record<string, 'light' | 'dark' | 'warm' | 'bold'> = {
+const COLOR_DEFAULTS: Record<string, 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant'> = {
   food:       'warm',
   restaurant: 'warm',
-  beauty:     'bold',
+  beauty:     'elegant',
   repair:     'dark',
   physical:   'light',
   digital:    'light',
+  events:     'festive',
 };
 
 // Typical item type per business category
@@ -111,7 +112,7 @@ Generate a JSON object with these exact fields:
 
 Rules:
 - Exactly 5 items in the "items" array
-- colorScheme must be one of: light, dark, warm, bold
+- colorScheme must be one of: light, dark, warm, bold, festive, elegant
 - Items must be typical for a ${data.templateId} business
 - Prices must be realistic for the market (${currency})
 - All text (shopDescription, colorReason, names, descriptions, categories) must be in ${langName}`,

@@ -18,7 +18,7 @@ const storeSchema = z.object({
   description:  z.string().optional().default(''),
   templateId:   z.string().default('physical'),
   shopLanguage: z.string().default('sk'),
-  colorScheme:  z.enum(['light', 'dark', 'warm', 'bold']).default('light'),
+  colorScheme:  z.enum(['light', 'dark', 'warm', 'bold', 'festive', 'elegant']).default('light'),
   currency:     z.string().default('EUR'),
   whatsapp:     z.string().optional().default(''),
   instagram:    z.string().optional().default(''),

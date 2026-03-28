@@ -76,9 +76,9 @@ function PreviewMockup({ businessId }: { businessId: string }) {
   if (!data || !business) return null;
 
   return (
-    <div className="animate-scale-in rounded-2xl border border-white/20 bg-white/80 shadow-2xl overflow-hidden backdrop-blur-sm">
+    <div className="animate-scale-in rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
       {/* Browser chrome */}
-      <div className="flex items-center gap-2 border-b border-gray-100/80 bg-white/60 px-4 py-2.5 backdrop-blur-sm">
+      <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-2.5">
         <div className="flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
@@ -166,22 +166,21 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-secondary">
+    <section className="relative overflow-hidden bg-white">
       {/* Background effects */}
       <div className="absolute inset-0">
-        {/* Gradient mesh */}
+        {/* Soft green radial glow */}
         <div
-          className="absolute inset-0 opacity-30 animate-gradient-shift"
+          className="absolute inset-0 opacity-40"
           style={{
-            background: 'radial-gradient(ellipse 80% 60% at 50% 0%, #16a34a 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, #22c55e 0%, transparent 50%)',
-            backgroundSize: '200% 200%',
+            background: 'radial-gradient(ellipse 80% 50% at 50% 0%, #f0fdf4 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 100%, #dcfce7 0%, transparent 60%)',
           }}
         />
         {/* Subtle grid */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(#16a34a 1px, transparent 1px), linear-gradient(90deg, #16a34a 1px, transparent 1px)',
             backgroundSize: '64px 64px',
           }}
         />
@@ -193,26 +192,26 @@ export default function HeroSection() {
           {/* Left: Text content */}
           <div className="animate-fade-in-up">
             {/* Quick Answer pill */}
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary-light backdrop-blur-sm">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-accent px-4 py-1.5 text-sm font-medium text-primary">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               <span>{t('quickAnswer')}</span>
             </div>
 
-            {/* Headline — two-tone like Shopify */}
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
+            {/* Headline — two-tone */}
+            <h1 className="text-4xl font-extrabold tracking-tight text-secondary sm:text-5xl lg:text-6xl xl:text-7xl">
               {t('titleLine1')}
               <br />
               <span
                 className="bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%)' }}
+                style={{ backgroundImage: 'linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #15803d 100%)' }}
               >
                 {t('titleLine2')}
               </span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-300 sm:text-xl">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-neutral sm:text-xl">
               {t('subtitle')}
             </p>
 
@@ -240,10 +239,10 @@ export default function HeroSection() {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
+                  className="rounded-xl border border-gray-200 bg-accent/50 px-4 py-3"
                 >
-                  <p className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</p>
-                  <p className="mt-0.5 text-xs text-gray-400 sm:text-sm">{stat.label}</p>
+                  <p className="text-2xl font-bold text-secondary sm:text-3xl">{stat.value}</p>
+                  <p className="mt-0.5 text-xs text-neutral sm:text-sm">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -260,7 +259,7 @@ export default function HeroSection() {
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all cursor-pointer sm:px-4 sm:py-2 sm:text-sm ${
                     activeType === type.id
                       ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                      : 'bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15'
+                      : 'bg-white text-secondary border border-gray-200 hover:border-primary/30 hover:bg-accent'
                   }`}
                 >
                   <span>{type.icon}</span>
@@ -276,7 +275,7 @@ export default function HeroSection() {
                   <div
                     key={type.id}
                     className={`h-1 rounded-full transition-all duration-300 ${
-                      activeType === type.id ? 'w-6 bg-primary' : 'w-1.5 bg-white/20'
+                      activeType === type.id ? 'w-6 bg-primary' : 'w-1.5 bg-gray-300'
                     }`}
                   />
                 ))}

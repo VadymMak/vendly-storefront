@@ -28,7 +28,7 @@ const COLOR_SCHEMES = [
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
-type Tab = 'general' | 'design' | 'contact' | 'publishing' | 'danger';
+type Tab = 'general' | 'design' | 'contact' | 'promo' | 'publishing' | 'danger';
 
 interface SettingsFormProps {
   userId: string;
@@ -136,6 +136,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     structuredHours: store?.settings.structuredHours || DEFAULT_WEEK_SCHEDULE.map((d) => ({ ...d })) as WeekSchedule,
     orderAcceptance: store?.settings.orderAcceptance || { ...DEFAULT_ORDER_ACCEPTANCE },
     coordinates: store?.settings.coordinates || null,
+    promoBanners: store?.settings.promoBanners || [],
   });
   const [geocoding, setGeocoding] = useState(false);
   const [templateId, setTemplateId] = useState(store?.templateId || 'physical');
@@ -264,6 +265,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     { id: 'general',    label: t('sectionBasic'),    icon: <IconGeneral /> },
     { id: 'design',     label: t('sectionDesign'),   icon: <IconDesign /> },
     { id: 'contact',    label: t('sectionContact'),  icon: <IconContact /> },
+    { id: 'promo',      label: 'Promo Banners',       icon: <IconDesign /> },
     { id: 'publishing', label: t('isPublished'),     icon: <IconPublish /> },
     ...(isNew ? [] : [{ id: 'danger' as Tab, label: t('dangerZone'), icon: <IconDanger />, danger: true }]),
   ];
@@ -729,6 +731,142 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 </Field>
 
               </div>
+              <SaveButton />
+            </section>
+          )}
+
+          {/* PROMO BANNERS */}
+          {activeTab === 'promo' && (
+            <section>
+              <SectionHeader title="Promo Banners" />
+              <p className="mb-4 text-sm text-neutral">
+                Promotional banners appear between product rows (every 4 products). Optional — leave empty to hide.
+              </p>
+
+              {/* Existing banners */}
+              {form.promoBanners.map((b, idx) => (
+                <div key={b.id} className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-secondary">Banner {idx + 1}</span>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-sm text-neutral">
+                        <input
+                          type="checkbox"
+                          checked={b.enabled}
+                          onChange={() => {
+                            const updated = [...form.promoBanners];
+                            updated[idx] = { ...updated[idx], enabled: !updated[idx].enabled };
+                            setForm({ ...form, promoBanners: updated });
+                          }}
+                          className="rounded"
+                        />
+                        Enabled
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = form.promoBanners.filter((_, i) => i !== idx);
+                          setForm({ ...form, promoBanners: updated });
+                        }}
+                        className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
+                        aria-label="Delete banner"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M8 6V4h8v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Title">
+                      <input
+                        className={INPUT_CLS}
+                        value={b.title}
+                        onChange={(e) => {
+                          const updated = [...form.promoBanners];
+                          updated[idx] = { ...updated[idx], title: e.target.value };
+                          setForm({ ...form, promoBanners: updated });
+                        }}
+                        placeholder="e.g. Fresh arrivals!"
+                      />
+                    </Field>
+                    <Field label="CTA Text (optional)">
+                      <input
+                        className={INPUT_CLS}
+                        value={b.ctaText || ''}
+                        onChange={(e) => {
+                          const updated = [...form.promoBanners];
+                          updated[idx] = { ...updated[idx], ctaText: e.target.value };
+                          setForm({ ...form, promoBanners: updated });
+                        }}
+                        placeholder="e.g. View all →"
+                      />
+                    </Field>
+                  </div>
+                  <div className="mt-3">
+                    <Field label="Description">
+                      <textarea
+                        className={INPUT_CLS}
+                        rows={2}
+                        value={b.description}
+                        onChange={(e) => {
+                          const updated = [...form.promoBanners];
+                          updated[idx] = { ...updated[idx], description: e.target.value };
+                          setForm({ ...form, promoBanners: updated });
+                        }}
+                        placeholder="Short promo text..."
+                      />
+                    </Field>
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Field label="Image URL (optional)">
+                      <input
+                        className={INPUT_CLS}
+                        value={b.image || ''}
+                        onChange={(e) => {
+                          const updated = [...form.promoBanners];
+                          updated[idx] = { ...updated[idx], image: e.target.value };
+                          setForm({ ...form, promoBanners: updated });
+                        }}
+                        placeholder="https://..."
+                      />
+                    </Field>
+                    <Field label="CTA Link (optional)">
+                      <input
+                        className={INPUT_CLS}
+                        value={b.ctaLink || ''}
+                        onChange={(e) => {
+                          const updated = [...form.promoBanners];
+                          updated[idx] = { ...updated[idx], ctaLink: e.target.value };
+                          setForm({ ...form, promoBanners: updated });
+                        }}
+                        placeholder="https://..."
+                      />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add banner button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const newBanner = {
+                    id: `banner-${Date.now()}`,
+                    title: '',
+                    description: '',
+                    enabled: true,
+                  };
+                  setForm({ ...form, promoBanners: [...form.promoBanners, newBanner] });
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-4 text-sm font-medium text-neutral transition-colors hover:border-primary hover:text-primary"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Promo Banner
+              </button>
               <SaveButton />
             </section>
           )}

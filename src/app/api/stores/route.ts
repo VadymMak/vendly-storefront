@@ -21,6 +21,7 @@ const storeSchema = z.object({
   deliveryInfo: z.string().optional().default(''),
   aboutText:    z.string().optional().default(''),
   bannerImage:  z.string().nullable().optional(),
+  quickBadges:  z.array(z.string()).optional(),
   isPublished:  z.boolean().default(false),
 });
 
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
           deliveryInfo: data.deliveryInfo || undefined,
           aboutText:    data.aboutText || undefined,
           bannerImage:  data.bannerImage || undefined,
+          quickBadges:  data.quickBadges || undefined,
         },
       },
     });

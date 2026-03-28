@@ -41,130 +41,62 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
   return (
     <>
-      {/* ── HERO ────────────────────────────────────────────────────────── */}
-      <section className={`relative overflow-hidden ${s.bannerImage ? '' : scheme.heroBg} border-b ${scheme.border}`}>
-        {/* Banner background image */}
-        {s.bannerImage && (
-          <>
-            <Image
-              src={s.bannerImage}
-              alt=""
-              fill
-              sizes="100vw"
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-black/50" />
-          </>
+      {/* ── HERO — Full-bleed with overlay (mockup style) ───────────── */}
+      <section className="relative h-[420px] overflow-hidden sm:h-[520px]">
+        {/* Background: banner image or gradient */}
+        {s.bannerImage ? (
+          <Image
+            src={s.bannerImage}
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className={`absolute inset-0 ${scheme.heroBg}`} />
         )}
-        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center text-center">
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-            {/* Logo avatar */}
-            {store.logo ? (
-              <Image
-                src={store.logo}
-                alt={store.name}
-                width={80}
-                height={80}
-                className="mb-5 rounded-2xl object-cover shadow-md"
-                priority
-              />
-            ) : (
-              <div className={`mb-5 flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-bold shadow-md ${scheme.accent}`}>
-                {store.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-
-            {/* Name */}
-            <h1 className={`text-4xl font-bold tracking-tight sm:text-5xl ${s.bannerImage ? 'text-white' : ''}`}>
-              {store.name}
-            </h1>
-
-            {/* Description */}
-            {store.description && (
-              <p className={`mt-4 max-w-2xl text-lg leading-relaxed ${s.bannerImage ? 'text-white/80' : scheme.textMuted}`}>
-                {store.description}
-              </p>
-            )}
-
-            {/* Info chips row */}
-            {(s.address || s.openingHours || s.deliveryInfo || s.phone) && (
-              <div className="mt-6 flex flex-wrap justify-center gap-2">
-                {s.address && (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${s.bannerImage ? 'bg-white/20 text-white backdrop-blur-sm' : `${scheme.chipBg} ${scheme.chipText}`}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    {s.address}
-                  </span>
-                )}
-                {s.openingHours && (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${s.bannerImage ? 'bg-white/20 text-white backdrop-blur-sm' : `${scheme.chipBg} ${scheme.chipText}`}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    {s.openingHours}
-                  </span>
-                )}
-                {s.deliveryInfo && (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${s.bannerImage ? 'bg-white/20 text-white backdrop-blur-sm' : `${scheme.chipBg} ${scheme.chipText}`}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="3" width="15" height="13" />
-                      <path d="M16 8h4l3 3v5h-7V8z" />
-                      <circle cx="5.5" cy="18.5" r="2.5" />
-                      <circle cx="18.5" cy="18.5" r="2.5" />
-                    </svg>
-                    {s.deliveryInfo}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Open / Closed status + order acceptance */}
+        {/* Content at bottom-left */}
+        <div className="absolute inset-x-0 bottom-0 px-6 pb-10 sm:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            {/* Status badge */}
             {s.structuredHours && (
-              <div className="mt-4">
+              <div className="mb-4">
                 <StoreStatus
                   hours={s.structuredHours}
                   orderAcceptance={s.orderAcceptance}
                   scheme={scheme}
                   shopLanguage={store.shopLanguage}
-                  hasBanner={!!s.bannerImage}
+                  hasBanner={true}
                 />
               </div>
             )}
 
-            {/* CTA buttons */}
-            {(s.phone || s.whatsapp) && (
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {s.phone && (
-                  <a
-                    href={`tel:${s.phone}`}
-                    className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${scheme.accent} ${scheme.accentHover}`}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.5a16 16 0 0 0 5.55 5.55l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-                    </svg>
-                    {s.phone}
-                  </a>
-                )}
-                {s.whatsapp && (
-                  <a
-                    href={`https://wa.me/${s.whatsapp}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-600"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
-                    </svg>
-                    WhatsApp
-                  </a>
-                )}
-              </div>
+            {/* Store name */}
+            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl" style={{ lineHeight: 1.1 }}>
+              {store.name}
+            </h1>
+
+            {/* Description */}
+            {store.description && (
+              <p className="mt-3 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+                {store.description}
+              </p>
             )}
+
+            {/* CTA button */}
+            <a
+              href="#products"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
+            >
+              {t.navProducts}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 8h10M9 4l4 4-4 4" />
+              </svg>
+            </a>
           </div>
         </div>
       </section>
@@ -246,13 +178,56 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         t={t}
       />
 
-      {/* ── ABOUT ───────────────────────────────────────────────────────── */}
+      {/* ── ABOUT — Mockup style: avatar + text + stats ─────────────── */}
       {s.aboutText && (
         <section id="about" className={`border-t ${scheme.border} scroll-mt-20`}>
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl">
-              <h2 className="mb-4 text-2xl font-bold">{t.aboutUs}</h2>
-              <p className={`leading-relaxed ${scheme.textMuted}`}>{s.aboutText}</p>
+            <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:gap-10">
+              {/* Round avatar */}
+              <div className="shrink-0">
+                {store.logo ? (
+                  <Image
+                    src={store.logo}
+                    alt={store.name}
+                    width={160}
+                    height={160}
+                    className="h-40 w-40 rounded-full object-cover shadow-md"
+                  />
+                ) : (
+                  <div className={`flex h-40 w-40 items-center justify-center rounded-full text-5xl font-bold shadow-md ${scheme.accent}`}>
+                    {store.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              {/* Text content */}
+              <div className="flex-1 text-center sm:text-left">
+                <p className={`text-xs font-semibold uppercase tracking-widest ${scheme.textMuted}`}>
+                  {t.aboutUs}
+                </p>
+                <h2 className="mt-2 text-2xl font-bold">{store.name}</h2>
+                <p className={`mt-3 leading-relaxed ${scheme.textMuted}`}>{s.aboutText}</p>
+
+                {/* Stats row */}
+                <div className="mt-6 flex flex-wrap justify-center gap-8 sm:justify-start">
+                  <div className="text-center">
+                    <p className={`text-2xl font-extrabold ${scheme.text}`}>{items.length}+</p>
+                    <p className={`text-xs ${scheme.textMuted}`}>{t.navProducts}</p>
+                  </div>
+                  {categories.length > 1 && (
+                    <div className="text-center">
+                      <p className={`text-2xl font-extrabold ${scheme.text}`}>{categories.length}</p>
+                      <p className={`text-xs ${scheme.textMuted}`}>{t.allCategories}</p>
+                    </div>
+                  )}
+                  {ratingData.count > 0 && (
+                    <div className="text-center">
+                      <p className={`text-2xl font-extrabold ${scheme.text}`}>{ratingData.avg.toFixed(1)} ★</p>
+                      <p className={`text-xs ${scheme.textMuted}`}>{ratingData.count} {t.reviewsCount}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </section>

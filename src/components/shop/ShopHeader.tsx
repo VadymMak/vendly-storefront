@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ShopData, ColorSchemeTokens } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import CartButton from './CartButton';
@@ -21,12 +22,12 @@ export default function ShopHeader({ store, scheme, t }: ShopHeaderProps) {
         {/* Logo + Name */}
         <Link href={`/`} className="flex items-center gap-3">
           {store.logo ? (
-            <img
+            <Image
               src={store.logo}
               alt={store.name}
               width={36}
               height={36}
-              className="h-9 w-9 rounded-lg object-cover"
+              className="rounded-lg object-cover"
             />
           ) : (
             <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${scheme.accent} text-sm font-bold`}>

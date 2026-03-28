@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import type { ColorSchemeTokens } from '@/lib/types';
 
 interface ItemImageGalleryProps {
@@ -27,11 +28,14 @@ export default function ItemImageGallery({ images, name, scheme }: ItemImageGall
   return (
     <div>
       {/* Main image */}
-      <div className={`overflow-hidden rounded-xl ${scheme.border} border`}>
-        <img
+      <div className={`relative aspect-square overflow-hidden rounded-xl ${scheme.border} border`}>
+        <Image
           src={images[activeIndex]}
           alt={`${name} - ${activeIndex + 1}`}
-          className="aspect-square w-full object-cover"
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover"
+          priority
         />
       </div>
 
@@ -46,9 +50,11 @@ export default function ItemImageGallery({ images, name, scheme }: ItemImageGall
                 i === activeIndex ? 'border-current opacity-100' : `${scheme.border} border opacity-60 hover:opacity-100`
               }`}
             >
-              <img
+              <Image
                 src={img}
                 alt={`${name} thumbnail ${i + 1}`}
+                width={64}
+                height={64}
                 className="h-full w-full object-cover"
               />
             </button>

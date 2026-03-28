@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import type { ColorSchemeTokens } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
@@ -79,7 +80,7 @@ export default function CartDrawer({ scheme, t }: CartDrawerProps) {
                   {/* Thumbnail */}
                   <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
                     {item.images[0] ? (
-                      <img src={item.images[0]} alt={item.name} className="h-full w-full object-cover" />
+                      <Image src={item.images[0]} alt={item.name} width={64} height={64} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-30">

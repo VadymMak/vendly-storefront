@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import { getStoreBySlug, getStoreByDomain, getStoreItems, getStoreCategories, getStoreReviews, getStoreAverageRating } from '@/lib/shop-queries';
 import { COLOR_SCHEMES } from '@/lib/constants';
 import { getShopTranslations, pluralizeItems } from '@/lib/shop-i18n';
@@ -42,10 +43,13 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         {/* Banner background image */}
         {s.bannerImage && (
           <>
-            <img
+            <Image
               src={s.bannerImage}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              sizes="100vw"
+              className="object-cover"
+              priority
             />
             <div className="absolute inset-0 bg-black/50" />
           </>
@@ -55,10 +59,13 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
             {/* Logo avatar */}
             {store.logo ? (
-              <img
+              <Image
                 src={store.logo}
                 alt={store.name}
-                className="mb-5 h-20 w-20 rounded-2xl object-cover shadow-md"
+                width={80}
+                height={80}
+                className="mb-5 rounded-2xl object-cover shadow-md"
+                priority
               />
             ) : (
               <div className={`mb-5 flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-bold shadow-md ${scheme.accent}`}>

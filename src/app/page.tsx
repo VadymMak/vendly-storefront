@@ -5,6 +5,7 @@ import SocialProofBar from '@/components/sections/SocialProofBar';
 import BusinessTypes from '@/components/sections/BusinessTypes';
 import HowItWorks from '@/components/sections/HowItWorks';
 import FeaturesSection from '@/components/sections/FeaturesSection';
+import FeaturedShops from '@/components/sections/FeaturedShops';
 import PricingSection from '@/components/sections/PricingSection';
 import TestimonialsSection from '@/components/sections/TestimonialsSection';
 import FaqSection from '@/components/sections/FaqSection';
@@ -20,6 +21,7 @@ export default function Home() {
         <BusinessTypes />
         <HowItWorks />
         <FeaturesSection />
+        <FeaturedShops />
         <PricingSection />
         <TestimonialsSection />
         <FaqSection />

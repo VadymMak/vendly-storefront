@@ -169,9 +169,10 @@
     "docs": "Dokumentácia",
     "contact": "Kontakt",
     "status": "Status",
-    "terms": "Podmienky",
-    "privacy": "Súkromie",
+    "terms": "Podmienky služby",
+    "privacy": "Ochrana súkromia",
     "gdpr": "GDPR",
+    "connect": "Spojenie",
     "copyright": "Všetky práva vyhradené."
   },
   "auth": {

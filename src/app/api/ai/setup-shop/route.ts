@@ -95,6 +95,7 @@ Currency: ${currency}
 
 Generate a JSON object with these exact fields:
 {
+  "shopName": "translated/adapted business name in ${langName} (professional, suitable for a storefront)",
   "shopDescription": "2-3 sentence professional description in ${langName}",
   "colorScheme": "${defaultColor}",
   "colorReason": "one sentence in ${langName} why this color scheme fits this business",
@@ -115,10 +116,11 @@ Rules:
 - colorScheme must be one of: light, dark, warm, bold, festive, elegant
 - Items must be typical for a ${data.templateId} business
 - Prices must be realistic for the market (${currency})
-- All text (shopDescription, colorReason, names, descriptions, categories) must be in ${langName}`,
+- All text (shopName, shopDescription, colorReason, names, descriptions, categories) must be in ${langName}
+- shopName should be a clean, professional translation/adaptation of the business name into ${langName}`,
         },
       ],
-      max_tokens: 900,
+      max_tokens: 1000,
       temperature: 0.75,
       response_format: { type: 'json_object' },
     });

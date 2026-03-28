@@ -244,6 +244,7 @@ export interface AiSetupItem {
 }
 
 export interface AiSetupResult {
+  shopName: string;
   shopDescription: string;
   colorScheme: 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant';
   colorReason: string;

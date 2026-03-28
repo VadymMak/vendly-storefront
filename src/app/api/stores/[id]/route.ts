@@ -20,6 +20,7 @@ const patchSchema = z.object({
   deliveryInfo: z.string().optional(),
   aboutText:    z.string().optional(),
   logo:         z.string().optional(),
+  bannerImage:  z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -40,7 +41,7 @@ export async function PATCH(
     // Merge settings
     const currentSettings = store.settings as Record<string, unknown>;
     const newSettings: Record<string, unknown> = { ...currentSettings };
-    const settingsFields = ['colorScheme','currency','whatsapp','instagram','facebook','address','phone','openingHours','deliveryInfo','aboutText'] as const;
+    const settingsFields = ['colorScheme','currency','whatsapp','instagram','facebook','address','phone','openingHours','deliveryInfo','aboutText','bannerImage'] as const;
     for (const field of settingsFields) {
       if (data[field] !== undefined) {
         newSettings[field] = data[field] || undefined;

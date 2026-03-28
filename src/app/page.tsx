@@ -6,6 +6,7 @@ import BusinessTypes from '@/components/sections/BusinessTypes';
 import HowItWorks from '@/components/sections/HowItWorks';
 import FeaturesSection from '@/components/sections/FeaturesSection';
 import PricingSection from '@/components/sections/PricingSection';
+import TestimonialsSection from '@/components/sections/TestimonialsSection';
 import FaqSection from '@/components/sections/FaqSection';
 import CtaSection from '@/components/sections/CtaSection';
 
@@ -20,6 +21,7 @@ export default function Home() {
         <HowItWorks />
         <FeaturesSection />
         <PricingSection />
+        <TestimonialsSection />
         <FaqSection />
         <CtaSection />
       </main>

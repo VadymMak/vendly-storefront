@@ -121,6 +121,14 @@
     "pro_f7": "Multi-language store",
     "pro_f8": "Unlimited AI translations"
   },
+  "testimonials": {
+    "badge": "Reviews",
+    "title": "What our users say",
+    "subtitle": "Real feedback from entrepreneurs who chose VendShop.",
+    "testimonial1": "I set up my bakery shop in 15 minutes. Orders started coming the same day! The AI descriptions saved me hours of work.",
+    "testimonial2": "Finally a simple platform for my repair service. Customers find me online and book directly. Highly recommended!",
+    "testimonial3": "Beautiful design, easy to manage. My beauty salon website looks professional and I didn't need a developer."
+  },
   "faq": {
     "badge": "FAQ",
     "title": "Frequently asked questions",

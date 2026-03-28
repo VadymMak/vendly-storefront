@@ -121,6 +121,14 @@
     "pro_f7": "Multi-jazyk obchod",
     "pro_f8": "Neobmedzené AI preklady"
   },
+  "testimonials": {
+    "badge": "Recenzie",
+    "title": "Čo hovoria naši používatelia",
+    "subtitle": "Skutočné skúsenosti podnikateľov, ktorí si vybrali VendShop.",
+    "testimonial1": "Svoj pekárenský obchod som nastavila za 15 minút. Objednávky prišli ešte v ten deň! AI popisky mi ušetrili hodiny práce.",
+    "testimonial2": "Konečne jednoduchá platforma pre moju opravovňu. Zákazníci ma nájdu online a objednajú si priamo. Vrelo odporúčam!",
+    "testimonial3": "Krásny dizajn, ľahká správa. Web môjho salóna vyzerá profesionálne a nepotrebovala som programátora."
+  },
   "faq": {
     "badge": "FAQ",
     "title": "Často kladené otázky",

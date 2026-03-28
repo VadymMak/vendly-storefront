@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardReview, DashboardStats, DashboardOrder, BrowseStore, AdminStore, AdminUser, ReviewStatus } from './types';
+import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardReview, DashboardStats, DashboardOrder, BrowseStore, AdminStore, AdminUser, ReviewStatus, OwnerPlan } from './types';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -23,6 +23,7 @@ export function resolveUserPlan(user: { plan: string; email: string }): string {
 export async function getStoreBySlug(slug: string): Promise<ShopData | null> {
   const store = await db.store.findUnique({
     where: { slug },
+    include: { user: { select: { plan: true, email: true } } },
   });
 
   if (!store) return null;
@@ -38,12 +39,14 @@ export async function getStoreBySlug(slug: string): Promise<ShopData | null> {
     shopLanguage: store.shopLanguage,
     settings: store.settings as unknown as ShopSettings,
     isPublished: store.isPublished,
+    ownerPlan: resolveUserPlan(store.user) as OwnerPlan,
   };
 }
 
 export async function getStoreByDomain(domain: string): Promise<ShopData | null> {
   const store = await db.store.findUnique({
     where: { customDomain: domain },
+    include: { user: { select: { plan: true, email: true } } },
   });
 
   if (!store) return null;
@@ -59,6 +62,7 @@ export async function getStoreByDomain(domain: string): Promise<ShopData | null>
     shopLanguage: store.shopLanguage,
     settings: store.settings as unknown as ShopSettings,
     isPublished: store.isPublished,
+    ownerPlan: resolveUserPlan(store.user) as OwnerPlan,
   };
 }
 
@@ -135,6 +139,7 @@ export async function getStoreByUserId(userId: string): Promise<ShopData | null>
   const store = await db.store.findFirst({
     where: { userId },
     orderBy: { createdAt: 'desc' },
+    include: { user: { select: { plan: true, email: true } } },
   });
 
   if (!store) return null;
@@ -150,6 +155,7 @@ export async function getStoreByUserId(userId: string): Promise<ShopData | null>
     shopLanguage: store.shopLanguage,
     settings: store.settings as unknown as ShopSettings,
     isPublished: store.isPublished,
+    ownerPlan: resolveUserPlan(store.user) as OwnerPlan,
   };
 }
 

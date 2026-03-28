@@ -19,6 +19,7 @@ const patchSchema = z.object({
   openingHours: z.string().optional(),
   deliveryInfo: z.string().optional(),
   aboutText:    z.string().optional(),
+  logo:         z.string().optional(),
 });
 
 export async function PATCH(
@@ -54,6 +55,7 @@ export async function PATCH(
         ...(data.templateId   !== undefined && { templateId: data.templateId }),
         ...(data.shopLanguage !== undefined && { shopLanguage: data.shopLanguage }),
         ...(data.isPublished  !== undefined && { isPublished: data.isPublished }),
+        ...(data.logo         !== undefined && { logo: data.logo || null }),
         settings: newSettings as Parameters<typeof db.store.update>[0]['data']['settings'],
       },
     });

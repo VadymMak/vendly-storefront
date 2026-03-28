@@ -12,6 +12,7 @@ const productSchema = z.object({
   category:    z.string().optional().default(''),
   type:        z.enum(['PRODUCT', 'SERVICE', 'MENU_ITEM', 'PORTFOLIO']),
   isAvailable: z.boolean().default(true),
+  images:      z.array(z.string()).optional().default([]),
 });
 
 export async function POST(request: Request) {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
         category:    data.category || null,
         type:        data.type,
         isAvailable: data.isAvailable,
-        images:      [],
+        images:      data.images || [],
       },
     });
 

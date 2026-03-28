@@ -136,6 +136,7 @@ export interface ProductFormData {
   category: string;
   type: ItemType;
   isAvailable: boolean;
+  images: string[];
 }
 
 export interface StoreSettingsFormData {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ShopData, StoreSettingsFormData } from '@/lib/types';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 const LANGUAGES = [
   { value: 'sk', label: 'Slovenčina' },
@@ -126,6 +127,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
   });
   const [templateId, setTemplateId] = useState(store?.templateId || 'physical');
   const [slug, setSlug] = useState(store?.slug || '');
+  const [logo, setLogo] = useState<string[]>(store?.logo ? [store.logo] : []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -150,7 +152,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, templateId, slug, userId }),
+        body: JSON.stringify({ ...form, templateId, slug, userId, logo: logo[0] || null }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -254,6 +256,15 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
             <section>
               <SectionHeader title={t('sectionBasic')} />
               <div className="space-y-4">
+                {/* Logo upload */}
+                <ImageUpload
+                  images={logo}
+                  onChange={setLogo}
+                  single
+                  label="Logo obchodu"
+                  hint="JPG, PNG alebo WEBP, max 5 MB. Odporúčame štvorec."
+                />
+
                 <Field label={`${t('storeName')} *`}>
                   <input
                     type="text" required value={form.name}
@@ -279,7 +290,14 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
                   <textarea
                     rows={3} value={form.description}
                     onChange={(e) => set('description', e.target.value)}
-                    className={INPUT_CLS} placeholder="..."
+                    className={INPUT_CLS} placeholder="Krátky popis zobrazený v hero sekcii..."
+                  />
+                </Field>
+                <Field label="O nás" hint="Dlhší text zobrazený v sekcii 'O nás' na stránke obchodu.">
+                  <textarea
+                    rows={4} value={form.aboutText}
+                    onChange={(e) => set('aboutText', e.target.value)}
+                    className={INPUT_CLS} placeholder="Napíšte o vašom obchode, histórii, hodnotách..."
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">

@@ -219,4 +219,9 @@ export interface ColorSchemeTokens {
   headerBg: string;
   footerBg: string;
   footerText: string;
+  // Hero & UI extras
+  heroBg: string;
+  chipBg: string;
+  chipText: string;
+  outlineBtn: string;
 }

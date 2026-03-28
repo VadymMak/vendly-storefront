@@ -226,6 +226,10 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     headerBg: 'bg-white',
     footerBg: 'bg-gray-50',
     footerText: 'text-gray-600',
+    heroBg: 'bg-gradient-to-b from-gray-50 to-white',
+    chipBg: 'bg-gray-100',
+    chipText: 'text-gray-600',
+    outlineBtn: 'border border-gray-300 text-gray-700 hover:bg-gray-100',
   },
   dark: {
     bg: 'bg-gray-950',
@@ -238,6 +242,10 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     headerBg: 'bg-gray-950',
     footerBg: 'bg-gray-900',
     footerText: 'text-gray-400',
+    heroBg: 'bg-gradient-to-b from-gray-900 to-gray-950',
+    chipBg: 'bg-gray-800',
+    chipText: 'text-gray-300',
+    outlineBtn: 'border border-gray-700 text-gray-300 hover:bg-gray-800',
   },
   warm: {
     bg: 'bg-amber-50',
@@ -250,6 +258,10 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     headerBg: 'bg-white',
     footerBg: 'bg-amber-100',
     footerText: 'text-amber-800',
+    heroBg: 'bg-gradient-to-b from-amber-100 to-amber-50',
+    chipBg: 'bg-amber-100',
+    chipText: 'text-amber-800',
+    outlineBtn: 'border border-amber-300 text-amber-800 hover:bg-amber-100',
   },
   bold: {
     bg: 'bg-indigo-950',
@@ -262,6 +274,10 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     headerBg: 'bg-indigo-950',
     footerBg: 'bg-indigo-900',
     footerText: 'text-indigo-300',
+    heroBg: 'bg-gradient-to-b from-indigo-900 to-indigo-950',
+    chipBg: 'bg-indigo-800',
+    chipText: 'text-indigo-200',
+    outlineBtn: 'border border-indigo-700 text-indigo-200 hover:bg-indigo-800',
   },
 };
 

@@ -73,8 +73,27 @@ export default function SettingsForm({ userId, store }: SettingsFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Delete store state
+  const [showDelete, setShowDelete]     = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting]         = useState(false);
+
   const set = <K extends keyof StoreSettingsFormData>(field: K, value: StoreSettingsFormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleDelete = async () => {
+    if (!store || deleteConfirm !== store.name) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/stores/${store.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      router.push('/dashboard/settings');
+      router.refresh();
+    } catch {
+      setDeleting(false);
+      setShowDelete(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,6 +295,52 @@ export default function SettingsForm({ userId, store }: SettingsFormProps) {
       >
         {submitting ? '...' : isNew ? t('saveNew') : t('saveEdit')}
       </button>
+
+      {/* ── Danger Zone (only for existing stores) ── */}
+      {!isNew && (
+        <section className="rounded-xl border border-red-200 bg-red-50 p-6">
+          <h2 className="mb-1 font-semibold text-red-700">{t('dangerZone')}</h2>
+          <p className="mb-4 text-sm text-red-500">{t('deleteStoreDesc')}</p>
+
+          {!showDelete ? (
+            <button
+              type="button"
+              onClick={() => setShowDelete(true)}
+              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+            >
+              {t('deleteStore')}
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-red-600">{t('deleteConfirm')}</p>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={store?.name}
+                className="w-full rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowDelete(false); setDeleteConfirm(''); }}
+                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  ← Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleteConfirm !== store?.name || deleting}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-40 transition-colors"
+                >
+                  {deleting ? t('deleting') : t('deleteConfirmBtn')}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </form>
   );
 }

@@ -30,6 +30,7 @@ export async function getStoreBySlug(slug: string): Promise<ShopData | null> {
   return {
     id: store.id,
     slug: store.slug,
+    customDomain: store.customDomain,
     name: store.name,
     description: store.description,
     logo: store.logo,
@@ -50,6 +51,7 @@ export async function getStoreByDomain(domain: string): Promise<ShopData | null>
   return {
     id: store.id,
     slug: store.slug,
+    customDomain: store.customDomain,
     name: store.name,
     description: store.description,
     logo: store.logo,
@@ -140,6 +142,7 @@ export async function getStoreByUserId(userId: string): Promise<ShopData | null>
   return {
     id: store.id,
     slug: store.slug,
+    customDomain: store.customDomain,
     name: store.name,
     description: store.description,
     logo: store.logo,

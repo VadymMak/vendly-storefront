@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getStoreBySlug, getStoreItems, getStoreCategories } from '@/lib/shop-queries';
+import { getStoreBySlug, getStoreByDomain, getStoreItems, getStoreCategories } from '@/lib/shop-queries';
 import { COLOR_SCHEMES } from '@/lib/constants';
 import ProductGrid from '@/components/shop/ProductGrid';
 import CategoryFilter from '@/components/shop/CategoryFilter';
@@ -14,7 +14,9 @@ interface ShopPageProps {
 export default async function ShopPage({ params, searchParams }: ShopPageProps) {
   const { slug } = await params;
   const { category } = await searchParams;
-  const store = await getStoreBySlug(slug);
+
+  // Try slug first, then custom domain (middleware passes custom domains as slug)
+  const store = await getStoreBySlug(slug) || await getStoreByDomain(slug);
 
   if (!store || !store.isPublished) {
     notFound();

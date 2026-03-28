@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import { getStoreBySlug, getStoreItems, getStoreCategories } from '@/lib/shop-queries';
-import { COLOR_SCHEMES, QUICK_BADGES } from '@/lib/constants';
+import { COLOR_SCHEMES } from '@/lib/constants';
 import ProductGrid from '@/components/shop/ProductGrid';
 import CategoryFilter from '@/components/shop/CategoryFilter';
 import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
+import StoreStatus from '@/components/shop/StoreStatus';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
@@ -102,6 +103,19 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                     {s.deliveryInfo}
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Open / Closed status + order acceptance */}
+            {s.structuredHours && (
+              <div className="mt-4">
+                <StoreStatus
+                  hours={s.structuredHours}
+                  orderAcceptance={s.orderAcceptance}
+                  scheme={scheme}
+                  shopLanguage={store.shopLanguage}
+                  hasBanner={!!s.bannerImage}
+                />
               </div>
             )}
 
@@ -294,6 +308,20 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
               )}
 
             </div>
+
+            {/* ── Map embed ──────────────────────────────────────────── */}
+            {s.coordinates && (
+              <div className="mt-8 overflow-hidden rounded-2xl border border-gray-200">
+                <iframe
+                  title="Store location"
+                  width="100%"
+                  height="300"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${s.coordinates.lng - 0.008},${s.coordinates.lat - 0.005},${s.coordinates.lng + 0.008},${s.coordinates.lat + 0.005}&layer=mapnik&marker=${s.coordinates.lat},${s.coordinates.lng}`}
+                />
+              </div>
+            )}
           </div>
         </section>
       )}

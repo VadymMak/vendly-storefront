@@ -3,6 +3,14 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+const dayScheduleSchema = z.object({
+  open: z.boolean(),
+  from: z.string(),
+  to: z.string(),
+  breakFrom: z.string().optional(),
+  breakTo: z.string().optional(),
+});
+
 const storeSchema = z.object({
   userId:       z.string().min(1),
   name:         z.string().min(1, 'Názov je povinný'),
@@ -22,6 +30,9 @@ const storeSchema = z.object({
   aboutText:    z.string().optional().default(''),
   bannerImage:  z.string().nullable().optional(),
   quickBadges:  z.array(z.string()).optional(),
+  structuredHours: z.tuple([dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema]).optional(),
+  orderAcceptance: z.object({ enabled: z.boolean(), from: z.string(), to: z.string() }).optional(),
+  coordinates: z.object({ lat: z.number(), lng: z.number() }).nullable().optional(),
   isPublished:  z.boolean().default(false),
 });
 
@@ -65,6 +76,9 @@ export async function POST(request: Request) {
           aboutText:    data.aboutText || undefined,
           bannerImage:  data.bannerImage || undefined,
           quickBadges:  data.quickBadges || undefined,
+          structuredHours: data.structuredHours || undefined,
+          orderAcceptance: data.orderAcceptance || undefined,
+          coordinates: data.coordinates || undefined,
         },
       },
     });

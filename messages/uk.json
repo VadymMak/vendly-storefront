@@ -243,7 +243,12 @@
     "saving": "Зберігаю...",
     "saveNew": "Додати продукт",
     "saveEdit": "Зберегти зміни",
-    "cancel": "Скасувати"
+    "cancel": "Скасувати",
+    "uploadAddPhoto": "Додати фото",
+    "uploadRemove": "Видалити",
+    "uploadUploading": "Завантаження...",
+    "uploadMain": "Головне",
+    "uploadError": "Помилка завантаження"
   },
   "dashboardOrders": {
     "title": "Замовлення",
@@ -310,7 +315,18 @@
     "deleteConfirmBtn": "Так, видалити назавжди",
     "deleting": "Видаляємо...",
     "bannerImage": "Hero / банер зображення",
-    "bannerHint": "Широке зображення для hero секції. Рекомендовано 1600×600 px."
+    "bannerHint": "Широке зображення для hero секції. Рекомендовано 1600×600 px.",
+    "uploadImage": "Завантажити зображення",
+    "uploadChange": "Змінити зображення",
+    "uploadUploading": "Завантаження...",
+    "uploadRemove": "Видалити",
+    "uploadAddPhoto": "Додати фото",
+    "uploadMain": "Головне",
+    "uploadError": "Помилка завантаження",
+    "uploadLogo": "Завантажити логотип",
+    "uploadChangeLogo": "Змінити логотип",
+    "storeLogo": "Логотип магазину",
+    "logoHint": "JPG, PNG або WEBP, макс. 5 МБ. Рекомендовано квадрат."
   },
   "aiWizard": {
     "step1Title": "Розкажіть про свій бізнес",

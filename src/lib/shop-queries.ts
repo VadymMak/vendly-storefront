@@ -131,6 +131,54 @@ export async function getStoreItem(itemId: string): Promise<ShopItem | null> {
   };
 }
 
+export async function getRelatedItems(
+  storeId: string,
+  currentItemId: string,
+  category: string | null,
+  limit = 4,
+): Promise<ShopItem[]> {
+  // First try same category, then fallback to any items from the store
+  const items = await db.item.findMany({
+    where: {
+      storeId,
+      isAvailable: true,
+      id: { not: currentItemId },
+      ...(category ? { category } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  // If not enough from same category, fill with other items
+  if (items.length < limit && category) {
+    const moreIds = new Set(items.map(i => i.id));
+    const more = await db.item.findMany({
+      where: {
+        storeId,
+        isAvailable: true,
+        id: { notIn: [currentItemId, ...moreIds] },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit - items.length,
+    });
+    items.push(...more);
+  }
+
+  return items.map((item) => ({
+    id: item.id,
+    type: item.type as ShopItem['type'],
+    name: item.name,
+    description: item.description,
+    price: item.price,
+    currency: item.currency,
+    category: item.category,
+    images: item.images,
+    isAvailable: item.isAvailable,
+    sortOrder: item.sortOrder,
+    metadata: item.metadata as Record<string, unknown> | null,
+  }));
+}
+
 export async function getStoreCategories(storeId: string): Promise<string[]> {
   const items = await db.item.findMany({
     where: { storeId, isAvailable: true },

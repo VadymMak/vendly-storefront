@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ShopItem, ColorSchemeTokens } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import { CURRENCY_SYMBOLS } from '@/lib/constants';
@@ -11,9 +12,10 @@ interface ProductCardProps {
   scheme: ColorSchemeTokens;
   currency: string;
   t: ShopFrontMessages;
+  priority?: boolean;
 }
 
-export default function ProductCard({ item, scheme, currency, t }: ProductCardProps) {
+export default function ProductCard({ item, scheme, currency, t, priority = false }: ProductCardProps) {
   const { addItem } = useCart();
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
   const hasImage = item.images.length > 0;
@@ -25,10 +27,13 @@ export default function ProductCard({ item, scheme, currency, t }: ProductCardPr
       <Link href={`/item/${item.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           {hasImage ? (
-            <img
+            <Image
               src={item.images[0]}
               alt={item.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              priority={priority}
             />
           ) : (
             <div className={`flex h-full w-full flex-col items-center justify-center gap-2 ${scheme.heroBg}`}>

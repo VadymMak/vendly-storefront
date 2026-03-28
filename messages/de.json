@@ -354,6 +354,11 @@
     "deleteConfirm": "Möchten Sie den Shop und alle Daten wirklich löschen? Geben Sie den Shop-Namen zur Bestätigung ein.",
     "deleteConfirmBtn": "Ja, dauerhaft löschen",
     "deleting": "Lösche...",
+    "exportData": "Meine Daten exportieren",
+    "exportDataDesc": "Laden Sie alle Ihre Daten als JSON-Datei herunter (DSGVO).",
+    "deleteAccount": "Konto löschen",
+    "deleteAccountDesc": "Löschen Sie Ihr Konto und alle Shops dauerhaft. Dies kann nicht rückgängig gemacht werden.",
+    "deleteAccountConfirm": "Sind Sie sicher, dass Sie Ihr Konto und ALLE Shops, Produkte und Bestellungen dauerhaft löschen möchten? Diese Aktion kann NICHT rückgängig gemacht werden.",
     "bannerImage": "Hero- / Banner-Bild",
     "bannerHint": "Breitbild für die Hero-Sektion. Empfohlen: 1600×600 px.",
     "uploadImage": "Bild hochladen",
@@ -551,7 +556,10 @@
     "reviewThanks": "Vielen Dank! Ihre Bewertung wird nach Prüfung veröffentlicht.",
     "reviewError": "Bewertung konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
     "reviewSpam": "Zu viele Bewertungen von diesem Gerät. Bitte versuchen Sie es später.",
-    "ownerReply": "Antwort des Inhabers"
+    "ownerReply": "Antwort des Inhabers",
+    "cookieText": "Diese Seite verwendet Cookies für grundlegende Funktionen und Analysen.",
+    "cookieAccept": "Akzeptieren",
+    "cookieDecline": "Ablehnen"
   },
   "dashboardReviews": {
     "title": "Bewertungen",

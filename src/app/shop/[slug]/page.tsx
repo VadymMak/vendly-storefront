@@ -9,6 +9,7 @@ import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
 import StoreStatus from '@/components/shop/StoreStatus';
 import ReviewsSection from '@/components/shop/ReviewsSection';
 import SearchBar from '@/components/shop/SearchBar';
+import CookieConsent from '@/components/shop/CookieConsent';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
@@ -371,6 +372,13 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
           </div>
         </section>
       )}
+
+      {/* Cookie Consent */}
+      <CookieConsent
+        text={t.cookieText}
+        acceptLabel={t.cookieAccept}
+        declineLabel={t.cookieDecline}
+      />
     </>
   );
 }

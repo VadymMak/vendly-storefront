@@ -354,6 +354,11 @@
     "deleteConfirm": "Are you sure you want to delete this store and all its data? Type the store name to confirm.",
     "deleteConfirmBtn": "Yes, delete permanently",
     "deleting": "Deleting...",
+    "exportData": "Export my data",
+    "exportDataDesc": "Download all your data as a JSON file (GDPR).",
+    "deleteAccount": "Delete account",
+    "deleteAccountDesc": "Permanently delete your account and all stores. This cannot be undone.",
+    "deleteAccountConfirm": "Are you sure you want to permanently delete your account and ALL stores, products, and orders? This action CANNOT be undone.",
     "bannerImage": "Hero / banner image",
     "bannerHint": "Wide image displayed in the hero section. Recommended 1600×600 px.",
     "uploadImage": "Upload image",
@@ -551,7 +556,10 @@
     "reviewThanks": "Thank you! Your review will be published after moderation.",
     "reviewError": "Could not submit review. Please try again.",
     "reviewSpam": "Too many reviews from this device. Please try later.",
-    "ownerReply": "Owner reply"
+    "ownerReply": "Owner reply",
+    "cookieText": "This site uses cookies for basic functionality and analytics.",
+    "cookieAccept": "Accept",
+    "cookieDecline": "Decline"
   },
   "dashboardReviews": {
     "title": "Reviews",

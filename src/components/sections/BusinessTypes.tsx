@@ -55,6 +55,17 @@ const BUSINESS_ICONS: Record<string, React.ReactNode> = {
       <path d="M18 17h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   ),
+  events: (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="16" cy="10" r="6" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M16 16v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M13 27h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="8" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 10.5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="24" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M24 10.5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
 };
 
 function ArrowIcon() {

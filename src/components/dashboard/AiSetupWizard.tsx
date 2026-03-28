@@ -14,6 +14,7 @@ const TEMPLATE_OPTIONS = [
   { value: 'repair',      emoji: '🔧' },
   { value: 'digital',     emoji: '💻' },
   { value: 'restaurant',  emoji: '🍽️' },
+  { value: 'events',      emoji: '🎈' },
 ] as const;
 
 type TemplateValue = typeof TEMPLATE_OPTIONS[number]['value'];
@@ -51,6 +52,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
     repair:      ts('storeTypeRepair'),
     digital:     ts('storeTypeDigital'),
     restaurant:  ts('storeTypeRestaurant'),
+    events:      ts('storeTypeEvents'),
   };
 
   // Color scheme labels (translated)

@@ -64,6 +64,13 @@ export const BUSINESS_TYPES: BusinessType[] = [
     description: 'Kurzy, e-booky, šablóny — predávajte digitálny obsah bez starostí.',
     demo: 'digital-demo.vendshop.shop',
   },
+  {
+    id: 'events',
+    icon: '🎈',
+    title: 'Eventy a dekorácie',
+    description: 'Organizácia osláv, dekorácie, fotozone — ukážte portfólio a prijímajte objednávky.',
+    demo: 'baloon-party.vendshop.shop',
+  },
 ];
 
 export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [

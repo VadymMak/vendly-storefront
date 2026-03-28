@@ -101,12 +101,13 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   const isNew = !store;
 
   const TEMPLATE_IDS = [
-    { value: 'food',        label: t('storeTypeFood') },
-    { value: 'physical',    label: t('storeTypePhysical') },
-    { value: 'beauty',      label: t('storeTypeBeauty') },
-    { value: 'repair',      label: t('storeTypeRepair') },
-    { value: 'digital',     label: t('storeTypeDigital') },
-    { value: 'restaurant',  label: t('storeTypeRestaurant') },
+    { value: 'food',        label: t('storeTypeFood'),       hint: t('storeTypeFoodHint') },
+    { value: 'physical',    label: t('storeTypePhysical'),   hint: t('storeTypePhysicalHint') },
+    { value: 'beauty',      label: t('storeTypeBeauty'),     hint: t('storeTypeBeautyHint') },
+    { value: 'repair',      label: t('storeTypeRepair'),     hint: t('storeTypeRepairHint') },
+    { value: 'digital',     label: t('storeTypeDigital'),    hint: t('storeTypeDigitalHint') },
+    { value: 'restaurant',  label: t('storeTypeRestaurant'), hint: t('storeTypeRestaurantHint') },
+    { value: 'events',      label: t('storeTypeEvents'),     hint: t('storeTypeEventsHint') },
   ];
   const COLOR_LABELS: Record<string, string> = {
     light: t('colorLight'), dark: t('colorDark'), warm: t('colorWarm'), bold: t('colorBold'),
@@ -433,9 +434,23 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label={t('storeType')}>
-                    <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className={INPUT_CLS}>
-                      {TEMPLATE_IDS.map((tmpl) => <option key={tmpl.value} value={tmpl.value}>{tmpl.label}</option>)}
-                    </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      {TEMPLATE_IDS.map((tmpl) => (
+                        <button
+                          key={tmpl.value}
+                          type="button"
+                          onClick={() => setTemplateId(tmpl.value)}
+                          className={`rounded-lg border p-3 text-left transition-colors ${
+                            templateId === tmpl.value
+                              ? 'border-primary bg-green-50 ring-1 ring-primary'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-sm font-medium text-secondary">{tmpl.label}</span>
+                          <p className="mt-0.5 text-xs text-neutral leading-snug">{tmpl.hint}</p>
+                        </button>
+                      ))}
+                    </div>
                   </Field>
                   <Field label={t('language')}>
                     <select value={form.shopLanguage} onChange={(e) => set('shopLanguage', e.target.value)} className={INPUT_CLS}>

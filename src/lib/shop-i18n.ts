@@ -5,7 +5,7 @@
 
 import type { Locale } from '@/i18n/request';
 
-interface ShopFrontMessages {
+export interface ShopFrontMessages {
   catalog: string;
   item_one: string;
   item_few: string;
@@ -19,6 +19,21 @@ interface ShopFrontMessages {
   writeUs: string;
   storeNotFound: string;
   onlineStore: string;
+  // Reviews
+  reviews: string;
+  reviewsCount: string;
+  reviewsEmpty: string;
+  leaveReview: string;
+  showAllReviews: string;
+  reviewName: string;
+  reviewEmail: string;
+  reviewText: string;
+  reviewRating: string;
+  reviewSubmit: string;
+  reviewThanks: string;
+  reviewError: string;
+  reviewSpam: string;
+  ownerReply: string;
 }
 
 const VALID_LOCALES = new Set(['en', 'sk', 'uk', 'cs', 'de']);

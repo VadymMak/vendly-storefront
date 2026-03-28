@@ -96,14 +96,17 @@ model Booking {
 
 // Отзыв
 model Review {
-  id        String   @id @default(cuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  author    String
-  rating    Int
-  text      String
-  isVisible Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id          String       @id @default(cuid())
+  storeId     String
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  author      String
+  authorEmail String?
+  rating      Int
+  text        String
+  status      ReviewStatus @default(PENDING)
+  ownerReply  String?
+  ipAddress   String?
+  createdAt   DateTime     @default(now())
 }
 
 // Блог платформы
@@ -160,4 +163,10 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
 }

@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation';
-import { getStoreBySlug, getStoreByDomain, getStoreItems, getStoreCategories } from '@/lib/shop-queries';
+import { getStoreBySlug, getStoreByDomain, getStoreItems, getStoreCategories, getStoreReviews, getStoreAverageRating } from '@/lib/shop-queries';
 import { COLOR_SCHEMES } from '@/lib/constants';
 import { getShopTranslations, pluralizeItems } from '@/lib/shop-i18n';
 import ProductGrid from '@/components/shop/ProductGrid';
 import CategoryFilter from '@/components/shop/CategoryFilter';
 import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
 import StoreStatus from '@/components/shop/StoreStatus';
+import ReviewsSection from '@/components/shop/ReviewsSection';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
@@ -23,10 +24,12 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
     notFound();
   }
 
-  const [items, categories, t] = await Promise.all([
+  const [items, categories, t, reviews, ratingData] = await Promise.all([
     getStoreItems(store.id, category),
     getStoreCategories(store.id),
     getShopTranslations(store.shopLanguage),
+    getStoreReviews(store.id),
+    getStoreAverageRating(store.id),
   ]);
 
   const scheme = COLOR_SCHEMES[store.settings.colorScheme] || COLOR_SCHEMES.light;
@@ -200,6 +203,16 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
           </div>
         )}
       </section>
+
+      {/* ── REVIEWS ──────────────────────────────────────────────────────── */}
+      <ReviewsSection
+        reviews={reviews}
+        avgRating={ratingData.avg}
+        reviewCount={ratingData.count}
+        storeId={store.id}
+        scheme={scheme}
+        t={t}
+      />
 
       {/* ── ABOUT ───────────────────────────────────────────────────────── */}
       {s.aboutText && (

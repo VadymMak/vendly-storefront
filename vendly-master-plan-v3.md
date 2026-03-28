@@ -62,10 +62,12 @@
 - [x] WhatsApp иконка добавлена в footer рядом с Instagram/Facebook
 - [x] ownerPlan добавлен в ShopData + все shop queries
 
-### J5 — Search
-- [ ] Поиск по товарам: SearchBar компонент с debounce
-- [ ] URL параметр ?q=... для server-side фильтрации
-- [ ] Empty state для "ничего не найдено"
+### J5 — Search ✅
+- [x] Поиск по товарам: SearchBar компонент с 400ms debounce
+- [x] URL параметр ?q=... для server-side фильтрации (name, description, category — insensitive)
+- [x] Empty state для "ничего не найдено" + отдельный от пустого каталога
+- [x] Категория скрывается при активном поиске
+- [x] 3 ключа переводов во всех 5 языках
 
 ### J6 — Product Detail Page
 - [ ] Image gallery с thumbnails и zoom on hover

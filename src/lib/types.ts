@@ -133,12 +133,33 @@ export interface OrderFormData {
   note?: string;
 }
 
+export type ReviewStatus = 'PENDING' | 'PUBLISHED' | 'REJECTED';
+
 export interface ShopReview {
   id: string;
   author: string;
   rating: number;
   text: string;
+  ownerReply: string | null;
   createdAt: string;
+}
+
+export interface DashboardReview {
+  id: string;
+  author: string;
+  authorEmail: string | null;
+  rating: number;
+  text: string;
+  status: ReviewStatus;
+  ownerReply: string | null;
+  createdAt: string;
+}
+
+export interface ReviewFormData {
+  author: string;
+  authorEmail?: string;
+  rating: number;
+  text: string;
 }
 
 // ===== Dashboard types =====

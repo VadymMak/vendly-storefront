@@ -40,6 +40,11 @@ const NAV_ICONS = {
       <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
     </svg>
   ),
+  reviews: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
   settings: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3" />
@@ -52,6 +57,7 @@ const NAV_HREFS = [
   { key: 'overview' as const, href: '/dashboard' },
   { key: 'products' as const, href: '/dashboard/products' },
   { key: 'orders' as const, href: '/dashboard/orders' },
+  { key: 'reviews' as const, href: '/dashboard/reviews' },
   { key: 'settings' as const, href: '/dashboard/settings' },
 ];
 

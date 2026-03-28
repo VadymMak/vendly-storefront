@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardStats, DashboardOrder, BrowseStore, AdminStore, AdminUser } from './types';
+import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardReview, DashboardStats, DashboardOrder, BrowseStore, AdminStore, AdminUser, ReviewStatus } from './types';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -250,11 +250,12 @@ export async function getAllUsersAdmin(): Promise<AdminUser[]> {
   }));
 }
 
+/** Published reviews for shop storefront */
 export async function getStoreReviews(storeId: string): Promise<ShopReview[]> {
   const reviews = await db.review.findMany({
-    where: { storeId, isVisible: true },
+    where: { storeId, status: 'PUBLISHED' },
     orderBy: { createdAt: 'desc' },
-    take: 20,
+    take: 50,
   });
 
   return reviews.map((r) => ({
@@ -262,6 +263,47 @@ export async function getStoreReviews(storeId: string): Promise<ShopReview[]> {
     author: r.author,
     rating: r.rating,
     text: r.text,
+    ownerReply: r.ownerReply,
     createdAt: r.createdAt.toISOString(),
   }));
+}
+
+/** Average rating for a store */
+export async function getStoreAverageRating(storeId: string): Promise<{ avg: number; count: number }> {
+  const result = await db.review.aggregate({
+    where: { storeId, status: 'PUBLISHED' },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+  return {
+    avg: result._avg.rating ? Math.round(result._avg.rating * 10) / 10 : 0,
+    count: result._count.rating,
+  };
+}
+
+/** All reviews for dashboard moderation */
+export async function getDashboardReviews(storeId: string, status?: ReviewStatus): Promise<DashboardReview[]> {
+  const reviews = await db.review.findMany({
+    where: { storeId, ...(status ? { status } : {}) },
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+  });
+
+  return reviews.map((r) => ({
+    id: r.id,
+    author: r.author,
+    authorEmail: r.authorEmail,
+    rating: r.rating,
+    text: r.text,
+    status: r.status as ReviewStatus,
+    ownerReply: r.ownerReply,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
+/** Count reviews by IP in the last 24 hours (spam protection) */
+export async function countRecentReviewsByIp(ip: string): Promise<number> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return db.review.count({
+    where: { ipAddress: ip, createdAt: { gte: since } },
+  });
 }

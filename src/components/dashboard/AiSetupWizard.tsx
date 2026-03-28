@@ -22,13 +22,15 @@ type TemplateValue = typeof TEMPLATE_OPTIONS[number]['value'];
 const LANG_OPTIONS = ['sk', 'cs', 'uk', 'de', 'en'] as const;
 
 const COLOR_SCHEMES = [
-  { value: 'light' as const, preview: 'bg-white border-gray-300' },
-  { value: 'dark'  as const, preview: 'bg-gray-900 border-gray-700' },
-  { value: 'warm'  as const, preview: 'bg-amber-50 border-amber-300' },
-  { value: 'bold'  as const, preview: 'bg-indigo-950 border-indigo-700' },
+  { value: 'light'   as const, preview: 'bg-white border-gray-300' },
+  { value: 'dark'    as const, preview: 'bg-gray-900 border-gray-700' },
+  { value: 'warm'    as const, preview: 'bg-amber-50 border-amber-300' },
+  { value: 'bold'    as const, preview: 'bg-indigo-950 border-indigo-700' },
+  { value: 'festive' as const, preview: 'bg-red-50 border-red-300' },
+  { value: 'elegant' as const, preview: 'bg-stone-50 border-rose-200' },
 ];
 
-type ColorScheme = 'light' | 'dark' | 'warm' | 'bold';
+type ColorScheme = 'light' | 'dark' | 'warm' | 'bold' | 'festive' | 'elegant';
 type Step = 'input' | 'loading' | 'preview' | 'creating';
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -57,10 +59,12 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
 
   // Color scheme labels (translated)
   const COLOR_LABELS: Record<ColorScheme, string> = {
-    light: ts('colorLight'),
-    dark:  ts('colorDark'),
-    warm:  ts('colorWarm'),
-    bold:  ts('colorBold'),
+    light:   ts('colorLight'),
+    dark:    ts('colorDark'),
+    warm:    ts('colorWarm'),
+    bold:    ts('colorBold'),
+    festive: ts('colorFestive'),
+    elegant: ts('colorElegant'),
   };
 
   // ─── State ──────────────────────────────────────────────────────────────────

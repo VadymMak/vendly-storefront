@@ -12,7 +12,7 @@ export default function CategoryFilter({ categories, activeCategory, slug, schem
   return (
     <div className="mb-6 flex flex-wrap gap-2">
       <Link
-        href={`/shop/${slug}`}
+        href={`/`}
         className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
           !activeCategory
             ? `${scheme.accent}`
@@ -24,7 +24,7 @@ export default function CategoryFilter({ categories, activeCategory, slug, schem
       {categories.map((cat) => (
         <Link
           key={cat}
-          href={`/shop/${slug}?category=${encodeURIComponent(cat)}`}
+          href={`/?category=${encodeURIComponent(cat)}`}
           className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
             activeCategory === cat
               ? `${scheme.accent}`

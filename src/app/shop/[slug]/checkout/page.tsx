@@ -33,7 +33,7 @@ export default function CheckoutPage() {
           Pridajte produkty do košíka pred objednaním.
         </p>
         <button
-          onClick={() => router.push(`/shop/${slug}`)}
+          onClick={() => router.push(`/`)}
           className={`mt-6 rounded-lg ${scheme.accent} ${scheme.accentHover} px-6 py-3 font-semibold transition-colors`}
         >
           Späť do obchodu
@@ -71,7 +71,7 @@ export default function CheckoutPage() {
 
       const { orderId } = await response.json();
       clearCart();
-      router.push(`/shop/${slug}/checkout/success?order=${orderId}`);
+      router.push(`/checkout/success?order=${orderId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Niečo sa pokazilo');
     } finally {

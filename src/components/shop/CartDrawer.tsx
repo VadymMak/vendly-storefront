@@ -137,7 +137,7 @@ export default function CartDrawer({ scheme }: CartDrawerProps) {
               </span>
             </div>
             <Link
-              href={`/shop/${slug}/checkout`}
+              href={`/checkout`}
               onClick={() => setIsOpen(false)}
               className={`block w-full rounded-lg ${scheme.accent} ${scheme.accentHover} px-6 py-3 text-center font-semibold transition-colors`}
             >

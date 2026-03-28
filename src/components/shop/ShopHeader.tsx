@@ -17,7 +17,7 @@ export default function ShopHeader({ store, scheme }: ShopHeaderProps) {
     <header className={`sticky top-0 z-50 ${scheme.headerBg} ${scheme.border} border-b`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Logo + Name */}
-        <Link href={`/shop/${store.slug}`} className="flex items-center gap-3">
+        <Link href={`/`} className="flex items-center gap-3">
           {store.logo ? (
             <img
               src={store.logo}

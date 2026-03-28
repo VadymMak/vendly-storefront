@@ -30,7 +30,7 @@ export default async function CheckoutSuccessPage({ params, searchParams }: Succ
       )}
 
       <Link
-        href={`/shop/${slug}`}
+        href={`/`}
         className="mt-8 inline-block rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark"
       >
         Späť do obchodu

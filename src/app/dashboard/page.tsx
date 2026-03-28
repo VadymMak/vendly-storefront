@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getStoreByUserId, getDashboardStats, getDashboardOrders } from '@/lib/shop-queries';
+import { getStoreUrl } from '@/lib/constants';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -62,10 +63,10 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/shop/${store.slug}`} target="_blank"
+          <a href={getStoreUrl(store.slug)} target="_blank" rel="noopener noreferrer"
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             {t('viewStore')}
-          </Link>
+          </a>
           <Link href="/dashboard/products/new"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
             {t('addProduct')}

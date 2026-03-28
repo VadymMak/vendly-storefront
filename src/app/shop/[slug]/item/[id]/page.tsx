@@ -39,14 +39,14 @@ export default async function ItemPage({ params }: ItemPageProps) {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
       <nav className={`mb-6 text-sm ${scheme.textMuted}`}>
-        <Link href={`/shop/${slug}`} className="hover:underline">
+        <Link href={`/`} className="hover:underline">
           {store.name}
         </Link>
         <span className="mx-2">/</span>
         {item.category && (
           <>
             <Link
-              href={`/shop/${slug}?category=${encodeURIComponent(item.category)}`}
+              href={`/?category=${encodeURIComponent(item.category)}`}
               className="hover:underline"
             >
               {item.category}

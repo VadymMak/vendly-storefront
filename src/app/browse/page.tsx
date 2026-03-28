@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getPublishedStores } from '@/lib/shop-queries';
-import { BUSINESS_TYPES } from '@/lib/constants';
+import { BUSINESS_TYPES, getStoreUrl } from '@/lib/constants';
 import type { BrowseStore } from '@/lib/types';
 
 const TEMPLATE_MAP = Object.fromEntries(
@@ -25,8 +25,8 @@ function StoreCard({ store }: { store: BrowseStore }) {
   const template = TEMPLATE_MAP[store.templateId];
 
   return (
-    <Link
-      href={`/shop/${store.slug}`}
+    <a
+      href={getStoreUrl(store.slug)}
       className="group flex flex-col rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:p-6"
     >
       {/* Logo / fallback */}
@@ -66,7 +66,7 @@ function StoreCard({ store }: { store: BrowseStore }) {
           {store.itemCount} {store.itemCount === 1 ? 'produkt' : 'produktov'}
         </span>
       </div>
-    </Link>
+    </a>
   );
 }
 

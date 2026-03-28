@@ -74,6 +74,8 @@ export interface MapCoordinates {
 
 // ===== Shop (storefront) types =====
 
+export type OwnerPlan = 'FREE' | 'STARTER' | 'PRO';
+
 export interface ShopData {
   id: string;
   slug: string;
@@ -85,6 +87,7 @@ export interface ShopData {
   shopLanguage: string;
   settings: ShopSettings;
   isPublished: boolean;
+  ownerPlan: OwnerPlan;
 }
 
 export interface ShopSettings {

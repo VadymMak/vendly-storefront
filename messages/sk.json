@@ -354,6 +354,11 @@
     "deleteConfirm": "Naozaj chcete odstrániť obchod a všetky jeho dáta? Napíšte názov obchodu pre potvrdenie.",
     "deleteConfirmBtn": "Áno, odstrániť natrvalo",
     "deleting": "Odstraňujem...",
+    "exportData": "Exportovať moje dáta",
+    "exportDataDesc": "Stiahnuť všetky vaše dáta ako JSON súbor (GDPR).",
+    "deleteAccount": "Zmazať účet",
+    "deleteAccountDesc": "Natrvalo zmazať váš účet a všetky obchody. Toto sa nedá vrátiť.",
+    "deleteAccountConfirm": "Naozaj chcete natrvalo zmazať váš účet a VŠETKY obchody, produkty a objednávky? Túto akciu NEMOŽNO vrátiť.",
     "bannerImage": "Hero / banner obrázok",
     "bannerHint": "Širokouhlý obrázok zobrazený v hero sekcii. Odporúčame 1600×600 px.",
     "uploadImage": "Nahrať obrázok",
@@ -551,7 +556,10 @@
     "reviewThanks": "Ďakujeme! Vaša recenzia bude zverejnená po schválení.",
     "reviewError": "Recenziu sa nepodarilo odoslať. Skúste znova.",
     "reviewSpam": "Príliš veľa recenzií z tohto zariadenia. Skúste neskôr.",
-    "ownerReply": "Odpoveď majiteľa"
+    "ownerReply": "Odpoveď majiteľa",
+    "cookieText": "Táto stránka používa cookies pre základnú funkčnosť a analytiku.",
+    "cookieAccept": "Prijať",
+    "cookieDecline": "Odmietnuť"
   },
   "dashboardReviews": {
     "title": "Recenzie",

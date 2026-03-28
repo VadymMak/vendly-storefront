@@ -89,6 +89,10 @@ export interface ShopFrontMessages {
   reviewError: string;
   reviewSpam: string;
   ownerReply: string;
+  // Cookie consent
+  cookieText: string;
+  cookieAccept: string;
+  cookieDecline: string;
 }
 
 const VALID_LOCALES = new Set(['en', 'sk', 'uk', 'cs', 'de']);

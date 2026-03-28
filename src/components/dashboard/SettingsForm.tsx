@@ -888,6 +888,46 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   </button>
                 </div>
               </div>
+
+              {/* Export Data (GDPR) */}
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div>
+                    <p className="font-medium text-secondary">{t('exportData')}</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{t('exportDataDesc')}</p>
+                  </div>
+                  <a
+                    href="/api/account/export"
+                    download
+                    className="shrink-0 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-secondary hover:bg-gray-50 transition-colors"
+                  >
+                    {t('exportData')}
+                  </a>
+                </div>
+              </div>
+
+              {/* Delete Account (GDPR) */}
+              <div className="mt-4 rounded-xl border border-red-200 bg-white overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div>
+                    <p className="font-medium text-red-700">{t('deleteAccount')}</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{t('deleteAccountDesc')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(t('deleteAccountConfirm'))) {
+                        fetch('/api/account/delete', { method: 'DELETE' })
+                          .then(() => { window.location.href = '/login'; })
+                          .catch(() => alert('Error deleting account'));
+                      }
+                    }}
+                    className="shrink-0 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+                  >
+                    {t('deleteAccount')}
+                  </button>
+                </div>
+              </div>
             </section>
           )}
 

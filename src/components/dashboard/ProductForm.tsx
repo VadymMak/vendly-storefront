@@ -161,6 +161,7 @@ export default function ProductForm({ storeId, shopLanguage, itemId, defaultValu
               label={t('translateTo')}
               labelDone={t('translated')}
               labelLimit={t('translateLimitReached')}
+              labelUndo={t('translateUndo')}
             />
           </div>
         </div>
@@ -200,6 +201,7 @@ export default function ProductForm({ storeId, shopLanguage, itemId, defaultValu
               label={t('translateTo')}
               labelDone={t('translated')}
               labelLimit={t('translateLimitReached')}
+              labelUndo={t('translateUndo')}
             />
           </div>
         </div>

@@ -258,7 +258,8 @@
     "uploadError": "Upload failed",
     "translateTo": "Translate to",
     "translated": "Translated",
-    "translateLimitReached": "Limit reached"
+    "translateLimitReached": "Limit reached",
+    "translateUndo": "Undo"
   },
   "dashboardOrders": {
     "title": "Orders",
@@ -384,7 +385,16 @@
     "translateDone": "Translation complete",
     "translateUpgrade": "Upgrade plan",
     "translateBulkDesc": "Translate all your store content (description, about, products) to the shop language with AI in one click.",
-    "translateBulkUsed": "You've already used your free AI translation. Upgrade to Starter or Pro for unlimited translations."
+    "translateBulkUsed": "You've already used your free AI translation. Upgrade to Starter or Pro for unlimited translations.",
+    "translateUndo": "Undo",
+    "translateFreeHint": "Free plan: one-time translation",
+    "aboutTextHint": "Longer text displayed in the 'About' section on your shop page.",
+    "aboutTextPlaceholder": "Write about your shop, its history, values...",
+    "storeNamePlaceholder": "My shop",
+    "slugPlaceholder": "my-shop",
+    "descriptionPlaceholder": "Short description shown in the hero section...",
+    "addressPlaceholder": "Main St 1, Bratislava",
+    "openingHoursPlaceholder": "Mon–Fri 9:00–18:00"
   },
   "aiWizard": {
     "step1Title": "Tell us about your business",

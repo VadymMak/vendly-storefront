@@ -16,6 +16,7 @@ interface BulkTranslateButtonProps {
     upgrade: string;
     description: string;
     descriptionUsed: string;
+    freeHint: string;
   };
 }
 
@@ -96,7 +97,7 @@ export default function BulkTranslateButton({
         <div className="flex-1">
           <p className="text-sm font-medium text-blue-800">{labels.description}</p>
           {plan === 'FREE' && (
-            <p className="mt-1 text-xs text-blue-500">Free plan: one-time translation</p>
+            <p className="mt-1 text-xs text-blue-500">{labels.freeHint}</p>
           )}
           <button
             type="button"

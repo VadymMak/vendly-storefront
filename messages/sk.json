@@ -258,7 +258,8 @@
     "uploadError": "Nahrávanie zlyhalo",
     "translateTo": "Preložiť do",
     "translated": "Preložené",
-    "translateLimitReached": "Limit dosiahnutý"
+    "translateLimitReached": "Limit dosiahnutý",
+    "translateUndo": "Vrátiť"
   },
   "dashboardOrders": {
     "title": "Objednávky",
@@ -384,7 +385,16 @@
     "translateDone": "Preklad dokončený",
     "translateUpgrade": "Upgrade plánu",
     "translateBulkDesc": "Preložte celý obsah obchodu (popis, o nás, produkty) do jazyka obchodu pomocou AI jedným kliknutím.",
-    "translateBulkUsed": "Už ste využili svoj bezplatný AI preklad. Prejdite na Starter alebo Pro pre neobmedzené preklady."
+    "translateBulkUsed": "Už ste využili svoj bezplatný AI preklad. Prejdite na Starter alebo Pro pre neobmedzené preklady.",
+    "translateUndo": "Vrátiť",
+    "translateFreeHint": "Free plán: jednorazový preklad",
+    "aboutTextHint": "Dlhší text zobrazený v sekcii 'O nás' na stránke obchodu.",
+    "aboutTextPlaceholder": "Napíšte o vašom obchode, histórii, hodnotách...",
+    "storeNamePlaceholder": "Môj obchod",
+    "slugPlaceholder": "moj-obchod",
+    "descriptionPlaceholder": "Krátky popis zobrazený v hero sekcii...",
+    "addressPlaceholder": "Hlavná 1, Bratislava",
+    "openingHoursPlaceholder": "Po–Pi 9:00–18:00"
   },
   "aiWizard": {
     "step1Title": "Povedzte nám o svojom biznise",

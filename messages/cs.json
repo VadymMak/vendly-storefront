@@ -258,7 +258,8 @@
     "uploadError": "Nahrávání selhalo",
     "translateTo": "Přeložit do",
     "translated": "Přeloženo",
-    "translateLimitReached": "Limit vyčerpán"
+    "translateLimitReached": "Limit vyčerpán",
+    "translateUndo": "Vrátit"
   },
   "dashboardOrders": {
     "title": "Objednávky",
@@ -384,7 +385,16 @@
     "translateDone": "Překlad dokončen",
     "translateUpgrade": "Upgradovat plán",
     "translateBulkDesc": "Přeložte veškerý obsah obchodu (popis, o nás, produkty) do jazyka obchodu pomocí AI jedním kliknutím.",
-    "translateBulkUsed": "Již jste využili svůj bezplatný AI překlad. Přejděte na Starter nebo Pro pro neomezené překlady."
+    "translateBulkUsed": "Již jste využili svůj bezplatný AI překlad. Přejděte na Starter nebo Pro pro neomezené překlady.",
+    "translateUndo": "Vrátit",
+    "translateFreeHint": "Free plán: jednorázový překlad",
+    "aboutTextHint": "Delší text zobrazený v sekci 'O nás' na stránce obchodu.",
+    "aboutTextPlaceholder": "Napište o vašem obchodu, jeho historii, hodnotách...",
+    "storeNamePlaceholder": "Můj obchod",
+    "slugPlaceholder": "muj-obchod",
+    "descriptionPlaceholder": "Krátký popis zobrazený v hero sekci...",
+    "addressPlaceholder": "Hlavní 1, Praha",
+    "openingHoursPlaceholder": "Po–Pá 9:00–18:00"
   },
   "aiWizard": {
     "step1Title": "Řekněte nám o svém podnikání",

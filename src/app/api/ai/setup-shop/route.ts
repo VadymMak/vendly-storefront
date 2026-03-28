@@ -82,8 +82,11 @@ export async function POST(request: Request) {
         {
           role: 'system',
           content:
-            'You are an expert e-commerce setup assistant for small businesses in Central and Eastern Europe. ' +
-            'Generate shop setup data as valid JSON only. No markdown, no extra text.',
+            'You are an expert e-commerce setup assistant. ' +
+            'Return ONLY a valid JSON object. No markdown, no extra text. ' +
+            'CRITICAL: shopDescription must be ONLY a short 2-3 sentence description of the business. ' +
+            'Do NOT include product names, product lists, or item details in shopDescription. ' +
+            'Products go ONLY in the items array.',
         },
         {
           role: 'user',
@@ -93,31 +96,24 @@ Business type: ${data.templateId}
 Output language: ${langName}
 Currency: ${currency}
 
-Generate a JSON object with these exact fields:
+Return a JSON object with exactly this structure:
 {
-  "shopName": "translated/adapted business name in ${langName} (professional, suitable for a storefront)",
-  "shopDescription": "2-3 sentence professional description in ${langName}",
+  "shopName": "professional business name in ${langName}",
+  "shopDescription": "2-3 sentence business description in ${langName}",
   "colorScheme": "${defaultColor}",
-  "colorReason": "one sentence in ${langName} why this color scheme fits this business",
+  "colorReason": "one sentence in ${langName}",
   "items": [
-    {
-      "name": "item name in ${langName}",
-      "description": "one sentence in ${langName}",
-      "price": 12.50,
-      "currency": "${currency}",
-      "category": "category name in ${langName}",
-      "type": "${itemType}"
-    }
+    {"name": "...", "description": "...", "price": 0, "currency": "${currency}", "category": "...", "type": "${itemType}"}
   ]
 }
 
-Rules:
-- Exactly 5 items in the "items" array
-- colorScheme must be one of: light, dark, warm, bold, festive, elegant
-- Items must be typical for a ${data.templateId} business
-- Prices must be realistic for the market (${currency})
-- All text (shopName, shopDescription, colorReason, names, descriptions, categories) must be in ${langName}
-- shopName should be a clean, professional translation/adaptation of the business name into ${langName}`,
+STRICT rules:
+- shopName: translate/adapt the business name "${data.businessName}" into ${langName}. Short, professional, suitable for a storefront header
+- shopDescription: ONLY a 2-3 sentence marketing description of the business. Do NOT list products here. Do NOT include numbering or bullet points
+- items: exactly 5 items typical for a ${data.templateId} business. Each item is a separate object in the array
+- colorScheme: one of light, dark, warm, bold, festive, elegant
+- Prices must be realistic for the ${currency} market
+- ALL text must be in ${langName}`,
         },
       ],
       max_tokens: 1000,

@@ -69,6 +69,7 @@ export async function getStoreByDomain(domain: string): Promise<ShopData | null>
 export async function getStoreItems(
   storeId: string,
   category?: string,
+  query?: string,
 ): Promise<ShopItem[]> {
   const where: Record<string, unknown> = {
     storeId,
@@ -77,6 +78,15 @@ export async function getStoreItems(
 
   if (category) {
     where.category = category;
+  }
+
+  if (query && query.trim().length > 0) {
+    const q = query.trim();
+    where.OR = [
+      { name: { contains: q, mode: 'insensitive' } },
+      { description: { contains: q, mode: 'insensitive' } },
+      { category: { contains: q, mode: 'insensitive' } },
+    ];
   }
 
   const items = await db.item.findMany({

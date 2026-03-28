@@ -8,15 +8,16 @@ import CategoryFilter from '@/components/shop/CategoryFilter';
 import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
 import StoreStatus from '@/components/shop/StoreStatus';
 import ReviewsSection from '@/components/shop/ReviewsSection';
+import SearchBar from '@/components/shop/SearchBar';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; q?: string }>;
 }
 
 export default async function ShopPage({ params, searchParams }: ShopPageProps) {
   const { slug } = await params;
-  const { category } = await searchParams;
+  const { category, q } = await searchParams;
 
   // Try slug first, then custom domain (middleware passes custom domains as slug)
   const store = await getStoreBySlug(slug) || await getStoreByDomain(slug);
@@ -26,7 +27,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   }
 
   const [items, categories, t, reviews, ratingData] = await Promise.all([
-    getStoreItems(store.id, category),
+    getStoreItems(store.id, category, q),
     getStoreCategories(store.id),
     getShopTranslations(store.shopLanguage),
     getStoreReviews(store.id),
@@ -173,18 +174,23 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
       {/* ── CATALOG ─────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Section header */}
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">
-            {category ? category : t.catalog}
-          </h2>
-          <span className={`text-sm ${scheme.textMuted}`}>
-            {pluralizeItems(items.length, t)}
-          </span>
+        {/* Section header + search */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold">
+              {q ? `"${q}"` : category ? category : t.catalog}
+            </h2>
+            <span className={`text-sm ${scheme.textMuted}`}>
+              {pluralizeItems(items.length, t)}
+            </span>
+          </div>
+          <div className="w-full sm:w-72">
+            <SearchBar scheme={scheme} t={t} />
+          </div>
         </div>
 
         {/* Category filter */}
-        {categories.length > 1 && (
+        {categories.length > 1 && !q && (
           <CategoryFilter
             categories={categories}
             activeCategory={category || null}
@@ -197,6 +203,21 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         {/* Products */}
         {items.length > 0 ? (
           <ProductGrid items={items} scheme={scheme} currency={store.settings.currency || 'EUR'} t={t} />
+        ) : q ? (
+          <div className="py-20 text-center">
+            <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+            <p className={`text-lg font-medium ${scheme.textMuted}`}>
+              {t.searchNoResults}
+            </p>
+            <p className={`mt-1 text-sm ${scheme.textMuted} opacity-70`}>
+              {t.searchNoResultsDesc}
+            </p>
+          </div>
         ) : (
           <div className="py-20 text-center">
             <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>

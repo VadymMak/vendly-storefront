@@ -17,9 +17,11 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
     redirect('/login');
   }
 
+  const isAdmin = !!(process.env.ADMIN_EMAIL && session.user.email === process.env.ADMIN_EMAIL);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardNav user={session.user} />
+      <DashboardNav user={session.user} isAdmin={isAdmin} />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {children}
       </main>

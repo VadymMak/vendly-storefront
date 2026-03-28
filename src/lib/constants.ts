@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -280,6 +280,28 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     outlineBtn: 'border border-indigo-700 text-indigo-200 hover:bg-indigo-800',
   },
 };
+
+// ===== Quick info badges =====
+// icon = inline SVG path data (rendered inside a 24×24 viewBox)
+
+export const QUICK_BADGES: QuickBadgeDefinition[] = [
+  { id: 'fast_delivery',    icon: 'truck',        labelKey: 'badgeFastDelivery' },
+  { id: 'same_day',         icon: 'clock',        labelKey: 'badgeSameDay' },
+  { id: 'free_shipping',    icon: 'gift',         labelKey: 'badgeFreeShipping' },
+  { id: 'pay_online',       icon: 'credit_card',  labelKey: 'badgePayOnline' },
+  { id: 'pay_cash',         icon: 'banknote',     labelKey: 'badgePayCash' },
+  { id: 'paypal',           icon: 'paypal',       labelKey: 'badgePaypal' },
+  { id: 'pickup',           icon: 'store',        labelKey: 'badgePickup' },
+  { id: 'warranty',         icon: 'shield',       labelKey: 'badgeWarranty' },
+  { id: 'eco_friendly',     icon: 'leaf',         labelKey: 'badgeEcoFriendly' },
+  { id: 'handmade',         icon: 'hand',         labelKey: 'badgeHandmade' },
+  { id: 'support_24_7',     icon: 'headset',      labelKey: 'badgeSupport247' },
+  { id: 'returns',          icon: 'refresh',      labelKey: 'badgeReturns' },
+  { id: 'local_product',    icon: 'map_pin',      labelKey: 'badgeLocalProduct' },
+  { id: 'organic',          icon: 'sprout',       labelKey: 'badgeOrganic' },
+  { id: 'reservation',      icon: 'calendar',     labelKey: 'badgeReservation' },
+  { id: 'discount',         icon: 'percent',      labelKey: 'badgeDiscount' },
+];
 
 // ===== Shop item category labels =====
 

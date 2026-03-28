@@ -74,6 +74,7 @@ export interface ShopSettings {
   deliveryInfo?: string;
   aboutText?: string;
   bannerImage?: string;
+  quickBadges?: string[];
 }
 
 export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';
@@ -156,6 +157,13 @@ export interface StoreSettingsFormData {
   aboutText: string;
   isPublished: boolean;
   bannerImage: string;
+  quickBadges: string[];
+}
+
+export interface QuickBadgeDefinition {
+  id: string;
+  icon: string;
+  labelKey: string;
 }
 
 // ===== Browse (marketplace) types =====

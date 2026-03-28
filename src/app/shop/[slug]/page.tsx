@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import { getStoreBySlug, getStoreItems, getStoreCategories } from '@/lib/shop-queries';
-import { COLOR_SCHEMES } from '@/lib/constants';
+import { COLOR_SCHEMES, QUICK_BADGES } from '@/lib/constants';
 import ProductGrid from '@/components/shop/ProductGrid';
 import CategoryFilter from '@/components/shop/CategoryFilter';
+import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
@@ -136,6 +137,11 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
           </div>
         </div>
       </section>
+
+      {/* ── QUICK BADGES ──────────────────────────────────────────────────── */}
+      {s.quickBadges && s.quickBadges.length > 0 && (
+        <QuickBadgesStrip badgeIds={s.quickBadges} scheme={scheme} shopLanguage={store.shopLanguage} />
+      )}
 
       {/* ── CATALOG ─────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

@@ -19,6 +19,7 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
   const { addItem } = useCart();
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
   const hasImage = item.images.length > 0;
+  const hasSecondImage = item.images.length > 1;
 
   return (
     <div className={`group flex flex-col overflow-hidden rounded-2xl ${scheme.bgCard} ${scheme.border} border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}>
@@ -27,22 +28,35 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
       <Link href={`/item/${item.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           {hasImage ? (
-            <Image
-              src={item.images[0]}
-              alt={item.name}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-              priority={priority}
-            />
+            <>
+              <Image
+                src={item.images[0]}
+                alt={item.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className={`object-cover transition-all duration-500 ${hasSecondImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'}`}
+                priority={priority}
+              />
+              {hasSecondImage && (
+                <Image
+                  src={item.images[1]}
+                  alt={`${item.name} - 2`}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-105"
+                />
+              )}
+            </>
           ) : (
-            <div className={`flex h-full w-full flex-col items-center justify-center gap-2 ${scheme.heroBg}`}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-20">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-              <span className="text-xs opacity-30">{t.noPhoto}</span>
+            <div className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-gray-50 to-gray-100`}>
+              <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.accent} opacity-40`}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <path d="M16 10a4 4 0 01-8 0" />
+                </svg>
+              </div>
+              <span className="text-xs font-medium opacity-30">{t.noPhoto}</span>
             </div>
           )}
 

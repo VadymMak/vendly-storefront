@@ -1,6 +1,25 @@
 import { db } from './db';
 import type { ShopData, ShopItem, ShopSettings, ShopReview, DashboardStats, DashboardOrder, BrowseStore, AdminStore, AdminUser } from './types';
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+
+/** Returns the effective plan for a user. Admin always gets PRO. */
+export async function getUserPlan(userId: string): Promise<string> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { plan: true, email: true },
+  });
+  if (!user) return 'FREE';
+  if (ADMIN_EMAIL && user.email === ADMIN_EMAIL) return 'PRO';
+  return user.plan;
+}
+
+/** Sync version: resolves plan from user object with email. Admin → PRO. */
+export function resolveUserPlan(user: { plan: string; email: string }): string {
+  if (ADMIN_EMAIL && user.email === ADMIN_EMAIL) return 'PRO';
+  return user.plan;
+}
+
 export async function getStoreBySlug(slug: string): Promise<ShopData | null> {
   const store = await db.store.findUnique({
     where: { slug },

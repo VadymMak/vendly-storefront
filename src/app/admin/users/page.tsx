@@ -2,14 +2,9 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAllUsersAdmin } from '@/lib/shop-queries';
+import PlanSelector from '@/components/admin/PlanSelector';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-
-const PLAN_STYLES: Record<string, string> = {
-  FREE: 'bg-gray-100 text-gray-700',
-  STARTER: 'bg-blue-100 text-blue-800',
-  PRO: 'bg-purple-100 text-purple-800',
-};
 
 export default async function AdminUsersPage() {
   const session = await auth();
@@ -51,9 +46,7 @@ export default async function AdminUsersPage() {
                 <td className="px-4 py-3 font-medium text-secondary">{user.email}</td>
                 <td className="px-4 py-3 text-neutral">{user.name || '—'}</td>
                 <td className="px-4 py-3 text-center">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PLAN_STYLES[user.plan] || 'bg-gray-100 text-gray-700'}`}>
-                    {user.plan}
-                  </span>
+                  <PlanSelector userId={user.id} currentPlan={user.plan} />
                 </td>
                 <td className="px-4 py-3 text-center text-secondary">{user.storeCount}</td>
                 <td className="px-4 py-3 text-neutral">

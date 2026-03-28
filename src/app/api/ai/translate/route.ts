@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
+import { resolveUserPlan } from '@/lib/shop-queries';
 
 const LANG_NAMES: Record<string, string> = {
   sk: 'Slovak', cs: 'Czech', uk: 'Ukrainian', de: 'German', en: 'English',
@@ -19,11 +20,12 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await db.user.findUnique({
+  const userRaw = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { plan: true },
+    select: { plan: true, email: true },
   });
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userRaw) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const effectivePlan = resolveUserPlan(userRaw);
 
   try {
     const body = await request.json();
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
 
     // Check Free plan limit: one-time translation
     const settings = store.settings as Record<string, unknown>;
-    if (user.plan === 'FREE' && settings.translationUsedAt) {
+    if (effectivePlan === 'FREE' && settings.translationUsedAt) {
       return NextResponse.json({
         error: 'FREE_LIMIT',
         message: 'Free plan translation already used. Upgrade to Starter for more translations.',
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
     const translated = completion.choices[0]?.message?.content?.trim() || '';
 
     // Mark translation used for Free plan (on first use)
-    if (user.plan === 'FREE' && !settings.translationUsedAt) {
+    if (effectivePlan === 'FREE' && !settings.translationUsedAt) {
       await db.store.update({
         where: { id: data.storeId },
         data: {

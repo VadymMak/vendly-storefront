@@ -308,6 +308,12 @@
     "errorGenerate": "AI-Generierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "errorSlug": "Bitte geben Sie eine Shop-URL ein.",
     "creating": "Erstelle Ihren Shop...",
-    "price": "Preis"
+    "price": "Preis",
+    "anyLanguageHint": "Schreiben Sie in beliebiger Sprache — AI erstellt Inhalte in Ihrer gewählten Shopsprache",
+    "loadingStep1": "Analysiere Ihr Unternehmen...",
+    "loadingStep2": "Schreibe Shop-Beschreibung...",
+    "loadingStep3": "Erstelle Startprodukte...",
+    "loadingStep4": "Wähle Farbschema...",
+    "loadingStep5": "Fast fertig..."
   }
 }

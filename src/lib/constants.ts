@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -226,6 +226,35 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: 'faq-6',
     question: 'Ako dlho trvá vytvorenie obchodu?',
     answer: 'Základný obchod si vytvoríte za 5 minút. Pridanie produktov a nastavenie dizajnu zvyčajne zaberie 1-2 hodiny.',
+  },
+];
+
+// ===== Landing page testimonials =====
+
+export const TESTIMONIALS: Testimonial[] = [
+  {
+    id: 'testimonial-1',
+    name: 'Mária K.',
+    businessType: 'food',
+    rating: 5,
+    textKey: 'testimonial1',
+    avatarInitials: 'MK',
+  },
+  {
+    id: 'testimonial-2',
+    name: 'Tomáš B.',
+    businessType: 'repair',
+    rating: 5,
+    textKey: 'testimonial2',
+    avatarInitials: 'TB',
+  },
+  {
+    id: 'testimonial-3',
+    name: 'Olena S.',
+    businessType: 'beauty',
+    rating: 4,
+    textKey: 'testimonial3',
+    avatarInitials: 'OS',
   },
 ];
 

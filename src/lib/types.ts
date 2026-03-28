@@ -275,6 +275,15 @@ export interface AiSetupResult {
   items: AiSetupItem[];
 }
 
+export interface Testimonial {
+  id: string;
+  name: string;
+  businessType: string;
+  rating: number;
+  textKey: string;
+  avatarInitials: string;
+}
+
 export interface ColorSchemeTokens {
   bg: string;
   bgCard: string;

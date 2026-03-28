@@ -121,6 +121,14 @@
     "pro_f7": "Mehrsprachiger Shop",
     "pro_f8": "Unbegrenzte KI-Übersetzungen"
   },
+  "testimonials": {
+    "badge": "Bewertungen",
+    "title": "Was unsere Nutzer sagen",
+    "subtitle": "Echtes Feedback von Unternehmern, die sich für VendShop entschieden haben.",
+    "testimonial1": "Ich habe meinen Bäckerei-Shop in 15 Minuten eingerichtet. Die Bestellungen kamen noch am selben Tag! Die KI-Beschreibungen haben mir Stunden Arbeit erspart.",
+    "testimonial2": "Endlich eine einfache Plattform für meinen Reparaturservice. Kunden finden mich online und buchen direkt. Sehr empfehlenswert!",
+    "testimonial3": "Schönes Design, einfach zu verwalten. Die Website meines Salons sieht professionell aus und ich brauchte keinen Entwickler."
+  },
   "faq": {
     "badge": "FAQ",
     "title": "Häufig gestellte Fragen",

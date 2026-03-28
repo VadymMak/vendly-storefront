@@ -68,6 +68,10 @@ export interface ShopFrontMessages {
   productUnavailable: string;
   whatsappMessage: string;
   writeViaWhatsApp: string;
+  relatedProducts: string;
+  share: string;
+  copyLink: string;
+  linkCopied: string;
   // Shop footer
   createdOn: string;
   // Reviews

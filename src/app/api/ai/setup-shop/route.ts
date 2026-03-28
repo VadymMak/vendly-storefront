@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import OpenAI from 'openai';
 import { db } from '@/lib/db';
+import { resolveUserPlan } from '@/lib/shop-queries';
 
 const schema = z.object({
   businessName:        z.string().min(1),
@@ -52,13 +53,14 @@ export async function POST(request: Request) {
   // Check AI usage limit
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { plan: true, aiUsageCount: true, aiUsageMonth: true },
+    select: { plan: true, email: true, aiUsageCount: true, aiUsageMonth: true },
   });
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const effectivePlan = resolveUserPlan(user);
   const thisMonth = new Date().toISOString().slice(0, 7);
   const usageThisMonth = user.aiUsageMonth === thisMonth ? user.aiUsageCount : 0;
-  const limit = user.plan === 'FREE' ? 5 : user.plan === 'STARTER' ? 20 : Infinity;
+  const limit = effectivePlan === 'FREE' ? 5 : effectivePlan === 'STARTER' ? 20 : Infinity;
 
   if (usageThisMonth >= limit) {
     return NextResponse.json({ error: 'AI limit reached for this month' }, { status: 429 });

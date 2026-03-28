@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { resolveUserPlan } from '@/lib/shop-queries';
 
 const orderSchema = z.object({
   slug: z.string().min(1),
@@ -37,11 +38,14 @@ export async function POST(request: Request) {
     // Get user's plan for fee calculation
     const user = await db.user.findUnique({
       where: { id: store.userId },
-      select: { plan: true },
+      select: { plan: true, email: true },
     });
 
+    if (!user) return NextResponse.json({ error: 'Obchod nenájdený' }, { status: 404 });
+
+    const effectivePlan = resolveUserPlan(user);
     // Platform fee: Free plan = 2%, Starter = 0%, Pro = 0%
-    const feeRate = user?.plan === 'FREE' ? 0.02 : 0;
+    const feeRate = effectivePlan === 'FREE' ? 0.02 : 0;
     const platformFee = data.total * feeRate;
 
     // Create order

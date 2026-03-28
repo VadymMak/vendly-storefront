@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { ProductFormData, ItemType } from '@/lib/types';
 import ImageUpload from '@/components/ui/ImageUpload';
 
@@ -11,18 +12,21 @@ interface ProductFormProps {
   defaultValues?: Partial<ProductFormData>;
 }
 
-const ITEM_TYPES: { value: ItemType; label: string }[] = [
-  { value: 'PRODUCT',   label: 'Produkt' },
-  { value: 'SERVICE',   label: 'Služba' },
-  { value: 'MENU_ITEM', label: 'Položka menu' },
-  { value: 'PORTFOLIO', label: 'Portfólio' },
-];
-
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
+
+const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
 export default function ProductForm({ storeId, itemId, defaultValues }: ProductFormProps) {
   const router = useRouter();
+  const t = useTranslations('dashboardProducts');
   const isEditing = Boolean(itemId);
+
+  const ITEM_TYPES: { value: ItemType; label: string }[] = [
+    { value: 'PRODUCT',   label: t('typeProduct') },
+    { value: 'SERVICE',   label: t('typeService') },
+    { value: 'MENU_ITEM', label: t('typeMenu') },
+    { value: 'PORTFOLIO', label: t('typePortfolio') },
+  ];
 
   const [form, setForm] = useState<ProductFormData>({
     name:        defaultValues?.name        || '',
@@ -43,7 +47,7 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
 
   const generateAiDescription = async () => {
     if (!form.name) {
-      setError('Najprv zadajte názov produktu');
+      setError(t('errorAiName'));
       return;
     }
     setAiLoading(true);
@@ -54,11 +58,11 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: form.name, type: form.type, category: form.category }),
       });
-      if (!res.ok) throw new Error('AI nedostupné');
+      if (!res.ok) throw new Error(t('errorAiUnavailable'));
       const data = await res.json();
       set('description', data.description);
     } catch {
-      setError('AI generovanie zlyhalo');
+      setError(t('errorAiFailed'));
     } finally {
       setAiLoading(false);
     }
@@ -96,22 +100,23 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
   return (
     <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white p-6">
       <div className="space-y-5">
+
         {/* Type */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-secondary">Typ</label>
+          <label className="mb-2 block text-sm font-medium text-secondary">{t('fieldType')}</label>
           <div className="flex flex-wrap gap-2">
-            {ITEM_TYPES.map((t) => (
+            {ITEM_TYPES.map((type) => (
               <button
-                key={t.value}
+                key={type.value}
                 type="button"
-                onClick={() => set('type', t.value)}
+                onClick={() => set('type', type.value)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  form.type === t.value
+                  form.type === type.value
                     ? 'bg-primary text-white'
                     : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {t.label}
+                {type.label}
               </button>
             ))}
           </div>
@@ -122,14 +127,14 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
           images={form.images}
           onChange={(imgs) => set('images', imgs)}
           max={5}
-          label="Fotky produktu"
-          hint="Max 5 fotiek, každá do 5 MB (JPG, PNG, WEBP). Prvá fotka je hlavná."
+          label={t('fieldImages')}
+          hint={t('fieldImagesHint')}
         />
 
         {/* Name */}
         <div>
           <label htmlFor="name" className="mb-1 block text-sm font-medium text-secondary">
-            Názov *
+            {t('fieldName')} *
           </label>
           <input
             id="name"
@@ -137,8 +142,8 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
             required
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Napr. Domáci chlieb, Manikúra, Oprava telefónu..."
+            className={INPUT_CLS}
+            placeholder={t('fieldNamePlaceholder')}
           />
         </div>
 
@@ -146,7 +151,7 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
         <div>
           <div className="mb-1 flex items-center justify-between">
             <label htmlFor="desc" className="text-sm font-medium text-secondary">
-              Popis
+              {t('fieldDesc')}
             </label>
             <button
               type="button"
@@ -157,7 +162,7 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
               </svg>
-              {aiLoading ? 'Generujem...' : 'AI popis'}
+              {aiLoading ? t('aiGenerating') : t('aiBtn')}
             </button>
           </div>
           <textarea
@@ -165,8 +170,8 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
             rows={4}
             value={form.description}
             onChange={(e) => set('description', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Popis produktu alebo služby..."
+            className={INPUT_CLS}
+            placeholder={t('fieldDescPlaceholder')}
           />
         </div>
 
@@ -174,7 +179,7 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="price" className="mb-1 block text-sm font-medium text-secondary">
-              Cena
+              {t('fieldPrice')}
             </label>
             <input
               id="price"
@@ -183,19 +188,19 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
               step="0.01"
               value={form.price}
               onChange={(e) => set('price', e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className={INPUT_CLS}
               placeholder="0.00"
             />
           </div>
           <div>
             <label htmlFor="currency" className="mb-1 block text-sm font-medium text-secondary">
-              Mena
+              {t('fieldCurrency')}
             </label>
             <select
               id="currency"
               value={form.currency}
               onChange={(e) => set('currency', e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className={INPUT_CLS}
             >
               {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -205,15 +210,15 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
         {/* Category */}
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-secondary">
-            Kategória
+            {t('fieldCategory')}
           </label>
           <input
             id="category"
             type="text"
             value={form.category}
             onChange={(e) => set('category', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Napr. Pečivo, Nápoje, Doplnky..."
+            className={INPUT_CLS}
+            placeholder={t('fieldCategoryPlaceholder')}
           />
         </div>
 
@@ -233,7 +238,7 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
             }`} />
           </button>
           <span className="text-sm text-secondary">
-            {form.isAvailable ? 'Dostupné' : 'Skryté'}
+            {form.isAvailable ? t('fieldAvailable') : t('fieldUnavailable')}
           </span>
         </div>
       </div>
@@ -248,14 +253,14 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
           disabled={submitting}
           className="rounded-lg bg-primary px-6 py-2.5 font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
         >
-          {submitting ? 'Ukladám...' : isEditing ? 'Uložiť zmeny' : 'Pridať produkt'}
+          {submitting ? t('saving') : isEditing ? t('saveEdit') : t('saveNew')}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
           className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
         >
-          Zrušiť
+          {t('cancel')}
         </button>
       </div>
     </form>

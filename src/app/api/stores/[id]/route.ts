@@ -66,3 +66,21 @@ export async function PATCH(
     return NextResponse.json({ error: 'Chyba servera' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Neautorizovaný' }, { status: 401 });
+
+  const { id } = await params;
+
+  // Verify ownership before deleting
+  const store = await db.store.findFirst({ where: { id, userId: session.user.id } });
+  if (!store) return NextResponse.json({ error: 'Nenájdené' }, { status: 404 });
+
+  await db.store.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}

@@ -280,7 +280,13 @@
     "storeTypeBeauty": "Beauty & Wellness",
     "storeTypeRepair": "Reparaturwerkstatt",
     "storeTypeDigital": "Digitale Produkte",
-    "storeTypeRestaurant": "Restaurant"
+    "storeTypeRestaurant": "Restaurant",
+    "dangerZone": "Gefahrenzone",
+    "deleteStore": "Shop löschen",
+    "deleteStoreDesc": "Löscht diesen Shop dauerhaft, einschließlich aller Produkte und Bestellungen. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteConfirm": "Möchten Sie den Shop und alle Daten wirklich löschen? Geben Sie den Shop-Namen zur Bestätigung ein.",
+    "deleteConfirmBtn": "Ja, dauerhaft löschen",
+    "deleting": "Lösche..."
   },
   "aiWizard": {
     "step1Title": "Erzählen Sie uns von Ihrem Unternehmen",

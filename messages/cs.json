@@ -280,7 +280,13 @@
     "storeTypeBeauty": "Krása & wellness",
     "storeTypeRepair": "Opravna",
     "storeTypeDigital": "Digitální produkty",
-    "storeTypeRestaurant": "Restaurace"
+    "storeTypeRestaurant": "Restaurace",
+    "dangerZone": "Nebezpečná zóna",
+    "deleteStore": "Smazat obchod",
+    "deleteStoreDesc": "Trvale smaže tento obchod včetně všech produktů a objednávek. Tuto akci nelze vrátit.",
+    "deleteConfirm": "Opravdu chcete smazat obchod a všechna jeho data? Napište název obchodu pro potvrzení.",
+    "deleteConfirmBtn": "Ano, smazat trvale",
+    "deleting": "Mažu..."
   },
   "aiWizard": {
     "step1Title": "Řekněte nám o svém podnikání",

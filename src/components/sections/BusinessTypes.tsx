@@ -92,43 +92,50 @@ export default function BusinessTypes() {
         </div>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {BUSINESS_TYPES.map((type) => (
-            <a
-              key={type.id}
-              href={`https://${type.demo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 sm:p-6"
-            >
-              {/* Icon circle */}
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-white">
-                {BUSINESS_ICONS[type.id]}
-              </div>
+          {BUSINESS_TYPES.map((type) => {
+            const hasDemo = !!type.demo;
+            const Wrapper = hasDemo ? 'a' : 'div';
+            const wrapperProps = hasDemo
+              ? { href: `/browse?type=${type.id}` }
+              : {};
 
-              <h3 className="mt-5 text-lg font-semibold text-secondary">
-                {t(`${type.id}_title`)}
-              </h3>
+            return (
+              <Wrapper
+                key={type.id}
+                {...wrapperProps}
+                className={`group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 sm:p-6 ${
+                  hasDemo
+                    ? 'hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5'
+                    : ''
+                }`}
+              >
+                {/* Icon circle */}
+                <div className={`flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-primary transition-colors duration-300 ${hasDemo ? 'group-hover:bg-primary group-hover:text-white' : ''}`}>
+                  {BUSINESS_ICONS[type.id]}
+                </div>
 
-              <p className="mt-2 text-sm leading-relaxed text-neutral">
-                {t(`${type.id}_desc`)}
-              </p>
+                <h3 className="mt-5 text-lg font-semibold text-secondary">
+                  {t(`${type.id}_title`)}
+                </h3>
 
-              {/* Demo link */}
-              <div className="mt-5 flex items-center gap-1.5 text-sm font-medium text-primary">
-                <span>{t('viewDemo')}</span>
-                <ArrowIcon />
-              </div>
+                <p className="mt-2 text-sm leading-relaxed text-neutral">
+                  {t(`${type.id}_desc`)}
+                </p>
 
-              {/* Demo URL badge */}
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs text-neutral">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1" />
-                  <path d="M1 5h8M5 1c1.2 1.2 2 2.5 2 4s-.8 2.8-2 4c-1.2-1.2-2-2.5-2-4s.8-2.8 2-4z" stroke="currentColor" strokeWidth="0.8" />
-                </svg>
-                <span>{type.demo}</span>
-              </div>
-            </a>
-          ))}
+                {/* Demo link — only if real shops exist */}
+                {hasDemo ? (
+                  <div className="mt-5 flex items-center gap-1.5 text-sm font-medium text-primary">
+                    <span>{t('viewDemo')}</span>
+                    <ArrowIcon />
+                  </div>
+                ) : (
+                  <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-neutral">
+                    {t('comingSoon')}
+                  </div>
+                )}
+              </Wrapper>
+            );
+          })}
         </div>
       </div>
     </section>

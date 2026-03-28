@@ -60,12 +60,24 @@
 - [x] Header: inline SVG логотип (28×28, fill #16a34a) + «Vendly» text-secondary
 - [x] Footer: inline SVG логотип (24×24, fill #16a34a) + «Vendly»
 
+### П8 — Reviews / Testimonials система ✅
+- [x] Prisma schema: Review model — status enum (PENDING/PUBLISHED/REJECTED), ownerReply, authorEmail, ipAddress
+- [x] Types: ShopReview, DashboardReview, ReviewFormData, ReviewStatus
+- [x] API routes: public GET/POST + authenticated PATCH/DELETE для модерации
+- [x] Shop queries: getStoreReviews, getStoreAverageRating, getDashboardReviews, countRecentReviewsByIp
+- [x] Storefront: ReviewsSection (server) + ReviewForm (client modal) со звёздами
+- [x] Dashboard: ReviewsModerator с фильтрами, publish/reject/reply/delete
+- [x] DashboardNav: вкладка Reviews с иконкой звезды
+- [x] IP-based spam protection (3 reviews/day)
+- [x] i18n: shopFront review keys + dashboardReviews namespace (все 5 языков)
+- [ ] ⚠️ Требуется локально: `prisma generate && prisma db push`
+
 ## 3. Phase 2 (после MVP)
 
 - [ ] Интеграция в vendly: ссылки на реальную платформу, демо-сайты, аналитика
 - [ ] Блог (MDX)
 - [ ] A/B тесты (разные варианты Hero, CTA)
-- [ ] Страница с отзывами клиентов
+- [x] ~~Страница с отзывами клиентов~~ (реализовано в П8)
 - [ ] Мультиязычность (sk/cz/ua/de)
 - [ ] Интеграция с CMS для контента
 - [ ] og-image.png — создать реальное OG изображение 1200×630

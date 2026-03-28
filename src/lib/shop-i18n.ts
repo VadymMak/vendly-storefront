@@ -19,6 +19,53 @@ export interface ShopFrontMessages {
   writeUs: string;
   storeNotFound: string;
   onlineStore: string;
+  // Product card
+  noPhoto: string;
+  unavailable: string;
+  onRequest: string;
+  addToCart: string;
+  addToCartAriaPrefix: string;
+  // Cart
+  cart: string;
+  closeCart: string;
+  cartEmpty: string;
+  removeItemAriaPrefix: string;
+  total: string;
+  order: string;
+  // Category filter
+  allCategories: string;
+  // Checkout
+  checkoutTitle: string;
+  fullName: string;
+  fullNamePlaceholder: string;
+  email: string;
+  emailPlaceholder: string;
+  phonePlaceholder: string;
+  orderNote: string;
+  orderNotePlaceholder: string;
+  sending: string;
+  orderFor: string;
+  summary: string;
+  cartEmptyCheckout: string;
+  cartEmptyCheckoutDesc: string;
+  backToStore: string;
+  orderError: string;
+  somethingWrong: string;
+  // Checkout success
+  orderReceived: string;
+  orderReceivedDesc: string;
+  orderNumber: string;
+  // Not found
+  shopNotFound: string;
+  shopNotFoundDesc: string;
+  backToVendShop: string;
+  // Item detail
+  productNotFound: string;
+  productUnavailable: string;
+  whatsappMessage: string;
+  writeViaWhatsApp: string;
+  // Shop footer
+  createdOn: string;
   // Reviews
   reviews: string;
   reviewsCount: string;

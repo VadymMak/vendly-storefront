@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import type { ShopData, ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 
 interface ShopFooterProps {
   store: ShopData;
   scheme: ColorSchemeTokens;
+  t: ShopFrontMessages;
 }
 
-export default function ShopFooter({ store, scheme }: ShopFooterProps) {
+export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
   const year = new Date().getFullYear();
 
   return (
@@ -64,7 +66,7 @@ export default function ShopFooter({ store, scheme }: ShopFooterProps) {
 
         {/* Bottom bar */}
         <div className={`mt-6 border-t ${scheme.border} pt-4 text-center text-xs ${scheme.footerText} opacity-60`}>
-          <p>&copy; {year} {store.name}. Vytvorené na{' '}
+          <p>&copy; {year} {store.name}. {t.createdOn}{' '}
             <Link href="/" className="underline hover:opacity-80">
               VendShop
             </Link>

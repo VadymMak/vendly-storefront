@@ -1,20 +1,22 @@
 'use client';
 
 import type { ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import { useCart } from './CartContext';
 
 interface CartButtonProps {
   scheme: ColorSchemeTokens;
+  t: ShopFrontMessages;
 }
 
-export default function CartButton({ scheme }: CartButtonProps) {
+export default function CartButton({ scheme, t }: CartButtonProps) {
   const { totalItems, setIsOpen } = useCart();
 
   return (
     <button
       onClick={() => setIsOpen(true)}
       className={`relative rounded-lg p-2 transition-colors hover:${scheme.bgCard}`}
-      aria-label={`Košík (${totalItems})`}
+      aria-label={`${t.cart} (${totalItems})`}
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="9" cy="21" r="1" />

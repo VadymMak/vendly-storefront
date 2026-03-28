@@ -461,6 +461,21 @@
     "loadingStep4": "Vybírám barevné schéma...",
     "loadingStep5": "Téměř hotovo..."
   },
+  "shopFront": {
+    "catalog": "Katalog",
+    "item_one": "položka",
+    "item_few": "položky",
+    "item_many": "položek",
+    "emptyCategory": "V této kategorii zatím nejsou žádné produkty.",
+    "emptyStore": "Obchod zatím nemá žádné produkty.",
+    "aboutUs": "O nás",
+    "contact": "Kontakt",
+    "phone": "Telefon",
+    "address": "Adresa",
+    "writeUs": "Napište nám",
+    "storeNotFound": "Obchod nenalezen",
+    "onlineStore": "online obchod na VendShop"
+  },
   "admin": {
     "stores": "Obchody",
     "users": "Uživatelé",

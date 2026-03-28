@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getStoreBySlug, getStoreByDomain } from '@/lib/shop-queries';
 import { COLOR_SCHEMES } from '@/lib/constants';
+import { getShopTranslations } from '@/lib/shop-i18n';
 import ShopHeader from '@/components/shop/ShopHeader';
 import ShopFooter from '@/components/shop/ShopFooter';
 import { CartProvider } from '@/components/shop/CartContext';
@@ -15,11 +16,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const store = await getStoreBySlug(slug) || await getStoreByDomain(slug);
 
-  if (!store) return { title: 'Obchod nenájdený' };
+  if (!store) return { title: 'Store not found' };
+
+  const t = await getShopTranslations(store.shopLanguage);
 
   return {
     title: `${store.name} | VendShop`,
-    description: store.description || `${store.name} — online obchod na VendShop`,
+    description: store.description || `${store.name} — ${t.onlineStore}`,
   };
 }
 

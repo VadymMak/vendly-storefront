@@ -26,6 +26,7 @@ const checkoutSchema = z.object({
 /**
  * POST /api/checkout
  * Creates an Order + Stripe Checkout Session, returns the session URL.
+ * Key security: prices are validated from DB, not trusted from client.
  */
 export async function POST(request: Request) {
   try {
@@ -42,20 +43,55 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
+    // ── Validate items exist in DB and get real prices ──────────────────────
+    const itemIds = data.items.map((i) => i.itemId);
+    const dbItems = await db.item.findMany({
+      where: { id: { in: itemIds }, storeId: store.id },
+      select: { id: true, name: true, price: true },
+    });
+
+    const itemMap = new Map(dbItems.map((item) => [item.id, item]));
+
+    // Check all items exist
+    for (const item of data.items) {
+      if (!itemMap.has(item.itemId)) {
+        return NextResponse.json(
+          { error: `Item not available: ${item.name}` },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Build verified items with DB prices (never trust client prices)
+    const verifiedItems = data.items.map((item) => {
+      const dbItem = itemMap.get(item.itemId)!;
+      return {
+        itemId: item.itemId,
+        name: dbItem.name,
+        price: dbItem.price,
+        quantity: item.quantity,
+      };
+    });
+
+    // Calculate real total from DB prices
+    const verifiedTotal = verifiedItems.reduce((sum, item) => {
+      return sum + (item.price ?? 0) * item.quantity;
+    }, 0);
+
     const effectivePlan = resolveUserPlan(store.user);
     const feeRate = effectivePlan === 'FREE' ? 0.02 : 0;
-    const platformFee = Math.round(data.total * feeRate * 100); // in cents
+    const platformFee = Math.round(verifiedTotal * feeRate * 100); // in cents
 
-    // Create order in DB first
+    // Create order in DB with verified prices
     const order = await db.order.create({
       data: {
         storeId: store.id,
         customerName: data.customerName,
         customerEmail: data.customerEmail,
         customerPhone: data.customerPhone || null,
-        items: data.items,
-        total: data.total,
-        platformFee: data.total * feeRate,
+        items: verifiedItems,
+        total: verifiedTotal,
+        platformFee: verifiedTotal * feeRate,
         status: 'PENDING',
       },
     });
@@ -63,8 +99,8 @@ export async function POST(request: Request) {
     // Determine the origin for redirect URLs
     const origin = request.headers.get('origin') || 'https://vendshop.shop';
 
-    // Build Stripe line items from order items
-    const lineItems = data.items
+    // Build Stripe line items from DB-verified prices
+    const lineItems = verifiedItems
       .filter((item) => item.price !== null && item.price > 0)
       .map((item) => ({
         price_data: {

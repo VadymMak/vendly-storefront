@@ -85,52 +85,65 @@
 > Цель: довести лендинг vendshop.shop до уровня smartctx.dev.
 > SmartContext подход: Quick Answer box, Stats bar, Services cards, FAQ с конкретными цифрами, CTA, footer с legal.
 
-### K1 — Hero section upgrade
-- [ ] "Quick Answer" banner сверху (как smartctx.dev) — ключевые числа одной строкой
-- [ ] Animated gradient или particle background вместо plain bg
-- [ ] Stats bar под hero: "500+ магазинов", "4 страны", "Lighthouse 95+"
-- [ ] Автопрокрутка demo preview магазинов в hero
+### K1 — Hero section upgrade ✅
+- [x] "Quick Answer" banner сверху — ключевые числа одной строкой (5 языков)
+- [x] Animated gradient background с пульсирующими orbs
+- [x] Stats bar под hero: "500+ магазинов", "4 страны", "5 языков", "99.9% uptime"
+- [x] Автопрокрутка demo preview каждые 4с + progress dots + пауза при клике
 
-### K2 — Social Proof усиление
-- [ ] Реальные цифры вместо placeholder (кол-во магазинов из DB, если возможно)
-- [ ] Логотипы партнёров / интеграций (Stripe, Vercel, OpenAI)
-- [ ] "Trusted by" секция с аватарами реальных пользователей
+### K2 — Social Proof усиление ✅
+- [x] Логотипы технологий / интеграций (Next.js, Vercel, Stripe, Prisma, OpenAI)
+- [x] "Powered by" подсекция с i18n (5 языков)
+- [x] Fix: marquee items без demo URL — span вместо broken link
+- [ ] Реальные цифры из DB (отложено — требует API endpoint)
 
-### K3 — Testimonials секция (лендинг)
-- [ ] 3 карточки с отзывами (со звёздами, фото, имя, тип бизнеса)
-- [ ] "See all reviews" кнопка
-- [ ] Данные из constants.ts (или реальные из DB в будущем)
+### K3 — Testimonials секция (лендинг) ✅
+- [x] 3 карточки с отзывами (звёзды, avatar initials, имя, тип бизнеса)
+- [x] Quote icon, hover shadow, scroll-reveal animation
+- [x] Данные из constants.ts (TESTIMONIALS array) + тексты через i18n (5 языков)
+- [x] Testimonial тип в types.ts
 
-### K4 — Footer upgrade
-- [ ] Добавить Legal колонку: Privacy Policy, Terms of Service
-- [ ] Добавить Connect колонку: WhatsApp, GitHub, LinkedIn
-- [ ] Copyright с текущим годом
+### K4 — Footer upgrade ✅
+- [x] Legal колонка: Privacy Policy, Terms of Service, GDPR — ссылки на /terms, /privacy, /gdpr
+- [x] Connect колонка: WhatsApp, GitHub, LinkedIn
+- [x] Social icons в brand секции (WhatsApp, GitHub, LinkedIn) с hover эффектами
+- [x] Copyright с текущим годом + быстрые legal ссылки в bottom bar
+- [x] 5-колоночный grid (brand, product, support, legal, connect)
+- [x] connect i18n ключ во всех 5 языках
 
 ---
 
 ## Фаза L — Platform Core Features
 
-### L1 — Banner image upload
-- [ ] Hero background image загрузка в Settings → Design tab
-- [ ] Crop/preview перед upload
-- [ ] Vercel Blob storage (как для logo/products)
+### L1 — Banner image upload ✅ (сделано ранее в фазе H)
+- [x] Hero background image загрузка в Settings → Design tab
+- [x] Vercel Blob storage (sharp → webp, max 1600px)
+- [ ] Crop/preview перед upload (отложено)
 
-### L2 — Stripe Connect
-- [ ] Onboarding: подключение Stripe аккаунта владельца магазина
-- [ ] Checkout flow: создание PaymentIntent, оплата картой
-- [ ] Webhooks: обновление статуса заказа
-- [ ] Dashboard: Revenue reporting
+### L2 — Stripe Connect ✅ (частично)
+- [x] Checkout flow: Stripe Checkout Session → redirect → payment → webhook
+- [x] Webhooks: POST /api/webhooks/stripe → PAID / CANCELLED
+- [x] Stripe Connect: application_fee + transfer_data для store owners с stripeAccountId
+- [x] stripe.ts lib helper
+- [x] DB price validation — цены берутся из БД, не доверяем клиенту (паттерн из vendly)
+- [x] Idempotency check в webhook — проверка дублирования по stripeSessionId (паттерн из vendly)
+- [ ] Onboarding: UI для подключения Stripe аккаунта (отложено)
+- [ ] Dashboard: Revenue reporting (отложено)
 
-### L3 — Email уведомления (Resend)
-- [ ] Новый заказ → email владельцу
-- [ ] Подтверждение заказа → email покупателю
-- [ ] Модерация отзыва → email (опционально)
-- [ ] Шаблоны email (branded, responsive)
+### L3 — Email уведомления (Resend) ✅
+- [x] Новый заказ → email владельцу (branded HTML template)
+- [x] Подтверждение заказа → email покупателю (items table, total, branding)
+- [x] Emails fire-and-forget (webhook flow + legacy /api/orders flow)
+- [x] Professional baseTemplate system перенесён из vendly (shared header/card/footer)
+- [x] 7 email функций: verification, password reset, welcome, order confirm, new order, review, report
+- [x] Helper компоненты: accentBar, cardBody, heading, subtext, button, infoBox, divider, smallNote
+- [ ] Модерация отзыва → email (отложено)
 
-### L4 — GDPR / Account
-- [ ] Account deletion — реальное удаление (каскад: user → stores → items → orders → reviews)
-- [ ] Export data (JSON/CSV download)
-- [ ] Cookie consent banner на витрине
+### L4 — GDPR / Account ✅
+- [x] Cookie consent banner на витрине (localStorage, accept/decline, i18n 5 языков)
+- [x] Export data — GET /api/account/export → JSON download (все stores, items, orders, reviews)
+- [x] Account deletion — DELETE /api/account/delete → cascade (user → stores → items → orders → reviews → bookings → blogPosts)
+- [x] UI в Dashboard Settings → Danger Zone: Export Data + Delete Account кнопки
 
 ### L5 — Onboarding Wizard
 - [ ] 5 шагов: Имя магазина → Тип бизнеса → AI setup → Добавить товары → Publish

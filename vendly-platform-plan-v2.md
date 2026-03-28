@@ -51,12 +51,39 @@
 - [x] Production deploy на Vercel — регистрация и логин работают
 - [x] Neon DB: pnpm db:push выполнен, схема актуальна
 
-## Фаза H — Следующие шаги
-- [ ] Загрузка фото товаров и логотипа (Vercel Blob / Sharp → WebP)
+## Фаза H — Shop redesign + Image uploads + i18n fix ✅
+- [x] Shop page (/shop/[slug]) — полный редизайн: hero с логотипом/аватаром, чипы (адрес/часы/доставка), CTA кнопки (phone/WhatsApp)
+- [x] ProductCard — badge категории, description excerpt, hover lift эффект
+- [x] ShopHeader — убран голый номер телефона, добавлены icon-кнопки (📞 + WhatsApp)
+- [x] ColorSchemeTokens — новые токены: heroBg, chipBg, chipText, outlineBtn (все 4 схемы)
+- [x] Settings page — GitHub-style layout: левый sidebar nav + правая область контента
+- [x] Settings Danger Zone — модал с подтверждением имени магазина (backdrop blur)
+- [x] ImageUpload компонент — multi (фото товаров) + single (логотип), WebP preview, spinner
+- [x] API /api/upload — Vercel Blob + Sharp (WebP, max 1600px, EXIF rotate, 5MB лимит)
+- [x] ProductForm — images[] поддержка + ImageUpload интеграция
+- [x] SettingsForm — logo upload (single mode), сохранение в store.logo
+- [x] API products/[id] и stores/[id] — поддержка images[] и logo
+- [x] ProductForm i18n — все хардкоженые SK строки → useTranslations (все 5 языков)
+- [x] Vercel Blob store подключён (vendly-blob, BLOB_READ_WRITE_TOKEN)
+- [x] Domain vendshop.shop → Vercel Production (www → redirect 307)
+
+## Фаза I — Quick badges + Working hours + AI translation ✅
+- [x] Quick info badges — 16 бейджей (fast delivery, PayPal, pickup...), выбор в Settings Design tab, отображение на витрине (QuickBadgesStrip)
+- [x] Structured working hours — 7-дневное расписание с перерывами, Open/Closed статус на витрине (StoreStatus), время приёма онлайн-заказов
+- [x] OpenStreetMap — адрес + геокодинг через Nominatim, iframe карта на витрине и в Settings
+- [x] AI Translation — API endpoints (/api/ai/translate, /api/ai/translate-bulk), TranslateButton + BulkTranslateButton компоненты
+- [x] Translate в SettingsForm — кнопки перевода для description, aboutText, deliveryInfo + bulk translate banner
+- [x] Translate в ProductForm — кнопки перевода для name и description
+- [x] Free plan ограничение — одноразовый AI перевод, `translationUsedAt` в settings JSON, upsell на Starter/Pro
+- [x] Landing page — новая feature card "AI content translation", обновлённые pricing plans (free_f5, starter_f7, pro_f8), FAQ q7 про языковой барьер
+- [x] i18n — все ключи переводов в 5 языках (EN/SK/UK/CS/DE)
+
+## Фаза J — Следующие шаги
+- [ ] Hero/banner image upload для магазина (фоновое изображение в настройках)
 - [ ] Stripe Connect checkout (оплата заказов)
 - [ ] Email уведомления при новом заказе (Resend)
+- [ ] Account deletion (GDPR) — реальное удаление аккаунта из Danger Zone
 - [ ] Онбординг визард (5 шагов) для нового пользователя
-- [ ] AI генерация описания товара (OpenAI, уже есть route)
 - [ ] Кастомные домены (Vercel API + DNS)
 - [ ] SEO hreflang теги для всех языков
 - [ ] Следующие шаблоны (restaurant, barber, workshop, portfolio)

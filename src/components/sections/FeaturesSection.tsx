@@ -60,11 +60,21 @@ const FEATURE_ICONS: Record<string, React.ReactNode> = {
       <path d="M14 11a4 4 0 00-5.66 0l-3 3a4 4 0 005.66 5.66l1-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+  aiTranslation: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M5 8l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M4 14l6-6 2-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M2 5h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7 2h1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M22 22l-5-10-5 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 18h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
 };
 
 const FEATURE_IDS = [
-  'aiDescriptions', 'multilang', 'payments', 'whatsapp',
-  'mobile', 'analytics', 'security', 'customDomain',
+  'aiDescriptions', 'aiTranslation', 'multilang', 'payments',
+  'whatsapp', 'mobile', 'analytics', 'security', 'customDomain',
 ] as const;
 
 export default function FeaturesSection() {
@@ -83,7 +93,7 @@ export default function FeaturesSection() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURE_IDS.map((featureId, i) => (
             <div
               key={featureId}

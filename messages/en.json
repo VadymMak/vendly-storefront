@@ -62,6 +62,8 @@
     "subtitle": "Features that help your business grow online.",
     "aiDescriptions_title": "AI product descriptions",
     "aiDescriptions_desc": "Automatically generated product descriptions using AI. Save hours of writing.",
+    "aiTranslation_title": "AI content translation",
+    "aiTranslation_desc": "Write in any language — AI translates your store content to the shop language. One click, whole store translated.",
     "multilang_title": "Multi-language (5 languages)",
     "multilang_desc": "Store in Slovak, Czech, Ukrainian, German and English — automatically.",
     "payments_title": "Stripe & PayPal payments",
@@ -89,6 +91,7 @@
     "free_f2": "Basic templates",
     "free_f3": "vendshop.shop subdomain",
     "free_f4": "Email support",
+    "free_f5": "One-time AI translation",
     "starter_desc": "For growing businesses that need more.",
     "starter_cta": "Choose Starter",
     "starter_f1": "Up to 100 products",
@@ -97,6 +100,7 @@
     "starter_f4": "Priority support",
     "starter_f5": "Sales analytics",
     "starter_f6": "No VendShop ads",
+    "starter_f7": "Unlimited AI translations",
     "pro_desc": "For professionals who want the maximum.",
     "pro_cta": "Choose Pro",
     "pro_f1": "Unlimited products",
@@ -105,7 +109,8 @@
     "pro_f4": "API access",
     "pro_f5": "Advanced analytics",
     "pro_f6": "24/7 priority support",
-    "pro_f7": "Multi-language store"
+    "pro_f7": "Multi-language store",
+    "pro_f8": "Unlimited AI translations"
   },
   "faq": {
     "badge": "FAQ",
@@ -122,7 +127,9 @@
     "q5": "Can I sell digital products?",
     "a5": "Yes, VendShop supports selling digital products — e-books, courses, templates and other downloadable files.",
     "q6": "How long does it take to create a store?",
-    "a6": "You can create a basic store in 5 minutes. Adding products and setting up the design usually takes 1-2 hours."
+    "a6": "You can create a basic store in 5 minutes. Adding products and setting up the design usually takes 1-2 hours.",
+    "q7": "I don't speak the local language. Can I still create a store?",
+    "a7": "Yes! Write your content in any language and use our AI translation feature to translate everything to the shop language in one click. Free plan includes one translation, paid plans offer unlimited translations."
   },
   "cta": {
     "title": "Start selling online today",
@@ -248,7 +255,10 @@
     "uploadRemove": "Remove",
     "uploadUploading": "Uploading...",
     "uploadMain": "Main",
-    "uploadError": "Upload failed"
+    "uploadError": "Upload failed",
+    "translateTo": "Translate to",
+    "translated": "Translated",
+    "translateLimitReached": "Limit reached"
   },
   "dashboardOrders": {
     "title": "Orders",
@@ -365,7 +375,16 @@
     "orderAcceptance": "Online order acceptance",
     "orderAcceptanceHint": "Limit the time window when customers can place online orders.",
     "orderFrom": "from",
-    "orderTo": "to"
+    "orderTo": "to",
+    "translateTo": "Translate to",
+    "translated": "Translated",
+    "translateLimitReached": "Limit reached",
+    "translateAll": "Translate all content",
+    "translating": "Translating...",
+    "translateDone": "Translation complete",
+    "translateUpgrade": "Upgrade plan",
+    "translateBulkDesc": "Translate all your store content (description, about, products) to the shop language with AI in one click.",
+    "translateBulkUsed": "You've already used your free AI translation. Upgrade to Starter or Pro for unlimited translations."
   },
   "aiWizard": {
     "step1Title": "Tell us about your business",

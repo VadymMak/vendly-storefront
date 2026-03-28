@@ -62,6 +62,8 @@
     "subtitle": "Funkcie, ktoré pomôžu vášmu biznisu rásť online.",
     "aiDescriptions_title": "AI popisky produktov",
     "aiDescriptions_desc": "Automaticky generované popisky produktov pomocou AI. Ušetrite hodiny písania.",
+    "aiTranslation_title": "AI preklad obsahu",
+    "aiTranslation_desc": "Píšte v akomkoľvek jazyku — AI preloží obsah obchodu do jazyka obchodu. Jedným kliknutím celý obchod preložený.",
     "multilang_title": "Multi-jazyk (5 jazykov)",
     "multilang_desc": "Obchod v slovenčine, češtine, ukrajinčine, nemčine aj angličtine — automaticky.",
     "payments_title": "Stripe & PayPal platby",
@@ -89,6 +91,7 @@
     "free_f2": "Základné šablóny",
     "free_f3": "vendshop.shop subdoména",
     "free_f4": "E-mailová podpora",
+    "free_f5": "Jednorazový AI preklad",
     "starter_desc": "Pre rastúce biznisy, ktoré potrebujú viac.",
     "starter_cta": "Vybrať Starter",
     "starter_f1": "Až 100 produktov",
@@ -97,6 +100,7 @@
     "starter_f4": "Prioritná podpora",
     "starter_f5": "Analytika predajov",
     "starter_f6": "Bez reklám VendShop",
+    "starter_f7": "Neobmedzené AI preklady",
     "pro_desc": "Pre profesionálov, ktorí chcú maximum.",
     "pro_cta": "Vybrať Pro",
     "pro_f1": "Neobmedzené produkty",
@@ -105,7 +109,8 @@
     "pro_f4": "API prístup",
     "pro_f5": "Pokročilá analytika",
     "pro_f6": "Prioritná podpora 24/7",
-    "pro_f7": "Multi-jazyk obchod"
+    "pro_f7": "Multi-jazyk obchod",
+    "pro_f8": "Neobmedzené AI preklady"
   },
   "faq": {
     "badge": "FAQ",
@@ -122,7 +127,9 @@
     "q5": "Je možné predávať digitálne produkty?",
     "a5": "Áno, VendShop podporuje predaj digitálnych produktov — e-booky, kurzy, šablóny a ďalšie súbory na stiahnutie.",
     "q6": "Ako dlho trvá vytvorenie obchodu?",
-    "a6": "Základný obchod si vytvoríte za 5 minút. Pridanie produktov a nastavenie dizajnu zvyčajne zaberie 1-2 hodiny."
+    "a6": "Základný obchod si vytvoríte za 5 minút. Pridanie produktov a nastavenie dizajnu zvyčajne zaberie 1-2 hodiny.",
+    "q7": "Neovládam miestny jazyk. Môžem si aj tak vytvoriť obchod?",
+    "a7": "Áno! Napíšte obsah v akomkoľvek jazyku a použite AI preklad na preloženie všetkého do jazyka obchodu jedným kliknutím. Free plán zahŕňa jeden preklad, platené plány ponúkajú neobmedzené preklady."
   },
   "cta": {
     "title": "Začnite predávať online ešte dnes",
@@ -248,7 +255,10 @@
     "uploadRemove": "Odstrániť",
     "uploadUploading": "Nahrávam...",
     "uploadMain": "Hlavná",
-    "uploadError": "Nahrávanie zlyhalo"
+    "uploadError": "Nahrávanie zlyhalo",
+    "translateTo": "Preložiť do",
+    "translated": "Preložené",
+    "translateLimitReached": "Limit dosiahnutý"
   },
   "dashboardOrders": {
     "title": "Objednávky",
@@ -365,7 +375,16 @@
     "orderAcceptance": "Prijímanie online objednávok",
     "orderAcceptanceHint": "Obmedzenie časového okna, kedy zákazníci môžu zadávať online objednávky.",
     "orderFrom": "od",
-    "orderTo": "do"
+    "orderTo": "do",
+    "translateTo": "Preložiť do",
+    "translated": "Preložené",
+    "translateLimitReached": "Limit dosiahnutý",
+    "translateAll": "Preložiť celý obsah",
+    "translating": "Prekladám...",
+    "translateDone": "Preklad dokončený",
+    "translateUpgrade": "Upgrade plánu",
+    "translateBulkDesc": "Preložte celý obsah obchodu (popis, o nás, produkty) do jazyka obchodu pomocou AI jedným kliknutím.",
+    "translateBulkUsed": "Už ste využili svoj bezplatný AI preklad. Prejdite na Starter alebo Pro pre neobmedzené preklady."
   },
   "aiWizard": {
     "step1Title": "Povedzte nám o svojom biznise",

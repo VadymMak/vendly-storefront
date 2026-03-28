@@ -62,6 +62,8 @@
     "subtitle": "Funkce, které pomohou vašemu byznysu růst online.",
     "aiDescriptions_title": "AI popisky produktů",
     "aiDescriptions_desc": "Automaticky generované popisky produktů pomocí AI. Ušetřete hodiny psaní.",
+    "aiTranslation_title": "AI překlad obsahu",
+    "aiTranslation_desc": "Pište v jakémkoli jazyce — AI přeloží obsah obchodu do jazyka obchodu. Jedním kliknutím celý obchod přeložený.",
     "multilang_title": "Multi-jazyk (5 jazyků)",
     "multilang_desc": "Obchod v slovenštině, češtině, ukrajinštině, němčině i angličtině — automaticky.",
     "payments_title": "Stripe & PayPal platby",
@@ -89,6 +91,7 @@
     "free_f2": "Základní šablony",
     "free_f3": "vendshop.shop subdoména",
     "free_f4": "E-mailová podpora",
+    "free_f5": "Jednorázový AI překlad",
     "starter_desc": "Pro rostoucí byznysy, které potřebují víc.",
     "starter_cta": "Vybrat Starter",
     "starter_f1": "Až 100 produktů",
@@ -97,6 +100,7 @@
     "starter_f4": "Prioritní podpora",
     "starter_f5": "Analytika prodejů",
     "starter_f6": "Bez reklam VendShop",
+    "starter_f7": "Neomezené AI překlady",
     "pro_desc": "Pro profesionály, kteří chtějí maximum.",
     "pro_cta": "Vybrat Pro",
     "pro_f1": "Neomezené produkty",
@@ -105,7 +109,8 @@
     "pro_f4": "API přístup",
     "pro_f5": "Pokročilá analytika",
     "pro_f6": "Prioritní podpora 24/7",
-    "pro_f7": "Multi-jazyk obchod"
+    "pro_f7": "Multi-jazyk obchod",
+    "pro_f8": "Neomezené AI překlady"
   },
   "faq": {
     "badge": "FAQ",
@@ -122,7 +127,9 @@
     "q5": "Je možné prodávat digitální produkty?",
     "a5": "Ano, VendShop podporuje prodej digitálních produktů — e-booky, kurzy, šablony a další soubory ke stažení.",
     "q6": "Jak dlouho trvá vytvoření obchodu?",
-    "a6": "Základní obchod si vytvoříte za 5 minut. Přidání produktů a nastavení designu obvykle zabere 1-2 hodiny."
+    "a6": "Základní obchod si vytvoříte za 5 minut. Přidání produktů a nastavení designu obvykle zabere 1-2 hodiny.",
+    "q7": "Neovládám místní jazyk. Mohu si přesto vytvořit obchod?",
+    "a7": "Ano! Napište obsah v jakémkoli jazyce a použijte AI překlad k přeložení všeho do jazyka obchodu jedním kliknutím. Free plán zahrnuje jeden překlad, placené plány nabízí neomezené překlady."
   },
   "cta": {
     "title": "Začněte prodávat online ještě dnes",
@@ -248,7 +255,10 @@
     "uploadRemove": "Odstranit",
     "uploadUploading": "Nahrávám...",
     "uploadMain": "Hlavní",
-    "uploadError": "Nahrávání selhalo"
+    "uploadError": "Nahrávání selhalo",
+    "translateTo": "Přeložit do",
+    "translated": "Přeloženo",
+    "translateLimitReached": "Limit vyčerpán"
   },
   "dashboardOrders": {
     "title": "Objednávky",
@@ -365,7 +375,16 @@
     "orderAcceptance": "Příjem online objednávek",
     "orderAcceptanceHint": "Omezení časového okna, kdy zákazníci mohou zadávat online objednávky.",
     "orderFrom": "od",
-    "orderTo": "do"
+    "orderTo": "do",
+    "translateTo": "Přeložit do",
+    "translated": "Přeloženo",
+    "translateLimitReached": "Limit vyčerpán",
+    "translateAll": "Přeložit veškerý obsah",
+    "translating": "Překládám...",
+    "translateDone": "Překlad dokončen",
+    "translateUpgrade": "Upgradovat plán",
+    "translateBulkDesc": "Přeložte veškerý obsah obchodu (popis, o nás, produkty) do jazyka obchodu pomocí AI jedním kliknutím.",
+    "translateBulkUsed": "Již jste využili svůj bezplatný AI překlad. Přejděte na Starter nebo Pro pro neomezené překlady."
   },
   "aiWizard": {
     "step1Title": "Řekněte nám o svém podnikání",

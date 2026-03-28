@@ -18,7 +18,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 
   const item = await db.item.findFirst({
     where: { id, store: { userId: session.user.id } },
-    include: { store: { select: { id: true } } },
+    include: { store: { select: { id: true, shopLanguage: true } } },
   });
 
   if (!item) notFound();
@@ -39,7 +39,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         <h1 className="text-2xl font-bold text-secondary">Upraviť produkt</h1>
         <p className="mt-1 text-sm text-neutral">Upravte detaily produktu alebo služby.</p>
       </div>
-      <ProductForm storeId={item.store.id} itemId={item.id} defaultValues={defaultValues} />
+      <ProductForm storeId={item.store.id} shopLanguage={item.store.shopLanguage} itemId={item.id} defaultValues={defaultValues} />
     </div>
   );
 }

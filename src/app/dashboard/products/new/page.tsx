@@ -18,7 +18,7 @@ export default async function NewProductPage() {
         <h1 className="text-2xl font-bold text-secondary">Nový produkt</h1>
         <p className="mt-1 text-sm text-neutral">Pridajte produkt, službu alebo položku menu.</p>
       </div>
-      <ProductForm storeId={store.id} />
+      <ProductForm storeId={store.id} shopLanguage={store.shopLanguage} />
     </div>
   );
 }

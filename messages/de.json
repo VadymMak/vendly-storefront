@@ -62,6 +62,8 @@
     "subtitle": "Funktionen, die Ihrem Unternehmen helfen, online zu wachsen.",
     "aiDescriptions_title": "KI-Produktbeschreibungen",
     "aiDescriptions_desc": "Automatisch generierte Produktbeschreibungen mit KI. Sparen Sie Stunden beim Schreiben.",
+    "aiTranslation_title": "KI-Inhaltsübersetzung",
+    "aiTranslation_desc": "Schreiben Sie in beliebiger Sprache — KI übersetzt Ihren Shop-Inhalt in die Shop-Sprache. Ein Klick, gesamter Shop übersetzt.",
     "multilang_title": "Mehrsprachig (5 Sprachen)",
     "multilang_desc": "Shop in Slowakisch, Tschechisch, Ukrainisch, Deutsch und Englisch — automatisch.",
     "payments_title": "Stripe & PayPal Zahlungen",
@@ -89,6 +91,7 @@
     "free_f2": "Basis-Vorlagen",
     "free_f3": "vendshop.shop Subdomain",
     "free_f4": "E-Mail-Support",
+    "free_f5": "Einmalige KI-Übersetzung",
     "starter_desc": "Für wachsende Unternehmen, die mehr brauchen.",
     "starter_cta": "Starter wählen",
     "starter_f1": "Bis zu 100 Produkte",
@@ -97,6 +100,7 @@
     "starter_f4": "Prioritäts-Support",
     "starter_f5": "Verkaufsanalysen",
     "starter_f6": "Keine VendShop-Werbung",
+    "starter_f7": "Unbegrenzte KI-Übersetzungen",
     "pro_desc": "Für Profis, die das Maximum wollen.",
     "pro_cta": "Pro wählen",
     "pro_f1": "Unbegrenzte Produkte",
@@ -105,7 +109,8 @@
     "pro_f4": "API-Zugang",
     "pro_f5": "Erweiterte Analytik",
     "pro_f6": "24/7 Prioritäts-Support",
-    "pro_f7": "Mehrsprachiger Shop"
+    "pro_f7": "Mehrsprachiger Shop",
+    "pro_f8": "Unbegrenzte KI-Übersetzungen"
   },
   "faq": {
     "badge": "FAQ",
@@ -122,7 +127,9 @@
     "q5": "Kann ich digitale Produkte verkaufen?",
     "a5": "Ja, VendShop unterstützt den Verkauf digitaler Produkte — E-Books, Kurse, Vorlagen und andere herunterladbare Dateien.",
     "q6": "Wie lange dauert die Shop-Erstellung?",
-    "a6": "Einen einfachen Shop erstellen Sie in 5 Minuten. Produkte hinzufügen und Design einrichten dauert normalerweise 1-2 Stunden."
+    "a6": "Einen einfachen Shop erstellen Sie in 5 Minuten. Produkte hinzufügen und Design einrichten dauert normalerweise 1-2 Stunden.",
+    "q7": "Ich spreche die Landessprache nicht. Kann ich trotzdem einen Shop erstellen?",
+    "a7": "Ja! Schreiben Sie Ihre Inhalte in beliebiger Sprache und nutzen Sie unsere KI-Übersetzung, um alles mit einem Klick in die Shop-Sprache zu übersetzen. Der Free-Plan enthält eine Übersetzung, kostenpflichtige Pläne bieten unbegrenzte Übersetzungen."
   },
   "cta": {
     "title": "Starten Sie noch heute mit dem Online-Verkauf",
@@ -248,7 +255,10 @@
     "uploadRemove": "Entfernen",
     "uploadUploading": "Wird hochgeladen...",
     "uploadMain": "Haupt",
-    "uploadError": "Upload fehlgeschlagen"
+    "uploadError": "Upload fehlgeschlagen",
+    "translateTo": "Übersetzen in",
+    "translated": "Übersetzt",
+    "translateLimitReached": "Limit erreicht"
   },
   "dashboardOrders": {
     "title": "Bestellungen",
@@ -365,7 +375,16 @@
     "orderAcceptance": "Online-Bestellannahme",
     "orderAcceptanceHint": "Begrenzen Sie das Zeitfenster, in dem Kunden Online-Bestellungen aufgeben können.",
     "orderFrom": "von",
-    "orderTo": "bis"
+    "orderTo": "bis",
+    "translateTo": "Übersetzen in",
+    "translated": "Übersetzt",
+    "translateLimitReached": "Limit erreicht",
+    "translateAll": "Gesamten Inhalt übersetzen",
+    "translating": "Übersetze...",
+    "translateDone": "Übersetzung abgeschlossen",
+    "translateUpgrade": "Plan upgraden",
+    "translateBulkDesc": "Übersetzen Sie den gesamten Shop-Inhalt (Beschreibung, Über uns, Produkte) mit KI in die Shop-Sprache mit einem Klick.",
+    "translateBulkUsed": "Sie haben bereits Ihre kostenlose KI-Übersetzung genutzt. Upgraden Sie auf Starter oder Pro für unbegrenzte Übersetzungen."
   },
   "aiWizard": {
     "step1Title": "Erzählen Sie uns von Ihrem Unternehmen",

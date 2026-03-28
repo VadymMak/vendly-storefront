@@ -78,13 +78,22 @@
 - [x] Landing page — новая feature card "AI content translation", обновлённые pricing plans (free_f5, starter_f7, pro_f8), FAQ q7 про языковой барьер
 - [x] i18n — все ключи переводов в 5 языках (EN/SK/UK/CS/DE)
 
+## Фаза I.5 — Admin & Custom Domains ✅
+- [x] Admin PRO override — `resolveUserPlan()` / `getUserPlan()`, admin email → PRO в 5 API routes
+- [x] Manual plan switcher — `/api/admin/set-plan` endpoint, PlanSelector компонент в admin/users
+- [x] Subdomain routing — `getStoreUrl()`, middleware redirect `/shop/slug` → `slug.vendshop.shop`, root-relative shop links
+- [x] Custom domain — API `/api/stores/[id]/domain` (save/delete/DNS verify), UI в Settings publishing tab
+- [x] Custom domain fallback — `getStoreByDomain()` в shop layout/page/item, middleware rewrite для custom domains
+- [x] i18n — custom domain ключи в 5 языках
+
 ## Фаза J — Следующие шаги
 - [ ] Hero/banner image upload для магазина (фоновое изображение в настройках)
 - [ ] Stripe Connect checkout (оплата заказов)
 - [ ] Email уведомления при новом заказе (Resend)
 - [ ] Account deletion (GDPR) — реальное удаление аккаунта из Danger Zone
 - [ ] Онбординг визард (5 шагов) для нового пользователя
-- [ ] Кастомные домены (Vercel API + DNS)
+- [x] Кастомные домены (Vercel API + DNS)
 - [ ] SEO hreflang теги для всех языков
 - [ ] Следующие шаблоны (restaurant, barber, workshop, portfolio)
 - [ ] Блог платформы
+- [ ] Balloon-party тестовый магазин (celebration/photo area)

@@ -85,6 +85,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
 
   // Step 3 (preview) — AI result + user edits
   const [result,       setResult]       = useState<AiSetupResult | null>(null);
+  const [editedName,   setEditedName]   = useState('');
   const [editedDesc,   setEditedDesc]   = useState('');
   const [editedColor,  setEditedColor]  = useState<ColorScheme>('light');
   const [editedItems,  setEditedItems]  = useState<AiSetupItem[]>([]);
@@ -133,7 +134,8 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
       const data = (await res.json()) as AiSetupResult;
 
       setResult(data);
-      setEditedDesc(data.shopDescription  || '');
+      setEditedName(data.shopName          || businessName);
+      setEditedDesc(data.shopDescription   || '');
       setEditedColor((data.colorScheme as ColorScheme) || 'light');
       setEditedItems(data.items            || []);
       setStep('preview');
@@ -156,7 +158,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          name:         businessName,
+          name:         editedName || businessName,
           description:  editedDesc,
           shopLanguage,
           colorScheme:  editedColor,
@@ -457,6 +459,17 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
             <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-3xl">🎉</div>
             <h1 className="text-2xl font-bold text-secondary">{t('step3Title')}</h1>
             <p className="mt-2 text-sm text-neutral">{t('step3Subtitle')}</p>
+          </div>
+
+          {/* Shop name */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <h3 className="mb-3 text-sm font-semibold text-secondary">{t('generatedName')}</h3>
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
 
           {/* Description */}

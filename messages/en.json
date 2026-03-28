@@ -444,6 +444,7 @@
     "step2Subtitle": "This will just take a moment",
     "step3Title": "Your shop is ready!",
     "step3Subtitle": "Review and edit the generated content if needed",
+    "generatedName": "Shop name",
     "generatedDesc": "Shop description",
     "generatedColor": "Color scheme",
     "colorReason": "Why this scheme:",

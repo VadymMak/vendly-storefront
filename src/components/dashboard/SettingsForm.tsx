@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { ShopData, StoreSettingsFormData } from '@/lib/types';
-import { QUICK_BADGES } from '@/lib/constants';
+import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
+import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
 import ImageUpload from '@/components/ui/ImageUpload';
 
 const LANGUAGES = [
@@ -127,7 +127,11 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
     isPublished:  store?.isPublished ?? false,
     bannerImage:  store?.settings.bannerImage || '',
     quickBadges:  store?.settings.quickBadges || [],
+    structuredHours: store?.settings.structuredHours || DEFAULT_WEEK_SCHEDULE.map((d) => ({ ...d })) as WeekSchedule,
+    orderAcceptance: store?.settings.orderAcceptance || { ...DEFAULT_ORDER_ACCEPTANCE },
+    coordinates: store?.settings.coordinates || null,
   });
+  const [geocoding, setGeocoding] = useState(false);
   const [templateId, setTemplateId] = useState(store?.templateId || 'physical');
   const [slug, setSlug] = useState(store?.slug || '');
   const [logo, setLogo] = useState<string[]>(store?.logo ? [store.logo] : []);
@@ -156,7 +160,16 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, templateId, slug, userId, logo: logo[0] || null, bannerImage: banner[0] || null, quickBadges: form.quickBadges.length > 0 ? form.quickBadges : undefined }),
+        body: JSON.stringify({
+          ...form,
+          templateId, slug, userId,
+          logo: logo[0] || null,
+          bannerImage: banner[0] || null,
+          quickBadges: form.quickBadges.length > 0 ? form.quickBadges : undefined,
+          structuredHours: form.structuredHours,
+          orderAcceptance: form.orderAcceptance.enabled ? form.orderAcceptance : undefined,
+          coordinates: form.coordinates,
+        }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -403,43 +416,177 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
           {activeTab === 'contact' && (
             <section>
               <SectionHeader title={t('sectionContact')} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                {([
-                  { field: 'phone',     label: t('phone'),     placeholder: '+421 9xx xxx xxx' },
-                  { field: 'whatsapp',  label: t('whatsapp'),  placeholder: '421912345678' },
-                  { field: 'instagram', label: t('instagram'), placeholder: 'moj_obchod' },
-                  { field: 'facebook',  label: t('facebook'),  placeholder: 'MojObchod' },
-                ] as const).map(({ field, label, placeholder }) => (
-                  <Field key={field} label={label}>
-                    <input
-                      type="text"
-                      value={form[field as keyof StoreSettingsFormData] as string}
-                      onChange={(e) => set(field as keyof StoreSettingsFormData, e.target.value)}
-                      className={INPUT_CLS} placeholder={placeholder}
-                    />
-                  </Field>
-                ))}
-                <div className="sm:col-span-2">
-                  <Field label={t('address')}>
-                    <input type="text" value={form.address}
-                      onChange={(e) => set('address', e.target.value)}
-                      className={INPUT_CLS} placeholder="Hlavná 1, Bratislava" />
-                  </Field>
+              <div className="space-y-8">
+
+                {/* Phone & social */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {([
+                    { field: 'phone',     label: t('phone'),     placeholder: '+421 9xx xxx xxx' },
+                    { field: 'whatsapp',  label: t('whatsapp'),  placeholder: '421912345678' },
+                    { field: 'instagram', label: t('instagram'), placeholder: 'moj_obchod' },
+                    { field: 'facebook',  label: t('facebook'),  placeholder: 'MojObchod' },
+                  ] as const).map(({ field, label, placeholder }) => (
+                    <Field key={field} label={label}>
+                      <input
+                        type="text"
+                        value={form[field as keyof StoreSettingsFormData] as string}
+                        onChange={(e) => set(field as keyof StoreSettingsFormData, e.target.value)}
+                        className={INPUT_CLS} placeholder={placeholder}
+                      />
+                    </Field>
+                  ))}
                 </div>
-                <div className="sm:col-span-2">
-                  <Field label={t('openingHours')}>
+
+                {/* ── Address + Map ─────────────────────────────────────── */}
+                <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                  <p className="text-sm font-semibold text-secondary">{t('addressAndMap')}</p>
+                  <Field label={t('address')} hint={t('addressHint')}>
+                    <div className="flex gap-2">
+                      <input type="text" value={form.address}
+                        onChange={(e) => set('address', e.target.value)}
+                        className={`${INPUT_CLS} flex-1`} placeholder="Hlavná 1, Bratislava" />
+                      <button
+                        type="button"
+                        disabled={!form.address || geocoding}
+                        onClick={async () => {
+                          if (!form.address) return;
+                          setGeocoding(true);
+                          try {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(form.address)}&limit=1`);
+                            const data = await res.json();
+                            if (data[0]) {
+                              set('coordinates', { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+                            }
+                          } catch { /* ignore */ }
+                          setGeocoding(false);
+                        }}
+                        className="shrink-0 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                      >
+                        {geocoding ? '...' : t('findOnMap')}
+                      </button>
+                    </div>
+                  </Field>
+                  {form.coordinates && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span>Lat: {form.coordinates.lat.toFixed(5)}</span>
+                        <span>Lng: {form.coordinates.lng.toFixed(5)}</span>
+                        <button type="button" onClick={() => set('coordinates', null)} className="text-red-500 hover:text-red-700 transition-colors">
+                          {t('removeMap')}
+                        </button>
+                      </div>
+                      <div className="overflow-hidden rounded-lg border border-gray-200">
+                        <iframe
+                          title="Map preview"
+                          width="100%"
+                          height="200"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${form.coordinates.lng - 0.005},${form.coordinates.lat - 0.003},${form.coordinates.lng + 0.005},${form.coordinates.lat + 0.003}&layer=mapnik&marker=${form.coordinates.lat},${form.coordinates.lng}`}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Structured working hours ──────────────────────────── */}
+                <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-secondary">{t('workingHours')}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">{t('workingHoursHint')}</p>
+                  </div>
+                  <div className="space-y-2">
+                    {form.structuredHours.map((day, i) => {
+                      const dayKey = DAY_KEYS[i];
+                      const updateDay = (patch: Partial<DaySchedule>) => {
+                        const next = [...form.structuredHours] as WeekSchedule;
+                        next[i] = { ...next[i], ...patch };
+                        set('structuredHours', next);
+                      };
+                      return (
+                        <div key={dayKey} className="flex items-center gap-3">
+                          <span className="w-10 text-xs font-medium text-gray-600 uppercase">{t(`day_${dayKey}`)}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateDay({ open: !day.open })}
+                            className={`relative h-5 w-10 rounded-full transition-colors ${day.open ? 'bg-primary' : 'bg-gray-300'}`}
+                          >
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${day.open ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+                          </button>
+                          {day.open ? (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <input type="time" value={day.from} onChange={(e) => updateDay({ from: e.target.value })}
+                                className="rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                              <span className="text-gray-400">—</span>
+                              <input type="time" value={day.to} onChange={(e) => updateDay({ to: e.target.value })}
+                                className="rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                              <button type="button"
+                                onClick={() => updateDay(day.breakFrom ? { breakFrom: undefined, breakTo: undefined } : { breakFrom: '12:00', breakTo: '13:00' })}
+                                className={`ml-2 rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${day.breakFrom ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400 hover:text-gray-600'}`}
+                              >
+                                {t('break')}
+                              </button>
+                              {day.breakFrom && (
+                                <div className="flex items-center gap-1 text-xs">
+                                  <input type="time" value={day.breakFrom} onChange={(e) => updateDay({ breakFrom: e.target.value })}
+                                    className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" />
+                                  <span className="text-gray-400">—</span>
+                                  <input type="time" value={day.breakTo || '13:00'} onChange={(e) => updateDay({ breakTo: e.target.value })}
+                                    className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">{t('dayClosed')}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Legacy fallback text field */}
+                  <Field label={t('openingHoursText')} hint={t('openingHoursTextHint')}>
                     <input type="text" value={form.openingHours}
                       onChange={(e) => set('openingHours', e.target.value)}
                       className={INPUT_CLS} placeholder="Po–Pi 9:00–18:00" />
                   </Field>
                 </div>
-                <div className="sm:col-span-2">
-                  <Field label={t('deliveryInfo')}>
-                    <input type="text" value={form.deliveryInfo}
-                      onChange={(e) => set('deliveryInfo', e.target.value)}
-                      className={INPUT_CLS} placeholder="..." />
-                  </Field>
+
+                {/* ── Order acceptance schedule ─────────────────────────── */}
+                <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-secondary">{t('orderAcceptance')}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">{t('orderAcceptanceHint')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => set('orderAcceptance', { ...form.orderAcceptance, enabled: !form.orderAcceptance.enabled })}
+                      className={`relative h-7 w-14 rounded-full transition-colors ${form.orderAcceptance.enabled ? 'bg-primary' : 'bg-gray-300'}`}
+                    >
+                      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.orderAcceptance.enabled ? 'translate-x-8' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  {form.orderAcceptance.enabled && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">{t('orderFrom')}</span>
+                      <input type="time" value={form.orderAcceptance.from}
+                        onChange={(e) => set('orderAcceptance', { ...form.orderAcceptance, from: e.target.value })}
+                        className="rounded border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                      <span className="text-sm text-gray-600">{t('orderTo')}</span>
+                      <input type="time" value={form.orderAcceptance.to}
+                        onChange={(e) => set('orderAcceptance', { ...form.orderAcceptance, to: e.target.value })}
+                        className="rounded border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                    </div>
+                  )}
                 </div>
+
+                {/* Delivery info */}
+                <Field label={t('deliveryInfo')}>
+                  <input type="text" value={form.deliveryInfo}
+                    onChange={(e) => set('deliveryInfo', e.target.value)}
+                    className={INPUT_CLS} placeholder="..." />
+                </Field>
+
               </div>
               <SaveButton />
             </section>

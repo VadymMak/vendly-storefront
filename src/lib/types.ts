@@ -48,6 +48,30 @@ export interface Feature {
   description: string;
 }
 
+// ===== Structured working hours =====
+
+export interface DaySchedule {
+  open: boolean;
+  from: string;   // "09:00"
+  to: string;     // "18:00"
+  breakFrom?: string; // "12:00" (lunch break, optional)
+  breakTo?: string;   // "13:00"
+}
+
+/** 7 entries indexed 0=Monday … 6=Sunday */
+export type WeekSchedule = [DaySchedule, DaySchedule, DaySchedule, DaySchedule, DaySchedule, DaySchedule, DaySchedule];
+
+export interface OrderAcceptanceSchedule {
+  enabled: boolean;
+  from: string; // "09:00"
+  to: string;   // "21:00"
+}
+
+export interface MapCoordinates {
+  lat: number;
+  lng: number;
+}
+
 // ===== Shop (storefront) types =====
 
 export interface ShopData {
@@ -75,6 +99,9 @@ export interface ShopSettings {
   aboutText?: string;
   bannerImage?: string;
   quickBadges?: string[];
+  structuredHours?: WeekSchedule;
+  orderAcceptance?: OrderAcceptanceSchedule;
+  coordinates?: MapCoordinates;
 }
 
 export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';
@@ -158,6 +185,9 @@ export interface StoreSettingsFormData {
   isPublished: boolean;
   bannerImage: string;
   quickBadges: string[];
+  structuredHours: WeekSchedule;
+  orderAcceptance: OrderAcceptanceSchedule;
+  coordinates: MapCoordinates | null;
 }
 
 export interface QuickBadgeDefinition {

@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -280,6 +280,29 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     outlineBtn: 'border border-indigo-700 text-indigo-200 hover:bg-indigo-800',
   },
 };
+
+// ===== Default structured hours =====
+
+const DAY_CLOSED = { open: false, from: '09:00', to: '18:00' } as const;
+const DAY_OPEN   = { open: true,  from: '09:00', to: '18:00' } as const;
+
+export const DEFAULT_WEEK_SCHEDULE: WeekSchedule = [
+  { ...DAY_OPEN },  // Mon
+  { ...DAY_OPEN },  // Tue
+  { ...DAY_OPEN },  // Wed
+  { ...DAY_OPEN },  // Thu
+  { ...DAY_OPEN },  // Fri
+  { ...DAY_CLOSED }, // Sat
+  { ...DAY_CLOSED }, // Sun
+];
+
+export const DEFAULT_ORDER_ACCEPTANCE: OrderAcceptanceSchedule = {
+  enabled: false,
+  from: '09:00',
+  to: '21:00',
+};
+
+export const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 // ===== Quick info badges =====
 // icon = inline SVG path data (rendered inside a 24×24 viewBox)

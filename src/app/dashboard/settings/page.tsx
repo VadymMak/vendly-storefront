@@ -7,10 +7,13 @@ import AiSetupWizard from '@/components/dashboard/AiSetupWizard';
 
 export const metadata = { title: 'Settings | Dashboard' };
 
+type Tab = 'general' | 'design' | 'contact' | 'publishing' | 'danger';
+const VALID_TABS: Tab[] = ['general', 'design', 'contact', 'publishing', 'danger'];
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ manual?: string }>;
+  searchParams: Promise<{ manual?: string; tab?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
@@ -20,17 +23,15 @@ export default async function SettingsPage({
 
   // New store + no ?manual=1 → show AI wizard
   if (!store && params.manual !== '1') {
-    return (
-      <AiSetupWizard userId={session.user.id} />
-    );
+    return <AiSetupWizard userId={session.user.id} />;
   }
 
-  // Existing store or manual mode → regular form
   const t = await getTranslations('dashboardSettings');
+  const initialTab = VALID_TABS.includes(params.tab as Tab) ? (params.tab as Tab) : 'general';
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-6">
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-8">
         <h1 className="text-2xl font-bold text-secondary">
           {store ? t('titleEdit') : t('titleNew')}
         </h1>
@@ -38,7 +39,7 @@ export default async function SettingsPage({
           {store ? t('descEdit') : t('descNew')}
         </p>
       </div>
-      <SettingsForm userId={session.user.id} store={store} />
+      <SettingsForm userId={session.user.id} store={store} initialTab={initialTab} />
     </div>
   );
 }

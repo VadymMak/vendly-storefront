@@ -460,5 +460,25 @@
     "loadingStep3": "Erstelle Startprodukte...",
     "loadingStep4": "Wähle Farbschema...",
     "loadingStep5": "Fast fertig..."
+  },
+  "admin": {
+    "stores": "Shops",
+    "users": "Benutzer",
+    "total": "gesamt",
+    "slug": "Slug",
+    "name": "Name",
+    "owner": "Besitzer",
+    "type": "Typ",
+    "products": "Produkte",
+    "status": "Status",
+    "created": "Erstellt",
+    "live": "Live",
+    "draft": "Entwurf",
+    "noStores": "Keine Shops.",
+    "plan": "Plan",
+    "storeCount": "Shops",
+    "registered": "Registriert",
+    "noUsers": "Keine Benutzer.",
+    "backToStores": "← Shops"
   }
 }

@@ -1,31 +1,24 @@
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAllUsersAdmin } from '@/lib/shop-queries';
 import PlanSelector from '@/components/admin/PlanSelector';
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+import { getTranslations } from 'next-intl/server';
 
 export default async function AdminUsersPage() {
-  const session = await auth();
-  if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
-    redirect('/');
-  }
-
   const users = await getAllUsersAdmin();
+  const t = await getTranslations('admin');
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-secondary">Admin — Používatelia</h1>
-          <p className="mt-1 text-sm text-neutral">{users.length} používateľov celkovo</p>
+          <h1 className="text-2xl font-bold text-secondary">{t('users')}</h1>
+          <p className="mt-1 text-sm text-neutral">{users.length} {t('total')}</p>
         </div>
         <Link
           href="/admin"
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-secondary hover:bg-gray-50"
         >
-          ← Obchody
+          {t('backToStores')}
         </Link>
       </div>
 
@@ -34,10 +27,10 @@ export default async function AdminUsersPage() {
           <thead className="border-b border-gray-100 bg-gray-50">
             <tr>
               <th className="px-4 py-3 font-semibold text-secondary">Email</th>
-              <th className="px-4 py-3 font-semibold text-secondary">Meno</th>
-              <th className="px-4 py-3 font-semibold text-secondary text-center">Plán</th>
-              <th className="px-4 py-3 font-semibold text-secondary text-center">Obchody</th>
-              <th className="px-4 py-3 font-semibold text-secondary">Registrácia</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('name')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary text-center">{t('plan')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary text-center">{t('storeCount')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('registered')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -59,7 +52,7 @@ export default async function AdminUsersPage() {
 
         {users.length === 0 && (
           <div className="py-12 text-center text-neutral">
-            Žiadni používatelia.
+            {t('noUsers')}
           </div>
         )}
       </div>

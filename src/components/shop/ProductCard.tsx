@@ -9,10 +9,9 @@ interface ProductCardProps {
   item: ShopItem;
   scheme: ColorSchemeTokens;
   currency: string;
-  slug: string;
 }
 
-export default function ProductCard({ item, scheme, currency, slug }: ProductCardProps) {
+export default function ProductCard({ item, scheme, currency }: ProductCardProps) {
   const { addItem } = useCart();
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
   const hasImage = item.images.length > 0;
@@ -21,7 +20,7 @@ export default function ProductCard({ item, scheme, currency, slug }: ProductCar
     <div className={`group flex flex-col overflow-hidden rounded-2xl ${scheme.bgCard} ${scheme.border} border transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5`}>
 
       {/* Image */}
-      <Link href={`/shop/${slug}/item/${item.id}`} className="block">
+      <Link href={`/item/${item.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           {hasImage ? (
             <img
@@ -62,7 +61,7 @@ export default function ProductCard({ item, scheme, currency, slug }: ProductCar
 
       {/* Info */}
       <div className="flex flex-1 flex-col p-4">
-        <Link href={`/shop/${slug}/item/${item.id}`}>
+        <Link href={`/item/${item.id}`}>
           <h3 className="font-semibold leading-snug hover:underline line-clamp-2">{item.name}</h3>
         </Link>
 

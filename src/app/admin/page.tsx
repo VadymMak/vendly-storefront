@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAllStoresAdmin } from '@/lib/shop-queries';
+import { getStoreUrl } from '@/lib/constants';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -45,9 +46,9 @@ export default async function AdminPage() {
             {stores.map((store) => (
               <tr key={store.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
-                  <Link href={`/shop/${store.slug}`} className="font-medium text-primary hover:underline">
+                  <a href={getStoreUrl(store.slug)} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
                     {store.slug}
-                  </Link>
+                  </a>
                 </td>
                 <td className="px-4 py-3 text-secondary">{store.name}</td>
                 <td className="px-4 py-3 text-neutral">{store.userEmail}</td>

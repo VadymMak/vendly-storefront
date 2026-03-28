@@ -4,6 +4,16 @@ export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
 export const SITE_TAGLINE = 'Váš online obchod za 5 minút';
 
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'vendshop.shop';
+
+/** Full external URL for a shop subdomain: smak-shop → https://smak-shop.vendshop.shop */
+export function getStoreUrl(slug: string): string {
+  if (process.env.NODE_ENV === 'development') {
+    return `/shop/${slug}`;
+  }
+  return `https://${slug}.${ROOT_DOMAIN}`;
+}
+
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Funkcie', href: '#features' },
   { label: 'Ako to funguje', href: '#how-it-works' },

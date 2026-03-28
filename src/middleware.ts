@@ -11,12 +11,24 @@ export function middleware(request: NextRequest) {
   const currentHost = hostname.replace(/:\d+$/, '');
 
   // If this is the root domain, localhost, or Vercel preview URL → pass through to main app
-  if (
+  const isMainDomain =
     currentHost === ROOT_DOMAIN ||
     currentHost === `www.${ROOT_DOMAIN}` ||
     currentHost === 'localhost' ||
-    currentHost.endsWith('.vercel.app')
-  ) {
+    currentHost.endsWith('.vercel.app');
+
+  if (isMainDomain) {
+    // Redirect /shop/[slug] path to subdomain in production
+    const shopPathMatch = url.pathname.match(/^\/shop\/([^/]+)(\/.*)?$/);
+    if (shopPathMatch && currentHost !== 'localhost' && !currentHost.endsWith('.vercel.app')) {
+      const slug = shopPathMatch[1];
+      const rest = shopPathMatch[2] || '';
+      const protocol = request.headers.get('x-forwarded-proto') || 'https';
+      return NextResponse.redirect(
+        `${protocol}://${slug}.${ROOT_DOMAIN}${rest}${url.search}`,
+        301
+      );
+    }
     return NextResponse.next();
   }
 

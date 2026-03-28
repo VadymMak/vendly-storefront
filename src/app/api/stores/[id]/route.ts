@@ -19,7 +19,7 @@ const patchSchema = z.object({
   openingHours: z.string().optional(),
   deliveryInfo: z.string().optional(),
   aboutText:    z.string().optional(),
-  logo:         z.string().optional(),
+  logo:         z.string().nullable().optional(),
   bannerImage:  z.string().nullable().optional(),
 });
 

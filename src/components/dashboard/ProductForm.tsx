@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ProductFormData, ItemType } from '@/lib/types';
 import ImageUpload from '@/components/ui/ImageUpload';
+import TranslateButton from '@/components/ui/TranslateButton';
 
 interface ProductFormProps {
   storeId: string;
+  shopLanguage: string;
   itemId?: string;
   defaultValues?: Partial<ProductFormData>;
 }
@@ -16,7 +18,7 @@ const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
 const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
-export default function ProductForm({ storeId, itemId, defaultValues }: ProductFormProps) {
+export default function ProductForm({ storeId, shopLanguage, itemId, defaultValues }: ProductFormProps) {
   const router = useRouter();
   const t = useTranslations('dashboardProducts');
   const isEditing = Boolean(itemId);
@@ -141,15 +143,26 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
           <label htmlFor="name" className="mb-1 block text-sm font-medium text-secondary">
             {t('fieldName')} *
           </label>
-          <input
-            id="name"
-            type="text"
-            required
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            className={INPUT_CLS}
-            placeholder={t('fieldNamePlaceholder')}
-          />
+          <div className="flex items-center gap-2">
+            <input
+              id="name"
+              type="text"
+              required
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              className={INPUT_CLS}
+              placeholder={t('fieldNamePlaceholder')}
+            />
+            <TranslateButton
+              text={form.name}
+              targetLang={shopLanguage}
+              storeId={storeId}
+              onTranslated={(v) => set('name', v)}
+              label={t('translateTo')}
+              labelDone={t('translated')}
+              labelLimit={t('translateLimitReached')}
+            />
+          </div>
         </div>
 
         {/* Description + AI */}
@@ -178,6 +191,17 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
             className={INPUT_CLS}
             placeholder={t('fieldDescPlaceholder')}
           />
+          <div className="mt-1 flex justify-end">
+            <TranslateButton
+              text={form.description}
+              targetLang={shopLanguage}
+              storeId={storeId}
+              onTranslated={(v) => set('description', v)}
+              label={t('translateTo')}
+              labelDone={t('translated')}
+              labelLimit={t('translateLimitReached')}
+            />
+          </div>
         </div>
 
         {/* Price + Currency */}

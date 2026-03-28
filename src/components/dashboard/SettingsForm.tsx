@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl';
 import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
 import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
 import ImageUpload from '@/components/ui/ImageUpload';
+import TranslateButton from '@/components/ui/TranslateButton';
+import BulkTranslateButton from '@/components/ui/BulkTranslateButton';
 
 const LANGUAGES = [
   { value: 'sk', label: 'Slovenčina' },
@@ -30,6 +32,7 @@ interface SettingsFormProps {
   userId: string;
   store: ShopData | null;
   initialTab?: Tab;
+  userPlan?: string;
 }
 
 // ── Icons (inline SVG, no libraries) ─────────────────────────────────────────
@@ -92,7 +95,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function SettingsForm({ userId, store, initialTab = 'general' }: SettingsFormProps) {
+export default function SettingsForm({ userId, store, initialTab = 'general', userPlan = 'FREE' }: SettingsFormProps) {
   const router = useRouter();
   const t = useTranslations('dashboardSettings');
   const isNew = !store;
@@ -272,6 +275,29 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
           {activeTab === 'general' && (
             <section>
               <SectionHeader title={t('sectionBasic')} />
+
+              {/* Bulk AI translate banner */}
+              {!isNew && (
+                <div className="mb-6">
+                  <BulkTranslateButton
+                    storeId={store!.id}
+                    targetLang={form.shopLanguage}
+                    translationUsed={!!(store!.settings as unknown as Record<string, unknown>).translationUsedAt}
+                    plan={userPlan}
+                    onDone={() => router.refresh()}
+                    labels={{
+                      button: t('translateAll'),
+                      translating: t('translating'),
+                      done: t('translateDone'),
+                      limitReached: t('translateLimitReached'),
+                      upgrade: t('translateUpgrade'),
+                      description: t('translateBulkDesc'),
+                      descriptionUsed: t('translateBulkUsed'),
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="space-y-4">
                 {/* Logo upload */}
                 <ImageUpload
@@ -313,6 +339,19 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
                     onChange={(e) => set('description', e.target.value)}
                     className={INPUT_CLS} placeholder="Krátky popis zobrazený v hero sekcii..."
                   />
+                  {!isNew && form.description && (
+                    <div className="mt-1">
+                      <TranslateButton
+                        text={form.description}
+                        targetLang={form.shopLanguage}
+                        storeId={store!.id}
+                        onTranslated={(v) => set('description', v)}
+                        label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
+                        labelDone={t('translated')}
+                        labelLimit={t('translateLimitReached')}
+                      />
+                    </div>
+                  )}
                 </Field>
                 <Field label="O nás" hint="Dlhší text zobrazený v sekcii 'O nás' na stránke obchodu.">
                   <textarea
@@ -320,6 +359,19 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
                     onChange={(e) => set('aboutText', e.target.value)}
                     className={INPUT_CLS} placeholder="Napíšte o vašom obchode, histórii, hodnotách..."
                   />
+                  {!isNew && form.aboutText && (
+                    <div className="mt-1">
+                      <TranslateButton
+                        text={form.aboutText}
+                        targetLang={form.shopLanguage}
+                        storeId={store!.id}
+                        onTranslated={(v) => set('aboutText', v)}
+                        label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
+                        labelDone={t('translated')}
+                        labelLimit={t('translateLimitReached')}
+                      />
+                    </div>
+                  )}
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label={t('storeType')}>
@@ -585,6 +637,19 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
                   <input type="text" value={form.deliveryInfo}
                     onChange={(e) => set('deliveryInfo', e.target.value)}
                     className={INPUT_CLS} placeholder="..." />
+                  {!isNew && form.deliveryInfo && (
+                    <div className="mt-1">
+                      <TranslateButton
+                        text={form.deliveryInfo}
+                        targetLang={form.shopLanguage}
+                        storeId={store!.id}
+                        onTranslated={(v) => set('deliveryInfo', v)}
+                        label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
+                        labelDone={t('translated')}
+                        labelLimit={t('translateLimitReached')}
+                      />
+                    </div>
+                  )}
                 </Field>
 
               </div>

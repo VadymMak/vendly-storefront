@@ -22,9 +22,9 @@ function CheckIcon({ highlighted }: { highlighted: boolean }) {
 }
 
 const PLANS = [
-  { id: 'free', name: 'Free', price: 0, highlighted: false, featureKeys: ['free_f1', 'free_f2', 'free_f3', 'free_f4'] },
-  { id: 'starter', name: 'Starter', price: 12, highlighted: true, featureKeys: ['starter_f1', 'starter_f2', 'starter_f3', 'starter_f4', 'starter_f5', 'starter_f6'] },
-  { id: 'pro', name: 'Pro', price: 29, highlighted: false, featureKeys: ['pro_f1', 'pro_f2', 'pro_f3', 'pro_f4', 'pro_f5', 'pro_f6', 'pro_f7'] },
+  { id: 'free', name: 'Free', price: 0, highlighted: false, featureKeys: ['free_f1', 'free_f2', 'free_f3', 'free_f4', 'free_f5'] },
+  { id: 'starter', name: 'Starter', price: 12, highlighted: true, featureKeys: ['starter_f1', 'starter_f2', 'starter_f3', 'starter_f4', 'starter_f5', 'starter_f6', 'starter_f7'] },
+  { id: 'pro', name: 'Pro', price: 29, highlighted: false, featureKeys: ['pro_f1', 'pro_f2', 'pro_f3', 'pro_f4', 'pro_f5', 'pro_f6', 'pro_f7', 'pro_f8'] },
 ] as const;
 
 export default function PricingSection() {

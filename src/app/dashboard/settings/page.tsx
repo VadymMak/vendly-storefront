@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getStoreByUserId } from '@/lib/shop-queries';
+import { db } from '@/lib/db';
 import SettingsForm from '@/components/dashboard/SettingsForm';
 import AiSetupWizard from '@/components/dashboard/AiSetupWizard';
 
@@ -18,7 +19,10 @@ export default async function SettingsPage({
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
-  const store = await getStoreByUserId(session.user.id);
+  const [store, user] = await Promise.all([
+    getStoreByUserId(session.user.id),
+    db.user.findUnique({ where: { id: session.user.id }, select: { plan: true } }),
+  ]);
   const params = await searchParams;
 
   // New store + no ?manual=1 → show AI wizard
@@ -39,7 +43,7 @@ export default async function SettingsPage({
           {store ? t('descEdit') : t('descNew')}
         </p>
       </div>
-      <SettingsForm userId={session.user.id} store={store} initialTab={initialTab} />
+      <SettingsForm userId={session.user.id} store={store} initialTab={initialTab} userPlan={user?.plan || 'FREE'} />
     </div>
   );
 }

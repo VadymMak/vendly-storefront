@@ -1,45 +1,29 @@
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { getAllStoresAdmin } from '@/lib/shop-queries';
 import { getStoreUrl } from '@/lib/constants';
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+import { getTranslations } from 'next-intl/server';
 
 export default async function AdminPage() {
-  const session = await auth();
-  if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
-    redirect('/');
-  }
-
   const stores = await getAllStoresAdmin();
+  const t = await getTranslations('admin');
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-secondary">Admin — Obchody</h1>
-          <p className="mt-1 text-sm text-neutral">{stores.length} obchodov celkovo</p>
-        </div>
-        <Link
-          href="/admin/users"
-          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-secondary hover:bg-gray-50"
-        >
-          Používatelia →
-        </Link>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-secondary">{t('stores')}</h1>
+        <p className="mt-1 text-sm text-neutral">{stores.length} {t('total')}</p>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-100 bg-gray-50">
             <tr>
-              <th className="px-4 py-3 font-semibold text-secondary">Slug</th>
-              <th className="px-4 py-3 font-semibold text-secondary">Názov</th>
-              <th className="px-4 py-3 font-semibold text-secondary">Vlastník</th>
-              <th className="px-4 py-3 font-semibold text-secondary">Typ</th>
-              <th className="px-4 py-3 font-semibold text-secondary text-center">Produkty</th>
-              <th className="px-4 py-3 font-semibold text-secondary text-center">Stav</th>
-              <th className="px-4 py-3 font-semibold text-secondary">Vytvorený</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('slug')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('name')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('owner')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('type')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary text-center">{t('products')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary text-center">{t('status')}</th>
+              <th className="px-4 py-3 font-semibold text-secondary">{t('created')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -58,11 +42,11 @@ export default async function AdminPage() {
                   {store.isPublished ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                       <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                      Živý
+                      {t('live')}
                     </span>
                   ) : (
                     <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                      Draft
+                      {t('draft')}
                     </span>
                   )}
                 </td>
@@ -76,7 +60,7 @@ export default async function AdminPage() {
 
         {stores.length === 0 && (
           <div className="py-12 text-center text-neutral">
-            Žiadne obchody.
+            {t('noStores')}
           </div>
         )}
       </div>

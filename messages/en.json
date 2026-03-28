@@ -460,5 +460,25 @@
     "loadingStep3": "Creating starter products...",
     "loadingStep4": "Choosing color scheme...",
     "loadingStep5": "Almost ready..."
+  },
+  "admin": {
+    "stores": "Stores",
+    "users": "Users",
+    "total": "total",
+    "slug": "Slug",
+    "name": "Name",
+    "owner": "Owner",
+    "type": "Type",
+    "products": "Products",
+    "status": "Status",
+    "created": "Created",
+    "live": "Live",
+    "draft": "Draft",
+    "noStores": "No stores.",
+    "plan": "Plan",
+    "storeCount": "Stores",
+    "registered": "Registered",
+    "noUsers": "No users.",
+    "backToStores": "← Stores"
   }
 }

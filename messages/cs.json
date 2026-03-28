@@ -460,5 +460,25 @@
     "loadingStep3": "Vytvářím startovní produkty...",
     "loadingStep4": "Vybírám barevné schéma...",
     "loadingStep5": "Téměř hotovo..."
+  },
+  "admin": {
+    "stores": "Obchody",
+    "users": "Uživatelé",
+    "total": "celkem",
+    "slug": "Slug",
+    "name": "Název",
+    "owner": "Vlastník",
+    "type": "Typ",
+    "products": "Produkty",
+    "status": "Stav",
+    "created": "Vytvořen",
+    "live": "Živý",
+    "draft": "Draft",
+    "noStores": "Žádné obchody.",
+    "plan": "Plán",
+    "storeCount": "Obchody",
+    "registered": "Registrace",
+    "noUsers": "Žádní uživatelé.",
+    "backToStores": "← Obchody"
   }
 }

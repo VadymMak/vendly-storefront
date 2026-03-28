@@ -460,5 +460,25 @@
     "loadingStep3": "Vytváram štartovacie produkty...",
     "loadingStep4": "Vyberám farebnú schému...",
     "loadingStep5": "Takmer hotovo..."
+  },
+  "admin": {
+    "stores": "Obchody",
+    "users": "Používatelia",
+    "total": "celkovo",
+    "slug": "Slug",
+    "name": "Názov",
+    "owner": "Vlastník",
+    "type": "Typ",
+    "products": "Produkty",
+    "status": "Stav",
+    "created": "Vytvorený",
+    "live": "Živý",
+    "draft": "Draft",
+    "noStores": "Žiadne obchody.",
+    "plan": "Plán",
+    "storeCount": "Obchody",
+    "registered": "Registrácia",
+    "noUsers": "Žiadni používatelia.",
+    "backToStores": "← Obchody"
   }
 }

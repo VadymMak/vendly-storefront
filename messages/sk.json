@@ -308,6 +308,12 @@
     "errorGenerate": "AI generovanie zlyhalo. Skúste znovu.",
     "errorSlug": "Zadajte URL adresu obchodu.",
     "creating": "Vytvárame váš obchod...",
-    "price": "Cena"
+    "price": "Cena",
+    "anyLanguageHint": "Píšte v akomkoľvek jazyku — AI vytvorí obsah vo vybranom jazyku obchodu",
+    "loadingStep1": "Analyzujem váš biznis...",
+    "loadingStep2": "Píšem popis obchodu...",
+    "loadingStep3": "Vytváram štartovacie produkty...",
+    "loadingStep4": "Vyberám farebnú schému...",
+    "loadingStep5": "Takmer hotovo..."
   }
 }

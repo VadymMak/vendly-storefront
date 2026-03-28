@@ -308,6 +308,12 @@
     "errorGenerate": "AI generation failed. Please try again.",
     "errorSlug": "Please enter a shop URL.",
     "creating": "Creating your shop...",
-    "price": "Price"
+    "price": "Price",
+    "anyLanguageHint": "Write in any language — AI will generate content in your selected shop language",
+    "loadingStep1": "Analyzing your business...",
+    "loadingStep2": "Writing shop description...",
+    "loadingStep3": "Creating starter products...",
+    "loadingStep4": "Choosing color scheme...",
+    "loadingStep5": "Almost ready..."
   }
 }

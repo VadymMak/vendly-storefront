@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { AiSetupItem, AiSetupResult } from '@/lib/types';
@@ -73,6 +73,10 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
   const [shopLanguage, setShopLanguage] = useState('sk');
   const [slug,         setSlug]         = useState('');
 
+  // Step 2 — animated loading steps
+  const [loadingStep, setLoadingStep]   = useState(0);
+  const loadingTimer                    = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Step 3 (preview) — AI result + user edits
   const [result,       setResult]       = useState<AiSetupResult | null>(null);
   const [editedDesc,   setEditedDesc]   = useState('');
@@ -80,6 +84,31 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
   const [editedItems,  setEditedItems]  = useState<AiSetupItem[]>([]);
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  // Total loading steps count (must match LOADING_STEPS array below)
+  const TOTAL_LOADING_STEPS = 5;
+
+  useEffect(() => {
+    if (step !== 'loading') {
+      if (loadingTimer.current) clearInterval(loadingTimer.current);
+      return;
+    }
+    setLoadingStep(0);
+    loadingTimer.current = setInterval(() => {
+      setLoadingStep((prev) => {
+        if (prev >= TOTAL_LOADING_STEPS - 2) {
+          // Stay on last step until AI finishes
+          if (loadingTimer.current) clearInterval(loadingTimer.current);
+          return TOTAL_LOADING_STEPS - 1;
+        }
+        return prev + 1;
+      });
+    }, 900);
+    return () => {
+      if (loadingTimer.current) clearInterval(loadingTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const handleGenerate = async () => {
     if (!businessName.trim()) return;
@@ -241,6 +270,12 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
                 className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={t('businessDescPlaceholder')}
               />
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-primary">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {t('anyLanguageHint')}
+              </p>
             </div>
 
             {/* Business type pills */}
@@ -334,16 +369,80 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
       )}
 
       {/* ── Step 2: Loading ── */}
-      {step === 'loading' && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="relative mb-6 h-20 w-20">
-            <div className="absolute inset-0 rounded-full border-4 border-accent border-t-primary animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center text-3xl">✨</div>
+      {step === 'loading' && (() => {
+        const LOADING_STEPS = [
+          { emoji: '🔍', text: t('loadingStep1') },
+          { emoji: '✍️', text: t('loadingStep2') },
+          { emoji: '📦', text: t('loadingStep3') },
+          { emoji: '🎨', text: t('loadingStep4') },
+          { emoji: '🚀', text: t('loadingStep5') },
+        ];
+        const progress = Math.round(((loadingStep + 1) / LOADING_STEPS.length) * 100);
+
+        return (
+          <div className="rounded-2xl border border-gray-200 bg-white px-8 py-10">
+            {/* Icon + title */}
+            <div className="mb-8 text-center">
+              <div className="relative mx-auto mb-4 h-16 w-16">
+                <div className="absolute inset-0 rounded-full border-4 border-accent border-t-primary animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center text-2xl">✨</div>
+              </div>
+              <h2 className="text-xl font-bold text-secondary">{t('step2Title')}</h2>
+              <p className="mt-1 text-sm text-neutral">{t('step2Subtitle')}</p>
+            </div>
+
+            {/* Animated steps */}
+            <div className="mb-8 space-y-3">
+              {LOADING_STEPS.map((s, idx) => {
+                const isDone    = idx < loadingStep;
+                const isCurrent = idx === loadingStep;
+                const isPending = idx > loadingStep;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-500 ${
+                      isCurrent ? 'bg-accent' : isDone ? 'bg-gray-50' : 'bg-transparent'
+                    } ${isPending ? 'opacity-30' : 'opacity-100'}`}
+                  >
+                    {/* Status icon */}
+                    <div className="shrink-0 w-7 h-7 flex items-center justify-center">
+                      {isDone ? (
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                      ) : isCurrent ? (
+                        <span className="flex h-7 w-7 items-center justify-center">
+                          <span className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        </span>
+                      ) : (
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-gray-200 text-xs text-gray-400">
+                          {idx + 1}
+                        </span>
+                      )}
+                    </div>
+                    {/* Emoji + text */}
+                    <span className="text-lg leading-none">{s.emoji}</span>
+                    <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : isDone ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {s.text}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress bar */}
+            <div className="overflow-hidden rounded-full bg-gray-100 h-2">
+              <div
+                className="h-2 rounded-full bg-primary transition-all duration-700"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-right text-xs text-gray-400">{progress}%</p>
           </div>
-          <h2 className="text-xl font-semibold text-secondary">{t('step2Title')}</h2>
-          <p className="mt-2 text-sm text-neutral">{t('step2Subtitle')}</p>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Step 3: Preview ── */}
       {(step === 'preview' || step === 'creating') && result && (

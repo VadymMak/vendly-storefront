@@ -11,6 +11,7 @@ const patchSchema = z.object({
   category:    z.string().optional(),
   type:        z.enum(['PRODUCT', 'SERVICE', 'MENU_ITEM', 'PORTFOLIO']).optional(),
   isAvailable: z.boolean().optional(),
+  images:      z.array(z.string()).optional(),
 });
 
 async function getItem(id: string, userId: string) {
@@ -44,6 +45,7 @@ export async function PATCH(
         ...(data.category    !== undefined && { category: data.category || null }),
         ...(data.type        !== undefined && { type: data.type }),
         ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
+        ...(data.images      !== undefined && { images: data.images }),
       },
     });
 

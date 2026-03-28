@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ProductFormData, ItemType } from '@/lib/types';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 interface ProductFormProps {
   storeId: string;
@@ -31,12 +32,13 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
     category:    defaultValues?.category    || '',
     type:        defaultValues?.type        || 'PRODUCT',
     isAvailable: defaultValues?.isAvailable ?? true,
+    images:      defaultValues?.images      || [],
   });
   const [aiLoading, setAiLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const set = (field: keyof ProductFormData, value: string | boolean | ItemType) =>
+  const set = (field: keyof ProductFormData, value: string | boolean | ItemType | string[]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const generateAiDescription = async () => {
@@ -114,6 +116,15 @@ export default function ProductForm({ storeId, itemId, defaultValues }: ProductF
             ))}
           </div>
         </div>
+
+        {/* Images */}
+        <ImageUpload
+          images={form.images}
+          onChange={(imgs) => set('images', imgs)}
+          max={5}
+          label="Fotky produktu"
+          hint="Max 5 fotiek, každá do 5 MB (JPG, PNG, WEBP). Prvá fotka je hlavná."
+        />
 
         {/* Name */}
         <div>

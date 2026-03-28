@@ -308,7 +308,9 @@
     "deleteStoreDesc": "Löscht diesen Shop dauerhaft, einschließlich aller Produkte und Bestellungen. Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleteConfirm": "Möchten Sie den Shop und alle Daten wirklich löschen? Geben Sie den Shop-Namen zur Bestätigung ein.",
     "deleteConfirmBtn": "Ja, dauerhaft löschen",
-    "deleting": "Lösche..."
+    "deleting": "Lösche...",
+    "bannerImage": "Hero- / Banner-Bild",
+    "bannerHint": "Breitbild für die Hero-Sektion. Empfohlen: 1600×600 px."
   },
   "aiWizard": {
     "step1Title": "Erzählen Sie uns von Ihrem Unternehmen",

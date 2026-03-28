@@ -308,7 +308,9 @@
     "deleteStoreDesc": "Permanently delete this store including all products and orders. This action cannot be undone.",
     "deleteConfirm": "Are you sure you want to delete this store and all its data? Type the store name to confirm.",
     "deleteConfirmBtn": "Yes, delete permanently",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "bannerImage": "Hero / banner image",
+    "bannerHint": "Wide image displayed in the hero section. Recommended 1600×600 px."
   },
   "aiWizard": {
     "step1Title": "Tell us about your business",

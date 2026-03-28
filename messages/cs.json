@@ -308,7 +308,9 @@
     "deleteStoreDesc": "Trvale smaže tento obchod včetně všech produktů a objednávek. Tuto akci nelze vrátit.",
     "deleteConfirm": "Opravdu chcete smazat obchod a všechna jeho data? Napište název obchodu pro potvrzení.",
     "deleteConfirmBtn": "Ano, smazat trvale",
-    "deleting": "Mažu..."
+    "deleting": "Mažu...",
+    "bannerImage": "Hero / banner obrázek",
+    "bannerHint": "Širokoúhlý obrázek zobrazený v hero sekci. Doporučujeme 1600×600 px."
   },
   "aiWizard": {
     "step1Title": "Řekněte nám o svém podnikání",

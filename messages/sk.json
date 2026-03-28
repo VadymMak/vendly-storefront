@@ -308,7 +308,9 @@
     "deleteStoreDesc": "Trvalo odstráni tento obchod vrátane všetkých produktov a objednávok. Táto akcia je nevratná.",
     "deleteConfirm": "Naozaj chcete odstrániť obchod a všetky jeho dáta? Napíšte názov obchodu pre potvrdenie.",
     "deleteConfirmBtn": "Áno, odstrániť natrvalo",
-    "deleting": "Odstraňujem..."
+    "deleting": "Odstraňujem...",
+    "bannerImage": "Hero / banner obrázok",
+    "bannerHint": "Širokouhlý obrázok zobrazený v hero sekcii. Odporúčame 1600×600 px."
   },
   "aiWizard": {
     "step1Title": "Povedzte nám o svojom biznise",

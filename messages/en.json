@@ -20,15 +20,16 @@
   },
   "hero": {
     "badge": "New platform for small business",
-    "title": "Your online store in 5 minutes",
-    "subtitle": "Create a professional online store without technical skills. Sell products, accept orders and grow with VendShop.",
+    "titleLine1": "Your online store.",
+    "titleLine2": "Ready in 5 minutes.",
+    "subtitle": "No coding, no design skills. Create a professional store, accept payments via Stripe, and sell in 5 languages. Free forever.",
     "cta": "Start for free",
     "demo": "View demo",
-    "quickAnswer": "Free online store · 5 min setup · No credit card required",
-    "statStores": "500+ stores",
-    "statCountries": "4 countries",
-    "statLanguages": "5 languages",
-    "statUptime": "99.9% uptime"
+    "quickAnswer": "Free forever · 5 min setup · No credit card · AI-powered",
+    "statStores": "stores created",
+    "statCountries": "countries",
+    "statLanguages": "languages",
+    "statUptime": "uptime"
   },
   "socialProof": {
     "text": "Trusted by hundreds of entrepreneurs in SK, CZ, UA and DE",
@@ -121,6 +122,14 @@
     "pro_f7": "Multi-language store",
     "pro_f8": "Unlimited AI translations"
   },
+  "featuredShops": {
+    "badge": "Live stores",
+    "title": "Built with VendShop",
+    "subtitle": "Real businesses already selling online. See what you can create in minutes.",
+    "shop1Desc": "Snack shop with fish products, sausages and seafood. Full catalog with categories and online ordering.",
+    "shop2Desc": "Party decoration company. Balloon compositions, photo zones and event organization services.",
+    "shop3Desc": "Restaurant demo with menu, online ordering and delivery setup. Ready food business template."
+  },
   "testimonials": {
     "badge": "Reviews",
     "title": "What our users say",
@@ -134,19 +143,19 @@
     "title": "Frequently asked questions",
     "subtitle": "Answers to the most common questions about VendShop.",
     "q1": "How much does it cost to create a store?",
-    "a1": "You can start completely free. Paid plans start from €12/month and include a custom domain, more products and advanced features.",
+    "a1": "The Free plan is €0 forever — you get up to 10 products, a vendshop.shop subdomain, and Stripe payments. Starter (€12/mo) adds a custom domain, up to 100 products, and 4 color schemes. Pro (€29/mo) unlocks unlimited products, priority support, and advanced analytics. No hidden fees, cancel anytime.",
     "q2": "Do I need technical skills?",
-    "a2": "No. VendShop is designed for people without technical skills. You can create a store in minutes using a simple editor.",
+    "a2": "Zero coding required. Our visual editor lets you pick from 9 business templates (shop, restaurant, beauty salon, repair service, and more), choose 1 of 4 color schemes, and publish — all in under 5 minutes. Over 500 stores have been created by non-technical founders.",
     "q3": "What payment methods do you support?",
-    "a3": "We support Stripe, PayPal and bank transfers. In SK/CZ we also support card payments via local payment gateways.",
+    "a3": "Stripe is integrated out of the box — your customers can pay with Visa, Mastercard, Apple Pay, and Google Pay in 135+ currencies. Funds land in your bank account within 2-7 business days. Each store gets its own Stripe dashboard for tracking revenue in real time.",
     "q4": "Can I use my own domain?",
-    "a4": "Yes! On Starter and Pro plans you can connect your own domain. On the Free plan you get a vendshop.shop subdomain.",
+    "a4": "Yes! On Starter (€12/mo) and Pro (€29/mo) plans you connect any custom domain with free SSL. Setup takes under 2 minutes — just add a CNAME record. On the Free plan you get a yourname.vendshop.shop subdomain that works immediately.",
     "q5": "Can I sell digital products?",
-    "a5": "Yes, VendShop supports selling digital products — e-books, courses, templates and other downloadable files.",
+    "a5": "Yes — e-books, courses, templates, music, software. Buyers get a secure, unique download link after payment. Files up to 500 MB per product. The system tracks downloads and limits access to paid customers only.",
     "q6": "How long does it take to create a store?",
-    "a6": "You can create a basic store in 5 minutes. Adding products and setting up the design usually takes 1-2 hours.",
+    "a6": "5 minutes to a live store. Here's the breakdown: 1) pick a business type and color scheme (30 sec), 2) add your store name and description (1 min), 3) upload your first products (3 min). AI can generate product descriptions and SEO metadata for you automatically.",
     "q7": "I don't speak the local language. Can I still create a store?",
-    "a7": "Yes! Write your content in any language and use our AI translation feature to translate everything to the shop language in one click. Free plan includes one translation, paid plans offer unlimited translations."
+    "a7": "Absolutely. Write in any of the 5 supported languages (SK, EN, UK, CS, DE) and our AI translates everything — product titles, descriptions, checkout pages — in 1 click. Free plan includes 1 translation, paid plans offer unlimited. Over 30% of our stores are run by international sellers."
   },
   "cta": {
     "title": "Start selling online today",

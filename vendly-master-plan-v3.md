@@ -111,6 +111,32 @@
 - [x] 5-колоночный grid (brand, product, support, legal, connect)
 - [x] connect i18n ключ во всех 5 языках
 
+### K5 — Hero Premium Redesign (Shopify-killer) ✅
+- [x] Dark hero background (bg-secondary #0f172a), gradient text headline (green shimmer)
+- [x] Two-column layout: text left, interactive preview right
+- [x] Glass morphism stats cards (4 cards: stores, countries, languages, uptime)
+- [x] Business type selector pills in preview column
+- [x] Auto-rotate preview with dot indicator
+- [x] Background effects: radial gradient mesh + CSS grid pattern
+- [x] hero i18n: titleLine1/titleLine2 split, quickAnswer, stats — all 5 languages
+
+### K6 — Featured Shops Section ✅
+- [x] 3 real live shops (Smak Shop, Ballon Party, Food Demo) as cards
+- [x] Emoji icons, colored accent backgrounds, numbered badges (01-03)
+- [x] Hover effects with arrow icon and shadow, links to real .vendshop.shop subdomains
+- [x] featuredShops i18n keys in all 5 languages
+
+### K7 — FAQ Upgrade with Specific Numbers ✅
+- [x] All 7 FAQ answers rewritten with concrete numbers (plan prices, limits, timelines, percentages)
+- [x] Specific details: 10/100/unlimited products, 135+ currencies, 500 MB files, 9 templates, 4 schemes
+- [x] Step-by-step store creation breakdown (30 sec + 1 min + 3 min = 5 min)
+- [x] Updated in all 5 languages (en, sk, uk, cs, de)
+
+### K8 — JSON-LD Schemas for Landing ✅
+- [x] SoftwareApplication schema: name, offers (3 plans), aggregateRating, features, languages
+- [x] FAQPage schema: all 7 questions with concise answers for Google rich results
+- [x] Both schemas injected in layout.tsx via script[type="application/ld+json"]
+
 ---
 
 ## Фаза L — Platform Core Features
@@ -156,10 +182,11 @@
 
 ### M1 — Structured Data (JSON-LD)
 - [ ] LocalBusiness schema на витрине
-- [ ] Product schema на product detail page
+- [x] Product schema на product detail page (J6)
 - [ ] BreadcrumbList schema
 - [ ] Review/AggregateRating schema
-- [ ] FAQ schema на лендинге
+- [x] FAQ schema на лендинге (K8)
+- [x] SoftwareApplication schema на лендинге (K8)
 
 ### M2 — SEO Optimization
 - [ ] hreflang теги для всех 5 языков

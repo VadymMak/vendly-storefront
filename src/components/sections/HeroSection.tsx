@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { BUSINESS_TYPES } from '@/lib/constants';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 
 const PREVIEW_ITEMS: Record<string, { heading: string; products: string[] }> = {
   physical: {
@@ -69,81 +68,6 @@ function CheckIcon() {
   );
 }
 
-/* ── Stats icons ── */
-
-function StoreIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function GlobeIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-    </svg>
-  );
-}
-
-function LanguageIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 8l6 6" />
-      <path d="M4 14l6-6 2-3" />
-      <path d="M2 5h12" />
-      <path d="M7 2h1" />
-      <path d="M22 22l-5-10-5 10" />
-      <path d="M14 18h6" />
-    </svg>
-  );
-}
-
-function UptimeIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  );
-}
-
-/* ── Quick Answer Banner ── */
-
-function QuickAnswerBanner({ text }: { text: string }) {
-  return (
-    <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 text-sm font-medium text-primary animate-fade-in">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-      <span>{text}</span>
-    </div>
-  );
-}
-
-/* ── Stats Bar ── */
-
-interface StatItem {
-  icon: React.ReactNode;
-  label: string;
-}
-
-function StatsBar({ items }: { items: StatItem[] }) {
-  return (
-    <div className="mt-16 flex flex-wrap items-center justify-center gap-6 sm:gap-10 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-      {items.map((item, i) => (
-        <div key={i} className="flex items-center gap-2.5 text-secondary/80">
-          <span className="text-primary">{item.icon}</span>
-          <span className="text-sm font-semibold sm:text-base">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ── Store Preview Mockup ── */
 
 function PreviewMockup({ businessId }: { businessId: string }) {
@@ -152,9 +76,9 @@ function PreviewMockup({ businessId }: { businessId: string }) {
   if (!data || !business) return null;
 
   return (
-    <div className="animate-scale-in rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden">
+    <div className="animate-scale-in rounded-2xl border border-white/20 bg-white/80 shadow-2xl overflow-hidden backdrop-blur-sm">
       {/* Browser chrome */}
-      <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-2.5">
+      <div className="flex items-center gap-2 border-b border-gray-100/80 bg-white/60 px-4 py-2.5 backdrop-blur-sm">
         <div className="flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
@@ -190,7 +114,7 @@ function PreviewMockup({ businessId }: { businessId: string }) {
           {data.products.map((product, i) => (
             <div
               key={product}
-              className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2.5 animate-slide-in-right sm:px-4 sm:py-3"
+              className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2.5 animate-slide-in-right sm:px-4 sm:py-3"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <span className="text-sm font-medium text-secondary">{product}</span>
@@ -237,103 +161,129 @@ export default function HeroSection() {
   const handleTypeClick = (id: string) => {
     setActiveType(id);
     setIsAutoPlaying(false);
-    // Resume auto-play after 12 seconds of inactivity
     const resume = setTimeout(() => setIsAutoPlaying(true), 12000);
     return () => clearTimeout(resume);
   };
 
-  const stats: StatItem[] = [
-    { icon: <StoreIcon />, label: t('statStores') },
-    { icon: <GlobeIcon />, label: t('statCountries') },
-    { icon: <LanguageIcon />, label: t('statLanguages') },
-    { icon: <UptimeIcon />, label: t('statUptime') },
-  ];
-
   return (
-    <section className="relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div
-        className="absolute inset-0 animate-gradient-shift"
-        style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 25%, #f0fdf4 50%, #ecfdf5 75%, #f0fdf4 100%)',
-          backgroundSize: '300% 300%',
-        }}
-      />
+    <section className="relative overflow-hidden bg-secondary">
+      {/* Background effects */}
+      <div className="absolute inset-0">
+        {/* Gradient mesh */}
+        <div
+          className="absolute inset-0 opacity-30 animate-gradient-shift"
+          style={{
+            background: 'radial-gradient(ellipse 80% 60% at 50% 0%, #16a34a 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, #22c55e 0%, transparent 50%)',
+            backgroundSize: '200% 200%',
+          }}
+        />
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+          }}
+        />
+      </div>
 
-      {/* Decorative orbs with pulse */}
-      <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/8 blur-3xl animate-pulse-glow" />
-      <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-primary/6 blur-3xl animate-pulse-glow" style={{ animationDelay: '1.5s' }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-primary/3 blur-3xl animate-pulse-glow" style={{ animationDelay: '3s' }} />
+      <div className="relative mx-auto max-w-7xl px-4 pt-20 pb-24 sm:px-6 sm:pt-28 sm:pb-32 lg:px-8">
+        {/* Two-column layout */}
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
+          {/* Left: Text content */}
+          <div className="animate-fade-in-up">
+            {/* Quick Answer pill */}
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary-light backdrop-blur-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>{t('quickAnswer')}</span>
+            </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
-        {/* Quick Answer Banner */}
-        <div className="text-center">
-          <QuickAnswerBanner text={t('quickAnswer')} />
-        </div>
-
-        {/* Main text */}
-        <div className="text-center animate-fade-in-up">
-          <Badge variant="primary">{t('badge')}</Badge>
-
-          <h1 className="mt-6 text-3xl font-bold tracking-tight text-secondary sm:text-5xl lg:text-6xl">
-            {t('title')}
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-neutral sm:text-lg">
-            {t('subtitle')}
-          </p>
-
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" href="#pricing">
-              {t('cta')}
-            </Button>
-            <Button size="lg" variant="outline" href={`https://${BUSINESS_TYPES.find((b) => b.id === activeType)?.demo || 'vendshop.shop'}`}>
-              {t('demo')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Bar */}
-        <StatsBar items={stats} />
-
-        {/* Business type selector + preview */}
-        <div className="mt-16 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          {/* Selector pills */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-            {BUSINESS_TYPES.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => handleTypeClick(type.id)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer sm:px-5 sm:py-2.5 ${
-                  activeType === type.id
-                    ? 'bg-primary text-white shadow-md shadow-primary/25'
-                    : 'bg-white text-secondary border border-gray-200 hover:border-primary/30 hover:bg-accent'
-                }`}
+            {/* Headline — two-tone like Shopify */}
+            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
+              {t('titleLine1')}
+              <br />
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%)' }}
               >
-                <span className="text-base">{type.icon}</span>
-                <span className="hidden sm:inline">{tBiz(`${type.id}_title`)}</span>
-              </button>
-            ))}
+                {t('titleLine2')}
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-gray-300 sm:text-xl">
+              {t('subtitle')}
+            </p>
+
+            {/* CTA buttons */}
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <Button size="lg" href="/register">
+                {t('cta')}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                href={`https://${BUSINESS_TYPES.find((b) => b.id === activeType)?.demo || 'vendshop.shop'}`}
+              >
+                {t('demo')}
+              </Button>
+            </div>
+
+            {/* Stats bar — glass cards */}
+            <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              {[
+                { value: '500+', label: t('statStores') },
+                { value: '4', label: t('statCountries') },
+                { value: '5', label: t('statLanguages') },
+                { value: '99.9%', label: t('statUptime') },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
+                >
+                  <p className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</p>
+                  <p className="mt-0.5 text-xs text-gray-400 sm:text-sm">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Auto-play indicator */}
-          {isAutoPlaying && (
-            <div className="mt-3 flex justify-center">
-              <div className="flex items-center gap-1.5">
+          {/* Right: Interactive preview */}
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            {/* Business type selector pills */}
+            <div className="mb-6 flex flex-wrap justify-center gap-2 lg:justify-start">
+              {BUSINESS_TYPES.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => handleTypeClick(type.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all cursor-pointer sm:px-4 sm:py-2 sm:text-sm ${
+                    activeType === type.id
+                      ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                      : 'bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15'
+                  }`}
+                >
+                  <span>{type.icon}</span>
+                  <span className="hidden sm:inline">{tBiz(`${type.id}_title`)}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Auto-play dots */}
+            {isAutoPlaying && (
+              <div className="mb-4 flex justify-center gap-1.5 lg:justify-start">
                 {BUSINESS_TYPES.map((type) => (
                   <div
                     key={type.id}
                     className={`h-1 rounded-full transition-all duration-300 ${
-                      activeType === type.id ? 'w-6 bg-primary' : 'w-1.5 bg-gray-300'
+                      activeType === type.id ? 'w-6 bg-primary' : 'w-1.5 bg-white/20'
                     }`}
                   />
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Preview area */}
-          <div className="mx-auto mt-8 max-w-lg sm:max-w-xl">
+            {/* Preview mockup */}
             <PreviewMockup key={activeType} businessId={activeType} />
           </div>
         </div>

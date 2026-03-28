@@ -20,15 +20,16 @@
   },
   "hero": {
     "badge": "Nová platforma pro malý byznys",
-    "title": "Váš online obchod za 5 minut",
-    "subtitle": "Vytvořte si profesionální online obchod bez technických znalostí. Prodávejte produkty, přijímejte objednávky a rostěte s VendShop.",
+    "titleLine1": "Váš online obchod.",
+    "titleLine2": "Připravený za 5 minut.",
+    "subtitle": "Bez kódování, bez designérských znalostí. Vytvořte profesionální obchod, přijímejte platby přes Stripe a prodávejte v 5 jazycích. Navždy zdarma.",
     "cta": "Začít zdarma",
     "demo": "Zobrazit demo",
-    "quickAnswer": "Online obchod zdarma · 5 minut setup · Bez kreditní karty",
-    "statStores": "500+ obchodů",
-    "statCountries": "4 země",
-    "statLanguages": "5 jazyků",
-    "statUptime": "99.9% uptime"
+    "quickAnswer": "Navždy zdarma · 5 min setup · Bez kreditní karty · AI-powered",
+    "statStores": "vytvořených obchodů",
+    "statCountries": "země",
+    "statLanguages": "jazyků",
+    "statUptime": "uptime"
   },
   "socialProof": {
     "text": "Důvěřují nám stovky podnikatelů v SK, CZ, UA a DE",
@@ -121,6 +122,14 @@
     "pro_f7": "Multi-jazyk obchod",
     "pro_f8": "Neomezené AI překlady"
   },
+  "featuredShops": {
+    "badge": "Živé obchody",
+    "title": "Postaveno na VendShop",
+    "subtitle": "Reálné firmy, které už prodávají online. Podívejte se, co můžete vytvořit za pár minut.",
+    "shop1Desc": "Obchod se snacky, rybími produkty, uzeninami a mořskými plody. Kompletní katalog s kategoriemi a online objednávkami.",
+    "shop2Desc": "Firma na organizaci oslav. Balónové kompozice, fotozone a dekorační služby.",
+    "shop3Desc": "Demo restaurace s jídelním lístkem, online objednávkami a doručením. Šablona pro food byznys."
+  },
   "testimonials": {
     "badge": "Recenze",
     "title": "Co říkají naši uživatelé",
@@ -134,19 +143,19 @@
     "title": "Často kladené dotazy",
     "subtitle": "Odpovědi na nejčastější dotazy o VendShop.",
     "q1": "Kolik stojí vytvoření obchodu?",
-    "a1": "Začít můžete zcela zdarma. Placený plán začíná od 12€ měsíčně a obsahuje vlastní doménu, víc produktů a pokročilé funkce.",
+    "a1": "Free plán je 0€ navždy — až 10 produktů, subdoména vendshop.shop a platby přes Stripe. Starter (12€/měs.) přidává vlastní doménu, až 100 produktů a 4 barevná schémata. Pro (29€/měs.) odemyká neomezené produkty, prioritní podporu a pokročilou analytiku. Žádné skryté poplatky, zrušení kdykoliv.",
     "q2": "Potřebuji technické znalosti?",
-    "a2": "Ne. VendShop je navržen pro lidi bez technických znalostí. Obchod si vytvoříte za pár minut pomocí jednoduchého editoru.",
+    "a2": "Žádné kódování. Náš vizuální editor nabízí 9 obchodních šablon (obchod, restaurace, salon krásy, opravna a další), výběr ze 4 barevných schémat a publikování — vše do 5 minut. Přes 500 obchodů vytvořili netechničtí zakladatelé.",
     "q3": "Jaké platební metody podporujete?",
-    "a3": "Podporujeme Stripe, PayPal a bankovní převody. V SK/CZ také podporujeme platby kartou přes lokální platební brány.",
+    "a3": "Stripe je integrován přímo — vaši zákazníci mohou platit Visa, Mastercard, Apple Pay a Google Pay ve 135+ měnách. Peníze přijdou na váš účet do 2-7 pracovních dnů. Každý obchod má vlastní Stripe dashboard pro sledování tržeb v reálném čase.",
     "q4": "Mohu použít vlastní doménu?",
-    "a4": "Ano! Na plánech Starter a Pro si můžete připojit vlastní doménu. Na Free plánu máte subdoménu vendshop.shop.",
+    "a4": "Ano! Na plánech Starter (12€/měs.) a Pro (29€/měs.) připojíte jakoukoli doménu s bezplatným SSL. Nastavení trvá méně než 2 minuty — stačí přidat CNAME záznam. Na Free plánu máte subdoménu vasejmeno.vendshop.shop, která funguje okamžitě.",
     "q5": "Je možné prodávat digitální produkty?",
-    "a5": "Ano, VendShop podporuje prodej digitálních produktů — e-booky, kurzy, šablony a další soubory ke stažení.",
+    "a5": "Ano — e-booky, kurzy, šablony, hudbu, software. Kupující dostanou bezpečný, jedinečný odkaz ke stažení po zaplacení. Soubory do 500 MB na produkt. Systém sleduje stahování a omezuje přístup pouze na platící zákazníky.",
     "q6": "Jak dlouho trvá vytvoření obchodu?",
-    "a6": "Základní obchod si vytvoříte za 5 minut. Přidání produktů a nastavení designu obvykle zabere 1-2 hodiny.",
+    "a6": "5 minut k živému obchodu. Postup: 1) vyberte typ byznysu a barevné schéma (30 sek.), 2) přidejte název a popis obchodu (1 min.), 3) nahrajte první produkty (3 min.). AI vám automaticky vygeneruje popisy produktů a SEO metadata.",
     "q7": "Neovládám místní jazyk. Mohu si přesto vytvořit obchod?",
-    "a7": "Ano! Napište obsah v jakémkoli jazyce a použijte AI překlad k přeložení všeho do jazyka obchodu jedním kliknutím. Free plán zahrnuje jeden překlad, placené plány nabízí neomezené překlady."
+    "a7": "Určitě. Pište v kterémkoli z 5 podporovaných jazyků (SK, EN, UK, CS, DE) a naše AI přeloží vše — názvy produktů, popisy, checkout stránky — jedním kliknutím. Free plán zahrnuje 1 překlad, placené plány nabízí neomezené. Přes 30% našich obchodů provozují mezinárodní prodejci."
   },
   "cta": {
     "title": "Začněte prodávat online ještě dnes",

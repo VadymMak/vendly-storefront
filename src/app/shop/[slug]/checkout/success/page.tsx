@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { getStoreBySlug, getStoreByDomain } from '@/lib/shop-queries';
+import { getShopTranslations } from '@/lib/shop-i18n';
 
 interface SuccessPageProps {
   params: Promise<{ slug: string }>;
@@ -8,6 +10,9 @@ interface SuccessPageProps {
 export default async function CheckoutSuccessPage({ params, searchParams }: SuccessPageProps) {
   const { slug } = await params;
   const { order } = await searchParams;
+  const store = await getStoreBySlug(slug).then(s => s || getStoreByDomain(slug));
+
+  const t = store ? await getShopTranslations(store.shopLanguage) : null;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-20 text-center">
@@ -18,14 +23,16 @@ export default async function CheckoutSuccessPage({ params, searchParams }: Succ
         </svg>
       </div>
 
-      <h1 className="mt-6 text-2xl font-bold">Objednávka prijatá!</h1>
+      <h1 className="mt-6 text-2xl font-bold">
+        {t ? t.orderReceived : 'Objednávka prijatá!'}
+      </h1>
       <p className="mt-3 text-gray-500">
-        Ďakujeme za vašu objednávku. Predajca vás bude čoskoro kontaktovať.
+        {t ? t.orderReceivedDesc : 'Ďakujeme za vašu objednávku. Predajca vás bude čoskoro kontaktovať.'}
       </p>
 
       {order && (
         <p className="mt-2 text-sm text-gray-400">
-          Číslo objednávky: {order}
+          {t ? t.orderNumber : 'Číslo objednávky: '} {order}
         </p>
       )}
 
@@ -33,7 +40,7 @@ export default async function CheckoutSuccessPage({ params, searchParams }: Succ
         href={`/`}
         className="mt-8 inline-block rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark"
       >
-        Späť do obchodu
+        {t ? t.backToStore : 'Späť do obchodu'}
       </Link>
     </div>
   );

@@ -3,14 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { ShopData, ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import CartButton from './CartButton';
 
 interface ShopHeaderProps {
   store: ShopData;
   scheme: ColorSchemeTokens;
+  t: ShopFrontMessages;
 }
 
-export default function ShopHeader({ store, scheme }: ShopHeaderProps) {
+export default function ShopHeader({ store, scheme, t }: ShopHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -63,12 +65,12 @@ export default function ShopHeader({ store, scheme }: ShopHeaderProps) {
               <span className="hidden lg:inline">{store.settings.phone}</span>
             </a>
           )}
-          <CartButton scheme={scheme} />
+          <CartButton scheme={scheme} t={t} />
         </nav>
 
         {/* Mobile: cart + burger */}
         <div className="flex items-center gap-2 sm:hidden">
-          <CartButton scheme={scheme} />
+          <CartButton scheme={scheme} t={t} />
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className={`rounded-lg p-2 ${scheme.textMuted} hover:${scheme.bgCard}`}

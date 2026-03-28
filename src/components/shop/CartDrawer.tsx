@@ -4,14 +4,16 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import { CURRENCY_SYMBOLS } from '@/lib/constants';
 import { useCart } from './CartContext';
 
 interface CartDrawerProps {
   scheme: ColorSchemeTokens;
+  t: ShopFrontMessages;
 }
 
-export default function CartDrawer({ scheme }: CartDrawerProps) {
+export default function CartDrawer({ scheme, t }: CartDrawerProps) {
   const pathname = usePathname();
   const slug = pathname.split('/')[2] || '';
   const { items, removeItem, updateQuantity, totalPrice, currency, isOpen, setIsOpen } = useCart();
@@ -46,11 +48,11 @@ export default function CartDrawer({ scheme }: CartDrawerProps) {
       <div className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col ${scheme.bg} shadow-xl`}>
         {/* Header */}
         <div className={`flex items-center justify-between border-b ${scheme.border} px-4 py-4`}>
-          <h2 className="text-lg font-bold">Košík</h2>
+          <h2 className="text-lg font-bold">{t.cart}</h2>
           <button
             onClick={() => setIsOpen(false)}
             className={`rounded-lg p-2 ${scheme.textMuted} hover:opacity-70`}
-            aria-label="Zavrieť košík"
+            aria-label={t.closeCart}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -68,7 +70,7 @@ export default function CartDrawer({ scheme }: CartDrawerProps) {
                 <circle cx="20" cy="21" r="1" />
                 <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
               </svg>
-              <p className={`mt-4 ${scheme.textMuted}`}>Košík je prázdny</p>
+              <p className={`mt-4 ${scheme.textMuted}`}>{t.cartEmpty}</p>
             </div>
           ) : (
             <ul className="space-y-4">
@@ -114,7 +116,7 @@ export default function CartDrawer({ scheme }: CartDrawerProps) {
                   <button
                     onClick={() => removeItem(item.id)}
                     className={`self-start rounded p-1 ${scheme.textMuted} hover:opacity-70`}
-                    aria-label={`Odstrániť ${item.name}`}
+                    aria-label={`${t.removeItemAriaPrefix} ${item.name}`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <line x1="18" y1="6" x2="6" y2="18" />
@@ -131,7 +133,7 @@ export default function CartDrawer({ scheme }: CartDrawerProps) {
         {items.length > 0 && (
           <div className={`border-t ${scheme.border} px-4 py-4`}>
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-medium">Spolu:</span>
+              <span className="font-medium">{t.total}</span>
               <span className="text-xl font-bold">
                 {totalPrice.toFixed(2)} {currencySymbol}
               </span>
@@ -141,7 +143,7 @@ export default function CartDrawer({ scheme }: CartDrawerProps) {
               onClick={() => setIsOpen(false)}
               className={`block w-full rounded-lg ${scheme.accent} ${scheme.accentHover} px-6 py-3 text-center font-semibold transition-colors`}
             >
-              Objednať
+              {t.order}
             </Link>
           </div>
         )}

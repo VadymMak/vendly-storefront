@@ -183,12 +183,13 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             activeCategory={category || null}
             slug={slug}
             scheme={scheme}
+            t={t}
           />
         )}
 
         {/* Products */}
         {items.length > 0 ? (
-          <ProductGrid items={items} scheme={scheme} currency={store.settings.currency || 'EUR'} />
+          <ProductGrid items={items} scheme={scheme} currency={store.settings.currency || 'EUR'} t={t} />
         ) : (
           <div className="py-20 text-center">
             <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>

@@ -1,14 +1,16 @@
 import Link from 'next/link';
 import type { ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 
 interface CategoryFilterProps {
   categories: string[];
   activeCategory: string | null;
   slug: string;
   scheme: ColorSchemeTokens;
+  t: ShopFrontMessages;
 }
 
-export default function CategoryFilter({ categories, activeCategory, slug, scheme }: CategoryFilterProps) {
+export default function CategoryFilter({ categories, activeCategory, slug, scheme, t }: CategoryFilterProps) {
   return (
     <div className="mb-6 flex flex-wrap gap-2">
       <Link
@@ -19,7 +21,7 @@ export default function CategoryFilter({ categories, activeCategory, slug, schem
             : `${scheme.bgCard} ${scheme.textMuted} ${scheme.border} border hover:opacity-80`
         }`}
       >
-        Všetko
+        {t.allCategories}
       </Link>
       {categories.map((cat) => (
         <Link

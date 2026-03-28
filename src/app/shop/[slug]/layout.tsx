@@ -35,16 +35,17 @@ export default async function ShopLayout({ children, params }: ShopLayoutProps) 
   }
 
   const scheme = COLOR_SCHEMES[store.settings.colorScheme] || COLOR_SCHEMES.light;
+  const t = await getShopTranslations(store.shopLanguage);
 
   return (
     <CartProvider currency={store.settings.currency || 'EUR'}>
       <div className={`min-h-screen flex flex-col ${scheme.bg} ${scheme.text}`}>
-        <ShopHeader store={store} scheme={scheme} />
+        <ShopHeader store={store} scheme={scheme} t={t} />
         <main className="flex-1">
           {children}
         </main>
-        <ShopFooter store={store} scheme={scheme} />
-        <CartDrawer scheme={scheme} />
+        <ShopFooter store={store} scheme={scheme} t={t} />
+        <CartDrawer scheme={scheme} t={t} />
       </div>
     </CartProvider>
   );

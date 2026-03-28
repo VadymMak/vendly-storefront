@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { ShopItem, ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import { CURRENCY_SYMBOLS } from '@/lib/constants';
 import { useCart } from './CartContext';
 
@@ -9,9 +10,10 @@ interface ProductCardProps {
   item: ShopItem;
   scheme: ColorSchemeTokens;
   currency: string;
+  t: ShopFrontMessages;
 }
 
-export default function ProductCard({ item, scheme, currency }: ProductCardProps) {
+export default function ProductCard({ item, scheme, currency, t }: ProductCardProps) {
   const { addItem } = useCart();
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
   const hasImage = item.images.length > 0;
@@ -35,7 +37,7 @@ export default function ProductCard({ item, scheme, currency }: ProductCardProps
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <path d="M21 15l-5-5L5 21" />
               </svg>
-              <span className="text-xs opacity-30">Bez fotky</span>
+              <span className="text-xs opacity-30">{t.noPhoto}</span>
             </div>
           )}
 
@@ -43,7 +45,7 @@ export default function ProductCard({ item, scheme, currency }: ProductCardProps
           {!item.isAvailable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
               <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-gray-900 shadow">
-                Nedostupné
+                {t.unavailable}
               </span>
             </div>
           )}
@@ -79,20 +81,20 @@ export default function ProductCard({ item, scheme, currency }: ProductCardProps
               <span className="text-base font-normal opacity-70">{currencySymbol}</span>
             </span>
           ) : (
-            <span className={`text-sm ${scheme.textMuted}`}>Na dopyt</span>
+            <span className={`text-sm ${scheme.textMuted}`}>{t.onRequest}</span>
           )}
 
           {item.isAvailable && item.price !== null && (
             <button
               onClick={() => addItem(item)}
               className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${scheme.accent} ${scheme.accentHover} active:scale-95`}
-              aria-label={`Pridať ${item.name} do košíka`}
+              aria-label={`${t.addToCartAriaPrefix} ${item.name}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
                 <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
               </svg>
-              <span className="hidden sm:inline">Do košíka</span>
+              <span className="hidden sm:inline">{t.addToCart}</span>
             </button>
           )}
         </div>

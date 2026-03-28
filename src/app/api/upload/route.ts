@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import sharp from 'sharp';
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -27,12 +28,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const filename = `shops/${session.user.id}/${Date.now()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    const blob = await put(filename, file, {
+    // Convert to WebP (quality 85, max 1600px wide)
+    const webpBuffer = await sharp(buffer)
+      .rotate() // auto-rotate based on EXIF
+      .resize({ width: 1600, withoutEnlargement: true })
+      .webp({ quality: 85 })
+      .toBuffer();
+
+    const filename = `shops/${session.user.id}/${Date.now()}.webp`;
+
+    const blob = await put(filename, webpBuffer, {
       access: 'public',
-      contentType: file.type,
+      contentType: 'image/webp',
     });
 
     return NextResponse.json({ url: blob.url });

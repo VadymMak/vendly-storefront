@@ -568,7 +568,16 @@
     "ownerReply": "Owner reply",
     "cookieText": "This site uses cookies for basic functionality and analytics.",
     "cookieAccept": "Accept",
-    "cookieDecline": "Decline"
+    "cookieDecline": "Decline",
+    "navProducts": "Products",
+    "navReviews": "Reviews",
+    "navAbout": "About",
+    "navContact": "Contact",
+    "newsletterTitle": "Stay in touch",
+    "newsletterDesc": "Subscribe to get updates on new products and special offers.",
+    "newsletterPlaceholder": "Your email address",
+    "newsletterButton": "Subscribe",
+    "newsletterSuccess": "Thank you for subscribing!"
   },
   "dashboardReviews": {
     "title": "Reviews",

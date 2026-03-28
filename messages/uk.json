@@ -568,7 +568,16 @@
     "ownerReply": "Відповідь власника",
     "cookieText": "Цей сайт використовує файли cookie для базової функціональності та аналітики.",
     "cookieAccept": "Прийняти",
-    "cookieDecline": "Відхилити"
+    "cookieDecline": "Відхилити",
+    "navProducts": "Товари",
+    "navReviews": "Відгуки",
+    "navAbout": "Про нас",
+    "navContact": "Контакти",
+    "newsletterTitle": "Залишайтесь на зв'язку",
+    "newsletterDesc": "Підпишіться, щоб отримувати новини про нові товари та спеціальні пропозиції.",
+    "newsletterPlaceholder": "Ваш email",
+    "newsletterButton": "Підписатися",
+    "newsletterSuccess": "Дякуємо за підписку!"
   },
   "dashboardReviews": {
     "title": "Відгуки",

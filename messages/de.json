@@ -568,7 +568,16 @@
     "ownerReply": "Antwort des Inhabers",
     "cookieText": "Diese Seite verwendet Cookies für grundlegende Funktionen und Analysen.",
     "cookieAccept": "Akzeptieren",
-    "cookieDecline": "Ablehnen"
+    "cookieDecline": "Ablehnen",
+    "navProducts": "Produkte",
+    "navReviews": "Bewertungen",
+    "navAbout": "Über uns",
+    "navContact": "Kontakt",
+    "newsletterTitle": "Bleiben Sie in Kontakt",
+    "newsletterDesc": "Abonnieren Sie, um Updates zu neuen Produkten und Sonderangeboten zu erhalten.",
+    "newsletterPlaceholder": "Ihre E-Mail-Adresse",
+    "newsletterButton": "Abonnieren",
+    "newsletterSuccess": "Vielen Dank für Ihr Abonnement!"
   },
   "dashboardReviews": {
     "title": "Bewertungen",

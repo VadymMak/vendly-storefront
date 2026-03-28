@@ -55,10 +55,12 @@
 - [x] Skeleton loading state при загрузке grid — ProductGridSkeleton + loading.tsx
 - [x] Пустой placeholder для магазина без фото — градиент + иконка shopping bag
 
-### J4 — Shop Footer
-- [ ] Добавить footer на витрину: "Powered by Vendly" с ссылкой
-- [ ] Для Pro/Custom domain: возможность скрыть branding
-- [ ] Copyright год + privacy policy link
+### J4 — Shop Footer ✅
+- [x] Добавить footer на витрину: "Powered by VendShop" с ссылкой на vendshop.shop
+- [x] Для Pro: скрыть branding (ownerPlan === 'PRO')
+- [x] Copyright год — отдельный элемент
+- [x] WhatsApp иконка добавлена в footer рядом с Instagram/Facebook
+- [x] ownerPlan добавлен в ShopData + все shop queries
 
 ### J5 — Search
 - [ ] Поиск по товарам: SearchBar компонент с debounce

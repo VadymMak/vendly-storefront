@@ -29,19 +29,24 @@
 > Цель: довести витрину магазина до уровня Shopify Dawn / Squarespace.
 > Это то, что видят покупатели — самое важное для конверсии.
 
-### J1 — Хардкод текстов → i18n (критично)
-- [ ] ProductCard: "Bez fotky", "Nedostupné", "Na dopyt", "Do košíka", aria-label — перевести через shop-i18n
-- [ ] CategoryFilter: проверить захардкоженные тексты
-- [ ] CartDrawer: проверить захардкоженные тексты
-- [ ] Checkout page: перевести все SK строки
-- [ ] Product detail page (/item/[id]): перевести все SK строки
+### J1 — Хардкод текстов → i18n (критично) ✅
+- [x] ProductCard: "Bez fotky", "Nedostupné", "Na dopyt", "Do košíka", aria-label — перевести через shop-i18n
+- [x] CategoryFilter: проверить захардкоженные тексты
+- [x] CartDrawer: проверить захардкоженные тексты
+- [x] Checkout page: перевести все SK строки
+- [x] Product detail page (/item/[id]): перевести все SK строки
+- [x] CartButton, AddToCartButton, ShopFooter, ShopHeader — все переведены
+- [x] Success page, Not-found page — переведены
+- [x] 5 языковых файлов обновлены (~40 новых ключей каждый)
 
-### J2 — next/image оптимизация (критично)
-- [ ] ProductCard: `<img>` → `<Image>` с blur placeholder, sizes, priority для first 4
-- [ ] Shop hero: banner image → `<Image>` с fill + priority
-- [ ] Shop hero: logo → `<Image>` с width/height
-- [ ] Item detail page: gallery images → `<Image>` с responsive sizes
-- [ ] next.config: настроить remotePatterns для Vercel Blob домена
+### J2 — next/image оптимизация (критично) ✅
+- [x] ProductCard: `<img>` → `<Image>` с fill, sizes, priority для first 4
+- [x] Shop hero: banner image → `<Image>` с fill + priority
+- [x] Shop hero: logo → `<Image>` с width/height
+- [x] Item detail page: gallery images → `<Image>` с responsive sizes
+- [x] next.config: настроить remotePatterns для Vercel Blob домена
+- [x] ShopHeader: logo → `<Image>`
+- [x] CartDrawer: cart item thumbnails → `<Image>`
 
 ### J3 — Product Card улучшения
 - [ ] Hover: показывать вторую фотографию (если есть images[1])

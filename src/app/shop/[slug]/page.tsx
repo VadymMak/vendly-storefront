@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getStoreBySlug, getStoreByDomain, getStoreItems, getStoreCategories } from '@/lib/shop-queries';
 import { COLOR_SCHEMES } from '@/lib/constants';
+import { getShopTranslations, pluralizeItems } from '@/lib/shop-i18n';
 import ProductGrid from '@/components/shop/ProductGrid';
 import CategoryFilter from '@/components/shop/CategoryFilter';
 import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
@@ -22,9 +23,10 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
     notFound();
   }
 
-  const [items, categories] = await Promise.all([
+  const [items, categories, t] = await Promise.all([
     getStoreItems(store.id, category),
     getStoreCategories(store.id),
+    getShopTranslations(store.shopLanguage),
   ]);
 
   const scheme = COLOR_SCHEMES[store.settings.colorScheme] || COLOR_SCHEMES.light;
@@ -164,10 +166,10 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         {/* Section header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold">
-            {category ? category : 'Katalóg'}
+            {category ? category : t.catalog}
           </h2>
           <span className={`text-sm ${scheme.textMuted}`}>
-            {items.length} {items.length === 1 ? 'položka' : items.length < 5 ? 'položky' : 'položiek'}
+            {pluralizeItems(items.length, t)}
           </span>
         </div>
 
@@ -193,7 +195,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
               </svg>
             </div>
             <p className={`text-lg font-medium ${scheme.textMuted}`}>
-              {category ? 'V tejto kategórii zatiaľ nie sú žiadne produkty.' : 'Obchod zatiaľ nemá žiadne produkty.'}
+              {category ? t.emptyCategory : t.emptyStore}
             </p>
           </div>
         )}
@@ -204,7 +206,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         <section className={`border-t ${scheme.border}`}>
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-3xl">
-              <h2 className="mb-4 text-2xl font-bold">O nás</h2>
+              <h2 className="mb-4 text-2xl font-bold">{t.aboutUs}</h2>
               <p className={`leading-relaxed ${scheme.textMuted}`}>{s.aboutText}</p>
             </div>
           </div>
@@ -215,7 +217,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       {(s.phone || s.address || s.openingHours || s.instagram || s.facebook || s.whatsapp) && (
         <section className={`border-t ${scheme.border} ${scheme.bgCard}`}>
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-            <h2 className="mb-8 text-2xl font-bold">Kontakt</h2>
+            <h2 className="mb-8 text-2xl font-bold">{t.contact}</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
               {/* Phone */}
@@ -227,7 +229,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                     </svg>
                   </div>
                   <div>
-                    <p className={`text-xs font-medium uppercase tracking-wide ${scheme.textMuted}`}>Telefón</p>
+                    <p className={`text-xs font-medium uppercase tracking-wide ${scheme.textMuted}`}>{t.phone}</p>
                     <p className="mt-0.5 font-semibold">{s.phone}</p>
                   </div>
                 </a>
@@ -242,7 +244,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                     </svg>
                   </div>
                   <div>
-                    <p className={`text-xs font-medium uppercase tracking-wide ${scheme.textMuted}`}>Adresa</p>
+                    <p className={`text-xs font-medium uppercase tracking-wide ${scheme.textMuted}`}>{t.address}</p>
                     <p className="mt-0.5 font-semibold">{s.address}</p>
                     {s.openingHours && <p className={`mt-1 text-sm ${scheme.textMuted}`}>{s.openingHours}</p>}
                   </div>
@@ -264,7 +266,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                   </div>
                   <div>
                     <p className={`text-xs font-medium uppercase tracking-wide ${scheme.textMuted}`}>WhatsApp</p>
-                    <p className="mt-0.5 font-semibold">Napíšte nám</p>
+                    <p className="mt-0.5 font-semibold">{t.writeUs}</p>
                   </div>
                 </a>
               )}

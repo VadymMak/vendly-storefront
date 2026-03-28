@@ -461,6 +461,21 @@
     "loadingStep4": "Wähle Farbschema...",
     "loadingStep5": "Fast fertig..."
   },
+  "shopFront": {
+    "catalog": "Katalog",
+    "item_one": "Artikel",
+    "item_few": "Artikel",
+    "item_many": "Artikel",
+    "emptyCategory": "In dieser Kategorie gibt es noch keine Produkte.",
+    "emptyStore": "Dieser Shop hat noch keine Produkte.",
+    "aboutUs": "Über uns",
+    "contact": "Kontakt",
+    "phone": "Telefon",
+    "address": "Adresse",
+    "writeUs": "Schreiben Sie uns",
+    "storeNotFound": "Shop nicht gefunden",
+    "onlineStore": "Online-Shop auf VendShop"
+  },
   "admin": {
     "stores": "Shops",
     "users": "Benutzer",

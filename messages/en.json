@@ -461,6 +461,21 @@
     "loadingStep4": "Choosing color scheme...",
     "loadingStep5": "Almost ready..."
   },
+  "shopFront": {
+    "catalog": "Catalog",
+    "item_one": "item",
+    "item_few": "items",
+    "item_many": "items",
+    "emptyCategory": "No products in this category yet.",
+    "emptyStore": "This store has no products yet.",
+    "aboutUs": "About us",
+    "contact": "Contact",
+    "phone": "Phone",
+    "address": "Address",
+    "writeUs": "Write to us",
+    "storeNotFound": "Store not found",
+    "onlineStore": "online store on VendShop"
+  },
   "admin": {
     "stores": "Stores",
     "users": "Users",

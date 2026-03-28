@@ -461,6 +461,21 @@
     "loadingStep4": "Вибираю кольорову схему...",
     "loadingStep5": "Майже готово..."
   },
+  "shopFront": {
+    "catalog": "Каталог",
+    "item_one": "товар",
+    "item_few": "товари",
+    "item_many": "товарів",
+    "emptyCategory": "У цій категорії поки що немає товарів.",
+    "emptyStore": "У магазині поки що немає товарів.",
+    "aboutUs": "Про нас",
+    "contact": "Контакти",
+    "phone": "Телефон",
+    "address": "Адреса",
+    "writeUs": "Напишіть нам",
+    "storeNotFound": "Магазин не знайдено",
+    "onlineStore": "онлайн-магазин на VendShop"
+  },
   "admin": {
     "stores": "Магазини",
     "users": "Користувачі",

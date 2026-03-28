@@ -34,6 +34,10 @@ export interface ShopFrontMessages {
   order: string;
   // Category filter
   allCategories: string;
+  // Search
+  searchPlaceholder: string;
+  searchNoResults: string;
+  searchNoResultsDesc: string;
   // Checkout
   checkoutTitle: string;
   fullName: string;

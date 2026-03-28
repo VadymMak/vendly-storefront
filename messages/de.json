@@ -169,9 +169,10 @@
     "docs": "Dokumentation",
     "contact": "Kontakt",
     "status": "Status",
-    "terms": "AGB",
-    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "privacy": "Datenschutzrichtlinie",
     "gdpr": "DSGVO",
+    "connect": "Verbinden",
     "copyright": "Alle Rechte vorbehalten."
   },
   "auth": {

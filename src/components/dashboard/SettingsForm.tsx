@@ -124,10 +124,12 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
     deliveryInfo: store?.settings.deliveryInfo || '',
     aboutText:    store?.settings.aboutText || '',
     isPublished:  store?.isPublished ?? false,
+    bannerImage:  store?.settings.bannerImage || '',
   });
   const [templateId, setTemplateId] = useState(store?.templateId || 'physical');
   const [slug, setSlug] = useState(store?.slug || '');
   const [logo, setLogo] = useState<string[]>(store?.logo ? [store.logo] : []);
+  const [banner, setBanner] = useState<string[]>(store?.settings.bannerImage ? [store.settings.bannerImage] : []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -152,7 +154,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, templateId, slug, userId, logo: logo[0] || null }),
+        body: JSON.stringify({ ...form, templateId, slug, userId, logo: logo[0] || null, bannerImage: banner[0] || null }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -322,6 +324,15 @@ export default function SettingsForm({ userId, store, initialTab = 'general' }: 
             <section>
               <SectionHeader title={t('sectionDesign')} />
               <div className="space-y-6">
+                {/* Banner / hero image */}
+                <ImageUpload
+                  images={banner}
+                  onChange={setBanner}
+                  single
+                  label={t('bannerImage') || 'Hero / banner obrázok'}
+                  hint={t('bannerHint') || 'Širokouhlý obrázok zobrazený v hero sekcii. Odporúčame 1600×600 px.'}
+                />
+
                 <Field label={t('colorScheme')}>
                   <div className="mt-2 flex flex-wrap gap-4">
                     {COLOR_SCHEMES.map((cs) => (

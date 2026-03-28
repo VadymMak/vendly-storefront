@@ -20,6 +20,7 @@ const storeSchema = z.object({
   openingHours: z.string().optional().default(''),
   deliveryInfo: z.string().optional().default(''),
   aboutText:    z.string().optional().default(''),
+  bannerImage:  z.string().nullable().optional(),
   isPublished:  z.boolean().default(false),
 });
 
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
           openingHours: data.openingHours || undefined,
           deliveryInfo: data.deliveryInfo || undefined,
           aboutText:    data.aboutText || undefined,
+          bannerImage:  data.bannerImage || undefined,
         },
       },
     });

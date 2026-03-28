@@ -73,6 +73,7 @@ export interface ShopSettings {
   openingHours?: string;
   deliveryInfo?: string;
   aboutText?: string;
+  bannerImage?: string;
 }
 
 export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';
@@ -154,6 +155,7 @@ export interface StoreSettingsFormData {
   deliveryInfo: string;
   aboutText: string;
   isPublished: boolean;
+  bannerImage: string;
 }
 
 // ===== Browse (marketplace) types =====

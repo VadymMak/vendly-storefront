@@ -29,8 +29,19 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   return (
     <>
       {/* ── HERO ────────────────────────────────────────────────────────── */}
-      <section className={`${scheme.heroBg} border-b ${scheme.border}`}>
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className={`relative overflow-hidden ${s.bannerImage ? '' : scheme.heroBg} border-b ${scheme.border}`}>
+        {/* Banner background image */}
+        {s.bannerImage && (
+          <>
+            <img
+              src={s.bannerImage}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/50" />
+          </>
+        )}
+        <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center text-center">
 
             {/* Logo avatar */}
@@ -47,13 +58,13 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             )}
 
             {/* Name */}
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className={`text-4xl font-bold tracking-tight sm:text-5xl ${s.bannerImage ? 'text-white' : ''}`}>
               {store.name}
             </h1>
 
             {/* Description */}
             {store.description && (
-              <p className={`mt-4 max-w-2xl text-lg leading-relaxed ${scheme.textMuted}`}>
+              <p className={`mt-4 max-w-2xl text-lg leading-relaxed ${s.bannerImage ? 'text-white/80' : scheme.textMuted}`}>
                 {store.description}
               </p>
             )}
@@ -62,7 +73,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             {(s.address || s.openingHours || s.deliveryInfo || s.phone) && (
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {s.address && (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${scheme.chipBg} ${scheme.chipText}`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${s.bannerImage ? 'bg-white/20 text-white backdrop-blur-sm' : `${scheme.chipBg} ${scheme.chipText}`}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
@@ -71,7 +82,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                   </span>
                 )}
                 {s.openingHours && (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${scheme.chipBg} ${scheme.chipText}`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${s.bannerImage ? 'bg-white/20 text-white backdrop-blur-sm' : `${scheme.chipBg} ${scheme.chipText}`}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
@@ -80,7 +91,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                   </span>
                 )}
                 {s.deliveryInfo && (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${scheme.chipBg} ${scheme.chipText}`}>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${s.bannerImage ? 'bg-white/20 text-white backdrop-blur-sm' : `${scheme.chipBg} ${scheme.chipText}`}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="1" y="3" width="15" height="13" />
                       <path d="M16 8h4l3 3v5h-7V8z" />

@@ -48,12 +48,12 @@
 - [x] ShopHeader: logo → `<Image>`
 - [x] CartDrawer: cart item thumbnails → `<Image>`
 
-### J3 — Product Card улучшения
-- [ ] Hover: показывать вторую фотографию (если есть images[1])
-- [ ] Sale badge: если есть compareAtPrice, показать "-X%" badge
-- [ ] Wishlist кнопка (сердечко) — опционально, localStorage
-- [ ] Skeleton loading state при загрузке grid
-- [ ] Пустой placeholder для магазина без фото — красивее (градиент + иконка типа бизнеса)
+### J3 — Product Card улучшения ✅ (частично)
+- [x] Hover: показывать вторую фотографию (если есть images[1]) — crossfade transition
+- [ ] Sale badge: если есть compareAtPrice, показать "-X%" badge (нужна миграция Prisma)
+- [ ] Wishlist кнопка (сердечко) — опционально, localStorage (отложено)
+- [x] Skeleton loading state при загрузке grid — ProductGridSkeleton + loading.tsx
+- [x] Пустой placeholder для магазина без фото — градиент + иконка shopping bag
 
 ### J4 — Shop Footer
 - [ ] Добавить footer на витрину: "Powered by Vendly" с ссылкой

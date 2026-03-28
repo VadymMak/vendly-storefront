@@ -11,6 +11,7 @@ interface TranslateButtonProps {
   label?: string;
   labelDone?: string;
   labelLimit?: string;
+  labelUndo?: string;
 }
 
 export default function TranslateButton({
@@ -22,6 +23,7 @@ export default function TranslateButton({
   label = 'Translate',
   labelDone = 'Translated',
   labelLimit = 'Limit reached',
+  labelUndo = 'Undo',
 }: TranslateButtonProps) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -96,7 +98,7 @@ export default function TranslateButton({
           onClick={handleUndo}
           className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
         >
-          Undo
+          {labelUndo}
         </button>
       </div>
     );

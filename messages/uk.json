@@ -258,7 +258,8 @@
     "uploadError": "Помилка завантаження",
     "translateTo": "Перекласти на",
     "translated": "Перекладено",
-    "translateLimitReached": "Ліміт вичерпано"
+    "translateLimitReached": "Ліміт вичерпано",
+    "translateUndo": "Скасувати"
   },
   "dashboardOrders": {
     "title": "Замовлення",
@@ -384,7 +385,16 @@
     "translateDone": "Переклад завершено",
     "translateUpgrade": "Оновити план",
     "translateBulkDesc": "Перекладіть весь контент магазину (опис, про нас, товари) мовою магазину за допомогою AI в один клік.",
-    "translateBulkUsed": "Ви вже використали безкоштовний AI переклад. Перейдіть на Starter або Pro для необмежених перекладів."
+    "translateBulkUsed": "Ви вже використали безкоштовний AI переклад. Перейдіть на Starter або Pro для необмежених перекладів.",
+    "translateUndo": "Скасувати",
+    "translateFreeHint": "Free план: одноразовий переклад",
+    "aboutTextHint": "Довший текст, що відображається в розділі 'Про нас' на сторінці магазину.",
+    "aboutTextPlaceholder": "Напишіть про ваш магазин, його історію, цінності...",
+    "storeNamePlaceholder": "Мій магазин",
+    "slugPlaceholder": "mij-magazin",
+    "descriptionPlaceholder": "Короткий опис, що відображається в hero секції...",
+    "addressPlaceholder": "вул. Хрещатик 1, Київ",
+    "openingHoursPlaceholder": "Пн–Пт 9:00–18:00"
   },
   "aiWizard": {
     "step1Title": "Розкажіть про свій бізнес",

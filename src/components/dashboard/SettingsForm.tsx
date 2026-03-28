@@ -293,6 +293,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                       upgrade: t('translateUpgrade'),
                       description: t('translateBulkDesc'),
                       descriptionUsed: t('translateBulkUsed'),
+                      freeHint: t('translateFreeHint'),
                     }}
                   />
                 </div>
@@ -304,8 +305,8 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   images={logo}
                   onChange={setLogo}
                   single
-                  label={t('storeLogo') || 'Logo obchodu'}
-                  hint={t('logoHint') || 'JPG, PNG alebo WEBP, max 5 MB. Odporúčame štvorec.'}
+                  label={t('storeLogo')}
+                  hint={t('logoHint')}
                   textUpload={t('uploadLogo')}
                   textChange={t('uploadChangeLogo')}
                   textUploading={t('uploadUploading')}
@@ -316,7 +317,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   <input
                     type="text" required value={form.name}
                     onChange={(e) => set('name', e.target.value)}
-                    className={INPUT_CLS} placeholder="Môj obchod"
+                    className={INPUT_CLS} placeholder={t('storeNamePlaceholder')}
                   />
                 </Field>
                 {isNew && (
@@ -328,7 +329,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                         type="text" required value={slug}
                         onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
                         className="flex-1 py-2.5 pr-4 text-sm focus:outline-none"
-                        placeholder="moj-obchod"
+                        placeholder={t('slugPlaceholder')}
                       />
                     </label>
                   </Field>
@@ -337,7 +338,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   <textarea
                     rows={3} value={form.description}
                     onChange={(e) => set('description', e.target.value)}
-                    className={INPUT_CLS} placeholder="Krátky popis zobrazený v hero sekcii..."
+                    className={INPUT_CLS} placeholder={t('descriptionPlaceholder')}
                   />
                   {!isNew && form.description && (
                     <div className="mt-1">
@@ -349,15 +350,16 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                         label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
                         labelDone={t('translated')}
                         labelLimit={t('translateLimitReached')}
+                        labelUndo={t('translateUndo')}
                       />
                     </div>
                   )}
                 </Field>
-                <Field label="O nás" hint="Dlhší text zobrazený v sekcii 'O nás' na stránke obchodu.">
+                <Field label={t('aboutText')} hint={t('aboutTextHint')}>
                   <textarea
                     rows={4} value={form.aboutText}
                     onChange={(e) => set('aboutText', e.target.value)}
-                    className={INPUT_CLS} placeholder="Napíšte o vašom obchode, histórii, hodnotách..."
+                    className={INPUT_CLS} placeholder={t('aboutTextPlaceholder')}
                   />
                   {!isNew && form.aboutText && (
                     <div className="mt-1">
@@ -369,6 +371,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                         label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
                         labelDone={t('translated')}
                         labelLimit={t('translateLimitReached')}
+                        labelUndo={t('translateUndo')}
                       />
                     </div>
                   )}
@@ -496,7 +499,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                     <div className="flex gap-2">
                       <input type="text" value={form.address}
                         onChange={(e) => set('address', e.target.value)}
-                        className={`${INPUT_CLS} flex-1`} placeholder="Hlavná 1, Bratislava" />
+                        className={`${INPUT_CLS} flex-1`} placeholder={t('addressPlaceholder')} />
                       <button
                         type="button"
                         disabled={!form.address || geocoding}
@@ -599,7 +602,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   <Field label={t('openingHoursText')} hint={t('openingHoursTextHint')}>
                     <input type="text" value={form.openingHours}
                       onChange={(e) => set('openingHours', e.target.value)}
-                      className={INPUT_CLS} placeholder="Po–Pi 9:00–18:00" />
+                      className={INPUT_CLS} placeholder={t('openingHoursPlaceholder')} />
                   </Field>
                 </div>
 
@@ -647,6 +650,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                         label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
                         labelDone={t('translated')}
                         labelLimit={t('translateLimitReached')}
+                        labelUndo={t('translateUndo')}
                       />
                     </div>
                   )}

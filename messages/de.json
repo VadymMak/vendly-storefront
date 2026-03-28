@@ -258,7 +258,8 @@
     "uploadError": "Upload fehlgeschlagen",
     "translateTo": "Übersetzen in",
     "translated": "Übersetzt",
-    "translateLimitReached": "Limit erreicht"
+    "translateLimitReached": "Limit erreicht",
+    "translateUndo": "Rückgängig"
   },
   "dashboardOrders": {
     "title": "Bestellungen",
@@ -384,7 +385,16 @@
     "translateDone": "Übersetzung abgeschlossen",
     "translateUpgrade": "Plan upgraden",
     "translateBulkDesc": "Übersetzen Sie den gesamten Shop-Inhalt (Beschreibung, Über uns, Produkte) mit KI in die Shop-Sprache mit einem Klick.",
-    "translateBulkUsed": "Sie haben bereits Ihre kostenlose KI-Übersetzung genutzt. Upgraden Sie auf Starter oder Pro für unbegrenzte Übersetzungen."
+    "translateBulkUsed": "Sie haben bereits Ihre kostenlose KI-Übersetzung genutzt. Upgraden Sie auf Starter oder Pro für unbegrenzte Übersetzungen.",
+    "translateUndo": "Rückgängig",
+    "translateFreeHint": "Free-Plan: einmalige Übersetzung",
+    "aboutTextHint": "Längerer Text, der im Bereich 'Über uns' auf Ihrer Shop-Seite angezeigt wird.",
+    "aboutTextPlaceholder": "Schreiben Sie über Ihren Shop, seine Geschichte, Werte...",
+    "storeNamePlaceholder": "Mein Shop",
+    "slugPlaceholder": "mein-shop",
+    "descriptionPlaceholder": "Kurze Beschreibung im Hero-Bereich...",
+    "addressPlaceholder": "Hauptstraße 1, Berlin",
+    "openingHoursPlaceholder": "Mo–Fr 9:00–18:00"
   },
   "aiWizard": {
     "step1Title": "Erzählen Sie uns von Ihrem Unternehmen",

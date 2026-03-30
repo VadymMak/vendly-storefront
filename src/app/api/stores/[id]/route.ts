@@ -42,6 +42,8 @@ const patchSchema = z.object({
     ctaLink: z.string().optional(),
     enabled: z.boolean(),
   })).optional(),
+  customFontColor:  z.string().optional(),
+  customAccentColor: z.string().optional(),
 });
 
 export async function PATCH(
@@ -62,7 +64,7 @@ export async function PATCH(
     // Merge settings
     const currentSettings = store.settings as Record<string, unknown>;
     const newSettings: Record<string, unknown> = { ...currentSettings };
-    const settingsFields = ['colorScheme','currency','whatsapp','instagram','facebook','address','phone','openingHours','deliveryInfo','aboutText','bannerImage','quickBadges','structuredHours','orderAcceptance','coordinates','promoBanners'] as const;
+    const settingsFields = ['colorScheme','currency','whatsapp','instagram','facebook','address','phone','openingHours','deliveryInfo','aboutText','bannerImage','quickBadges','structuredHours','orderAcceptance','coordinates','promoBanners','customFontColor','customAccentColor'] as const;
     for (const field of settingsFields) {
       if (data[field] !== undefined) {
         newSettings[field] = data[field] || undefined;

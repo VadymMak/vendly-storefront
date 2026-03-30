@@ -65,6 +65,7 @@ export default function ProductGrid({ items, scheme, currency, t, promoBanners =
               key={`banner-${enabledBanners[chunkIndex].id}`}
               banner={enabledBanners[chunkIndex]}
               scheme={scheme}
+              t={t}
             />
           )}
         </div>

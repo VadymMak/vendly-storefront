@@ -81,7 +81,7 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
 
           {/* Category tag — glass pill top-left */}
           {item.category && (
-            <span className="absolute left-3 top-3 z-10 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-[#3d2c1e] shadow-sm backdrop-blur-sm">
+            <span className="absolute left-3 top-3 z-10 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-warm-dark shadow-sm backdrop-blur-sm">
               {item.category}
             </span>
           )}
@@ -111,17 +111,17 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
       <div className="flex flex-1 flex-col p-4">
         {/* Name */}
         <Link href={`/item/${item.id}`}>
-          <h3 className="text-sm font-semibold leading-snug text-[#1a1a1a] line-clamp-2 hover:underline">{item.name}</h3>
+          <h3 className="text-sm font-semibold leading-snug text-warm-text line-clamp-2 hover:underline">{item.name}</h3>
         </Link>
 
         {/* Weight / volume from metadata */}
         {weight && (
-          <span className="mt-0.5 text-xs text-[#6b6560]">{weight}</span>
+          <span className="mt-0.5 text-xs text-warm-muted">{weight}</span>
         )}
 
         {/* Description (only if no weight, to save space) */}
         {!weight && item.description && (
-          <p className="mt-0.5 text-xs leading-relaxed text-[#6b6560] line-clamp-1">
+          <p className="mt-0.5 text-xs leading-relaxed text-warm-muted line-clamp-1">
             {item.description}
           </p>
         )}
@@ -130,19 +130,19 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
         <div className="mt-auto flex items-center justify-between pt-3">
           {item.price !== null ? (
             <div className="flex items-baseline gap-1">
-              <span className={`text-xl font-extrabold ${item.isAvailable ? 'text-[#1a1a1a]' : 'text-[#6b6560]'}`}>
+              <span className={`text-xl font-extrabold ${item.isAvailable ? 'text-warm-text' : 'text-warm-muted'}`}>
                 {item.price.toFixed(2)}
               </span>
-              <span className="text-sm font-medium text-[#6b6560]">{currencySymbol}</span>
+              <span className="text-sm font-medium text-warm-muted">{currencySymbol}</span>
             </div>
           ) : (
-            <span className="text-sm text-[#6b6560]">{t.onRequest}</span>
+            <span className="text-sm text-warm-muted">{t.onRequest}</span>
           )}
 
           {item.isAvailable && item.price !== null && (
             <button
               onClick={() => addItem(item)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#3d2c1e] px-4 py-2 text-[13px] font-semibold text-white shadow-md transition-all duration-200 hover:bg-[#2c1810] active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-warm-dark px-4 py-2 text-[13px] font-semibold text-white shadow-md transition-all duration-200 hover:bg-warm-dark-deep active:scale-95"
               aria-label={`${t.addToCartAriaPrefix} ${item.name}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

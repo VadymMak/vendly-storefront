@@ -12,6 +12,21 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* ── Warm shop scheme tokens ── */
+  --color-warm-bg: #faf7f2;
+  --color-warm-card: #ffffff;
+  --color-warm-text: #1a1a1a;
+  --color-warm-muted: #6b6560;
+  --color-warm-accent: #d4641a;
+  --color-warm-accent-hover: #b8550f;
+  --color-warm-accent-light: #fff3ec;
+  --color-warm-accent-glow: #e8823a;
+  --color-warm-dark: #3d2c1e;
+  --color-warm-dark-deep: #2c1810;
+  --color-warm-dark-mid: #4a2d1a;
+  --color-warm-border: #e8e0d6;
+  --color-warm-footer: #c4b5a5;
+
   --animate-fade-in-up: fade-in-up 0.7s ease-out both;
   --animate-fade-in: fade-in 0.5s ease-out both;
   --animate-slide-in-right: slide-in-right 0.4s ease-out both;

@@ -1,12 +1,14 @@
 import Image from 'next/image';
 import type { PromoBanner, ColorSchemeTokens } from '@/lib/types';
+import type { ShopFrontMessages } from '@/lib/shop-i18n';
 
 interface PromoBannerCardProps {
   banner: PromoBanner;
   scheme: ColorSchemeTokens;
+  t: ShopFrontMessages;
 }
 
-export default function PromoBannerCard({ banner, scheme }: PromoBannerCardProps) {
+export default function PromoBannerCard({ banner, scheme, t }: PromoBannerCardProps) {
   const Wrapper = banner.ctaLink ? 'a' : 'div';
   const linkProps = banner.ctaLink
     ? { href: banner.ctaLink, target: '_blank' as const, rel: 'noopener noreferrer' }
@@ -15,7 +17,7 @@ export default function PromoBannerCard({ banner, scheme }: PromoBannerCardProps
   return (
     <Wrapper
       {...linkProps}
-      className="col-span-full group relative flex min-h-[180px] items-center gap-8 overflow-hidden rounded-2xl bg-gradient-to-br from-[#3d2c1e] via-[#4a3425] to-[#2c1810] p-8 shadow-lg transition-all duration-300 hover:shadow-xl sm:min-h-[200px] sm:p-10"
+      className="col-span-full group relative flex min-h-[180px] items-center gap-8 overflow-hidden rounded-2xl bg-gradient-to-br from-warm-dark via-warm-dark-mid to-warm-dark-deep p-8 shadow-lg transition-all duration-300 hover:shadow-xl sm:min-h-[200px] sm:p-10"
     >
       {/* Decorative radial glow */}
       <div
@@ -37,15 +39,15 @@ export default function PromoBannerCard({ banner, scheme }: PromoBannerCardProps
           />
         </div>
       ) : (
-        <div className="relative z-10 hidden h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-[#d4641a]/20 text-4xl shadow-lg ring-2 ring-white/10 sm:flex lg:h-32 lg:w-32">
+        <div className="relative z-10 hidden h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-warm-accent/20 text-4xl shadow-lg ring-2 ring-white/10 sm:flex lg:h-32 lg:w-32">
           🎯
         </div>
       )}
 
       {/* Content */}
       <div className="relative z-10 flex-1 min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#d4641a]">
-          ★ Promo
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-warm-accent">
+          ★ {t.promo}
         </p>
         <h3 className="mt-2 text-xl font-extrabold leading-snug text-white sm:text-2xl">
           {banner.title}
@@ -58,7 +60,7 @@ export default function PromoBannerCard({ banner, scheme }: PromoBannerCardProps
       {/* CTA */}
       {banner.ctaText && (
         <div className="relative z-10 hidden shrink-0 sm:block">
-          <span className="inline-flex items-center gap-2.5 rounded-xl bg-[#d4641a] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(212,100,26,0.35)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_8px_24px_rgba(212,100,26,0.45)]">
+          <span className="inline-flex items-center gap-2.5 rounded-xl bg-warm-accent px-6 py-3 text-sm font-bold text-white shadow-[0_4px_16px_color-mix(in_srgb,var(--color-warm-accent)_35%,transparent)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_8px_24px_color-mix(in_srgb,var(--color-warm-accent)_45%,transparent)]">
             {banner.ctaText}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />

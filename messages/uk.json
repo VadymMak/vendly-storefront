@@ -616,7 +616,10 @@
     "newsletterDesc": "Підпишіться, щоб отримувати новини про нові товари та спеціальні пропозиції.",
     "newsletterPlaceholder": "Ваш email",
     "newsletterButton": "Підписатися",
-    "newsletterSuccess": "Дякуємо за підписку!"
+    "newsletterSuccess": "Дякуємо за підписку!",
+    "promo": "Промо",
+    "poweredBy": "Створено на",
+    "info": "Інформація"
   },
   "dashboardReviews": {
     "title": "Відгуки",

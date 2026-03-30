@@ -20,8 +20,8 @@ export default function CategoryFilter({ categories, activeCategory, slug, schem
           href="/"
           className={`inline-flex shrink-0 items-center gap-2 rounded-full border-[1.5px] px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
             !activeCategory
-              ? 'border-[#3d2c1e] bg-[#3d2c1e] text-white shadow-sm'
-              : `border-[#e8e0d6] bg-white text-[#6b6560] hover:border-[#d4641a] hover:text-[#d4641a]`
+              ? 'border-warm-dark bg-warm-dark text-white shadow-sm'
+              : `border-warm-border bg-white text-warm-muted hover:border-warm-accent hover:text-warm-accent`
           }`}
         >
           {/* Grid icon */}
@@ -41,8 +41,8 @@ export default function CategoryFilter({ categories, activeCategory, slug, schem
             href={`/?category=${encodeURIComponent(cat)}`}
             className={`inline-flex shrink-0 items-center gap-2 rounded-full border-[1.5px] px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
               activeCategory === cat
-                ? 'border-[#3d2c1e] bg-[#3d2c1e] text-white shadow-sm'
-                : `border-[#e8e0d6] bg-white text-[#6b6560] hover:border-[#d4641a] hover:text-[#d4641a]`
+                ? 'border-warm-dark bg-warm-dark text-white shadow-sm'
+                : `border-warm-border bg-white text-warm-muted hover:border-warm-accent hover:text-warm-accent`
             }`}
           >
             {cat}
@@ -51,7 +51,7 @@ export default function CategoryFilter({ categories, activeCategory, slug, schem
       </div>
 
       {/* Fade edges on mobile (scroll hint) */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#faf7f2] to-transparent sm:hidden" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-warm-bg to-transparent sm:hidden" />
     </div>
   );
 }

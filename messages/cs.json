@@ -616,7 +616,10 @@
     "newsletterDesc": "Přihlaste se k odběru novinek o nových produktech a speciálních nabídkách.",
     "newsletterPlaceholder": "Váš email",
     "newsletterButton": "Přihlásit se",
-    "newsletterSuccess": "Děkujeme za přihlášení!"
+    "newsletterSuccess": "Děkujeme za přihlášení!",
+    "promo": "Promo",
+    "poweredBy": "Vytvořeno na",
+    "info": "Informace"
   },
   "dashboardReviews": {
     "title": "Recenze",

@@ -76,7 +76,7 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
           {/* CTA button — orange accent, larger */}
           <a
             href="#products"
-            className="mt-9 inline-flex items-center gap-2.5 rounded-[14px] bg-[#d4641a] px-8 py-4 text-[16px] font-bold text-white shadow-[0_4px_20px_rgba(212,100,26,0.4)] transition-all duration-250 hover:-translate-y-0.5 hover:bg-[#b8550f] hover:shadow-[0_8px_30px_rgba(212,100,26,0.5)]"
+            className="mt-9 inline-flex items-center gap-2.5 rounded-[14px] bg-warm-accent px-8 py-4 text-[16px] font-bold text-white shadow-[0_4px_20px_color-mix(in_srgb,var(--color-warm-accent)_40%,transparent)] transition-all duration-250 hover:-translate-y-0.5 hover:bg-warm-accent-hover hover:shadow-[0_8px_30px_color-mix(in_srgb,var(--color-warm-accent)_50%,transparent)]"
           >
             {t.navProducts}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

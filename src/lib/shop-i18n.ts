@@ -104,6 +104,10 @@ export interface ShopFrontMessages {
   newsletterPlaceholder: string;
   newsletterButton: string;
   newsletterSuccess: string;
+  // Misc
+  promo: string;
+  poweredBy: string;
+  info: string;
 }
 
 const VALID_LOCALES = new Set(['en', 'sk', 'uk', 'cs', 'de']);

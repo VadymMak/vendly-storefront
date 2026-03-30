@@ -5,6 +5,8 @@ import OpenAI from 'openai';
 import { db } from '@/lib/db';
 import { resolveUserPlan } from '@/lib/shop-queries';
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+
 const schema = z.object({
   storeId: z.string().min(1),
   userLocale: z.string().default('en'),
@@ -45,25 +47,26 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const effectivePlan = resolveUserPlan(user);
-  const limit = PLAN_LIMITS[effectivePlan] ?? 0;
+  const isAdmin = !!(ADMIN_EMAIL && user.email === ADMIN_EMAIL);
+  const limit = isAdmin ? Infinity : (PLAN_LIMITS[effectivePlan] ?? 0);
 
   if (limit === 0) {
     return NextResponse.json({ error: 'Upgrade to Starter or Pro for AI advisor' }, { status: 403 });
   }
 
-  // Check monthly limit
+  // Check monthly limit (admin bypasses)
   const thisMonth = new Date().toISOString().slice(0, 7);
   const usageThisMonth = user.aiAdvisorMonth === thisMonth ? (user.aiAdvisorCount ?? 0) : 0;
 
-  if (usageThisMonth >= limit) {
+  if (!isAdmin && usageThisMonth >= limit) {
     return NextResponse.json(
       { error: 'Monthly AI advisor limit reached', used: usageThisMonth, limit },
       { status: 429 },
     );
   }
 
-  // Cooldown check (1 minute)
-  if (user.aiAdvisorLastUsed) {
+  // Cooldown check (admin bypasses)
+  if (!isAdmin && user.aiAdvisorLastUsed) {
     const elapsed = Date.now() - new Date(user.aiAdvisorLastUsed).getTime();
     if (elapsed < COOLDOWN_MS) {
       const waitSec = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
@@ -183,7 +186,7 @@ Focus on: missing information, product quality, pricing strategy, categories bal
         priority: a.priority || 'medium',
       })),
       used: usageThisMonth + 1,
-      limit,
+      limit: isAdmin ? 9999 : limit,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

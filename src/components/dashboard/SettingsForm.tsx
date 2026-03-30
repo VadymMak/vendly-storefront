@@ -38,6 +38,7 @@ interface SettingsFormProps {
   categoryCount?: number;
   initialTab?: Tab;
   userPlan?: string;
+  isAdmin?: boolean;
 }
 
 // ── Icons (inline SVG, no libraries) ─────────────────────────────────────────
@@ -115,7 +116,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function SettingsForm({ userId, store, items: storeItems = [], categoryCount = 0, initialTab = 'general', userPlan = 'FREE' }: SettingsFormProps) {
+export default function SettingsForm({ userId, store, items: storeItems = [], categoryCount = 0, initialTab = 'general', userPlan = 'FREE', isAdmin = false }: SettingsFormProps) {
   const router = useRouter();
   const t = useTranslations('dashboardSettings');
   const isNew = !store;
@@ -1218,6 +1219,7 @@ export default function SettingsForm({ userId, store, items: storeItems = [], ca
               items={storeItems}
               categoryCount={categoryCount}
               userPlan={userPlan as OwnerPlan}
+              isAdmin={isAdmin}
               onNavigateTab={(tab) => setActiveTab(tab as Tab)}
             />
           )}

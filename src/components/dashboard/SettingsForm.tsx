@@ -217,6 +217,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
           structuredHours: form.structuredHours,
           orderAcceptance: form.orderAcceptance.enabled ? form.orderAcceptance : undefined,
           coordinates: form.coordinates,
+          promoBanners: form.promoBanners,
         }),
       });
       if (!res.ok) {
@@ -849,6 +850,24 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                         }}
                         placeholder={t('promoTitlePlaceholder')}
                       />
+                      {!isNew && b.title.trim() && (
+                        <div className="mt-1">
+                          <TranslateButton
+                            text={b.title}
+                            targetLang={form.shopLanguage}
+                            storeId={store!.id}
+                            onTranslated={(v) => {
+                              const updated = [...form.promoBanners];
+                              updated[idx] = { ...updated[idx], title: v };
+                              setForm({ ...form, promoBanners: updated });
+                            }}
+                            label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
+                            labelDone={t('translated')}
+                            labelLimit={t('translateLimitReached')}
+                            labelUndo={t('translateUndo')}
+                          />
+                        </div>
+                      )}
                     </Field>
                     <Field label={t('promoCta')}>
                       <input
@@ -909,6 +928,24 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                           </svg>
                           {promoAiLoading === b.id ? t('promoAiGenerating') : t('promoAiGenerate')}
                         </button>
+                      )}
+                      {!isNew && b.description.trim() && (
+                        <div className="mt-1">
+                          <TranslateButton
+                            text={b.description}
+                            targetLang={form.shopLanguage}
+                            storeId={store!.id}
+                            onTranslated={(v) => {
+                              const updated = [...form.promoBanners];
+                              updated[idx] = { ...updated[idx], description: v };
+                              setForm({ ...form, promoBanners: updated });
+                            }}
+                            label={t('translateTo') + ' ' + form.shopLanguage.toUpperCase()}
+                            labelDone={t('translated')}
+                            labelLimit={t('translateLimitReached')}
+                            labelUndo={t('translateUndo')}
+                          />
+                        </div>
                       )}
                     </Field>
                   </div>

@@ -33,6 +33,15 @@ const patchSchema = z.object({
   structuredHours: z.tuple([dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema]).optional(),
   orderAcceptance: z.object({ enabled: z.boolean(), from: z.string(), to: z.string() }).optional(),
   coordinates: z.object({ lat: z.number(), lng: z.number() }).nullable().optional(),
+  promoBanners: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    image: z.string().optional(),
+    ctaText: z.string().optional(),
+    ctaLink: z.string().optional(),
+    enabled: z.boolean(),
+  })).optional(),
 });
 
 export async function PATCH(
@@ -53,7 +62,7 @@ export async function PATCH(
     // Merge settings
     const currentSettings = store.settings as Record<string, unknown>;
     const newSettings: Record<string, unknown> = { ...currentSettings };
-    const settingsFields = ['colorScheme','currency','whatsapp','instagram','facebook','address','phone','openingHours','deliveryInfo','aboutText','bannerImage','quickBadges','structuredHours','orderAcceptance','coordinates'] as const;
+    const settingsFields = ['colorScheme','currency','whatsapp','instagram','facebook','address','phone','openingHours','deliveryInfo','aboutText','bannerImage','quickBadges','structuredHours','orderAcceptance','coordinates','promoBanners'] as const;
     for (const field of settingsFields) {
       if (data[field] !== undefined) {
         newSettings[field] = data[field] || undefined;

@@ -33,6 +33,15 @@ const storeSchema = z.object({
   structuredHours: z.tuple([dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema, dayScheduleSchema]).optional(),
   orderAcceptance: z.object({ enabled: z.boolean(), from: z.string(), to: z.string() }).optional(),
   coordinates: z.object({ lat: z.number(), lng: z.number() }).nullable().optional(),
+  promoBanners: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    image: z.string().optional(),
+    ctaText: z.string().optional(),
+    ctaLink: z.string().optional(),
+    enabled: z.boolean(),
+  })).optional(),
   isPublished:  z.boolean().default(false),
 });
 
@@ -79,6 +88,7 @@ export async function POST(request: Request) {
           structuredHours: data.structuredHours || undefined,
           orderAcceptance: data.orderAcceptance || undefined,
           coordinates: data.coordinates || undefined,
+          promoBanners: data.promoBanners || undefined,
         },
       },
     });

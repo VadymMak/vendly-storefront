@@ -749,7 +749,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                           height="200"
                           style={{ border: 0 }}
                           loading="lazy"
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${form.coordinates.lng - 0.005},${form.coordinates.lat - 0.003},${form.coordinates.lng + 0.005},${form.coordinates.lat + 0.003}&layer=mapnik&marker=${form.coordinates.lat},${form.coordinates.lng}`}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${form.coordinates.lng - 0.02},${form.coordinates.lat - 0.012},${form.coordinates.lng + 0.02},${form.coordinates.lat + 0.012}&layer=mapnik&marker=${form.coordinates.lat},${form.coordinates.lng}`}
                         />
                       </div>
                     </div>

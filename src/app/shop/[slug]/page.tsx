@@ -345,7 +345,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                   height="300"
                   style={{ border: 0 }}
                   loading="lazy"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${s.coordinates.lng - 0.008},${s.coordinates.lat - 0.005},${s.coordinates.lng + 0.008},${s.coordinates.lat + 0.005}&layer=mapnik&marker=${s.coordinates.lat},${s.coordinates.lng}`}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${s.coordinates.lng - 0.02},${s.coordinates.lat - 0.012},${s.coordinates.lng + 0.02},${s.coordinates.lat + 0.012}&layer=mapnik&marker=${s.coordinates.lat},${s.coordinates.lng}`}
                 />
               </div>
             )}

@@ -166,7 +166,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-white">
+    <section className="relative overflow-hidden bg-green-50/40">
       {/* Background effects */}
       <div className="absolute inset-0">
         {/* Soft green radial glow */}

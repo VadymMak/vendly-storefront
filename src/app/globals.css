@@ -31,7 +31,7 @@ html {
 }
 
 body {
-  background: var(--color-background);
+  background: #f0fdf8;
   color: var(--color-foreground);
 }
 

@@ -49,7 +49,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   return (
     <div style={hasCustomVars ? (shopCssVars as React.CSSProperties) : undefined}>
       {/* ── HERO ────────────────────────────────────────────────────── */}
-      <ShopHero store={store} scheme={scheme} t={t} />
+      <ShopHero store={store} scheme={scheme} t={t} items={items} categories={categories} />
 
       {/* ── QUICK BADGES ──────────────────────────────────────────────────── */}
       {s.quickBadges && s.quickBadges.length > 0 && (

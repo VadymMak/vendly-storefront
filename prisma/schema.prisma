@@ -19,6 +19,9 @@ model User {
   stripeAccountId String?
   aiUsageCount    Int      @default(0)
   aiUsageMonth    String?
+  aiAdvisorCount  Int      @default(0)
+  aiAdvisorMonth  String?
+  aiAdvisorLastUsed DateTime?
   stores          Store[]
   createdAt       DateTime @default(now())
 }

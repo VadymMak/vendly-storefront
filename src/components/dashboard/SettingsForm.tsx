@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
+import type { ShopData, ShopItem, StoreSettingsFormData, DaySchedule, WeekSchedule, OwnerPlan } from '@/lib/types';
 import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
 import ImageUpload from '@/components/ui/ImageUpload';
 import TranslateButton from '@/components/ui/TranslateButton';
 import BulkTranslateButton from '@/components/ui/BulkTranslateButton';
+import StoreAdvisor from '@/components/dashboard/StoreAdvisor';
 
 const LANGUAGES = [
   { value: 'sk', label: 'Slovenčina' },
@@ -28,11 +29,13 @@ const COLOR_SCHEMES = [
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
-type Tab = 'general' | 'design' | 'contact' | 'promo' | 'categories' | 'publishing' | 'danger';
+type Tab = 'general' | 'design' | 'contact' | 'promo' | 'categories' | 'advisor' | 'publishing' | 'danger';
 
 interface SettingsFormProps {
   userId: string;
   store: ShopData | null;
+  items?: ShopItem[];
+  categoryCount?: number;
   initialTab?: Tab;
   userPlan?: string;
 }
@@ -90,6 +93,13 @@ function IconCategories() {
     </svg>
   );
 }
+function IconAdvisor() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5L18.2 22 12 17.5 5.8 22l2.4-8.1L2 9.4h7.6z" />
+    </svg>
+  );
+}
 
 // ── Field helper ──────────────────────────────────────────────────────────────
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -105,7 +115,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function SettingsForm({ userId, store, initialTab = 'general', userPlan = 'FREE' }: SettingsFormProps) {
+export default function SettingsForm({ userId, store, items: storeItems = [], categoryCount = 0, initialTab = 'general', userPlan = 'FREE' }: SettingsFormProps) {
   const router = useRouter();
   const t = useTranslations('dashboardSettings');
   const isNew = !store;
@@ -327,6 +337,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     { id: 'contact',    label: t('sectionContact'),  icon: <IconContact /> },
     { id: 'promo',       label: t('sectionPromo'),        icon: <IconDesign /> },
     ...(!isNew ? [{ id: 'categories' as Tab, label: t('sectionCategories'), icon: <IconCategories /> }] : []),
+    ...(!isNew ? [{ id: 'advisor' as Tab, label: t('sectionAdvisor'), icon: <IconAdvisor /> }] : []),
     { id: 'publishing', label: t('isPublished'),       icon: <IconPublish /> },
     ...(isNew ? [] : [{ id: 'danger' as Tab, label: t('dangerZone'), icon: <IconDanger />, danger: true }]),
   ];
@@ -1198,6 +1209,17 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 </div>
               )}
             </section>
+          )}
+
+          {/* ADVISOR */}
+          {activeTab === 'advisor' && !isNew && store && (
+            <StoreAdvisor
+              store={store}
+              items={storeItems}
+              categoryCount={categoryCount}
+              userPlan={userPlan as OwnerPlan}
+              onNavigateTab={(tab) => setActiveTab(tab as Tab)}
+            />
           )}
 
           {/* DANGER ZONE */}

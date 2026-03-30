@@ -246,6 +246,29 @@ export interface BrowseStore {
   createdAt: string;
 }
 
+// ===== Store Advisor types =====
+
+export type ScoreLevel = 'critical' | 'warning' | 'bonus';
+
+export interface ScoreCheck {
+  id: string;
+  level: ScoreLevel;
+  passed: boolean;
+  labelKey: string;
+  tab?: string; // which settings tab to navigate to
+}
+
+export interface StoreScoreResult {
+  score: number; // 0-100
+  checks: ScoreCheck[];
+}
+
+export interface AiAdvice {
+  id: string;
+  text: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
 // ===== Admin types =====
 
 export interface AdminStore {

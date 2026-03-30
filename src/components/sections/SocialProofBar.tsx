@@ -113,7 +113,7 @@ export default function SocialProofBar() {
   const t = useTranslations('socialProof');
 
   return (
-    <section className="overflow-hidden border-y border-gray-100 bg-gray-50/70 py-5">
+    <section className="overflow-hidden border-y border-green-100 bg-accent py-5">
       {/* Trusted by text */}
       <p className="mb-4 px-4 text-center text-xs font-semibold uppercase tracking-wider text-neutral/60 sm:tracking-widest">
         {t('text')}

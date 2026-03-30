@@ -98,7 +98,7 @@ export default function FeaturedShops() {
   const t = useTranslations('featuredShops');
 
   return (
-    <section className="scroll-reveal py-20 sm:py-28">
+    <section className="scroll-reveal bg-accent py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="max-w-2xl">

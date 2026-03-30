@@ -28,11 +28,27 @@ const COLOR_SCHEMES = [
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
-const SHORT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const LOCALIZED_DAYS: Record<string, string[]> = {
+  sk: ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'],
+  cs: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'],
+  uk: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'],
+  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+};
 
-/** Generate a compact opening hours string from structured schedule, e.g. "Mon–Fri 09:00–18:00, Sat–Sun Closed" */
-function formatStructuredHours(hours: WeekSchedule): string {
-  // Group consecutive days with the same schedule
+const LOCALIZED_CLOSED: Record<string, string> = {
+  sk: 'Zatvorené',
+  cs: 'Zavřeno',
+  uk: 'Зачинено',
+  de: 'Geschlossen',
+  en: 'Closed',
+};
+
+/** Generate a compact opening hours string from structured schedule in shop language */
+function formatStructuredHours(hours: WeekSchedule, lang: string): string {
+  const days = LOCALIZED_DAYS[lang] || LOCALIZED_DAYS.en;
+  const closed = LOCALIZED_CLOSED[lang] || LOCALIZED_CLOSED.en;
+
   const groups: { start: number; end: number; open: boolean; from: string; to: string }[] = [];
 
   for (let i = 0; i < 7; i++) {
@@ -51,9 +67,9 @@ function formatStructuredHours(hours: WeekSchedule): string {
   return groups
     .map((g) => {
       const range = g.start === g.end
-        ? SHORT_DAYS[g.start]
-        : `${SHORT_DAYS[g.start]}–${SHORT_DAYS[g.end]}`;
-      return g.open ? `${range} ${g.from}–${g.to}` : `${range} Closed`;
+        ? days[g.start]
+        : `${days[g.start]}–${days[g.end]}`;
+      return g.open ? `${range} ${g.from}–${g.to}` : `${range} ${closed}`;
     })
     .join(', ');
 }
@@ -245,8 +261,8 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     setError(null);
     setSuccess(false);
     try {
-      // Auto-generate openingHours text from structured schedule
-      const generatedHours = formatStructuredHours(form.structuredHours);
+      // Auto-generate openingHours text from structured schedule in shop language
+      const generatedHours = formatStructuredHours(form.structuredHours, form.shopLanguage);
 
       // Auto-geocode address if address exists but coordinates are missing
       let coords = form.coordinates;

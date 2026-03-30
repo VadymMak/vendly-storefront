@@ -11,6 +11,7 @@ import SearchBar from '@/components/shop/SearchBar';
 import ShopNewsletter from '@/components/shop/ShopNewsletter';
 import ShopHero from '@/components/shop/ShopHero';
 import CookieConsent from '@/components/shop/CookieConsent';
+import ShopMap from '@/components/shop/ShopMap';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
@@ -285,16 +286,13 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
             </div>
 
-            {/* ── Map embed ──────────────────────────────────────────── */}
+            {/* ── Map ──────────────────────────────────────────── */}
             {s.coordinates && (
-              <div className="mt-8 overflow-hidden rounded-2xl border border-gray-200">
-                <iframe
-                  title="Store location"
-                  width="100%"
-                  height="300"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${s.coordinates.lng - 0.02},${s.coordinates.lat - 0.012},${s.coordinates.lng + 0.02},${s.coordinates.lat + 0.012}&layer=mapnik&marker=${s.coordinates.lat},${s.coordinates.lng}`}
+              <div className="mt-8">
+                <ShopMap
+                  lat={s.coordinates.lat}
+                  lng={s.coordinates.lng}
+                  storeName={store.name}
                 />
               </div>
             )}

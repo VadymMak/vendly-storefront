@@ -15,43 +15,54 @@ export default function PromoBannerCard({ banner, scheme }: PromoBannerCardProps
   return (
     <Wrapper
       {...linkProps}
-      className={`col-span-full flex items-center gap-6 overflow-hidden rounded-2xl p-6 sm:p-8 transition-all ${scheme.heroBg} ${scheme.border} border hover:shadow-lg`}
+      className="col-span-full group relative flex min-h-[180px] items-center gap-8 overflow-hidden rounded-2xl bg-gradient-to-br from-[#3d2c1e] via-[#4a3425] to-[#2c1810] p-8 shadow-lg transition-all duration-300 hover:shadow-xl sm:min-h-[200px] sm:p-10"
     >
+      {/* Decorative radial glow */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 60% 80% at 80% 50%, rgba(212,100,26,0.12) 0%, transparent 70%)',
+        }}
+      />
+
       {/* Image / Icon */}
       {banner.image ? (
-        <div className="relative hidden h-24 w-24 shrink-0 overflow-hidden rounded-xl sm:block">
+        <div className="relative z-10 hidden h-28 w-28 shrink-0 overflow-hidden rounded-2xl shadow-lg ring-2 ring-white/10 sm:block lg:h-32 lg:w-32">
           <Image
             src={banner.image}
             alt={banner.title}
             fill
-            sizes="96px"
-            className="object-cover"
+            sizes="128px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         </div>
       ) : (
-        <div className={`hidden h-24 w-24 shrink-0 items-center justify-center rounded-xl sm:flex ${scheme.accent} text-3xl`}>
+        <div className="relative z-10 hidden h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-[#d4641a]/20 text-4xl shadow-lg ring-2 ring-white/10 sm:flex lg:h-32 lg:w-32">
           🎯
         </div>
       )}
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <p className={`text-xs font-semibold uppercase tracking-widest ${scheme.textMuted}`}>
+      <div className="relative z-10 flex-1 min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#d4641a]">
           ★ Promo
         </p>
-        <h3 className="mt-1 text-lg font-bold leading-snug sm:text-xl">{banner.title}</h3>
-        <p className={`mt-1 text-sm leading-relaxed ${scheme.textMuted} line-clamp-2`}>
+        <h3 className="mt-2 text-xl font-extrabold leading-snug text-white sm:text-2xl">
+          {banner.title}
+        </h3>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/55 line-clamp-2 sm:text-[15px]">
           {banner.description}
         </p>
       </div>
 
       {/* CTA */}
       {banner.ctaText && (
-        <div className="hidden shrink-0 sm:block">
-          <span className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${scheme.accent} ${scheme.accentHover}`}>
+        <div className="relative z-10 hidden shrink-0 sm:block">
+          <span className="inline-flex items-center gap-2.5 rounded-xl bg-[#d4641a] px-6 py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(212,100,26,0.35)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_8px_24px_rgba(212,100,26,0.45)]">
             {banner.ctaText}
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 8h10M9 4l4 4-4 4" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
             </svg>
           </span>
         </div>

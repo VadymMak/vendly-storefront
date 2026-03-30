@@ -13,8 +13,8 @@ interface ProductGridProps {
   promoBanners?: PromoBanner[];
 }
 
-/** Number of products per row before inserting a banner */
-const ITEMS_PER_BANNER = 4;
+/** Number of products before inserting a banner (two full rows) */
+const ITEMS_PER_BANNER = 8;
 
 export default function ProductGrid({ items, scheme, currency, t, promoBanners = [] }: ProductGridProps) {
   const enabledBanners = promoBanners.filter((b) => b.enabled);

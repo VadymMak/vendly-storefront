@@ -146,11 +146,12 @@
 - [ ] TODO: Dashboard setting для переключения heroLayout
 - [ ] TODO: AI Advisor рекомендация compact layout для платных планов
 
-#### A.3 — Catalog / Product Grid ⬜
-- [ ] Горизонтальная полоса категорий с иконками
-- [ ] Rounded search bar
-- [ ] Grid 2→3→4 колонки (responsive)
-- [ ] Фильтры: цена, категория, наличие
+#### A.3 — Catalog / Product Grid ✅
+- [x] Горизонтальная полоса категорий — scrollable на mobile, flex-wrap на desktop, grid icon на "All"
+- [x] Rounded search bar — rounded-full, py-3, focus shadow
+- [x] Grid 2→3→4 колонки (responsive) — уже было
+- [x] scrollbar-hide CSS утилита для чистого горизонтального скролла
+- [ ] TODO: Фильтры: цена, категория, наличие — Phase D
 
 #### A.4 — Typography & Spacing ⬜
 - [ ] Профессиональная типографика (заголовки/текст/цены)

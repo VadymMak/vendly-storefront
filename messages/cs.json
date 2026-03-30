@@ -239,6 +239,8 @@
     "addProduct": "+ Přidat produkt",
     "newProduct": "Nový produkt",
     "editProduct": "Upravit produkt",
+    "newProductDesc": "Přidejte produkt, službu nebo položku menu.",
+    "editProductDesc": "Upravte detaily produktu nebo služby.",
     "noProducts": "Zatím žádné produkty",
     "noProductsDesc": "Přidejte první produkt nebo službu.",
     "colProduct": "Produkt",

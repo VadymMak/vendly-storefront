@@ -239,6 +239,8 @@
     "addProduct": "+ Produkt hinzufügen",
     "newProduct": "Neues Produkt",
     "editProduct": "Produkt bearbeiten",
+    "newProductDesc": "Fügen Sie ein Produkt, eine Dienstleistung oder einen Menüpunkt hinzu.",
+    "editProductDesc": "Bearbeiten Sie die Produkt- oder Dienstleistungsdetails.",
     "noProducts": "Noch keine Produkte",
     "noProductsDesc": "Fügen Sie Ihr erstes Produkt oder Ihre erste Dienstleistung hinzu.",
     "colProduct": "Produkt",

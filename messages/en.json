@@ -239,6 +239,8 @@
     "addProduct": "+ Add product",
     "newProduct": "New product",
     "editProduct": "Edit product",
+    "newProductDesc": "Add a product, service, or menu item.",
+    "editProductDesc": "Edit the product or service details.",
     "noProducts": "No products yet",
     "noProductsDesc": "Add your first product or service.",
     "colProduct": "Product",

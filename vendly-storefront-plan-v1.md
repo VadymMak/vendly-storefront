@@ -119,7 +119,7 @@
 - **Первый тип:** Food/Продукты (тестируем на Smak Shop)
 - **Референсы:** Shopify Taste theme, Rohlik.cz, Figma Shopery, Figma Grocery UI Kit
 
-### Фаза A — Food Store Template ⬜
+### Фаза A — Food Store Template ✅
 Порядок работы: по одной секции, каждую утверждаем визуально.
 
 #### A.1 — Product Card (карточка товара) ✅
@@ -153,15 +153,18 @@
 - [x] scrollbar-hide CSS утилита для чистого горизонтального скролла
 - [ ] TODO: Фильтры: цена, категория, наличие — Phase D
 
-#### A.4 — Typography & Spacing ⬜
-- [ ] Профессиональная типографика (заголовки/текст/цены)
-- [ ] Правильные отступы и spacing между секциями
-- [ ] Food-палитра: тёплый зелёный + кремовый фон + коричневый текст
+#### A.4 — Typography & Spacing ✅
+- [x] Catalog: extrabold sm:text-3xl заголовок, wider search (sm:w-80), py-12/py-14
+- [x] About: ring-4 на avatar, text-3xl stats, tighter tracking, py-14
+- [x] Contact: rounded-2xl карточки, rounded-full иконки, hover:-translate-y-0.5
+- [x] Warm palette обновлена: orange-50 bg, green-600 accent, stone text — food-store стиль
+- [x] Увеличены отступы секций (py-14) для лучшего ритма
 
-#### A.5 — Contact & Footer ⬜
-- [ ] Тёплые карточки с иконками (телефон, адрес, WhatsApp, часы)
-- [ ] Карта (уже починено — zoom на город)
-- [ ] Профессиональный footer
+#### A.5 — Contact & Footer ✅
+- [x] Контактные карточки: rounded-2xl, circular icons, hover lift, bg-white/70
+- [x] Карта (уже починено — zoom на город)
+- [x] Footer: scheme-aware цвета, social circles с branded hover, opacity-based текст
+- [x] Footer typography: text-xl extrabold имя, 11px bold uppercase заголовки колонок
 
 ### Фаза B — Product Attributes System ⬜
 - [ ] `customAttributes` JSON поле в Product model

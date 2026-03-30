@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
 import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
 import ImageUpload from '@/components/ui/ImageUpload';
+import BannerCropper from '@/components/ui/BannerCropper';
 import TranslateButton from '@/components/ui/TranslateButton';
 import BulkTranslateButton from '@/components/ui/BulkTranslateButton';
 
@@ -209,6 +210,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   const [slug, setSlug] = useState(store?.slug || '');
   const [logo, setLogo] = useState<string[]>(store?.logo ? [store.logo] : []);
   const [banner, setBanner] = useState<string[]>(store?.settings.bannerImage ? [store.settings.bannerImage] : []);
+  const [cropperUrl, setCropperUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -250,6 +252,20 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   useEffect(() => {
     if (store) loadCategories();
   }, [store, loadCategories]);
+
+  // Banner crop handler — uploads cropped blob, updates banner state
+  const handleBannerCrop = async (blob: Blob) => {
+    const fd = new FormData();
+    fd.append('file', blob, 'banner-cropped.jpg');
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setBanner([data.url]);
+      }
+    } catch { /* upload failed */ }
+    setCropperUrl(null);
+  };
 
   const set = <K extends keyof StoreSettingsFormData>(field: K, value: StoreSettingsFormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -610,10 +626,17 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
             <section>
               <SectionHeader title={t('sectionDesign')} />
               <div className="space-y-6">
-                {/* Banner / hero image */}
+                {/* Banner / hero image — with crop tool */}
                 <ImageUpload
                   images={banner}
-                  onChange={setBanner}
+                  onChange={(imgs) => {
+                    // When a NEW image is uploaded (not removed), open cropper
+                    if (imgs.length > 0 && imgs[0] !== banner[0]) {
+                      setCropperUrl(imgs[0]);
+                    } else {
+                      setBanner(imgs);
+                    }
+                  }}
                   single
                   label={t('bannerImage')}
                   hint={t('bannerHint')}
@@ -622,6 +645,20 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   textUploading={t('uploadUploading')}
                   textRemove={t('uploadRemove')}
                 />
+                {/* Crop existing banner button */}
+                {banner[0] && !cropperUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setCropperUrl(banner[0])}
+                    className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6.13 1L6 16a2 2 0 002 2h15" />
+                      <path d="M1 6.13L16 6a2 2 0 012 2v15" />
+                    </svg>
+                    Crop banner
+                  </button>
+                )}
 
                 {/* Quick info badges */}
                 <div>
@@ -1402,6 +1439,17 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Banner Cropper Modal ─────────────────────────────────────── */}
+      {cropperUrl && (
+        <BannerCropper
+          imageUrl={cropperUrl}
+          onCrop={handleBannerCrop}
+          onCancel={() => setCropperUrl(null)}
+          labelSave={t('save')}
+          labelCancel={t('cancel')}
+        />
       )}
     </div>
   );

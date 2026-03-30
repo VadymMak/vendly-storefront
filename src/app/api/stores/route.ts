@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { resolveUserPlan } from '@/lib/shop-queries';
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+
+/** Max stores per plan. Admin bypasses. */
+const PLAN_STORE_LIMITS: Record<string, number> = {
+  FREE: 1,
+  STARTER: 3,
+  PRO: 10,
+};
 
 const dayScheduleSchema = z.object({
   open: z.boolean(),
@@ -55,6 +65,26 @@ export async function POST(request: Request) {
 
     if (data.userId !== session.user.id) {
       return NextResponse.json({ error: 'Neautorizovaný' }, { status: 403 });
+    }
+
+    // Check store count limit per plan
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { plan: true, email: true },
+    });
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    const isAdmin = !!(ADMIN_EMAIL && user.email === ADMIN_EMAIL);
+    if (!isAdmin) {
+      const effectivePlan = resolveUserPlan(user);
+      const maxStores = PLAN_STORE_LIMITS[effectivePlan] ?? 1;
+      const currentCount = await db.store.count({ where: { userId: session.user.id } });
+      if (currentCount >= maxStores) {
+        return NextResponse.json(
+          { error: `Store limit reached (${maxStores}). Upgrade your plan to create more stores.`, limit: maxStores, current: currentCount },
+          { status: 403 },
+        );
+      }
     }
 
     // Check slug uniqueness

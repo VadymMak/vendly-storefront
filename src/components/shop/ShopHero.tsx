@@ -1,11 +1,17 @@
-import type { ShopData, ColorSchemeTokens } from '@/lib/types';
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import type { ShopData, ColorSchemeTokens, ShopItem } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import StoreStatus from './StoreStatus';
+import Image from 'next/image';
 
 interface ShopHeroProps {
   store: ShopData;
   scheme: ColorSchemeTokens;
   t: ShopFrontMessages;
+  items: ShopItem[];
+  categories: string[];
 }
 
 /**
@@ -13,7 +19,6 @@ interface ShopHeroProps {
  * and the rest as subtitle. Used when no heroTagline is set.
  */
 function splitDescription(desc: string): { headline: string; subtitle: string } {
-  // Try first sentence
   const sentenceEnd = desc.search(/[.!?]\s/);
   if (sentenceEnd > 0 && sentenceEnd <= 80) {
     return {
@@ -21,7 +26,6 @@ function splitDescription(desc: string): { headline: string; subtitle: string } 
       subtitle: desc.slice(sentenceEnd + 2).trim(),
     };
   }
-  // Fallback: split at ~60 chars on word boundary
   if (desc.length > 60) {
     const cut = desc.lastIndexOf(' ', 60);
     if (cut > 20) {
@@ -34,18 +38,75 @@ function splitDescription(desc: string): { headline: string; subtitle: string } 
   return { headline: desc, subtitle: '' };
 }
 
-export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
+/** Group items by category, returning a map. Null-category items go under allCategories label. */
+function groupByCategory(
+  items: ShopItem[],
+  categories: string[],
+  allLabel: string,
+): Record<string, ShopItem[]> {
+  const map: Record<string, ShopItem[]> = {};
+
+  // Only use categories that have items
+  for (const cat of categories) {
+    const catItems = items.filter((it) => it.category === cat && it.images.length > 0);
+    if (catItems.length > 0) {
+      map[cat] = catItems;
+    }
+  }
+
+  // If there are uncategorized items with images, group them
+  const uncategorized = items.filter((it) => !it.category && it.images.length > 0);
+  if (uncategorized.length > 0 && Object.keys(map).length === 0) {
+    map[allLabel] = uncategorized;
+  }
+
+  return map;
+}
+
+export default function ShopHero({ store, scheme, t, items, categories }: ShopHeroProps) {
   const s = store.settings;
   const hf = scheme.headingFont || '';
 
-  // Use description as hero tagline — split into headline + subtitle
   const hasDescription = !!store.description;
   const { headline, subtitle } = hasDescription
     ? splitDescription(store.description as string)
     : { headline: '', subtitle: '' };
 
+  // Group items by category for the showcase
+  const grouped = groupByCategory(items, categories, t.allCategories);
+  const catNames = Object.keys(grouped);
+  const hasShowcase = catNames.length > 0;
+
+  const [activeCat, setActiveCat] = useState(catNames[0] || '');
+  const [animKey, setAnimKey] = useState(0);
+
+  const switchCategory = useCallback(
+    (cat: string) => {
+      setActiveCat(cat);
+      setAnimKey((k) => k + 1);
+    },
+    [],
+  );
+
+  // Auto-switch categories every 5 seconds
+  useEffect(() => {
+    if (catNames.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveCat((prev) => {
+        const idx = catNames.indexOf(prev);
+        const next = catNames[(idx + 1) % catNames.length];
+        setAnimKey((k) => k + 1);
+        return next;
+      });
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [catNames]);
+
+  // Get up to 3 items for the active category
+  const showcaseItems = (grouped[activeCat] || []).slice(0, 3);
+
   return (
-    <section className={`relative min-h-[600px] overflow-hidden sm:min-h-[700px] ${scheme.heroBg}`}>
+    <section className={`relative min-h-[480px] overflow-hidden ${scheme.heroBg}`}>
       {/* Decorative radial gradients */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -58,12 +119,13 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
       <div className="pointer-events-none absolute -right-10 -top-10 h-[500px] w-[500px] rounded-full border border-white/[0.06]" />
       <div className="pointer-events-none absolute -left-20 bottom-0 h-[300px] w-[300px] rounded-full border border-white/[0.04]" />
 
-      {/* Content */}
-      <div className="relative z-10 mx-auto flex min-h-[600px] max-w-7xl items-center px-6 py-20 sm:min-h-[700px] sm:px-10 sm:py-28 lg:px-12">
-        <div className="max-w-3xl">
+      {/* Content — grid: left text | right showcase */}
+      <div className="relative z-10 mx-auto grid min-h-[480px] max-w-7xl items-center gap-10 px-6 py-16 sm:px-10 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-12">
+        {/* ── LEFT: compact text ── */}
+        <div>
           {/* Status badge */}
           {s.structuredHours && (
-            <div className="mb-8">
+            <div className="mb-6">
               <StoreStatus
                 hours={s.structuredHours}
                 orderAcceptance={s.orderAcceptance}
@@ -74,39 +136,39 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
             </div>
           )}
 
-          {/* Main heading — big dramatic tagline like mockup */}
+          {/* Heading */}
           {hasDescription ? (
             <>
               <h1
-                className={`text-[36px] font-extrabold text-white sm:text-[48px] lg:text-[56px] ${hf}`}
-                style={{ lineHeight: 1.05, letterSpacing: '-0.025em' }}
+                className={`text-[32px] font-extrabold text-white sm:text-[40px] lg:text-[48px] ${hf}`}
+                style={{ lineHeight: 1.08, letterSpacing: '-0.025em' }}
               >
                 {headline}
               </h1>
               {subtitle && (
-                <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/60 sm:text-[19px] sm:leading-[1.75]">
+                <p className="mt-5 max-w-md text-[16px] leading-relaxed text-white/60 sm:text-[17px] sm:leading-[1.75]">
                   {subtitle}
                 </p>
               )}
             </>
           ) : (
             <h1
-              className={`text-[36px] font-extrabold text-white sm:text-[48px] lg:text-[56px] ${hf}`}
-              style={{ lineHeight: 1.05, letterSpacing: '-0.025em' }}
+              className={`text-[32px] font-extrabold text-white sm:text-[40px] lg:text-[48px] ${hf}`}
+              style={{ lineHeight: 1.08, letterSpacing: '-0.025em' }}
             >
               {store.name}
             </h1>
           )}
 
-          {/* Quick badges — glass pills in hero */}
+          {/* Quick badges */}
           {s.quickBadges && s.quickBadges.length > 0 && (
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               {s.quickBadges.slice(0, 4).map((badgeId) => (
                 <span
                   key={badgeId}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-5 py-2.5 text-[14px] font-medium text-white/75"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-4 py-2 text-[13px] font-medium text-white/75"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   {badgeId.replace(/_/g, ' ')}
@@ -115,18 +177,82 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
             </div>
           )}
 
-          {/* CTA button — orange accent, larger like mockup */}
+          {/* CTA */}
           <a
             href="#products"
-            className="mt-10 inline-flex items-center gap-3 rounded-[16px] bg-warm-accent px-10 py-5 text-[17px] font-bold text-white shadow-[0_4px_20px_color-mix(in_srgb,var(--color-warm-accent)_40%,transparent)] transition-all duration-250 hover:-translate-y-0.5 hover:bg-warm-accent-hover hover:shadow-[0_8px_30px_color-mix(in_srgb,var(--color-warm-accent)_50%,transparent)]"
+            className="mt-8 inline-flex items-center gap-3 rounded-[14px] bg-warm-accent px-8 py-4 text-[16px] font-bold text-white shadow-[0_4px_20px_color-mix(in_srgb,var(--color-warm-accent)_40%,transparent)] transition-all duration-250 hover:-translate-y-0.5 hover:bg-warm-accent-hover hover:shadow-[0_8px_30px_color-mix(in_srgb,var(--color-warm-accent)_50%,transparent)]"
           >
             {t.browseProducts}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
           </a>
         </div>
+
+        {/* ── RIGHT: interactive category showcase ── */}
+        {hasShowcase && (
+          <div className="hidden lg:block">
+            {/* Category pills */}
+            <div className="mb-5 flex flex-wrap gap-2">
+              {catNames.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    switchCategory(cat);
+                  }}
+                  className={`rounded-full px-4 py-2 text-[13px] font-semibold transition-all duration-300 ${
+                    activeCat === cat
+                      ? 'bg-warm-accent border-warm-accent border text-white'
+                      : 'border border-white/12 bg-white/[0.08] text-white/65 hover:bg-white/[0.14] hover:text-white/90'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Product grid — 2 columns, first card spans 2 rows */}
+            <div
+              key={animKey}
+              className="hero-fade-slide grid grid-cols-2 gap-3.5"
+            >
+              {showcaseItems.map((item, i) => (
+                <a
+                  key={item.id}
+                  href={`#products`}
+                  className={`group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.08] backdrop-blur-[10px] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.12] ${
+                    i === 0 ? 'row-span-2' : ''
+                  }`}
+                >
+                  {/* Image */}
+                  <div className={`relative w-full overflow-hidden ${i === 0 ? 'h-full min-h-[260px]' : 'aspect-square'}`}>
+                    <Image
+                      src={item.images[0]}
+                      alt={item.name}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes={i === 0 ? '280px' : '200px'}
+                    />
+                    {/* Gradient overlay at bottom for text readability */}
+                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+                    {/* Info overlay at bottom */}
+                    <div className="absolute inset-x-0 bottom-0 px-3.5 pb-3">
+                      <div className="text-[13px] font-semibold text-white/90 leading-snug">
+                        {item.name}
+                      </div>
+                      {item.price != null && (
+                        <div className="mt-0.5 text-[15px] font-bold text-warm-accent">
+                          {item.price.toFixed(2)} {item.currency}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

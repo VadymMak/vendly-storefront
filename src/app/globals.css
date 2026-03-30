@@ -158,3 +158,19 @@ body {
     padding-bottom: 1rem;
   }
 }
+
+/* Hero showcase — fade-slide animation for category switch */
+@keyframes hero-fade-slide {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-fade-slide {
+  animation: hero-fade-slide 0.4s ease-out;
+}

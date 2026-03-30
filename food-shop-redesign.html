@@ -289,13 +289,46 @@
     box-shadow: 0 8px 30px rgba(212,100,26,0.5);
   }
 
-  /* Hero right — featured products grid */
-  .hero-products {
+  /* Hero right — category showcase with auto-switch */
+  .hero-showcase {
     position: relative;
     z-index: 2;
+  }
+  .hero-categories {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .hero-cat-pill {
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .hero-cat-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .hero-cat-pill:hover:not(.active) {
+    background: rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.9);
+  }
+  .hero-products-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 14px;
+    animation: fadeSlideIn 0.4s ease-out;
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .hero-product-card {
     background: rgba(255,255,255,0.08);
@@ -814,28 +847,16 @@
       </a>
     </div>
 
-    <!-- Featured products in hero -->
-    <div class="hero-products">
-      <div class="hero-product-card">
-        <img class="hero-product-img" src="https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=400&h=500&fit=crop" alt="Smoked fish">
-        <div class="hero-product-info">
-          <div class="hero-product-name">Smoked Fish Premium</div>
-          <div class="hero-product-price">24.00 €</div>
-        </div>
+    <!-- Category showcase with auto-switch -->
+    <div class="hero-showcase">
+      <div class="hero-categories">
+        <div class="hero-cat-pill active" data-cat="ryby">Ryby</div>
+        <div class="hero-cat-pill" data-cat="snacky">Snacky</div>
+        <div class="hero-cat-pill" data-cat="caj">Čaj</div>
+        <div class="hero-cat-pill" data-cat="delikatesy">Delikatesy</div>
       </div>
-      <div class="hero-product-card">
-        <img class="hero-product-img" src="https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=300&h=200&fit=crop" alt="Snack">
-        <div class="hero-product-info">
-          <div class="hero-product-name">Rybí snack</div>
-          <div class="hero-product-price">12.50 €</div>
-        </div>
-      </div>
-      <div class="hero-product-card">
-        <img class="hero-product-img" src="https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=300&h=200&fit=crop" alt="Seafood">
-        <div class="hero-product-info">
-          <div class="hero-product-name">Morské plody mix</div>
-          <div class="hero-product-price">15.00 €</div>
-        </div>
+      <div id="hero-grid" class="hero-products-grid">
+        <!-- Populated by JS -->
       </div>
     </div>
   </div>
@@ -1075,5 +1096,83 @@
   </div>
 </footer>
 
+<script>
+// Hero category showcase — auto-switching with random products
+const CATEGORIES = {
+  ryby: {
+    products: [
+      { name: 'Údené ryby', price: '24.00', img: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=400&h=500&fit=crop' },
+      { name: 'Solená sleď', price: '7.50', img: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=300&h=200&fit=crop' },
+      { name: 'Hamsa solena', price: '15.00', img: 'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=300&h=200&fit=crop' },
+    ]
+  },
+  snacky: {
+    products: [
+      { name: 'Čipsy', price: '1.00', img: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&h=500&fit=crop' },
+      { name: 'Smažené semienka', price: '12.50', img: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=300&h=200&fit=crop' },
+      { name: 'Sušené ryby', price: '8.90', img: 'https://images.unsplash.com/photo-1606756790138-261d2b21cd75?w=300&h=200&fit=crop' },
+    ]
+  },
+  caj: {
+    products: [
+      { name: 'Lovaré Wild Berry', price: '5.60', img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=500&fit=crop' },
+      { name: 'Azerbajdžanský čaj', price: '4.60', img: 'https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=300&h=200&fit=crop' },
+      { name: 'Čaj Berry Jam', price: '2.50', img: 'https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=300&h=200&fit=crop' },
+    ]
+  },
+  delikatesy: {
+    products: [
+      { name: 'Gastro delikatesa', price: '10.50', img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=500&fit=crop' },
+      { name: 'Jačmenná krupica', price: '2.20', img: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&h=200&fit=crop' },
+      { name: 'Hrach zelený', price: '2.90', img: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=300&h=200&fit=crop' },
+    ]
+  },
+};
+
+const pills = document.querySelectorAll('.hero-cat-pill');
+const grid = document.getElementById('hero-grid');
+let currentCat = 'ryby';
+let autoTimer;
+
+function renderGrid(cat) {
+  const items = CATEGORIES[cat].products;
+  grid.style.animation = 'none';
+  grid.offsetHeight; // reflow
+  grid.style.animation = '';
+  grid.innerHTML = items.map((p, i) => `
+    <div class="hero-product-card">
+      <img class="hero-product-img" src="${p.img}" alt="${p.name}" loading="lazy">
+      <div class="hero-product-info">
+        <div class="hero-product-name">${p.name}</div>
+        <div class="hero-product-price">${p.price} €</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setActive(cat) {
+  currentCat = cat;
+  pills.forEach(p => p.classList.toggle('active', p.dataset.cat === cat));
+  renderGrid(cat);
+}
+
+function nextCat() {
+  const cats = Object.keys(CATEGORIES);
+  const idx = (cats.indexOf(currentCat) + 1) % cats.length;
+  setActive(cats[idx]);
+}
+
+pills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    setActive(pill.dataset.cat);
+    clearInterval(autoTimer);
+    autoTimer = setInterval(nextCat, 5000);
+  });
+});
+
+// Initial render + auto-switch every 5s
+renderGrid('ryby');
+autoTimer = setInterval(nextCat, 5000);
+</script>
 </body>
 </html>

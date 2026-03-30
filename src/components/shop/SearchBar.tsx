@@ -65,7 +65,7 @@ export default function SearchBar({ scheme, t }: SearchBarProps) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${scheme.textMuted}`}
+        className={`absolute left-4 top-1/2 -translate-y-1/2 ${scheme.textMuted}`}
       >
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -76,7 +76,7 @@ export default function SearchBar({ scheme, t }: SearchBarProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={t.searchPlaceholder}
-        className={`w-full rounded-xl border ${scheme.border} ${scheme.bgCard} py-2.5 pl-10 pr-10 text-sm outline-none transition-shadow focus:ring-2 focus:ring-current/20 placeholder:${scheme.textMuted}`}
+        className={`w-full rounded-full border ${scheme.border} ${scheme.bgCard} py-3 pl-11 pr-10 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-current/20 focus:shadow-md placeholder:${scheme.textMuted}`}
       />
 
       {/* Clear button */}

@@ -64,7 +64,7 @@ export default function StoreStatus({ hours, orderAcceptance, scheme, shopLangua
     : `${scheme.chipBg} ${scheme.chipText}`;
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {/* 1. Today's hours — shortest badge on top */}
       {today.open && (
         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${chipBase}`}>

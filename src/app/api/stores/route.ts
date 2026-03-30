@@ -53,6 +53,8 @@ const storeSchema = z.object({
     enabled: z.boolean(),
   })).optional(),
   isPublished:  z.boolean().default(false),
+  customFontColor:  z.string().optional(),
+  customAccentColor: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -119,6 +121,8 @@ export async function POST(request: Request) {
           orderAcceptance: data.orderAcceptance || undefined,
           coordinates: data.coordinates || undefined,
           promoBanners: data.promoBanners || undefined,
+          customFontColor: data.customFontColor || undefined,
+          customAccentColor: data.customAccentColor || undefined,
         },
       },
     });

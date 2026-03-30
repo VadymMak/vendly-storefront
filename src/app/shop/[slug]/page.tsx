@@ -39,8 +39,14 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   const scheme = COLOR_SCHEMES[store.settings.colorScheme] || COLOR_SCHEMES.light;
   const s = store.settings;
 
+  // Custom color overrides via CSS custom properties
+  const shopCssVars: Record<string, string> = {};
+  if (s.customFontColor)  shopCssVars['--shop-font'] = s.customFontColor;
+  if (s.customAccentColor) shopCssVars['--shop-accent'] = s.customAccentColor;
+  const hasCustomVars = Object.keys(shopCssVars).length > 0;
+
   return (
-    <>
+    <div style={hasCustomVars ? (shopCssVars as React.CSSProperties) : undefined}>
       {/* ── HERO ────────────────────────────────────────────────────── */}
       <ShopHero store={store} scheme={scheme} t={t} />
 
@@ -302,6 +308,6 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         acceptLabel={t.cookieAccept}
         declineLabel={t.cookieDecline}
       />
-    </>
+    </div>
   );
 }

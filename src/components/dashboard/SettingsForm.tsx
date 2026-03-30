@@ -7,6 +7,7 @@ import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from 
 import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
 import ImageUpload from '@/components/ui/ImageUpload';
 import BannerCropper from '@/components/ui/BannerCropper';
+import ColorPicker from '@/components/ui/ColorPicker';
 import TranslateButton from '@/components/ui/TranslateButton';
 import BulkTranslateButton from '@/components/ui/BulkTranslateButton';
 
@@ -204,6 +205,8 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     orderAcceptance: store?.settings.orderAcceptance || { ...DEFAULT_ORDER_ACCEPTANCE },
     coordinates: store?.settings.coordinates || null,
     promoBanners: store?.settings.promoBanners || [],
+    customFontColor: store?.settings.customFontColor || '',
+    customAccentColor: store?.settings.customAccentColor || '',
   });
   const [geocoding, setGeocoding] = useState(false);
   const [templateId, setTemplateId] = useState(store?.templateId || 'physical');
@@ -708,6 +711,39 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                     ))}
                   </div>
                 </Field>
+
+                {/* Custom colors */}
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <ColorPicker
+                      value={form.customFontColor || '#1e293b'}
+                      onChange={(hex) => set('customFontColor', hex)}
+                      label={t('customFontColor')}
+                      hint={t('customFontColorHint')}
+                    />
+                    {form.customFontColor && (
+                      <button type="button" onClick={() => set('customFontColor', '')}
+                        className="mt-1.5 text-xs font-medium text-gray-400 hover:text-red-500">
+                        {t('resetColor')}
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <ColorPicker
+                      value={form.customAccentColor || '#16a34a'}
+                      onChange={(hex) => set('customAccentColor', hex)}
+                      label={t('customAccentColor')}
+                      hint={t('customAccentColorHint')}
+                    />
+                    {form.customAccentColor && (
+                      <button type="button" onClick={() => set('customAccentColor', '')}
+                        className="mt-1.5 text-xs font-medium text-gray-400 hover:text-red-500">
+                        {t('resetColor')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <Field label={t('currency')}>
                   <select value={form.currency} onChange={(e) => set('currency', e.target.value)} className="w-48 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                     {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}

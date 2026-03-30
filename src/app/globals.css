@@ -44,6 +44,18 @@ body {
   display: none;
 }
 
+/* Custom shop font color — applied via --shop-font CSS variable */
+[style*="--shop-font"] h1,
+[style*="--shop-font"] h2,
+[style*="--shop-font"] h3,
+[style*="--shop-font"] h4 {
+  color: var(--shop-font) !important;
+}
+[style*="--shop-accent"] .btn-accent,
+[style*="--shop-accent"] [data-accent] {
+  background-color: var(--shop-accent) !important;
+}
+
 /* Scroll-driven reveal animation for sections */
 .scroll-reveal {
   opacity: 0;

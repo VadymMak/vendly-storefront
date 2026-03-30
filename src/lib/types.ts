@@ -125,6 +125,10 @@ export interface ShopSettings {
   promoBanners?: PromoBanner[];
   heroLayout?: HeroLayout;
   heroTextColor?: HeroTextColor;
+  /** Custom font/text color override (hex). When set, overrides scheme text color. */
+  customFontColor?: string;
+  /** Custom accent/button color override (hex). When set, overrides scheme accent. */
+  customAccentColor?: string;
 }
 
 export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';
@@ -233,6 +237,8 @@ export interface StoreSettingsFormData {
   orderAcceptance: OrderAcceptanceSchedule;
   coordinates: MapCoordinates | null;
   promoBanners: PromoBanner[];
+  customFontColor: string;
+  customAccentColor: string;
 }
 
 export interface QuickBadgeDefinition {

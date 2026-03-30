@@ -65,19 +65,7 @@ export default function StoreStatus({ hours, orderAcceptance, scheme, shopLangua
 
   return (
     <div className="flex flex-col items-start gap-2">
-      {/* Open / Closed badge */}
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-        isOpen
-          ? hasBanner ? 'bg-green-500/80 text-white backdrop-blur-sm' : 'bg-green-100 text-green-700'
-          : hasBanner ? 'bg-red-500/60 text-white backdrop-blur-sm' : 'bg-red-100 text-red-600'
-      }`}>
-        <span className={`h-2 w-2 rounded-full ${isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
-        {isOpen
-          ? `${getLabel('open', lang, STATUS_LABELS)} ${getLabel('until', lang, STATUS_LABELS)} ${isOnBreak ? today.breakTo : today.to}`
-          : getLabel('closed', lang, STATUS_LABELS)}
-      </span>
-
-      {/* Today's hours */}
+      {/* 1. Today's hours — shortest badge on top */}
       {today.open && (
         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${chipBase}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,7 +78,19 @@ export default function StoreStatus({ hours, orderAcceptance, scheme, shopLangua
         </span>
       )}
 
-      {/* Order acceptance */}
+      {/* 2. Open / Closed badge — medium length */}
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+        isOpen
+          ? hasBanner ? 'bg-green-500/80 text-white backdrop-blur-sm' : 'bg-green-100 text-green-700'
+          : hasBanner ? 'bg-red-500/60 text-white backdrop-blur-sm' : 'bg-red-100 text-red-600'
+      }`}>
+        <span className={`h-2 w-2 rounded-full ${isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+        {isOpen
+          ? `${getLabel('open', lang, STATUS_LABELS)} ${getLabel('until', lang, STATUS_LABELS)} ${isOnBreak ? today.breakTo : today.to}`
+          : getLabel('closed', lang, STATUS_LABELS)}
+      </span>
+
+      {/* 3. Order acceptance — longest badge at bottom */}
       {orderAcceptance?.enabled && (
         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${chipBase}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

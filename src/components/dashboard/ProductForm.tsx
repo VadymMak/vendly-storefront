@@ -273,7 +273,11 @@ export default function ProductForm({ storeId, shopLanguage, itemId, defaultValu
                 {catOpen && existingCategories.length > 0 && (
                   <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
                     {existingCategories
-                      .filter((c) => !form.category || c.toLowerCase().includes(form.category.toLowerCase()))
+                      .filter((c) => {
+                        if (!form.category) return true;
+                        const isExact = existingCategories.some((ec) => ec.toLowerCase() === form.category.toLowerCase());
+                        return isExact || c.toLowerCase().includes(form.category.toLowerCase());
+                      })
                       .map((cat) => (
                         <button
                           key={cat}

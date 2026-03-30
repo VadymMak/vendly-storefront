@@ -38,6 +38,42 @@ function splitDescription(desc: string): { headline: string; subtitle: string } 
   return { headline: desc, subtitle: '' };
 }
 
+/**
+ * Highlights the store name inside the headline with accent color.
+ * If the store name appears at the start, it becomes accent-colored.
+ * Otherwise, the first 2 words are white, rest is accent.
+ */
+function renderHighlightedHeadline(headline: string, storeName: string): React.ReactNode {
+  // Try to find the store name at the beginning of the headline
+  const lowerHeadline = headline.toLowerCase();
+  const lowerName = storeName.toLowerCase();
+
+  if (lowerHeadline.startsWith(lowerName)) {
+    const nameEnd = storeName.length;
+    return (
+      <>
+        <span className="text-warm-accent">{headline.slice(0, nameEnd)}</span>
+        {headline.slice(nameEnd)}
+      </>
+    );
+  }
+
+  // Fallback: accent the first 2 words
+  const words = headline.split(' ');
+  if (words.length >= 3) {
+    const accentPart = words.slice(0, 2).join(' ');
+    const rest = words.slice(2).join(' ');
+    return (
+      <>
+        <span className="text-warm-accent">{accentPart}</span>{' '}
+        {rest}
+      </>
+    );
+  }
+
+  return headline;
+}
+
 /** Group items by category, returning a map. Null-category items go under allCategories label. */
 function groupByCategory(
   items: ShopItem[],
@@ -136,27 +172,27 @@ export default function ShopHero({ store, scheme, t, items, categories }: ShopHe
             </div>
           )}
 
-          {/* Heading */}
+          {/* Heading — store name in accent, rest in white */}
           {hasDescription ? (
             <>
               <h1
-                className={`text-[32px] font-extrabold text-white sm:text-[40px] lg:text-[48px] ${hf}`}
-                style={{ lineHeight: 1.08, letterSpacing: '-0.025em' }}
+                className={`text-[28px] font-extrabold text-white sm:text-[36px] lg:text-[44px] ${hf}`}
+                style={{ lineHeight: 1.12, letterSpacing: '-0.02em' }}
               >
-                {headline}
+                {renderHighlightedHeadline(headline, store.name)}
               </h1>
               {subtitle && (
-                <p className="mt-5 max-w-md text-[16px] leading-relaxed text-white/60 sm:text-[17px] sm:leading-[1.75]">
+                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/55 sm:text-[16px] sm:leading-[1.7]">
                   {subtitle}
                 </p>
               )}
             </>
           ) : (
             <h1
-              className={`text-[32px] font-extrabold text-white sm:text-[40px] lg:text-[48px] ${hf}`}
-              style={{ lineHeight: 1.08, letterSpacing: '-0.025em' }}
+              className={`text-[28px] font-extrabold text-white sm:text-[36px] lg:text-[44px] ${hf}`}
+              style={{ lineHeight: 1.12, letterSpacing: '-0.02em' }}
             >
-              {store.name}
+              <span className="text-warm-accent">{store.name}</span>
             </h1>
           )}
 

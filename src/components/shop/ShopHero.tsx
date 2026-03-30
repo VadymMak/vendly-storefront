@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ShopData, ColorSchemeTokens, ShopItem } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import StoreStatus from './StoreStatus';
@@ -108,10 +108,17 @@ export default function ShopHero({ store, scheme, t, items, categories }: ShopHe
     ? splitDescription(store.description as string)
     : { headline: '', subtitle: '' };
 
-  // Group items by category for the showcase
-  const grouped = groupByCategory(items, categories, t.allCategories);
-  const catNames = Object.keys(grouped);
+  // Group items by category for the showcase — memoize to keep stable reference
+  const grouped = useMemo(
+    () => groupByCategory(items, categories, t.allCategories),
+    [items, categories, t.allCategories],
+  );
+  const catNames = useMemo(() => Object.keys(grouped), [grouped]);
   const hasShowcase = catNames.length > 0;
+
+  // Keep catNames in a ref so the interval callback always sees the latest
+  const catNamesRef = useRef(catNames);
+  catNamesRef.current = catNames;
 
   const [activeCat, setActiveCat] = useState(catNames[0] || '');
   const [animKey, setAnimKey] = useState(0);
@@ -128,15 +135,18 @@ export default function ShopHero({ store, scheme, t, items, categories }: ShopHe
   useEffect(() => {
     if (catNames.length <= 1) return;
     const timer = setInterval(() => {
+      const cats = catNamesRef.current;
       setActiveCat((prev) => {
-        const idx = catNames.indexOf(prev);
-        const next = catNames[(idx + 1) % catNames.length];
+        const idx = cats.indexOf(prev);
+        const next = cats[(idx + 1) % cats.length];
         setAnimKey((k) => k + 1);
         return next;
       });
     }, 5000);
     return () => clearInterval(timer);
-  }, [catNames]);
+    // catNames.length triggers setup only when count changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catNames.length]);
 
   // Get up to 3 items for the active category
   const showcaseItems = (grouped[activeCat] || []).slice(0, 3);

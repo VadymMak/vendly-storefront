@@ -215,6 +215,21 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     setError(null);
     setSuccess(false);
     try {
+      // Auto-geocode address if address exists but coordinates are missing
+      let coords = form.coordinates;
+      if (form.address && !coords) {
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(form.address)}&limit=1`
+          );
+          const geoData = await geoRes.json();
+          if (geoData[0]) {
+            coords = { lat: parseFloat(geoData[0].lat), lng: parseFloat(geoData[0].lon) };
+            set('coordinates', coords);
+          }
+        } catch { /* geocoding failed — save without coordinates */ }
+      }
+
       const url = isNew ? '/api/stores' : `/api/stores/${store!.id}`;
       const method = isNew ? 'POST' : 'PATCH';
       const res = await fetch(url, {
@@ -228,7 +243,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
           quickBadges: form.quickBadges.length > 0 ? form.quickBadges : undefined,
           structuredHours: form.structuredHours,
           orderAcceptance: form.orderAcceptance.enabled ? form.orderAcceptance : undefined,
-          coordinates: form.coordinates,
+          coordinates: coords,
           promoBanners: form.promoBanners,
         }),
       });

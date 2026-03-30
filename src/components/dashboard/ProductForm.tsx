@@ -12,13 +12,14 @@ interface ProductFormProps {
   shopLanguage: string;
   itemId?: string;
   defaultValues?: Partial<ProductFormData>;
+  existingCategories?: string[];
 }
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
 const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
-export default function ProductForm({ storeId, shopLanguage, itemId, defaultValues }: ProductFormProps) {
+export default function ProductForm({ storeId, shopLanguage, itemId, defaultValues, existingCategories = [] }: ProductFormProps) {
   const router = useRouter();
   const t = useTranslations('dashboardProducts');
   const isEditing = Boolean(itemId);
@@ -43,6 +44,7 @@ export default function ProductForm({ storeId, shopLanguage, itemId, defaultValu
   const [aiLoading, setAiLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [catOpen, setCatOpen] = useState(false);
 
   const set = (field: keyof ProductFormData, value: string | boolean | ItemType | string[]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -238,19 +240,73 @@ export default function ProductForm({ storeId, shopLanguage, itemId, defaultValu
           </div>
         </div>
 
-        {/* Category */}
+        {/* Category — combo-box: select existing or type new */}
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-secondary">
             {t('fieldCategory')}
           </label>
-          <input
-            id="category"
-            type="text"
-            value={form.category}
-            onChange={(e) => set('category', e.target.value)}
-            className={INPUT_CLS}
-            placeholder={t('fieldCategoryPlaceholder')}
-          />
+          <div className="relative">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  id="category"
+                  type="text"
+                  value={form.category}
+                  onChange={(e) => { set('category', e.target.value); setCatOpen(true); }}
+                  onFocus={() => setCatOpen(true)}
+                  onBlur={() => setTimeout(() => setCatOpen(false), 150)}
+                  className={INPUT_CLS}
+                  placeholder={t('fieldCategoryPlaceholder')}
+                  autoComplete="off"
+                />
+                {existingCategories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCatOpen(!catOpen)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
+                {catOpen && existingCategories.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    {existingCategories
+                      .filter((c) => !form.category || c.toLowerCase().includes(form.category.toLowerCase()))
+                      .map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { set('category', cat); setCatOpen(false); }}
+                          className={`flex w-full items-center px-4 py-2 text-sm transition-colors hover:bg-accent ${
+                            form.category === cat ? 'bg-accent font-medium text-primary' : 'text-secondary'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    {form.category && !existingCategories.some((c) => c.toLowerCase() === form.category.toLowerCase()) && (
+                      <div className="border-t border-gray-100 px-4 py-2 text-xs text-neutral">
+                        {t('fieldCategoryNew')}: &quot;{form.category}&quot;
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <TranslateButton
+                text={form.category}
+                targetLang={shopLanguage}
+                storeId={storeId}
+                onTranslated={(v) => set('category', v)}
+                label={t('translateTo')}
+                labelDone={t('translated')}
+                labelLimit={t('translateLimitReached')}
+                labelUndo={t('translateUndo')}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Available toggle */}

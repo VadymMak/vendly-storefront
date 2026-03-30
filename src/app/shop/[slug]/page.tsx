@@ -130,50 +130,57 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
       {/* ── ABOUT — avatar + text + stats ─────────────────────────── */}
       {s.aboutText && (
-        <section id="about" className={`border-t ${scheme.border} scroll-mt-20`}>
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:gap-12">
-              {/* Rounded avatar */}
-              <div className="shrink-0">
+        <section id="about" className={`border-y ${scheme.border} bg-white scroll-mt-20`}>
+          <div className="mx-auto max-w-7xl px-6 py-[72px] sm:px-10 lg:px-12">
+            <div className="grid items-center gap-10 sm:grid-cols-[auto_1fr] sm:gap-14">
+              {/* Avatar — gradient or image, 180px */}
+              <div className="mx-auto sm:mx-0">
                 {store.logo ? (
                   <Image
                     src={store.logo}
                     alt={store.name}
-                    width={160}
-                    height={160}
-                    className="h-36 w-36 rounded-2xl object-cover shadow-lg ring-4 ring-white sm:h-40 sm:w-40"
+                    width={180}
+                    height={180}
+                    className="h-[160px] w-[160px] rounded-3xl object-cover shadow-[0_8px_32px_rgba(212,100,26,0.25)] sm:h-[180px] sm:w-[180px]"
                   />
                 ) : (
-                  <div className={`flex h-36 w-36 items-center justify-center rounded-2xl text-5xl font-bold shadow-lg ring-4 ring-white sm:h-40 sm:w-40 ${scheme.accent}`}>
+                  <div
+                    className="flex h-[160px] w-[160px] items-center justify-center rounded-3xl text-[64px] font-extrabold text-white shadow-[0_8px_32px_rgba(212,100,26,0.25)] sm:h-[180px] sm:w-[180px]"
+                    style={{ background: 'linear-gradient(135deg, #d4641a, #e8823a)' }}
+                  >
                     {store.name.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
 
               {/* Text content */}
-              <div className="flex-1 text-center sm:text-left">
-                <p className={`text-[11px] font-bold uppercase tracking-[0.15em] ${scheme.textMuted}`}>
+              <div className="text-center sm:text-left">
+                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#d4641a]">
                   {t.aboutUs}
                 </p>
-                <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{store.name}</h2>
-                <p className={`mt-3 max-w-2xl text-base leading-relaxed ${scheme.textMuted}`}>{s.aboutText}</p>
+                <h2 className="mt-2 text-[28px] font-extrabold tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                  {store.name}
+                </h2>
+                <p className="mt-3 max-w-[560px] text-[15px] leading-[1.7] text-[#6b6560]">
+                  {s.aboutText}
+                </p>
 
                 {/* Stats row */}
-                <div className="mt-8 flex flex-wrap justify-center gap-10 sm:justify-start">
-                  <div className="text-center">
-                    <p className={`text-3xl font-extrabold ${scheme.text}`}>{items.length}+</p>
-                    <p className={`mt-0.5 text-xs font-medium ${scheme.textMuted}`}>{t.navProducts}</p>
+                <div className="mt-6 flex flex-wrap justify-center gap-8 sm:justify-start">
+                  <div>
+                    <p className="text-[28px] font-extrabold text-[#1a1a1a]" style={{ letterSpacing: '-0.02em' }}>{items.length}+</p>
+                    <p className="text-xs font-medium text-[#6b6560]">{t.navProducts}</p>
                   </div>
                   {categories.length > 1 && (
-                    <div className="text-center">
-                      <p className={`text-3xl font-extrabold ${scheme.text}`}>{categories.length}</p>
-                      <p className={`mt-0.5 text-xs font-medium ${scheme.textMuted}`}>{t.allCategories}</p>
+                    <div>
+                      <p className="text-[28px] font-extrabold text-[#1a1a1a]" style={{ letterSpacing: '-0.02em' }}>{categories.length}</p>
+                      <p className="text-xs font-medium text-[#6b6560]">{t.allCategories}</p>
                     </div>
                   )}
                   {ratingData.count > 0 && (
-                    <div className="text-center">
-                      <p className={`text-3xl font-extrabold ${scheme.text}`}>{ratingData.avg.toFixed(1)} ★</p>
-                      <p className={`mt-0.5 text-xs font-medium ${scheme.textMuted}`}>{ratingData.count} {t.reviewsCount}</p>
+                    <div>
+                      <p className="text-[28px] font-extrabold text-[#1a1a1a]" style={{ letterSpacing: '-0.02em' }}>{ratingData.avg.toFixed(1)}</p>
+                      <p className="text-xs font-medium text-[#6b6560]">{ratingData.count} {t.reviewsCount}</p>
                     </div>
                   )}
                 </div>

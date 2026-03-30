@@ -183,13 +183,13 @@ export default function BannerCropper({
       img.naturalHeight * zoom * scale,
     );
 
+    // Export as PNG (lossless) — server-side sharp will do final WebP encoding
     outCanvas.toBlob(
       (blob) => {
         if (blob) onCrop(blob);
         setSaving(false);
       },
-      'image/jpeg',
-      0.85,
+      'image/png',
     );
   };
 

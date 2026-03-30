@@ -29,12 +29,15 @@ export async function POST(request: Request) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
+    const purpose = formData.get('purpose') as string | null;
+    const isBanner = purpose === 'banner';
 
-    // Convert to WebP (quality 85, max 1600px wide)
+    // Banner: 1920px, WebP 92 (premium quality for hero)
+    // Other images: 1600px, WebP 85
     const webpBuffer = await sharp(buffer)
       .rotate() // auto-rotate based on EXIF
-      .resize({ width: 1600, withoutEnlargement: true })
-      .webp({ quality: 85 })
+      .resize({ width: isBanner ? 1920 : 1600, withoutEnlargement: true })
+      .webp({ quality: isBanner ? 92 : 85 })
       .toBuffer();
 
     const filename = `shops/${session.user.id}/${Date.now()}.webp`;

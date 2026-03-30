@@ -256,7 +256,8 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   // Banner crop handler — uploads cropped blob, updates banner state
   const handleBannerCrop = async (blob: Blob) => {
     const fd = new FormData();
-    fd.append('file', blob, 'banner-cropped.jpg');
+    fd.append('file', blob, 'banner-cropped.png');
+    fd.append('purpose', 'banner');
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const data = await res.json();
@@ -644,6 +645,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   textChange={t('uploadChange')}
                   textUploading={t('uploadUploading')}
                   textRemove={t('uploadRemove')}
+                  purpose="banner"
                 />
                 {/* Crop existing banner button */}
                 {banner[0] && !cropperUrl && (

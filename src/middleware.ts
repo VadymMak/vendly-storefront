@@ -39,6 +39,11 @@ export function middleware(request: NextRequest) {
     ? currentHost.replace(`.${ROOT_DOMAIN}`, '')
     : currentHost;
 
+  // API routes should NOT be rewritten — they live at /api/* on the root app
+  if (url.pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   // Rewrite to /shop/[slug] route which will render the storefront
   url.pathname = `/shop/${slug}${url.pathname}`;
   return NextResponse.rewrite(url);

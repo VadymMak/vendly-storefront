@@ -29,13 +29,17 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
     notFound();
   }
 
-  const [items, categories, t, reviews, ratingData] = await Promise.all([
+  const [items, allItems, categories, t, reviews, ratingData] = await Promise.all([
     getStoreItems(store.id, category, q),
+    // Unfiltered items for hero showcase (needs all categories)
+    (category || q) ? getStoreItems(store.id) : Promise.resolve(null),
     getStoreCategories(store.id),
     getShopTranslations(store.shopLanguage),
     getStoreReviews(store.id),
     getStoreAverageRating(store.id),
   ]);
+  // Hero always gets full item list; catalog gets filtered list
+  const heroItems = allItems ?? items;
 
   const scheme = COLOR_SCHEMES[store.settings.colorScheme] || COLOR_SCHEMES.light;
   const s = store.settings;
@@ -49,7 +53,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   return (
     <div style={hasCustomVars ? (shopCssVars as React.CSSProperties) : undefined}>
       {/* ── HERO ────────────────────────────────────────────────────── */}
-      <ShopHero store={store} scheme={scheme} t={t} items={items} categories={categories} />
+      <ShopHero store={store} scheme={scheme} t={t} items={heroItems} categories={categories} />
 
       {/* ── QUICK BADGES ──────────────────────────────────────────────────── */}
       {s.quickBadges && s.quickBadges.length > 0 && (

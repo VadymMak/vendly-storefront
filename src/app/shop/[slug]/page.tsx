@@ -141,12 +141,12 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                     alt={store.name}
                     width={180}
                     height={180}
-                    className="h-[160px] w-[160px] rounded-3xl object-cover shadow-[0_8px_32px_rgba(212,100,26,0.25)] sm:h-[180px] sm:w-[180px]"
+                    className="h-[160px] w-[160px] rounded-3xl object-cover shadow-[0_8px_32px_color-mix(in_srgb,var(--color-warm-accent)_25%,transparent)] sm:h-[180px] sm:w-[180px]"
                   />
                 ) : (
                   <div
-                    className="flex h-[160px] w-[160px] items-center justify-center rounded-3xl text-[64px] font-extrabold text-white shadow-[0_8px_32px_rgba(212,100,26,0.25)] sm:h-[180px] sm:w-[180px]"
-                    style={{ background: 'linear-gradient(135deg, #d4641a, #e8823a)' }}
+                    className="flex h-[160px] w-[160px] items-center justify-center rounded-3xl text-[64px] font-extrabold text-white shadow-[0_8px_32px_color-mix(in_srgb,var(--color-warm-accent)_25%,transparent)] sm:h-[180px] sm:w-[180px]"
+                    style={{ background: 'linear-gradient(135deg, var(--color-warm-accent), var(--color-warm-accent-glow))' }}
                   >
                     {store.name.charAt(0).toUpperCase()}
                   </div>
@@ -155,32 +155,32 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
               {/* Text content */}
               <div className="text-center sm:text-left">
-                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#d4641a]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-warm-accent">
                   {t.aboutUs}
                 </p>
                 <h2 className="mt-2 text-[28px] font-extrabold tracking-tight" style={{ letterSpacing: '-0.02em' }}>
                   {store.name}
                 </h2>
-                <p className="mt-3 max-w-[560px] text-[15px] leading-[1.7] text-[#6b6560]">
+                <p className="mt-3 max-w-[560px] text-[15px] leading-[1.7] text-warm-muted">
                   {s.aboutText}
                 </p>
 
                 {/* Stats row */}
                 <div className="mt-6 flex flex-wrap justify-center gap-8 sm:justify-start">
                   <div>
-                    <p className="text-[28px] font-extrabold text-[#1a1a1a]" style={{ letterSpacing: '-0.02em' }}>{items.length}+</p>
-                    <p className="text-xs font-medium text-[#6b6560]">{t.navProducts}</p>
+                    <p className="text-[28px] font-extrabold text-warm-text" style={{ letterSpacing: '-0.02em' }}>{items.length}+</p>
+                    <p className="text-xs font-medium text-warm-muted">{t.navProducts}</p>
                   </div>
                   {categories.length > 1 && (
                     <div>
-                      <p className="text-[28px] font-extrabold text-[#1a1a1a]" style={{ letterSpacing: '-0.02em' }}>{categories.length}</p>
-                      <p className="text-xs font-medium text-[#6b6560]">{t.allCategories}</p>
+                      <p className="text-[28px] font-extrabold text-warm-text" style={{ letterSpacing: '-0.02em' }}>{categories.length}</p>
+                      <p className="text-xs font-medium text-warm-muted">{t.allCategories}</p>
                     </div>
                   )}
                   {ratingData.count > 0 && (
                     <div>
-                      <p className="text-[28px] font-extrabold text-[#1a1a1a]" style={{ letterSpacing: '-0.02em' }}>{ratingData.avg.toFixed(1)}</p>
-                      <p className="text-xs font-medium text-[#6b6560]">{ratingData.count} {t.reviewsCount}</p>
+                      <p className="text-[28px] font-extrabold text-warm-text" style={{ letterSpacing: '-0.02em' }}>{ratingData.avg.toFixed(1)}</p>
+                      <p className="text-xs font-medium text-warm-muted">{ratingData.count} {t.reviewsCount}</p>
                     </div>
                   )}
                 </div>

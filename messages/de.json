@@ -616,7 +616,10 @@
     "newsletterDesc": "Abonnieren Sie, um Updates zu neuen Produkten und Sonderangeboten zu erhalten.",
     "newsletterPlaceholder": "Ihre E-Mail-Adresse",
     "newsletterButton": "Abonnieren",
-    "newsletterSuccess": "Vielen Dank für Ihr Abonnement!"
+    "newsletterSuccess": "Vielen Dank für Ihr Abonnement!",
+    "promo": "Promo",
+    "poweredBy": "Erstellt mit",
+    "info": "Information"
   },
   "dashboardReviews": {
     "title": "Bewertungen",

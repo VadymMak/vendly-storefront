@@ -108,7 +108,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
           {/* Col 4: Legal / Info */}
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-50">
-              Info
+              {t.info}
             </h4>
             <div className="mt-4 flex flex-col gap-2.5">
               {s.deliveryInfo && (
@@ -119,7 +119,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
                   {t.createdOn}{' '}
                   <Link
                     href="https://vendshop.shop"
-                    className="font-semibold text-[#d4641a] transition-colors hover:text-[#e8823a]"
+                    className="font-semibold text-warm-accent transition-colors hover:text-warm-accent-glow"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -136,10 +136,10 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
           <p className="text-xs opacity-40">&copy; {year} {store.name}</p>
           {showBranding && (
             <p className="text-xs opacity-40">
-              Powered by{' '}
+              {t.poweredBy}{' '}
               <Link
                 href="https://vendshop.shop"
-                className="font-semibold text-[#d4641a] transition-colors hover:text-[#e8823a]"
+                className="font-semibold text-warm-accent transition-colors hover:text-warm-accent-glow"
                 target="_blank"
                 rel="noopener noreferrer"
               >

@@ -40,8 +40,8 @@ export default function QuickBadgesStrip({ badgeIds, scheme, shopLanguage }: Qui
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {activeBadges.map((badge) => (
-            <div key={badge.id} className="flex items-center gap-2.5 text-[13px] font-medium text-[#6b6560]">
-              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#fff3ec] text-[#d4641a]">
+            <div key={badge.id} className="flex items-center gap-2.5 text-[13px] font-medium text-warm-muted">
+              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-warm-accent-light text-warm-accent">
                 <BadgeIconShop name={badge.icon} size={16} />
               </span>
               <span>{getBadgeLabel(badge.id, shopLanguage)}</span>

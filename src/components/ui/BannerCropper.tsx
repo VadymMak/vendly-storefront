@@ -13,6 +13,7 @@ interface BannerCropperProps {
   labelCancel?: string;
   labelZoom?: string;
   labelDragHint?: string;
+  labelTitle?: string;
 }
 
 /**
@@ -29,6 +30,7 @@ export default function BannerCropper({
   labelCancel = 'Cancel',
   labelZoom = 'Zoom',
   labelDragHint = 'Drag to reposition',
+  labelTitle = 'Crop Banner',
 }: BannerCropperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -197,7 +199,7 @@ export default function BannerCropper({
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Crop Banner</h3>
+            <h3 className="text-lg font-bold text-gray-900">{labelTitle}</h3>
             <p className="text-sm text-gray-500">{labelDragHint}</p>
           </div>
           <button

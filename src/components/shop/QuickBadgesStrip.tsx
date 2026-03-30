@@ -36,12 +36,12 @@ export default function QuickBadgesStrip({ badgeIds, scheme, shopLanguage }: Qui
   if (activeBadges.length === 0) return null;
 
   return (
-    <section className={`border-b ${scheme.border} ${scheme.bgCard}`}>
+    <section className={`border-b ${scheme.border} bg-white`}>
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
           {activeBadges.map((badge) => (
-            <div key={badge.id} className={`flex items-center gap-2 text-sm font-medium ${scheme.textMuted}`}>
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${scheme.chipBg} ${scheme.chipText}`}>
+            <div key={badge.id} className="flex items-center gap-2.5 text-[13px] font-medium text-[#6b6560]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#fff3ec] text-[#d4641a]">
                 <BadgeIconShop name={badge.icon} size={16} />
               </span>
               <span>{getBadgeLabel(badge.id, shopLanguage)}</span>

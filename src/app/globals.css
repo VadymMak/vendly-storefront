@@ -35,6 +35,15 @@ body {
   color: var(--color-foreground);
 }
 
+/* Hide scrollbar for horizontal category strip */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Scroll-driven reveal animation for sections */
 .scroll-reveal {
   opacity: 0;

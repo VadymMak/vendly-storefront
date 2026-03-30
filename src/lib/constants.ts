@@ -308,6 +308,7 @@ export const COLOR_SCHEMES: Record<string, ColorSchemeTokens> = {
     chipBg: 'bg-warm-accent-light',
     chipText: 'text-warm-accent',
     outlineBtn: 'border border-warm-border text-warm-muted hover:border-warm-accent hover:text-warm-accent',
+    headingFont: 'font-heading',
   },
   bold: {
     bg: 'bg-indigo-950',

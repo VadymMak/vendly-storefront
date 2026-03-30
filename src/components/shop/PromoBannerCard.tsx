@@ -49,7 +49,7 @@ export default function PromoBannerCard({ banner, scheme, t }: PromoBannerCardPr
         <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-warm-accent">
           ★ {t.promo}
         </p>
-        <h3 className="mt-2 text-xl font-extrabold leading-snug text-white sm:text-2xl">
+        <h3 className={`mt-2 text-xl font-extrabold leading-snug text-white sm:text-2xl ${scheme.headingFont || ''}`}>
           {banner.title}
         </h3>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/55 line-clamp-2 sm:text-[15px]">

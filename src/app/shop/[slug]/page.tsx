@@ -61,7 +61,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         {/* Section header + search */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-[32px] font-extrabold tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+            <h2 className={`text-[32px] font-extrabold tracking-tight ${scheme.headingFont || ''}`} style={{ letterSpacing: '-0.02em' }}>
               {q ? `"${q}"` : category ? category : t.catalog}
             </h2>
             <p className={`mt-1 text-sm ${scheme.textMuted}`}>
@@ -158,7 +158,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                 <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-warm-accent">
                   {t.aboutUs}
                 </p>
-                <h2 className="mt-2 text-[28px] font-extrabold tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                <h2 className={`mt-2 text-[28px] font-extrabold tracking-tight ${scheme.headingFont || ''}`} style={{ letterSpacing: '-0.02em' }}>
                   {store.name}
                 </h2>
                 <p className="mt-3 max-w-[560px] text-[15px] leading-[1.7] text-warm-muted">
@@ -197,7 +197,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       {(s.phone || s.address || s.openingHours || s.instagram || s.facebook || s.whatsapp) && (
         <section id="contact" className={`border-t ${scheme.border} scroll-mt-20`}>
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <h2 className="mb-8 text-2xl font-extrabold tracking-tight sm:text-3xl">{t.contact}</h2>
+            <h2 className={`mb-8 text-2xl font-extrabold tracking-tight sm:text-3xl ${scheme.headingFont || ''}`}>{t.contact}</h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
               {/* Phone */}

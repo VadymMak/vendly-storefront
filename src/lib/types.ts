@@ -357,4 +357,6 @@ export interface ColorSchemeTokens {
   chipBg: string;
   chipText: string;
   outlineBtn: string;
+  /** Optional heading font class — serif for warm/elegant, default sans for others */
+  headingFont?: string;
 }

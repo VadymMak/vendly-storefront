@@ -142,6 +142,7 @@
 - [x] CTA кнопка "Перейти к каталогу" (адаптивный цвет)
 - [x] Типы: HeroLayout, HeroTextColor, ProductStatus в types.ts
 - [x] heroLayout + heroTextColor добавлены в ShopSettings
+- [x] BannerCropper: drag+zoom crop tool для баннера (21:9, canvas, 1920px export)
 - [ ] TODO: Compact hero layout (featured products above fold) — Starter/Pro only
 - [ ] TODO: Dashboard setting для переключения heroLayout
 - [ ] TODO: AI Advisor рекомендация compact layout для платных планов

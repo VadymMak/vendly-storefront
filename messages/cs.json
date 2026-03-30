@@ -678,6 +678,7 @@
     "aiUsed": "{used} z {limit} použitých tento měsíc",
     "aiRemaining": "zbývá",
     "aiLocked": "AI Poradce — Starter & Pro",
-    "aiLockedDesc": "Přejděte na plán Starter nebo Pro pro personalizovaná AI doporučení."
+    "aiLockedDesc": "Přejděte na plán Starter nebo Pro pro personalizovaná AI doporučení.",
+    "fabLabel": "Poradce"
   }
 }

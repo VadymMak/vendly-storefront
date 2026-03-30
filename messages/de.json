@@ -678,6 +678,7 @@
     "aiUsed": "{used} von {limit} diesen Monat verwendet",
     "aiRemaining": "übrig",
     "aiLocked": "KI-Berater — Starter & Pro",
-    "aiLockedDesc": "Wechseln Sie zum Starter- oder Pro-Plan für personalisierte KI-Empfehlungen."
+    "aiLockedDesc": "Wechseln Sie zum Starter- oder Pro-Plan für personalisierte KI-Empfehlungen.",
+    "fabLabel": "Berater"
   }
 }

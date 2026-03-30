@@ -678,6 +678,7 @@
     "aiUsed": "{used} of {limit} used this month",
     "aiRemaining": "remaining",
     "aiLocked": "AI Advisor — Starter & Pro",
-    "aiLockedDesc": "Upgrade to Starter or Pro plan to unlock personalized AI recommendations."
+    "aiLockedDesc": "Upgrade to Starter or Pro plan to unlock personalized AI recommendations.",
+    "fabLabel": "Advisor"
   }
 }

@@ -678,6 +678,7 @@
     "aiUsed": "{used} з {limit} використано цього місяця",
     "aiRemaining": "залишилось",
     "aiLocked": "AI Порадник — Starter & Pro",
-    "aiLockedDesc": "Перейдіть на план Starter або Pro для персоналізованих AI рекомендацій."
+    "aiLockedDesc": "Перейдіть на план Starter або Pro для персоналізованих AI рекомендацій.",
+    "fabLabel": "Порадник"
   }
 }

@@ -235,12 +235,14 @@ export default function FloatingAdvisor({ storeId, userPlan, isAdmin = false }: 
 
   const navigateToTab = (tab: string) => {
     setOpen(false);
-    router.push(`/dashboard/settings?tab=${tab}`);
+    // Use hard navigation to guarantee ?tab= is picked up by SettingsForm
+    window.location.href = `/dashboard/settings?tab=${tab}`;
   };
 
   const navigateToTarget = (target: string) => {
     setOpen(false);
-    router.push(target);
+    // Use hard navigation so settings page reads the new ?tab= correctly
+    window.location.href = target;
   };
 
   // Don't render if no store

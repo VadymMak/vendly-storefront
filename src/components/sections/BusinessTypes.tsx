@@ -80,7 +80,7 @@ export default function BusinessTypes() {
   const t = useTranslations('businessTypes');
 
   return (
-    <section id="business-types" className="scroll-reveal bg-white py-20">
+    <section id="business-types" className="scroll-reveal bg-green-50/40 py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <h2 className="text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">

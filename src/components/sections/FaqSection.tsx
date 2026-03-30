@@ -49,7 +49,7 @@ export default function FaqSection() {
   };
 
   return (
-    <section id="faq" className="scroll-reveal bg-white py-20">
+    <section id="faq" className="scroll-reveal bg-green-50/40 py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">{t('badge')}</Badge>

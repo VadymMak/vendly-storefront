@@ -144,9 +144,16 @@ export async function POST(request: NextRequest) {
           role: 'system',
           content: `You are an expert e-commerce store advisor. Analyze the store data and give 3-5 specific, actionable recommendations to improve the store. ${langInstruction}
 
-Format your response as a JSON array of objects with fields:
+Format your response as a JSON object with "advices" array. Each item has:
 - "text": the recommendation (1-2 sentences, specific and actionable)
 - "priority": "high" | "medium" | "low"
+- "action": an object with ONE of these navigation hints (or omit if no direct action):
+  - {"tab": "general"} — store name, description, language
+  - {"tab": "design"} — colors, logo, banner
+  - {"tab": "contact"} — phone, address, social media, whatsapp, hours
+  - {"tab": "promo"} — promotional banners
+  - {"page": "/dashboard/products/new"} — add new products
+  - {"page": "/dashboard/products"} — edit existing products
 
 Focus on: missing information, product quality, pricing strategy, categories balance, marketing opportunities. Be specific — mention product names, categories, exact numbers. Don't give generic advice.`,
         },
@@ -155,7 +162,7 @@ Focus on: missing information, product quality, pricing strategy, categories bal
           content: `Analyze this store:\n${storeContext}`,
         },
       ],
-      max_tokens: 600,
+      max_tokens: 800,
       temperature: 0.7,
       response_format: { type: 'json_object' },
     });
@@ -171,7 +178,7 @@ Focus on: missing information, product quality, pricing strategy, categories bal
     });
 
     const raw = completion.choices[0]?.message?.content?.trim() || '{}';
-    let advices: { text: string; priority: string }[] = [];
+    let advices: { text: string; priority: string; action?: { tab?: string; page?: string } }[] = [];
     try {
       const parsed = JSON.parse(raw);
       advices = Array.isArray(parsed) ? parsed : parsed.recommendations || parsed.advices || [];
@@ -179,12 +186,25 @@ Focus on: missing information, product quality, pricing strategy, categories bal
       advices = [];
     }
 
+    // Validate action fields
+    const validTabs = new Set(['general', 'design', 'contact', 'promo', 'categories']);
+    const validPages = new Set(['/dashboard/products', '/dashboard/products/new', '/dashboard/orders']);
+
     return NextResponse.json({
-      advices: advices.map((a, i) => ({
-        id: `advice-${i}`,
-        text: a.text || '',
-        priority: a.priority || 'medium',
-      })),
+      advices: advices.map((a, i) => {
+        let action: { tab?: string; page?: string } | undefined;
+        if (a.action?.tab && validTabs.has(a.action.tab)) {
+          action = { tab: a.action.tab };
+        } else if (a.action?.page && validPages.has(a.action.page)) {
+          action = { page: a.action.page };
+        }
+        return {
+          id: `advice-${i}`,
+          text: a.text || '',
+          priority: a.priority || 'medium',
+          action,
+        };
+      }),
       used: usageThisMonth + 1,
       limit: isAdmin ? 9999 : limit,
     });

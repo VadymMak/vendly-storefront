@@ -263,10 +263,18 @@ export interface StoreScoreResult {
   checks: ScoreCheck[];
 }
 
+export interface AiAdviceAction {
+  /** settings tab name (general, design, contact, promo, categories) */
+  tab?: string;
+  /** dashboard page path (/dashboard/products, /dashboard/products/new, /dashboard/orders) */
+  page?: string;
+}
+
 export interface AiAdvice {
   id: string;
   text: string;
   priority: 'high' | 'medium' | 'low';
+  action?: AiAdviceAction;
 }
 
 // ===== Admin types =====

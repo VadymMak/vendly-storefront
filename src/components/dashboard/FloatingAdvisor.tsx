@@ -103,22 +103,47 @@ function CheckItem({ check, t, onNavigate }: {
   );
 }
 
-// ── Advice card ─────────────────────────────────────────────────────────────
-function AdviceCard({ advice }: { advice: AiAdvice }) {
+// ── Advice card (clickable if has action) ───────────────────────────────────
+function AdviceCard({ advice, onNavigate }: { advice: AiAdvice; onNavigate?: (target: string) => void }) {
   const styles = {
     high: 'border-red-200 bg-red-50',
     medium: 'border-amber-200 bg-amber-50',
     low: 'border-blue-200 bg-blue-50',
   };
+  const hoverStyles = {
+    high: 'hover:border-red-300 hover:shadow-sm',
+    medium: 'hover:border-amber-300 hover:shadow-sm',
+    low: 'hover:border-blue-300 hover:shadow-sm',
+  };
   const dots = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-blue-500' };
+  const arrowColors = { high: 'text-red-400', medium: 'text-amber-400', low: 'text-blue-400' };
+
+  const hasAction = !!(advice.action?.tab || advice.action?.page);
+  const target = advice.action?.tab
+    ? `/dashboard/settings?tab=${advice.action.tab}`
+    : advice.action?.page ?? '';
+
+  const Tag = hasAction ? 'button' : 'div';
 
   return (
-    <div className={`rounded-lg border p-2.5 text-sm ${styles[advice.priority]}`}>
+    <Tag
+      type={hasAction ? 'button' : undefined}
+      onClick={hasAction ? () => onNavigate?.(target) : undefined}
+      className={`w-full rounded-lg border p-2.5 text-left text-sm transition-all ${styles[advice.priority]} ${
+        hasAction ? `cursor-pointer ${hoverStyles[advice.priority]}` : ''
+      }`}
+    >
       <div className="flex items-start gap-2">
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dots[advice.priority]}`} />
-        <p className="text-secondary">{advice.text}</p>
+        <p className="flex-1 text-secondary">{advice.text}</p>
+        {hasAction && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className={`mt-0.5 shrink-0 ${arrowColors[advice.priority]}`}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        )}
       </div>
-    </div>
+    </Tag>
   );
 }
 
@@ -213,6 +238,11 @@ export default function FloatingAdvisor({ storeId, userPlan, isAdmin = false }: 
     router.push(`/dashboard/settings?tab=${tab}`);
   };
 
+  const navigateToTarget = (target: string) => {
+    setOpen(false);
+    router.push(target);
+  };
+
   // Don't render if no store
   if (!storeId) return null;
 
@@ -225,20 +255,23 @@ export default function FloatingAdvisor({ storeId, userPlan, isAdmin = false }: 
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-violet-600 pl-3 pr-4 py-3 text-white shadow-lg shadow-violet-300/40 hover:bg-violet-700 hover:shadow-xl transition-all duration-200 group"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-violet-600 pl-3.5 pr-4 py-2.5 text-white shadow-lg shadow-violet-300/40 hover:bg-violet-700 hover:shadow-xl transition-all duration-200 group"
         aria-label={t('storeScore')}
       >
         {/* Star icon */}
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 group-hover:scale-110 transition-transform">
           <path d="M12 2l2.4 7.4H22l-6.2 4.5L18.2 22 12 17.5 5.8 22l2.4-8.1L2 9.4h7.6z" />
         </svg>
 
-        {/* Score badge */}
-        {displayScore != null && (
-          <span className="text-sm font-bold" style={{ color: 'white' }}>
-            {displayScore}
-          </span>
-        )}
+        {/* Label + score */}
+        <span className="text-sm font-semibold whitespace-nowrap">
+          {t('fabLabel')}
+          {displayScore != null && (
+            <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-bold">
+              {displayScore}
+            </span>
+          )}
+        </span>
 
         {/* Pulse dot for low scores */}
         {displayScore != null && displayScore < 60 && (
@@ -378,7 +411,7 @@ export default function FloatingAdvisor({ storeId, userPlan, isAdmin = false }: 
                     {advices.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {advices.map((advice) => (
-                          <AdviceCard key={advice.id} advice={advice} />
+                          <AdviceCard key={advice.id} advice={advice} onNavigate={navigateToTarget} />
                         ))}
                       </div>
                     )}

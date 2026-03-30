@@ -17,6 +17,8 @@ interface ImageUploadProps {
   textAddPhoto?: string;    // "Pridať foto" / "Add photo"
   textMain?: string;        // "Hlavná" / "Main"
   textError?: string;       // "Nahrávanie zlyhalo" / "Upload failed"
+  /** Upload purpose hint — 'banner' triggers high-quality processing on server */
+  purpose?: string;
 }
 
 export default function ImageUpload({
@@ -33,6 +35,7 @@ export default function ImageUpload({
   textAddPhoto = 'Pridať foto',
   textMain = 'Hlavná',
   textError = 'Nahrávanie zlyhalo',
+  purpose,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -52,6 +55,7 @@ export default function ImageUpload({
     for (const file of toUpload) {
       const fd = new FormData();
       fd.append('file', file);
+      if (purpose) fd.append('purpose', purpose);
 
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const data = await res.json();

@@ -2,9 +2,23 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import type { ShopItem, ColorSchemeTokens } from '@/lib/types';
+import type { ShopItem, ColorSchemeTokens, ProductStatus } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import { CURRENCY_SYMBOLS } from '@/lib/constants';
+
+const STATUS_BADGE_STYLES: Record<Exclude<ProductStatus, 'none'>, { bg: string; text: string; label: string }> = {
+  featured: { bg: 'bg-green-500', text: 'text-white', label: 'Featured' },
+  hot:      { bg: 'bg-red-500',   text: 'text-white', label: 'Hot' },
+  new:      { bg: 'bg-blue-500',  text: 'text-white', label: 'New' },
+  popular:  { bg: 'bg-amber-500', text: 'text-white', label: 'Popular' },
+};
+
+const STATUS_ICONS: Record<Exclude<ProductStatus, 'none'>, string> = {
+  featured: 'M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z',
+  hot:      'M12 23c-3.866 0-7-3.134-7-7 0-2.1 1.2-4.5 2.5-6.2.7-.9 1.5-1.8 2-2.3.3-.3.5-.5.5-.5s.2.2.5.5c.5.5 1.3 1.4 2 2.3C13.8 11.5 15 13.9 15 16c0 .7-.1 1.4-.3 2 1.4-1.2 2.3-3 2.3-5 0-1.5-.5-3-1.2-4.2-.3-.5-.6-1-.9-1.3 0 0 1.3.8 2.6 2.5C19.1 12.1 20 14.6 20 16c0 4.4-3.6 7-8 7z',
+  new:      'M9.5 2l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6L4.6 17.2l.9-5.5-4-3.9L7 7 9.5 2z',
+  popular:  'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
+};
 import { useCart } from './CartContext';
 
 interface ProductCardProps {
@@ -23,6 +37,8 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
 
   // Extract weight/volume from metadata if available
   const weight = (item.metadata?.weight as string) || null;
+  const status = (item.metadata?.status as ProductStatus) || 'none';
+  const badge = status !== 'none' ? STATUS_BADGE_STYLES[status] : null;
 
   return (
     <div className={`group flex flex-col overflow-hidden rounded-2xl ${scheme.bgCard} ${scheme.border} border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}>
@@ -61,6 +77,16 @@ export default function ProductCard({ item, scheme, currency, t, priority = fals
               </div>
               <span className="text-[10px] font-medium opacity-30">{t.noPhoto}</span>
             </div>
+          )}
+
+          {/* Status badge (top-left) */}
+          {badge && (
+            <span className={`absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${badge.bg} ${badge.text}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d={STATUS_ICONS[status as Exclude<ProductStatus, 'none'>]} />
+              </svg>
+              {badge.label}
+            </span>
           )}
 
           {/* Unavailable overlay */}

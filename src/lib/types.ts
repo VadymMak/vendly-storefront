@@ -76,6 +76,12 @@ export interface MapCoordinates {
 
 export type OwnerPlan = 'FREE' | 'STARTER' | 'PRO';
 
+// ===== Hero & Product status types =====
+
+export type HeroLayout = 'classic' | 'compact';
+export type HeroTextColor = 'auto' | 'light' | 'dark';
+export type ProductStatus = 'none' | 'featured' | 'hot' | 'new' | 'popular';
+
 export interface ShopData {
   id: string;
   slug: string;
@@ -117,6 +123,8 @@ export interface ShopSettings {
   orderAcceptance?: OrderAcceptanceSchedule;
   coordinates?: MapCoordinates;
   promoBanners?: PromoBanner[];
+  heroLayout?: HeroLayout;
+  heroTextColor?: HeroTextColor;
 }
 
 export type ItemType = 'PRODUCT' | 'SERVICE' | 'MENU_ITEM' | 'PORTFOLIO';

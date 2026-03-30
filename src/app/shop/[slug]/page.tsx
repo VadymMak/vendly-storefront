@@ -6,10 +6,10 @@ import { getShopTranslations, pluralizeItems } from '@/lib/shop-i18n';
 import ProductGrid from '@/components/shop/ProductGrid';
 import CategoryFilter from '@/components/shop/CategoryFilter';
 import QuickBadgesStrip from '@/components/shop/QuickBadgesStrip';
-import StoreStatus from '@/components/shop/StoreStatus';
 import ReviewsSection from '@/components/shop/ReviewsSection';
 import SearchBar from '@/components/shop/SearchBar';
 import ShopNewsletter from '@/components/shop/ShopNewsletter';
+import ShopHero from '@/components/shop/ShopHero';
 import CookieConsent from '@/components/shop/CookieConsent';
 
 interface ShopPageProps {
@@ -41,65 +41,8 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
   return (
     <>
-      {/* ── HERO — Full-bleed with overlay (mockup style) ───────────── */}
-      <section className="relative h-[420px] overflow-hidden sm:h-[520px]">
-        {/* Background: banner image or gradient */}
-        {s.bannerImage ? (
-          <Image
-            src={s.bannerImage}
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <div className={`absolute inset-0 ${scheme.heroBg}`} />
-        )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-        {/* Content at bottom-left */}
-        <div className="absolute inset-x-0 bottom-0 px-6 pb-10 sm:px-10 lg:px-12">
-          <div className="mx-auto max-w-7xl">
-            {/* Status badge */}
-            {s.structuredHours && (
-              <div className="mb-4">
-                <StoreStatus
-                  hours={s.structuredHours}
-                  orderAcceptance={s.orderAcceptance}
-                  scheme={scheme}
-                  shopLanguage={store.shopLanguage}
-                  hasBanner={true}
-                />
-              </div>
-            )}
-
-            {/* Store name */}
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl" style={{ lineHeight: 1.1 }}>
-              {store.name}
-            </h1>
-
-            {/* Description */}
-            {store.description && (
-              <p className="mt-3 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
-                {store.description}
-              </p>
-            )}
-
-            {/* CTA button */}
-            <a
-              href="#products"
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
-            >
-              {t.navProducts}
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 8h10M9 4l4 4-4 4" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* ── HERO ────────────────────────────────────────────────────── */}
+      <ShopHero store={store} scheme={scheme} t={t} />
 
       {/* ── QUICK BADGES ──────────────────────────────────────────────────── */}
       {s.quickBadges && s.quickBadges.length > 0 && (

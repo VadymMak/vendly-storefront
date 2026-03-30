@@ -42,7 +42,7 @@ export default function ReviewsSection({ reviews, avgRating, reviewCount, storeI
         {/* Header with avg rating */}
         <div className="mb-8 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
           <div>
-            <h2 className="text-2xl font-bold">{t.reviews}</h2>
+            <h2 className={`text-2xl font-bold ${scheme.headingFont || ''}`}>{t.reviews}</h2>
             {reviewCount > 0 && (
               <div className="mt-2 flex items-center gap-2">
                 <StarRating rating={Math.round(avgRating)} />

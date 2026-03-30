@@ -43,7 +43,7 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
 
           {/* Store name — large heading */}
           <h1
-            className="text-[40px] font-extrabold tracking-tight text-white sm:text-[52px] lg:text-[60px]"
+            className={`text-[40px] font-extrabold tracking-tight text-white sm:text-[52px] lg:text-[60px] ${scheme.headingFont || ''}`}
             style={{ lineHeight: 1.08, letterSpacing: '-0.02em' }}
           >
             {store.name}

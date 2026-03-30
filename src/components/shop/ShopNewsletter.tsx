@@ -49,7 +49,7 @@ export default function ShopNewsletter({ storeId, scheme, t }: ShopNewsletterPro
             </svg>
           </div>
 
-          <h2 className="text-2xl font-bold text-white sm:text-3xl">
+          <h2 className={`text-2xl font-bold text-white sm:text-3xl ${scheme.headingFont || ''}`}>
             {t.newsletterTitle}
           </h2>
           <p className="mt-3 text-base text-gray-300">

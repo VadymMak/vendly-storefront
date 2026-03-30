@@ -41,6 +41,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     category: item.category || '',
     type: item.type as ItemType,
     isAvailable: item.isAvailable,
+    images: item.images || [],
   };
 
   return (

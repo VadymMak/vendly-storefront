@@ -656,7 +656,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                       <path d="M6.13 1L6 16a2 2 0 002 2h15" />
                       <path d="M1 6.13L16 6a2 2 0 012 2v15" />
                     </svg>
-                    Crop banner
+                    {t('cropBanner')}
                   </button>
                 )}
 
@@ -1447,8 +1447,11 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
           imageUrl={cropperUrl}
           onCrop={handleBannerCrop}
           onCancel={() => setCropperUrl(null)}
-          labelSave={t('save')}
-          labelCancel={t('cancel')}
+          labelTitle={t('cropBannerTitle')}
+          labelSave={t('cropBannerSave')}
+          labelCancel={t('cropBannerCancel')}
+          labelZoom={t('cropBannerZoom')}
+          labelDragHint={t('cropBannerDrag')}
         />
       )}
     </div>

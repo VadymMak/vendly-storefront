@@ -78,7 +78,7 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
           {hasDescription ? (
             <>
               <h1
-                className={`text-[48px] font-extrabold text-white sm:text-[64px] lg:text-[80px] ${hf}`}
+                className={`text-[36px] font-extrabold text-white sm:text-[48px] lg:text-[56px] ${hf}`}
                 style={{ lineHeight: 1.05, letterSpacing: '-0.025em' }}
               >
                 {headline}
@@ -91,7 +91,7 @@ export default function ShopHero({ store, scheme, t }: ShopHeroProps) {
             </>
           ) : (
             <h1
-              className={`text-[48px] font-extrabold text-white sm:text-[64px] lg:text-[80px] ${hf}`}
+              className={`text-[36px] font-extrabold text-white sm:text-[48px] lg:text-[56px] ${hf}`}
               style={{ lineHeight: 1.05, letterSpacing: '-0.025em' }}
             >
               {store.name}

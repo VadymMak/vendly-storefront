@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
 import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
@@ -123,7 +123,19 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     light: t('colorLight'), dark: t('colorDark'), warm: t('colorWarm'), bold: t('colorBold'), festive: t('colorFestive'), elegant: t('colorElegant'),
   };
 
+  const searchParams = useSearchParams();
+  const VALID_TABS: Tab[] = ['general', 'design', 'contact', 'promo', 'categories', 'publishing', 'danger'];
   const [activeTab, setActiveTab] = useState<Tab>(isNew ? 'general' : initialTab);
+
+  // Sync activeTab with URL ?tab= on client-side navigation (e.g. from FloatingAdvisor)
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') as Tab | null;
+    if (urlTab && VALID_TABS.includes(urlTab) && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const [form, setForm] = useState<StoreSettingsFormData>({
     name:         store?.name || '',
     description:  store?.description || '',

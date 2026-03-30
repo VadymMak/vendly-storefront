@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import { db } from '@/lib/db';
+import { getStoreCategories } from '@/lib/shop-queries';
 import ProductForm from '@/components/dashboard/ProductForm';
 import type { ProductFormData, ItemType } from '@/lib/types';
 
@@ -23,6 +24,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 
   if (!item) notFound();
 
+  const categories = await getStoreCategories(item.store.id);
+
   const defaultValues: Partial<ProductFormData> = {
     name: item.name,
     description: item.description || '',
@@ -39,7 +42,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         <h1 className="text-2xl font-bold text-secondary">Upraviť produkt</h1>
         <p className="mt-1 text-sm text-neutral">Upravte detaily produktu alebo služby.</p>
       </div>
-      <ProductForm storeId={item.store.id} shopLanguage={item.store.shopLanguage} itemId={item.id} defaultValues={defaultValues} />
+      <ProductForm storeId={item.store.id} shopLanguage={item.store.shopLanguage} itemId={item.id} defaultValues={defaultValues} existingCategories={categories} />
     </div>
   );
 }

@@ -268,6 +268,7 @@
     "fieldCurrency": "Währung",
     "fieldCategory": "Kategorie",
     "fieldCategoryPlaceholder": "Z.B. Backwaren, Getränke, Zubehör...",
+    "fieldCategoryNew": "Neue Kategorie",
     "fieldAvailable": "Verfügbar",
     "fieldUnavailable": "Versteckt",
     "aiBtn": "KI-Beschreibung",

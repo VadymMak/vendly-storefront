@@ -57,11 +57,11 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       )}
 
       {/* ── CATALOG ─────────────────────────────────────────────────────── */}
-      <section id="products" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 scroll-mt-28">
+      <section id="products" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 scroll-mt-28">
         {/* Section header + search */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            <h2 className="text-[32px] font-extrabold tracking-tight" style={{ letterSpacing: '-0.02em' }}>
               {q ? `"${q}"` : category ? category : t.catalog}
             </h2>
             <p className={`mt-1 text-sm ${scheme.textMuted}`}>
@@ -133,7 +133,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         <section id="about" className={`border-t ${scheme.border} scroll-mt-20`}>
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:gap-12">
-              {/* Round avatar */}
+              {/* Rounded avatar */}
               <div className="shrink-0">
                 {store.logo ? (
                   <Image
@@ -141,10 +141,10 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
                     alt={store.name}
                     width={160}
                     height={160}
-                    className="h-36 w-36 rounded-full object-cover shadow-lg ring-4 ring-white sm:h-40 sm:w-40"
+                    className="h-36 w-36 rounded-2xl object-cover shadow-lg ring-4 ring-white sm:h-40 sm:w-40"
                   />
                 ) : (
-                  <div className={`flex h-36 w-36 items-center justify-center rounded-full text-5xl font-bold shadow-lg ring-4 ring-white sm:h-40 sm:w-40 ${scheme.accent}`}>
+                  <div className={`flex h-36 w-36 items-center justify-center rounded-2xl text-5xl font-bold shadow-lg ring-4 ring-white sm:h-40 sm:w-40 ${scheme.accent}`}>
                     {store.name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -188,7 +188,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
       {/* ── CONTACT ─────────────────────────────────────────────────────── */}
       {(s.phone || s.address || s.openingHours || s.instagram || s.facebook || s.whatsapp) && (
-        <section id="contact" className={`border-t ${scheme.border} ${scheme.bgCard} scroll-mt-20`}>
+        <section id="contact" className={`border-t ${scheme.border} scroll-mt-20`}>
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <h2 className="mb-8 text-2xl font-extrabold tracking-tight sm:text-3xl">{t.contact}</h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

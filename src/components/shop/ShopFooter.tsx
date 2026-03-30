@@ -33,7 +33,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
                   href={`https://wa.me/${s.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-green-500 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 transition-all hover:bg-green-500 hover:text-white"
                   aria-label="WhatsApp"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -46,7 +46,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
                   href={`https://instagram.com/${s.instagram}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-gradient-to-br hover:from-purple-500 hover:via-pink-500 hover:to-orange-400 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 transition-all hover:bg-gradient-to-br hover:from-purple-500 hover:via-pink-500 hover:to-orange-400 hover:text-white"
                   aria-label="Instagram"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -59,7 +59,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
                   href={`https://facebook.com/${s.facebook}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-blue-600 hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 transition-all hover:bg-blue-600 hover:text-white"
                   aria-label="Facebook"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -119,7 +119,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
                   {t.createdOn}{' '}
                   <Link
                     href="https://vendshop.shop"
-                    className="font-semibold text-green-400 transition-colors hover:text-green-300"
+                    className="font-semibold text-[#d4641a] transition-colors hover:text-[#e8823a]"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -139,7 +139,7 @@ export default function ShopFooter({ store, scheme, t }: ShopFooterProps) {
               Powered by{' '}
               <Link
                 href="https://vendshop.shop"
-                className="font-semibold text-green-500 transition-colors hover:text-green-400"
+                className="font-semibold text-[#d4641a] transition-colors hover:text-[#e8823a]"
                 target="_blank"
                 rel="noopener noreferrer"
               >

@@ -22,7 +22,7 @@ export default function ProductGrid({ items, scheme, currency, t, promoBanners =
   // If no banners — simple grid
   if (enabledBanners.length === 0) {
     return (
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((item, index) => (
           <ProductCard
             key={item.id}
@@ -44,7 +44,7 @@ export default function ProductGrid({ items, scheme, currency, t, promoBanners =
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {chunks.map((chunk, chunkIndex) => (
         <div key={`chunk-${chunkIndex}`} className="contents">
           {/* Product cards */}

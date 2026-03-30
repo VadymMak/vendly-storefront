@@ -166,6 +166,9 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  // Promo AI state
+  const [promoAiLoading, setPromoAiLoading] = useState<string | null>(null);
+
   // Categories management state
   const [categories, setCategories] = useState<{ name: string; itemCount: number }[]>([]);
   const [catLoading, setCatLoading] = useState(false);
@@ -321,7 +324,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     { id: 'general',    label: t('sectionBasic'),    icon: <IconGeneral /> },
     { id: 'design',     label: t('sectionDesign'),   icon: <IconDesign /> },
     { id: 'contact',    label: t('sectionContact'),  icon: <IconContact /> },
-    { id: 'promo',       label: 'Promo Banners',         icon: <IconDesign /> },
+    { id: 'promo',       label: t('sectionPromo'),        icon: <IconDesign /> },
     ...(!isNew ? [{ id: 'categories' as Tab, label: t('sectionCategories'), icon: <IconCategories /> }] : []),
     { id: 'publishing', label: t('isPublished'),       icon: <IconPublish /> },
     ...(isNew ? [] : [{ id: 'danger' as Tab, label: t('dangerZone'), icon: <IconDanger />, danger: true }]),
@@ -795,16 +798,16 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
           {/* PROMO BANNERS */}
           {activeTab === 'promo' && (
             <section>
-              <SectionHeader title="Promo Banners" />
+              <SectionHeader title={t('sectionPromo')} />
               <p className="mb-4 text-sm text-neutral">
-                Promotional banners appear between product rows (every 4 products). Optional — leave empty to hide.
+                {t('promoDesc')}
               </p>
 
               {/* Existing banners */}
               {form.promoBanners.map((b, idx) => (
                 <div key={b.id} className="mb-4 rounded-xl border border-gray-200 bg-white p-5">
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-secondary">Banner {idx + 1}</span>
+                    <span className="text-sm font-semibold text-secondary">{t('promoBanner')} {idx + 1}</span>
                     <div className="flex items-center gap-2">
                       <label className="flex items-center gap-2 text-sm text-neutral">
                         <input
@@ -817,7 +820,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                           }}
                           className="rounded"
                         />
-                        Enabled
+                        {t('promoEnabled')}
                       </label>
                       <button
                         type="button"
@@ -835,7 +838,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Title">
+                    <Field label={t('promoTitle')}>
                       <input
                         className={INPUT_CLS}
                         value={b.title}
@@ -844,10 +847,10 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                           updated[idx] = { ...updated[idx], title: e.target.value };
                           setForm({ ...form, promoBanners: updated });
                         }}
-                        placeholder="e.g. Fresh arrivals!"
+                        placeholder={t('promoTitlePlaceholder')}
                       />
                     </Field>
-                    <Field label="CTA Text (optional)">
+                    <Field label={t('promoCta')}>
                       <input
                         className={INPUT_CLS}
                         value={b.ctaText || ''}
@@ -856,12 +859,12 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                           updated[idx] = { ...updated[idx], ctaText: e.target.value };
                           setForm({ ...form, promoBanners: updated });
                         }}
-                        placeholder="e.g. View all →"
+                        placeholder={t('promoCtaPlaceholder')}
                       />
                     </Field>
                   </div>
                   <div className="mt-3">
-                    <Field label="Description">
+                    <Field label={t('promoDescription')}>
                       <textarea
                         className={INPUT_CLS}
                         rows={2}
@@ -871,24 +874,63 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                           updated[idx] = { ...updated[idx], description: e.target.value };
                           setForm({ ...form, promoBanners: updated });
                         }}
-                        placeholder="Short promo text..."
+                        placeholder={t('promoDescPlaceholder')}
                       />
+                      {b.title.trim() && (
+                        <button
+                          type="button"
+                          disabled={promoAiLoading === b.id}
+                          onClick={async () => {
+                            setPromoAiLoading(b.id);
+                            try {
+                              const res = await fetch('/api/ai/describe-promo', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ title: b.title, language: form.shopLanguage }),
+                              });
+                              if (!res.ok) {
+                                const data = await res.json();
+                                throw new Error(data.error || 'Error');
+                              }
+                              const data = await res.json();
+                              const updated = [...form.promoBanners];
+                              updated[idx] = { ...updated[idx], description: data.description };
+                              setForm({ ...form, promoBanners: updated });
+                            } catch {
+                              /* silent */
+                            } finally {
+                              setPromoAiLoading(null);
+                            }
+                          }}
+                          className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition-colors"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2l2.4 7.4H22l-6.2 4.5L18.2 22 12 17.5 5.8 22l2.4-8.1L2 9.4h7.6z" />
+                          </svg>
+                          {promoAiLoading === b.id ? t('promoAiGenerating') : t('promoAiGenerate')}
+                        </button>
+                      )}
                     </Field>
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <Field label="Image URL (optional)">
-                      <input
-                        className={INPUT_CLS}
-                        value={b.image || ''}
-                        onChange={(e) => {
-                          const updated = [...form.promoBanners];
-                          updated[idx] = { ...updated[idx], image: e.target.value };
-                          setForm({ ...form, promoBanners: updated });
-                        }}
-                        placeholder="https://..."
-                      />
-                    </Field>
-                    <Field label="CTA Link (optional)">
+                  <div className="mt-3">
+                    <ImageUpload
+                      images={b.image ? [b.image] : []}
+                      onChange={(imgs) => {
+                        const updated = [...form.promoBanners];
+                        updated[idx] = { ...updated[idx], image: imgs[0] || '' };
+                        setForm({ ...form, promoBanners: updated });
+                      }}
+                      single
+                      label={t('bannerImage')}
+                      hint={t('bannerHint')}
+                      textUpload={t('uploadImage')}
+                      textChange={t('uploadChange')}
+                      textUploading={t('uploadUploading')}
+                      textRemove={t('uploadRemove')}
+                    />
+                  </div>
+                  <div className="mt-3">
+                    <Field label={t('promoCtaLink')}>
                       <input
                         className={INPUT_CLS}
                         value={b.ctaLink || ''}
@@ -922,7 +964,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Add Promo Banner
+                {t('promoAdd')}
               </button>
               <SaveButton />
             </section>

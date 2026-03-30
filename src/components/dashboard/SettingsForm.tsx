@@ -28,6 +28,36 @@ const COLOR_SCHEMES = [
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
+const SHORT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/** Generate a compact opening hours string from structured schedule, e.g. "Mon–Fri 09:00–18:00, Sat–Sun Closed" */
+function formatStructuredHours(hours: WeekSchedule): string {
+  // Group consecutive days with the same schedule
+  const groups: { start: number; end: number; open: boolean; from: string; to: string }[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const d = hours[i];
+    const key = d.open ? `${d.from}-${d.to}` : 'closed';
+    const last = groups[groups.length - 1];
+    const lastKey = last ? (last.open ? `${last.from}-${last.to}` : 'closed') : '';
+
+    if (last && lastKey === key && last.end === i - 1) {
+      last.end = i;
+    } else {
+      groups.push({ start: i, end: i, open: d.open, from: d.from, to: d.to });
+    }
+  }
+
+  return groups
+    .map((g) => {
+      const range = g.start === g.end
+        ? SHORT_DAYS[g.start]
+        : `${SHORT_DAYS[g.start]}–${SHORT_DAYS[g.end]}`;
+      return g.open ? `${range} ${g.from}–${g.to}` : `${range} Closed`;
+    })
+    .join(', ');
+}
+
 type Tab = 'general' | 'design' | 'contact' | 'promo' | 'categories' | 'publishing' | 'danger';
 
 interface SettingsFormProps {
@@ -215,6 +245,9 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     setError(null);
     setSuccess(false);
     try {
+      // Auto-generate openingHours text from structured schedule
+      const generatedHours = formatStructuredHours(form.structuredHours);
+
       // Auto-geocode address if address exists but coordinates are missing
       let coords = form.coordinates;
       if (form.address && !coords) {
@@ -237,6 +270,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          openingHours: generatedHours,
           templateId, slug, userId,
           logo: logo[0] || null,
           bannerImage: banner[0] || null,
@@ -760,12 +794,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                       );
                     })}
                   </div>
-                  {/* Legacy fallback text field */}
-                  <Field label={t('openingHoursText')} hint={t('openingHoursTextHint')}>
-                    <input type="text" value={form.openingHours}
-                      onChange={(e) => set('openingHours', e.target.value)}
-                      className={INPUT_CLS} placeholder={t('openingHoursPlaceholder')} />
-                  </Field>
+                  {/* openingHours is auto-generated from structuredHours on save */}
                 </div>
 
                 {/* ── Order acceptance schedule ─────────────────────────── */}

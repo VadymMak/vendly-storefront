@@ -10,6 +10,7 @@ interface StoreAdvisorProps {
   items: ShopItem[];
   categoryCount: number;
   userPlan: OwnerPlan;
+  isAdmin?: boolean;
   onNavigateTab?: (tab: string) => void;
 }
 
@@ -111,7 +112,7 @@ function AdviceCard({ advice }: { advice: AiAdvice }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function StoreAdvisor({ store, items, categoryCount, userPlan, onNavigateTab }: StoreAdvisorProps) {
+export default function StoreAdvisor({ store, items, categoryCount, userPlan, isAdmin = false, onNavigateTab }: StoreAdvisorProps) {
   const t = useTranslations('storeAdvisor');
   const locale = useLocale();
 
@@ -127,7 +128,7 @@ export default function StoreAdvisor({ store, items, categoryCount, userPlan, on
 
   const failedChecks = checks.filter((c) => !c.passed);
   const passedChecks = checks.filter((c) => c.passed);
-  const canUseAi = userPlan === 'STARTER' || userPlan === 'PRO';
+  const canUseAi = isAdmin || userPlan === 'STARTER' || userPlan === 'PRO';
 
   const handleGetAdvice = async () => {
     setAiLoading(true);

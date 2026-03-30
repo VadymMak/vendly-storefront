@@ -9,8 +9,8 @@ import type { ShopItem, ItemType } from '@/lib/types';
 
 export const metadata = { title: 'Settings | Dashboard' };
 
-type Tab = 'general' | 'design' | 'contact' | 'categories' | 'advisor' | 'publishing' | 'danger';
-const VALID_TABS: Tab[] = ['general', 'design', 'contact', 'categories', 'advisor', 'publishing', 'danger'];
+type Tab = 'general' | 'design' | 'contact' | 'promo' | 'categories' | 'advisor' | 'publishing' | 'danger';
+const VALID_TABS: Tab[] = ['general', 'design', 'contact', 'promo', 'categories', 'advisor', 'publishing', 'danger'];
 
 export default async function SettingsPage({
   searchParams,
@@ -33,6 +33,7 @@ export default async function SettingsPage({
 
   const t = await getTranslations('dashboardSettings');
   const initialTab = VALID_TABS.includes(params.tab as Tab) ? (params.tab as Tab) : 'general';
+  const isAdmin = !!(process.env.ADMIN_EMAIL && session.user.email === process.env.ADMIN_EMAIL);
 
   // Fetch items and category count for Store Advisor
   let items: ShopItem[] = [];
@@ -77,6 +78,7 @@ export default async function SettingsPage({
         categoryCount={categoryCount}
         initialTab={initialTab}
         userPlan={userPlan}
+        isAdmin={isAdmin}
       />
     </div>
   );

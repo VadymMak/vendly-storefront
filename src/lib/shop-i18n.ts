@@ -108,6 +108,7 @@ export interface ShopFrontMessages {
   promo: string;
   poweredBy: string;
   info: string;
+  browseProducts: string;
 }
 
 const VALID_LOCALES = new Set(['en', 'sk', 'uk', 'cs', 'de']);

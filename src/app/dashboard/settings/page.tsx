@@ -7,8 +7,8 @@ import AiSetupWizard from '@/components/dashboard/AiSetupWizard';
 
 export const metadata = { title: 'Settings | Dashboard' };
 
-type Tab = 'general' | 'design' | 'contact' | 'publishing' | 'danger';
-const VALID_TABS: Tab[] = ['general', 'design', 'contact', 'publishing', 'danger'];
+type Tab = 'general' | 'design' | 'contact' | 'categories' | 'publishing' | 'danger';
+const VALID_TABS: Tab[] = ['general', 'design', 'contact', 'categories', 'publishing', 'danger'];
 
 export default async function SettingsPage({
   searchParams,

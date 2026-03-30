@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
@@ -28,7 +28,7 @@ const COLOR_SCHEMES = [
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
-type Tab = 'general' | 'design' | 'contact' | 'promo' | 'publishing' | 'danger';
+type Tab = 'general' | 'design' | 'contact' | 'promo' | 'categories' | 'publishing' | 'danger';
 
 interface SettingsFormProps {
   userId: string;
@@ -79,6 +79,14 @@ function IconDanger() {
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+function IconCategories() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
     </svg>
   );
 }
@@ -157,6 +165,30 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // Categories management state
+  const [categories, setCategories] = useState<{ name: string; itemCount: number }[]>([]);
+  const [catLoading, setCatLoading] = useState(false);
+  const [catDeleting, setCatDeleting] = useState<string | null>(null);
+  const [catMsg, setCatMsg] = useState<string | null>(null);
+
+  const loadCategories = useCallback(async () => {
+    if (!store) return;
+    setCatLoading(true);
+    try {
+      const res = await fetch(`/api/stores/${store.id}/categories`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data.categories);
+      }
+    } catch { /* silent */ } finally {
+      setCatLoading(false);
+    }
+  }, [store]);
+
+  useEffect(() => {
+    if (store) loadCategories();
+  }, [store, loadCategories]);
 
   const set = <K extends keyof StoreSettingsFormData>(field: K, value: StoreSettingsFormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -260,13 +292,38 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
     }
   };
 
+  const handleDeleteCategory = async (categoryName: string) => {
+    if (!store || catDeleting) return;
+    setCatDeleting(categoryName);
+    setCatMsg(null);
+    try {
+      const res = await fetch(`/api/stores/${store.id}/categories`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: categoryName }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setCatMsg(data.error || 'Error');
+      } else {
+        setCatMsg(t('categoriesDeleted'));
+        await loadCategories();
+      }
+    } catch {
+      setCatMsg('Error');
+    } finally {
+      setCatDeleting(null);
+    }
+  };
+
   // ── Sidebar nav items ────────────────────────────────────────────────────
   const navItems: { id: Tab; label: string; icon: React.ReactNode; danger?: boolean }[] = [
     { id: 'general',    label: t('sectionBasic'),    icon: <IconGeneral /> },
     { id: 'design',     label: t('sectionDesign'),   icon: <IconDesign /> },
     { id: 'contact',    label: t('sectionContact'),  icon: <IconContact /> },
-    { id: 'promo',      label: 'Promo Banners',       icon: <IconDesign /> },
-    { id: 'publishing', label: t('isPublished'),     icon: <IconPublish /> },
+    { id: 'promo',       label: 'Promo Banners',         icon: <IconDesign /> },
+    ...(!isNew ? [{ id: 'categories' as Tab, label: t('sectionCategories'), icon: <IconCategories /> }] : []),
+    { id: 'publishing', label: t('isPublished'),       icon: <IconPublish /> },
     ...(isNew ? [] : [{ id: 'danger' as Tab, label: t('dangerZone'), icon: <IconDanger />, danger: true }]),
   ];
 
@@ -868,6 +925,67 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 Add Promo Banner
               </button>
               <SaveButton />
+            </section>
+          )}
+
+          {/* CATEGORIES */}
+          {activeTab === 'categories' && !isNew && (
+            <section>
+              <SectionHeader title={t('sectionCategories')} subtitle={t('categoriesDesc')} />
+
+              {catLoading ? (
+                <p className="text-sm text-neutral">{t('categoriesLoading')}</p>
+              ) : categories.length === 0 ? (
+                <div className="rounded-xl border border-gray-200 bg-white p-6 text-center">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-3 text-gray-300">
+                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+                  </svg>
+                  <p className="text-sm text-neutral">{t('categoriesEmpty')}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {categories.map((cat) => (
+                    <div
+                      key={cat.name}
+                      className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-3.5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                            <line x1="7" y1="7" x2="7.01" y2="7" />
+                          </svg>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-secondary">{cat.name}</span>
+                          <span className="ml-2 text-xs text-neutral">
+                            {cat.itemCount} {cat.itemCount === 1 ? t('categoriesItem') : t('categoriesItems')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {cat.itemCount === 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(cat.name)}
+                          disabled={catDeleting === cat.name}
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          {catDeleting === cat.name ? '...' : t('categoriesDeleteBtn')}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">{t('categoriesCannotDelete')}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {catMsg && (
+                <div className="mt-3 rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-700">
+                  {catMsg}
+                </div>
+              )}
             </section>
           )}
 

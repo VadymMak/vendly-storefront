@@ -143,7 +143,7 @@
 - [x] Типы: HeroLayout, HeroTextColor, ProductStatus в types.ts
 - [x] heroLayout + heroTextColor добавлены в ShopSettings
 - [x] BannerCropper: drag+zoom crop tool для баннера (21:9, canvas, 1920px export)
-- [ ] TODO: Compact hero layout (featured products above fold) — Starter/Pro only
+- [x] Interactive hero: 50/50 split — left compact text, right category showcase with auto-switch (5s)
 - [ ] TODO: Dashboard setting для переключения heroLayout
 - [ ] TODO: AI Advisor рекомендация compact layout для платных планов
 
@@ -176,7 +176,8 @@
   - Beauty: объём, тип кожи, ингредиенты, сертификации
 - [ ] Рендеринг атрибутов на карточке и на странице товара по типу магазина
 
-### Фаза C — Другие шаблоны ⬜
+### Фаза C — Другие шаблоны
+- [x] Restaurant template: RestaurantHero.tsx + RestaurantMenu.tsx, подключено в page.tsx по templateId === 'restaurant'
 - [ ] Clothing template
 - [ ] Electronics template
 - [ ] Beauty template

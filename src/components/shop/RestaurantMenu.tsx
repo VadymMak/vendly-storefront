@@ -1,5 +1,7 @@
+'use client';
+
+import { useRef, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import type { ShopItem, ColorSchemeTokens } from '@/lib/types';
 import type { ShopFrontMessages } from '@/lib/shop-i18n';
 import { CURRENCY_SYMBOLS } from '@/lib/constants';
@@ -33,7 +35,6 @@ function groupItems(
     }
   }
 
-  // Items with no category or unknown category
   const rest = items.filter((it) => !it.category || !seen.has(it.category));
   if (rest.length > 0) {
     result.push({ category: '', items: rest });
@@ -42,7 +43,8 @@ function groupItems(
   return result;
 }
 
-function MenuItemRow({
+/** Elegant list row: name ··· dotted line ··· price */
+function ElegantMenuItem({
   item,
   currency,
   t,
@@ -54,100 +56,65 @@ function MenuItemRow({
   scheme: ColorSchemeTokens;
 }) {
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
-  const hasImage = item.images.length > 0;
+  const isUnavailable = !item.isAvailable;
 
   return (
     <Link
       href={`/item/${item.id}`}
-      className={`group flex items-start gap-4 rounded-2xl border px-4 py-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:gap-5 sm:px-5 ${scheme.border} bg-white/70`}
+      className={`group block border-b py-4 transition-all duration-200 hover:pl-2 ${scheme.border} border-opacity-30 last:border-b-0 ${isUnavailable ? 'opacity-60' : ''}`}
     >
-      {/* Thumbnail */}
-      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl sm:h-20 sm:w-20">
-        {hasImage ? (
-          <Image
-            src={item.images[0]}
-            alt={item.name}
-            fill
-            className={`object-cover transition-transform duration-500 group-hover:scale-105 ${!item.isAvailable ? 'opacity-50' : ''}`}
-            sizes="80px"
-          />
-        ) : (
-          <div className={`flex h-full w-full items-center justify-center ${scheme.bgCard}`}>
-            <svg
-              width="24" height="24"
-              viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.5"
-              strokeLinecap="round" strokeLinejoin="round"
-              className="opacity-25"
-            >
-              <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />
-              <path d="M7 2v20" />
-              <path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
-            </svg>
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <h3 className={`text-[15px] font-semibold leading-snug ${scheme.text} group-hover:text-warm-accent transition-colors duration-200`}>
+      {/* Top row: name ··· price */}
+      <div className="flex items-baseline gap-2">
+        <span
+          className={`text-[16px] font-semibold ${scheme.text} ${isUnavailable ? 'line-through' : ''}`}
+          style={{ letterSpacing: '-0.01em' }}
+        >
           {item.name}
-        </h3>
-
-        {item.description && (
-          <p className={`text-[13px] leading-relaxed ${scheme.textMuted} line-clamp-2`}>
-            {item.description}
-          </p>
-        )}
-
-        {/* Metadata extras (allergens, weight, etc.) */}
-        {item.metadata && (
-          <div className={`mt-1 flex flex-wrap gap-2 text-[11px] font-medium ${scheme.textMuted}`}>
-            {(item.metadata.weight as string) && (
-              <span className={`rounded-full border px-2 py-0.5 ${scheme.border}`}>
-                {item.metadata.weight as string}
-              </span>
-            )}
-            {(item.metadata.allergens as string) && (
-              <span className={`rounded-full border px-2 py-0.5 ${scheme.border}`}>
-                {item.metadata.allergens as string}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Price + availability */}
-      <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
+        </span>
+        <span
+          className="min-w-[40px] flex-1"
+          style={{ borderBottom: '1px dotted var(--color-warm-border, #e8e0d6)', marginBottom: '4px' }}
+        />
         {item.isAvailable ? (
           item.price !== null ? (
-            <div className="flex items-baseline gap-0.5">
-              <span className={`text-[18px] font-extrabold leading-none ${scheme.text}`} style={{ letterSpacing: '-0.02em' }}>
-                {item.price.toFixed(2)}
-              </span>
-              <span className={`text-[13px] font-medium ${scheme.textMuted}`}>{currencySymbol}</span>
-            </div>
+            <span
+              className={`whitespace-nowrap text-[17px] font-bold text-warm-accent ${isUnavailable ? 'text-warm-muted' : ''}`}
+              style={{ letterSpacing: '-0.02em' }}
+            >
+              {item.price.toFixed(2)} {currencySymbol}
+            </span>
           ) : (
             <span className={`text-[13px] font-medium ${scheme.textMuted}`}>{t.onRequest}</span>
           )
         ) : (
-          <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${scheme.border} ${scheme.textMuted}`}>
+          <span className={`text-[13px] font-medium ${scheme.textMuted}`}>
             {t.unavailable}
           </span>
         )}
-
-        {/* Arrow hint */}
-        <svg
-          width="14" height="14"
-          viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round"
-          className={`opacity-0 transition-opacity duration-200 group-hover:opacity-40 ${scheme.textMuted}`}
-        >
-          <line x1="5" y1="12" x2="19" y2="12" />
-          <polyline points="12 5 19 12 12 19" />
-        </svg>
       </div>
+
+      {/* Description */}
+      {item.description && (
+        <p className={`mt-1 max-w-[500px] text-[13px] leading-relaxed ${scheme.textMuted}`}>
+          {item.description}
+        </p>
+      )}
+
+      {/* Metadata tags (weight, allergens) */}
+      {item.metadata && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {(item.metadata.weight as string) && (
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${scheme.border} ${scheme.textMuted}`}>
+              {item.metadata.weight as string}
+            </span>
+          )}
+          {(item.metadata.allergens as string) && (
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${scheme.border} ${scheme.textMuted}`}>
+              {item.metadata.allergens as string}
+            </span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }
@@ -162,6 +129,49 @@ export default function RestaurantMenu({
   searchQuery,
 }: RestaurantMenuProps) {
   const showSections = !activeCategory && !searchQuery;
+  const groups = showSections ? groupItems(items, categories) : [];
+  const visibleCategories = groups.map((g) => g.category).filter(Boolean);
+
+  // ── Sticky tabs state ──
+  const [activeTab, setActiveTab] = useState(visibleCategories[0] || '');
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const isScrollingTo = useRef(false);
+
+  // Observe which section is in view
+  useEffect(() => {
+    if (visibleCategories.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrollingTo.current) return;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const cat = entry.target.getAttribute('data-category');
+            if (cat) setActiveTab(cat);
+          }
+        }
+      },
+      { rootMargin: '-140px 0px -60% 0px', threshold: 0 },
+    );
+
+    for (const cat of visibleCategories) {
+      const el = sectionRefs.current[cat];
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleCategories.length]);
+
+  const scrollToCategory = useCallback((cat: string) => {
+    setActiveTab(cat);
+    const el = sectionRefs.current[cat];
+    if (!el) return;
+    isScrollingTo.current = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => { isScrollingTo.current = false; }, 800);
+  }, []);
 
   // ── Empty state ──
   if (items.length === 0) {
@@ -192,19 +202,58 @@ export default function RestaurantMenu({
     );
   }
 
-  // ── Grouped by category (no filter active) ──
-  if (showSections) {
-    const groups = groupItems(items, categories);
-
+  // ── Flat list (category filter or search active) ──
+  if (!showSections) {
     return (
-      <div className="space-y-10">
+      <div className="mx-auto max-w-3xl">
+        {items.map((item) => (
+          <ElegantMenuItem key={item.id} item={item} currency={currency} t={t} scheme={scheme} />
+        ))}
+      </div>
+    );
+  }
+
+  // ── Grouped elegant menu with sticky category tabs ──
+  return (
+    <>
+      {/* Sticky category tabs */}
+      {visibleCategories.length > 1 && (
+        <div
+          ref={tabsRef}
+          className={`sticky top-[64px] z-[90] border-b bg-white ${scheme.border}`}
+        >
+          <div className="scrollbar-hide mx-auto flex max-w-[1200px] gap-0 overflow-x-auto px-6 sm:px-10">
+            {visibleCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => scrollToCategory(cat)}
+                className={`whitespace-nowrap border-b-2 px-6 py-4 text-[14px] font-semibold transition-all duration-200 ${
+                  activeTab === cat
+                    ? 'border-warm-accent text-warm-accent'
+                    : `border-transparent ${scheme.textMuted} hover:text-warm-text`
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Menu sections — narrower, elegant */}
+      <div className="mx-auto max-w-3xl px-6 pb-20 pt-12 sm:px-10">
         {groups.map(({ category, items: groupItems }) => (
-          <div key={category || '__uncategorized'}>
-            {/* Section heading */}
+          <div
+            key={category || '__uncategorized'}
+            ref={(el) => { if (category) sectionRefs.current[category] = el; }}
+            data-category={category}
+            className="mb-12 scroll-mt-32"
+          >
+            {/* Category header: title ——— count */}
             {category && (
-              <div className="mb-4 flex items-center gap-3">
+              <div className="mb-6 flex items-center gap-4">
                 <h2
-                  className={`text-[22px] font-extrabold tracking-tight ${scheme.text}`}
+                  className={`whitespace-nowrap text-[28px] font-bold ${scheme.headingFont || ''}`}
                   style={{ letterSpacing: '-0.02em' }}
                 >
                   {category}
@@ -216,36 +265,19 @@ export default function RestaurantMenu({
               </div>
             )}
 
-            {/* Item rows */}
-            <div className="space-y-2">
-              {groupItems.map((item) => (
-                <MenuItemRow
-                  key={item.id}
-                  item={item}
-                  currency={currency}
-                  t={t}
-                  scheme={scheme}
-                />
-              ))}
-            </div>
+            {/* Elegant list items */}
+            {groupItems.map((item) => (
+              <ElegantMenuItem
+                key={item.id}
+                item={item}
+                currency={currency}
+                t={t}
+                scheme={scheme}
+              />
+            ))}
           </div>
         ))}
       </div>
-    );
-  }
-
-  // ── Flat list (category filter or search active) ──
-  return (
-    <div className="space-y-2">
-      {items.map((item) => (
-        <MenuItemRow
-          key={item.id}
-          item={item}
-          currency={currency}
-          t={t}
-          scheme={scheme}
-        />
-      ))}
-    </div>
+    </>
   );
 }

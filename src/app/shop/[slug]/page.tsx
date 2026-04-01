@@ -12,6 +12,7 @@ import ShopNewsletter from '@/components/shop/ShopNewsletter';
 import ShopHero from '@/components/shop/ShopHero';
 import RestaurantHero from '@/components/shop/RestaurantHero';
 import RestaurantMenu from '@/components/shop/RestaurantMenu';
+import FeaturedDishes from '@/components/shop/FeaturedDishes';
 import CookieConsent from '@/components/shop/CookieConsent';
 import ShopMap from '@/components/shop/ShopMap';
 
@@ -57,9 +58,14 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
     <div style={hasCustomVars ? (shopCssVars as React.CSSProperties) : undefined}>
       {/* ── HERO ────────────────────────────────────────────────────── */}
       {isRestaurant ? (
-        <RestaurantHero store={store} scheme={scheme} t={t} items={heroItems} categories={categories} />
+        <RestaurantHero store={store} scheme={scheme} t={t} />
       ) : (
         <ShopHero store={store} scheme={scheme} t={t} items={heroItems} categories={categories} />
+      )}
+
+      {/* ── FEATURED DISHES (restaurant only) ─────────────────────────── */}
+      {isRestaurant && (
+        <FeaturedDishes items={heroItems} currency={s.currency || 'EUR'} scheme={scheme} />
       )}
 
       {/* ── QUICK BADGES ──────────────────────────────────────────────────── */}
@@ -68,38 +74,15 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
       )}
 
       {/* ── CATALOG / MENU ───────────────────────────────────────────────── */}
-      <section
-        id={isRestaurant ? 'menu' : 'products'}
-        className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 scroll-mt-28"
-      >
-        {/* Section header + search */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className={`text-[32px] font-extrabold tracking-tight ${scheme.headingFont || ''}`} style={{ letterSpacing: '-0.02em' }}>
-              {q ? `"${q}"` : category ? category : t.catalog}
-            </h2>
-            <p className={`mt-1 text-sm ${scheme.textMuted}`}>
-              {pluralizeItems(items.length, t)}
-            </p>
+      {isRestaurant ? (
+        /* Restaurant: elegant menu with built-in sticky tabs */
+        <div id="menu" className="scroll-mt-16">
+          {/* Search bar for restaurant */}
+          <div className="mx-auto max-w-3xl px-6 pt-8 sm:px-10">
+            <div className="w-full sm:w-80 sm:ml-auto">
+              <SearchBar scheme={scheme} t={t} />
+            </div>
           </div>
-          <div className="w-full sm:w-80">
-            <SearchBar scheme={scheme} t={t} />
-          </div>
-        </div>
-
-        {/* Category filter */}
-        {categories.length > 1 && !q && (
-          <CategoryFilter
-            categories={categories}
-            activeCategory={category || null}
-            slug={slug}
-            scheme={scheme}
-            t={t}
-          />
-        )}
-
-        {/* Restaurant: menu rows — or standard product grid */}
-        {isRestaurant ? (
           <RestaurantMenu
             items={items}
             categories={categories}
@@ -109,37 +92,71 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
             activeCategory={category || null}
             searchQuery={q || null}
           />
-        ) : items.length > 0 ? (
-          <ProductGrid items={items} scheme={scheme} currency={store.settings.currency || 'EUR'} t={t} promoBanners={s.promoBanners} />
-        ) : q ? (
-          <div className="py-20 text-center">
-            <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+        </div>
+      ) : (
+        <section
+          id="products"
+          className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 scroll-mt-28"
+        >
+          {/* Section header + search */}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className={`text-[32px] font-extrabold tracking-tight ${scheme.headingFont || ''}`} style={{ letterSpacing: '-0.02em' }}>
+                {q ? `"${q}"` : category ? category : t.catalog}
+              </h2>
+              <p className={`mt-1 text-sm ${scheme.textMuted}`}>
+                {pluralizeItems(items.length, t)}
+              </p>
             </div>
-            <p className={`text-lg font-medium ${scheme.textMuted}`}>
-              {t.searchNoResults}
-            </p>
-            <p className={`mt-1 text-sm ${scheme.textMuted} opacity-70`}>
-              {t.searchNoResultsDesc}
-            </p>
-          </div>
-        ) : (
-          <div className="py-20 text-center">
-            <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40">
-                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-                <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
-              </svg>
+            <div className="w-full sm:w-80">
+              <SearchBar scheme={scheme} t={t} />
             </div>
-            <p className={`text-lg font-medium ${scheme.textMuted}`}>
-              {category ? t.emptyCategory : t.emptyStore}
-            </p>
           </div>
-        )}
-      </section>
+
+          {/* Category filter */}
+          {categories.length > 1 && !q && (
+            <CategoryFilter
+              categories={categories}
+              activeCategory={category || null}
+              slug={slug}
+              scheme={scheme}
+              t={t}
+            />
+          )}
+
+          {/* Standard product grid */}
+          {items.length > 0 ? (
+            <ProductGrid items={items} scheme={scheme} currency={store.settings.currency || 'EUR'} t={t} promoBanners={s.promoBanners} />
+          ) : q ? (
+            <div className="py-20 text-center">
+              <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
+              <p className={`text-lg font-medium ${scheme.textMuted}`}>
+                {t.searchNoResults}
+              </p>
+              <p className={`mt-1 text-sm ${scheme.textMuted} opacity-70`}>
+                {t.searchNoResultsDesc}
+              </p>
+            </div>
+          ) : (
+            <div className="py-20 text-center">
+              <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${scheme.bgCard}`}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-40">
+                  <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+                </svg>
+              </div>
+              <p className={`text-lg font-medium ${scheme.textMuted}`}>
+                {category ? t.emptyCategory : t.emptyStore}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── REVIEWS ──────────────────────────────────────────────────────── */}
       <div id="reviews" className="scroll-mt-20" />

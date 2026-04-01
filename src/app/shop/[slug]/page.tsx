@@ -10,6 +10,8 @@ import ReviewsSection from '@/components/shop/ReviewsSection';
 import SearchBar from '@/components/shop/SearchBar';
 import ShopNewsletter from '@/components/shop/ShopNewsletter';
 import ShopHero from '@/components/shop/ShopHero';
+import RestaurantHero from '@/components/shop/RestaurantHero';
+import RestaurantMenu from '@/components/shop/RestaurantMenu';
 import CookieConsent from '@/components/shop/CookieConsent';
 import ShopMap from '@/components/shop/ShopMap';
 
@@ -43,6 +45,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
   const scheme = COLOR_SCHEMES[store.settings.colorScheme] || COLOR_SCHEMES.light;
   const s = store.settings;
+  const isRestaurant = store.templateId === 'restaurant';
 
   // Custom color overrides via CSS custom properties
   const shopCssVars: Record<string, string> = {};
@@ -53,15 +56,22 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
   return (
     <div style={hasCustomVars ? (shopCssVars as React.CSSProperties) : undefined}>
       {/* ── HERO ────────────────────────────────────────────────────── */}
-      <ShopHero store={store} scheme={scheme} t={t} items={heroItems} categories={categories} />
+      {isRestaurant ? (
+        <RestaurantHero store={store} scheme={scheme} t={t} items={heroItems} categories={categories} />
+      ) : (
+        <ShopHero store={store} scheme={scheme} t={t} items={heroItems} categories={categories} />
+      )}
 
       {/* ── QUICK BADGES ──────────────────────────────────────────────────── */}
       {s.quickBadges && s.quickBadges.length > 0 && (
         <QuickBadgesStrip badgeIds={s.quickBadges} scheme={scheme} shopLanguage={store.shopLanguage} />
       )}
 
-      {/* ── CATALOG ─────────────────────────────────────────────────────── */}
-      <section id="products" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 scroll-mt-28">
+      {/* ── CATALOG / MENU ───────────────────────────────────────────────── */}
+      <section
+        id={isRestaurant ? 'menu' : 'products'}
+        className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 scroll-mt-28"
+      >
         {/* Section header + search */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -88,8 +98,18 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
           />
         )}
 
-        {/* Products */}
-        {items.length > 0 ? (
+        {/* Restaurant: menu rows — or standard product grid */}
+        {isRestaurant ? (
+          <RestaurantMenu
+            items={items}
+            categories={categories}
+            scheme={scheme}
+            currency={store.settings.currency || 'EUR'}
+            t={t}
+            activeCategory={category || null}
+            searchQuery={q || null}
+          />
+        ) : items.length > 0 ? (
           <ProductGrid items={items} scheme={scheme} currency={store.settings.currency || 'EUR'} t={t} promoBanners={s.promoBanners} />
         ) : q ? (
           <div className="py-20 text-center">

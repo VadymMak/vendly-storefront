@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurant Template — Redesign Concept</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #7a7067;
+    --accent: #d4641a;
+    --accent-hover: #b8550f;
+    --warm-dark: #2c1810;
+    --warm-mid: #4a2d1a;
+    --border: #e8e0d6;
+    --border-light: #f0e8df;
+    --radius: 16px;
+  }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══════════ HEADER ═══════════ */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .header-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 24px;
+    height: 64px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+  .logo-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), #e8823a);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 18px;
+  }
+  .logo-text { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+  .nav { display: flex; align-items: center; gap: 28px; }
+  .nav a { text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: color 0.2s; }
+  .nav a:hover { color: var(--text); }
+  .header-cta {
+    padding: 10px 20px; border-radius: 100px; background: var(--accent); color: white;
+    font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.2s;
+  }
+  .header-cta:hover { background: var(--accent-hover); }
+
+  /* ═══════════ HERO — Compact (30vh) ═══════════ */
+  .hero {
+    position: relative; overflow: hidden;
+    height: 340px;
+    background: linear-gradient(135deg, #2c1810 0%, #4a2d1a 40%, #3d2c1e 100%);
+  }
+  .hero-bg-img {
+    position: absolute; inset: 0;
+    background: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&h=400&fit=crop') center/cover;
+    opacity: 0.3;
+  }
+  .hero::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(44,24,16,0.95) 0%, rgba(44,24,16,0.4) 100%);
+  }
+  .hero-inner {
+    position: relative; z-index: 2;
+    max-width: 1200px; margin: 0 auto; padding: 0 24px;
+    height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 40px;
+  }
+  .hero-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 14px; border-radius: 100px;
+    background: rgba(45,122,58,0.25); border: 1px solid rgba(45,122,58,0.35);
+    width: fit-content; margin-bottom: 16px;
+  }
+  .hero-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .hero-status span { font-size: 12px; font-weight: 600; color: #86efac; }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px; font-weight: 800; color: #fff;
+    line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 8px;
+  }
+  .hero-desc { font-size: 15px; color: rgba(255,255,255,0.55); max-width: 500px; margin-bottom: 20px; }
+
+  .hero-actions { display: flex; gap: 12px; align-items: center; }
+  .hero-btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 28px; border-radius: 12px; background: var(--accent); color: white;
+    font-size: 15px; font-weight: 700; text-decoration: none; transition: all 0.25s;
+    box-shadow: 0 4px 16px rgba(212,100,26,0.35);
+  }
+  .hero-btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .hero-btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 28px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85); font-size: 15px; font-weight: 600; text-decoration: none;
+    backdrop-filter: blur(8px); transition: all 0.25s;
+  }
+  .hero-btn-secondary:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.3); }
+
+  /* ═══════════ CATEGORY TABS ═══════════ */
+  .menu-tabs {
+    background: white; border-bottom: 1px solid var(--border);
+    position: sticky; top: 64px; z-index: 90;
+  }
+  .menu-tabs-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 24px;
+    display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+  }
+  .menu-tabs-inner::-webkit-scrollbar { display: none; }
+  .menu-tab {
+    padding: 16px 24px; font-size: 14px; font-weight: 600; color: var(--text-muted);
+    border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .menu-tab:hover { color: var(--text); }
+  .menu-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ═══════════ MENU SECTION ═══════════ */
+  .menu-section {
+    max-width: 800px; margin: 0 auto; padding: 48px 24px 80px;
+  }
+  .menu-category { margin-bottom: 48px; }
+  .menu-category-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  }
+  .menu-category-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap;
+  }
+  .menu-category-line { flex: 1; height: 1px; background: var(--border); }
+  .menu-category-count { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+  /* Elegant List Item */
+  .menu-item {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item:hover { padding-left: 8px; }
+  .menu-item-top {
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .menu-item-name {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .menu-item-dots {
+    flex: 1; border-bottom: 1px dotted var(--border);
+    margin-bottom: 4px; min-width: 40px;
+  }
+  .menu-item-price {
+    font-size: 17px; font-weight: 700; color: var(--accent);
+    letter-spacing: -0.02em; white-space: nowrap;
+  }
+  .menu-item-desc {
+    margin-top: 4px; font-size: 13px; color: var(--text-muted);
+    line-height: 1.5; max-width: 500px;
+  }
+  .menu-item-tags {
+    display: flex; gap: 6px; margin-top: 6px;
+  }
+  .menu-item-tag {
+    font-size: 11px; font-weight: 500; color: var(--text-muted);
+    padding: 2px 8px; border-radius: 100px; border: 1px solid var(--border);
+  }
+  .menu-item-unavailable .menu-item-name { color: var(--text-muted); text-decoration: line-through; }
+  .menu-item-unavailable .menu-item-price { color: var(--text-muted); }
+
+  /* ═══════════ FEATURED DISHES (horizontal scroll) ═══════════ */
+  .featured {
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 32px 0;
+  }
+  .featured-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 24px;
+  }
+  .featured-label {
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); margin-bottom: 16px;
+  }
+  .featured-scroll {
+    display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .featured-scroll::-webkit-scrollbar { display: none; }
+  .featured-card {
+    flex-shrink: 0; width: 220px;
+    border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+    transition: all 0.3s; cursor: pointer;
+  }
+  .featured-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .featured-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
+  .featured-card-info { padding: 12px 14px; }
+  .featured-card-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .featured-card-price { font-size: 15px; font-weight: 700; color: var(--accent); }
+
+  /* ═══════════ FOOTER ═══════════ */
+  .footer {
+    background: var(--warm-dark); color: rgba(255,255,255,0.5); padding: 40px 0; text-align: center;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <div class="logo-icon">R</div>
+      <span class="logo-text">La Rustica</span>
+    </a>
+    <nav class="nav">
+      <a href="#menu">Menu</a>
+      <a href="#about">O nás</a>
+      <a href="#contact">Kontakt</a>
+      <a href="#" class="header-cta">Rezervácia</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO — Compact -->
+<section class="hero">
+  <div class="hero-bg-img"></div>
+  <div class="hero-inner">
+    <div class="hero-status">
+      <div class="hero-status-dot"></div>
+      <span>Otvorené do 22:00</span>
+    </div>
+    <h1>La Rustica</h1>
+    <p class="hero-desc">Autentická talianska kuchyňa v srdci Bratislavy. Čerstvé ingrediencie, tradičné recepty.</p>
+    <div class="hero-actions">
+      <a href="#menu" class="hero-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+        Pozrieť menu
+      </a>
+      <a href="#" class="hero-btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Rezervovať stôl
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED DISHES — horizontal scroll -->
+<section class="featured">
+  <div class="featured-inner">
+    <div class="featured-label">⭐ Populárne jedlá</div>
+    <div class="featured-scroll">
+      <div class="featured-card">
+        <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop" alt="Pizza">
+        <div class="featured-card-info">
+          <div class="featured-card-name">Pizza Margherita</div>
+          <div class="featured-card-price">9.50 €</div>
+        </div>
+      </div>
+      <div class="featured-card">
+        <img src="https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=400&h=300&fit=crop" alt="Pasta">
+        <div class="featured-card-info">
+          <div class="featured-card-name">Spaghetti Carbonara</div>
+          <div class="featured-card-price">11.00 €</div>
+        </div>
+      </div>
+      <div class="featured-card">
+        <img src="https://images.unsplash.com/photo-1432139509613-5c4255a1d42f?w=400&h=300&fit=crop" alt="Tiramisu">
+        <div class="featured-card-info">
+          <div class="featured-card-name">Tiramisu</div>
+          <div class="featured-card-price">6.50 €</div>
+        </div>
+      </div>
+      <div class="featured-card">
+        <img src="https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400&h=300&fit=crop" alt="Risotto">
+        <div class="featured-card-info">
+          <div class="featured-card-name">Risotto ai Funghi</div>
+          <div class="featured-card-price">13.00 €</div>
+        </div>
+      </div>
+      <div class="featured-card">
+        <img src="https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=400&h=300&fit=crop" alt="Bruschetta">
+        <div class="featured-card-info">
+          <div class="featured-card-name">Bruschetta Classica</div>
+          <div class="featured-card-price">5.50 €</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORY TABS — sticky -->
+<nav class="menu-tabs" id="menu">
+  <div class="menu-tabs-inner">
+    <button class="menu-tab active">Antipasti</button>
+    <button class="menu-tab">Primi Piatti</button>
+    <button class="menu-tab">Pizza</button>
+    <button class="menu-tab">Secondi</button>
+    <button class="menu-tab">Dolci</button>
+    <button class="menu-tab">Nápoje</button>
+  </div>
+</nav>
+
+<!-- MENU — Elegant List -->
+<section class="menu-section">
+
+  <!-- Antipasti -->
+  <div class="menu-category">
+    <div class="menu-category-header">
+      <h2 class="menu-category-title">Antipasti</h2>
+      <div class="menu-category-line"></div>
+      <span class="menu-category-count">5 položiek</span>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Bruschetta Classica</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">5.50 €</span>
+      </div>
+      <div class="menu-item-desc">Opečený chlieb s čerstvými paradajkami, cesnakom a bazalkou</div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Carpaccio di Manzo</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">8.90 €</span>
+      </div>
+      <div class="menu-item-desc">Tenké plátky hovädzieho s rukolou, parmezánom a citrónom</div>
+      <div class="menu-item-tags">
+        <span class="menu-item-tag">150g</span>
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Burrata con Pomodorini</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">9.50 €</span>
+      </div>
+      <div class="menu-item-desc">Krémová burrata so cherry paradajkami a bazalkovým olejom</div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Calamari Fritti</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">7.50 €</span>
+      </div>
+      <div class="menu-item-desc">Chrumkavé vyprážané kalamáry s citrónovou majonézou</div>
+      <div class="menu-item-tags">
+        <span class="menu-item-tag">200g</span>
+        <span class="menu-item-tag">Gluten</span>
+      </div>
+    </div>
+
+    <div class="menu-item menu-item-unavailable">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Vitello Tonnato</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">10.50 €</span>
+      </div>
+      <div class="menu-item-desc">Dočasne nedostupné</div>
+    </div>
+  </div>
+
+  <!-- Primi Piatti -->
+  <div class="menu-category">
+    <div class="menu-category-header">
+      <h2 class="menu-category-title">Primi Piatti</h2>
+      <div class="menu-category-line"></div>
+      <span class="menu-category-count">4 položky</span>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Spaghetti Carbonara</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">11.00 €</span>
+      </div>
+      <div class="menu-item-desc">Klasická carbonara s guancialom, pecorino a vajcom</div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Risotto ai Funghi Porcini</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">13.00 €</span>
+      </div>
+      <div class="menu-item-desc">Krémové rizoto s hríbmi a parmezánom</div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Tagliatelle al Ragù</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">12.50 €</span>
+      </div>
+      <div class="menu-item-desc">Domáce cestoviny s boloňskou omáčkou</div>
+      <div class="menu-item-tags">
+        <span class="menu-item-tag">350g</span>
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Gnocchi alla Sorrentina</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">10.50 €</span>
+      </div>
+      <div class="menu-item-desc">Zemiakové gnocchi s paradajkovou omáčkou a mozzarellou</div>
+    </div>
+  </div>
+
+  <!-- Pizza -->
+  <div class="menu-category">
+    <div class="menu-category-header">
+      <h2 class="menu-category-title">Pizza</h2>
+      <div class="menu-category-line"></div>
+      <span class="menu-category-count">3 položky</span>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Margherita</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">9.50 €</span>
+      </div>
+      <div class="menu-item-desc">Paradajková omáčka, mozzarella, čerstvá bazalka</div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Quattro Formaggi</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">12.00 €</span>
+      </div>
+      <div class="menu-item-desc">Mozzarella, gorgonzola, parmezán, taleggio</div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-top">
+        <span class="menu-item-name">Prosciutto e Rucola</span>
+        <span class="menu-item-dots"></span>
+        <span class="menu-item-price">13.50 €</span>
+      </div>
+      <div class="menu-item-desc">Prosciutto crudo, rukola, parmezánové hobliny</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <span>Powered by <strong style="color:rgba(255,255,255,0.5)">VendShop</strong></span>
+</footer>
+
+</body>
+</html>

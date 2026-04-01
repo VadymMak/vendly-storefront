@@ -178,6 +178,7 @@
 
 ### Фаза C — Другие шаблоны
 - [x] Restaurant template: RestaurantHero.tsx + RestaurantMenu.tsx, подключено в page.tsx по templateId === 'restaurant'
+- [x] Restaurant redesign: compact hero (340px), FeaturedDishes horizontal scroll, elegant menu list (name ··· price), sticky category tabs
 - [ ] Clothing template
 - [ ] Electronics template
 - [ ] Beauty template

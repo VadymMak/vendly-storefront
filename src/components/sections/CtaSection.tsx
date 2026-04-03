@@ -63,7 +63,7 @@ export default function CtaSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-dark to-secondary py-16 sm:py-24">
+    <section id="contact" className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-dark to-secondary py-16 sm:py-24">
       {/* Decorative circles */}
       <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/5" />
       <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-white/5" />

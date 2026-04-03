@@ -18,7 +18,8 @@ const NAV_KEYS = [
   { key: 'features' as const, href: '#features' },
   { key: 'howItWorks' as const, href: '#how-it-works' },
   { key: 'pricing' as const, href: '#pricing' },
-  { key: 'faq' as const, href: '#faq' },
+  { key: 'about' as const, href: '#about' },
+  { key: 'contact' as const, href: '#contact' },
 ];
 
 function BurgerIcon() {

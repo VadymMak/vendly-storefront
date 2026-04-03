@@ -65,7 +65,7 @@ export default function Footer() {
     ],
     support: [
       { label: t('docs'), href: '#' },
-      { label: t('contact'), href: '#' },
+      { label: t('contact'), href: '#contact' },
       { label: t('status'), href: '#' },
     ],
     legal: [

@@ -128,9 +128,11 @@
     "badge": "Live stores",
     "title": "Built with VendShop",
     "subtitle": "Real businesses already selling online. See what you can create in minutes.",
-    "shop1Desc": "Snack shop with fish products, sausages and seafood. Full catalog with categories and online ordering.",
-    "shop2Desc": "Party decoration company. Balloon compositions, photo zones and event organization services.",
-    "shop3Desc": "Restaurant demo with menu, online ordering and delivery setup. Ready food business template."
+    "adriano": "Restaurant with online menu, reservations and multilingual support",
+    "krajina": "International food shop with payments, admin panel and AI descriptions",
+    "ljservis": "Electronics repair service with gallery, price list and contact form",
+    "barbershop": "Barbershop with online booking, team and services showcase",
+    "transport": "Transport company with fleet, routes and quote request form"
   },
   "testimonials": {
     "badge": "Reviews",

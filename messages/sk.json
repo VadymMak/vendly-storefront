@@ -128,9 +128,11 @@
     "badge": "Živé obchody",
     "title": "Postavené na VendShop",
     "subtitle": "Reálne biznisy, ktoré už predávajú online. Pozrite sa, čo môžete vytvoriť za pár minút.",
-    "shop1Desc": "Obchod so snackmi, rybími produktmi, údeninami a morskými plodmi. Plný katalóg s kategóriami a online objednávkami.",
-    "shop2Desc": "Firma na organizáciu osláv. Balónové kompozície, fotozone a dekoračné služby.",
-    "shop3Desc": "Demo reštaurácie s jedálnym lístkom, online objednávkami a doručením. Šablóna pre food biznis."
+    "adriano": "Reštaurácia s online menu, rezerváciami a viacjazyčnou podporou",
+    "krajina": "Medzinárodný potravinový obchod s platbami, administráciou a AI popiskami",
+    "ljservis": "Opravovňa elektroniky s galériou, cenníkom a kontaktným formulárom",
+    "barbershop": "Barbershop s online rezerváciami, tímom a prehľadom služieb",
+    "transport": "Dopravná spoločnosť s flotilou, trasami a formulárom na cenovú ponuku"
   },
   "testimonials": {
     "badge": "Recenzie",

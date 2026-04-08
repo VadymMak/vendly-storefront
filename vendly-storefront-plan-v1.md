@@ -52,7 +52,8 @@
 - [x] SEO: Twitter card (summary_large_image), canonical URL via metadataBase
 - [x] Smooth scroll: html { scroll-behavior: smooth }
 - [x] Scroll animations: .scroll-reveal class с animation-timeline: view() на секциях below fold
-- [x] Якоря проверены: #features, #how-it-works, #pricing, #faq — все совпадают с id секций
+- [x] Якоря проверены: #features, #how-it-works, #pricing, #faq, #about, #contact — все совпадают с id секций
+- [x] Nav: добавлены About (#about → BusinessTypes) и Contact (#contact → CtaSection), переводы 5 языков, Footer contact link исправлен
 - [x] pnpm build: 0 ошибок, 0 warnings, static prerender OK
 
 ### П7 — Favicon и логотип ✅

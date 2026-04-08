@@ -28,6 +28,13 @@
   --color-warm-border: #e8e0d6;
   --color-warm-footer: #c4b5a5;
 
+  /* ── Featured shops accent colors ── */
+  --color-restaurant: #8B1A1A;
+  --color-shop: #8B5E3C;
+  --color-service: #1A5C8B;
+  --color-barbershop: #2C2C2C;
+  --color-transport: #1A4A1A;
+
   --animate-fade-in-up: fade-in-up 0.7s ease-out both;
   --animate-fade-in: fade-in 0.5s ease-out both;
   --animate-slide-in-right: slide-in-right 0.4s ease-out both;

@@ -128,9 +128,11 @@
     "badge": "Live-Shops",
     "title": "Erstellt mit VendShop",
     "subtitle": "Echte Unternehmen, die bereits online verkaufen. Sehen Sie, was Sie in wenigen Minuten erstellen können.",
-    "shop1Desc": "Snack-Shop mit Fischprodukten, Wurst und Meeresfrüchten. Vollständiger Katalog mit Kategorien und Online-Bestellungen.",
-    "shop2Desc": "Party-Dekorationsfirma. Ballonkompositionen, Fotodzonen und Veranstaltungsservice.",
-    "shop3Desc": "Restaurant-Demo mit Speisekarte, Online-Bestellungen und Lieferung. Fertige Food-Business-Vorlage."
+    "adriano": "Restaurant mit Online-Menü, Reservierungen und mehrsprachiger Unterstützung",
+    "krajina": "Internationaler Lebensmittelladen mit Zahlungen, Admin-Panel und KI-Beschreibungen",
+    "ljservis": "Elektronik-Reparaturservice mit Galerie, Preisliste und Kontaktformular",
+    "barbershop": "Barbershop mit Online-Buchung, Team und Dienstleistungsübersicht",
+    "transport": "Transportunternehmen mit Fahrzeugflotte, Routen und Angebotsformular"
   },
   "testimonials": {
     "badge": "Bewertungen",

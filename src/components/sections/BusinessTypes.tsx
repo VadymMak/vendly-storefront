@@ -96,7 +96,7 @@ export default function BusinessTypes() {
             const hasDemo = !!type.demo;
             const Wrapper = hasDemo ? 'a' : 'div';
             const wrapperProps = hasDemo
-              ? { href: `/browse?type=${type.id}` }
+              ? { href: type.demo, target: '_blank', rel: 'noopener noreferrer' }
               : {};
 
             return (

@@ -2,37 +2,53 @@ import { useTranslations } from 'next-intl';
 
 interface FeaturedShop {
   name: string;
-  slug: string;
   descKey: string;
   tags: string[];
   emoji: string;
-  color: string;
+  colorVar: string;
+  url: string;
 }
 
 const SHOPS: FeaturedShop[] = [
   {
-    name: 'Smak Shop',
-    slug: 'smak-shop',
-    descKey: 'shop1Desc',
-    tags: ['food', 'delivery', '6 categories'],
-    emoji: '🍕',
-    color: '#ea580c',
-  },
-  {
-    name: 'Ballon Party',
-    slug: 'ballon-party',
-    descKey: 'shop2Desc',
-    tags: ['events', 'decorations', 'services'],
-    emoji: '🎈',
-    color: '#e11d48',
-  },
-  {
-    name: 'Food Demo',
-    slug: 'food',
-    descKey: 'shop3Desc',
-    tags: ['restaurant', 'menu', 'online orders'],
+    name: 'Adriano Restaurant',
+    descKey: 'adriano',
+    tags: ['restaurant', 'menu', 'reservations'],
     emoji: '🍽️',
-    color: '#16a34a',
+    colorVar: 'var(--color-restaurant)',
+    url: 'https://adriano-trencin.vercel.app',
+  },
+  {
+    name: 'Krajina Shop',
+    descKey: 'krajina',
+    tags: ['shop', 'payments', 'multilingual'],
+    emoji: '🛒',
+    colorVar: 'var(--color-shop)',
+    url: 'https://krajina-trencin.vercel.app',
+  },
+  {
+    name: 'LJ Servis',
+    descKey: 'ljservis',
+    tags: ['service', 'repair', 'electronics'],
+    emoji: '🔧',
+    colorVar: 'var(--color-service)',
+    url: 'https://lj-servis.vercel.app',
+  },
+  {
+    name: 'Barbershop Trenčín',
+    descKey: 'barbershop',
+    tags: ['barbershop', 'booking', 'beauty'],
+    emoji: '✂️',
+    colorVar: 'var(--color-barbershop)',
+    url: 'https://barbershop-trencin.vercel.app',
+  },
+  {
+    name: 'Transport Trenčín',
+    descKey: 'transport',
+    tags: ['transport', 'logistics', 'fleet'],
+    emoji: '🚛',
+    colorVar: 'var(--color-transport)',
+    url: 'https://transportation-trencin.vercel.app',
   },
 ];
 
@@ -46,17 +62,20 @@ function ArrowIcon() {
 }
 
 function ShopCard({ shop, index, t }: { shop: FeaturedShop; index: number; t: ReturnType<typeof useTranslations> }) {
-  const url = `https://${shop.slug}.vendshop.shop`;
-
   return (
     <a
-      href={url}
+      href={shop.url}
       target="_blank"
       rel="noopener noreferrer"
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all hover:shadow-xl hover:-translate-y-1"
     >
       {/* Card header with color accent */}
-      <div className="relative h-48 overflow-hidden" style={{ background: `linear-gradient(135deg, ${shop.color}15 0%, ${shop.color}08 100%)` }}>
+      <div
+        className="relative h-48 overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, color-mix(in srgb, ${shop.colorVar} 8%, transparent) 0%, color-mix(in srgb, ${shop.colorVar} 4%, transparent) 100%)`,
+        }}
+      >
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-7xl opacity-60 group-hover:scale-110 transition-transform duration-500">{shop.emoji}</span>
         </div>
@@ -83,7 +102,10 @@ function ShopCard({ shop, index, t }: { shop: FeaturedShop; index: number; t: Re
             <span
               key={tag}
               className="rounded-full px-3 py-1 text-xs font-medium"
-              style={{ backgroundColor: `${shop.color}10`, color: shop.color }}
+              style={{
+                backgroundColor: `color-mix(in srgb, ${shop.colorVar} 10%, transparent)`,
+                color: shop.colorVar,
+              }}
             >
               {tag}
             </span>
@@ -114,7 +136,7 @@ export default function FeaturedShops() {
         {/* Shop cards */}
         <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {SHOPS.map((shop, i) => (
-            <ShopCard key={shop.slug} shop={shop} index={i} t={t} />
+            <ShopCard key={shop.url} shop={shop} index={i} t={t} />
           ))}
         </div>
       </div>

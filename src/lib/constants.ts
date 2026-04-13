@@ -58,6 +58,13 @@ export const BUSINESS_TYPES: BusinessType[] = [
     demo: 'https://lj-servis.vercel.app',
   },
   {
+    id: 'fashion',
+    icon: '👟',
+    title: 'Móda a obuv',
+    description: 'Oblečenie, obuv, doplnky — online katalóg s veľkosťami, košíkom a objednávkami.',
+    demo: 'https://krokshop-trencin.vercel.app',
+  },
+  {
     id: 'digital',
     icon: '💻',
     title: 'Digitálne produkty',

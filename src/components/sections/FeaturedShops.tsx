@@ -50,6 +50,14 @@ const SHOPS: FeaturedShop[] = [
     colorVar: 'var(--color-transport)',
     url: 'https://transportation-trencin.vercel.app',
   },
+  {
+    name: 'KrokShop',
+    descKey: 'krokshop',
+    tags: ['fashion', 'e-commerce', 'shoes'],
+    emoji: '👟',
+    colorVar: 'var(--color-fashion)',
+    url: 'https://krokshop-trencin.vercel.app',
+  },
 ];
 
 function ArrowIcon() {

@@ -132,7 +132,8 @@
     "krajina": "International food shop with payments, admin panel and AI descriptions",
     "ljservis": "Electronics repair service with gallery, price list and contact form",
     "barbershop": "Barbershop with online booking, team and services showcase",
-    "transport": "Transport company with fleet, routes and quote request form"
+    "transport": "Transport company with fleet, routes and quote request form",
+    "krokshop": "Modern shoe e-shop — catalog, sizes, cart, orders and admin panel."
   },
   "testimonials": {
     "badge": "Reviews",

@@ -133,7 +133,8 @@
     "ljservis": "Opravovňa elektroniky s galériou, cenníkom a kontaktným formulárom",
     "barbershop": "Barbershop s online rezerváciami, tímom a prehľadom služieb",
     "transport": "Dopravná spoločnosť s flotilou, trasami a formulárom na cenovú ponuku",
-    "krokshop": "Moderný e-shop s obuvou — katalóg, veľkosti, košík, objednávky a admin panel."
+    "krokshop": "Moderný e-shop s obuvou — katalóg, veľkosti, košík, objednávky a admin panel.",
+    "dentcare": "Moderná zubná klinika — služby, cenník, tím lekárov, online objednávky."
   },
   "testimonials": {
     "badge": "Recenzie",

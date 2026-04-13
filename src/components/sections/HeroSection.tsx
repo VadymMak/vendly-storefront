@@ -38,6 +38,10 @@ const PREVIEW_ITEMS: Record<string, { heading: string; products: string[] }> = {
     heading: 'Produkty',
     products: ['Pánske tenisky', 'Dámske lodičky', 'Detská obuv'],
   },
+  medical: {
+    heading: 'Služby',
+    products: ['Implantáty', 'Bielenie zubov', 'Ortodontia'],
+  },
 };
 
 /* ── Inline SVG icons ── */

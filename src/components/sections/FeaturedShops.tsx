@@ -58,6 +58,14 @@ const SHOPS: FeaturedShop[] = [
     colorVar: 'var(--color-fashion)',
     url: 'https://krokshop-trencin.vercel.app',
   },
+  {
+    name: 'DentCare',
+    descKey: 'dentcare',
+    tags: ['medical', 'dental', 'clinic'],
+    emoji: '🦷',
+    colorVar: 'var(--color-medical)',
+    url: 'https://dentcare-trencin.vercel.app',
+  },
 ];
 
 function ArrowIcon() {

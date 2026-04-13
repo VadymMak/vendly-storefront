@@ -65,6 +65,13 @@ export const BUSINESS_TYPES: BusinessType[] = [
     demo: 'https://krokshop-trencin.vercel.app',
   },
   {
+    id: 'medical',
+    icon: '🦷',
+    title: 'Zdravotníctvo',
+    description: 'Zubné kliniky, lekári, fyzioterapeuti — online objednávky a cenníky.',
+    demo: 'https://dentcare-trencin.vercel.app',
+  },
+  {
     id: 'digital',
     icon: '💻',
     title: 'Digitálne produkty',

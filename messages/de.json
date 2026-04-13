@@ -133,7 +133,8 @@
     "ljservis": "Elektronik-Reparaturservice mit Galerie, Preisliste und Kontaktformular",
     "barbershop": "Barbershop mit Online-Buchung, Team und Dienstleistungsübersicht",
     "transport": "Transportunternehmen mit Fahrzeugflotte, Routen und Angebotsformular",
-    "krokshop": "Moderner Schuh-E-Shop — Katalog, Größen, Warenkorb, Bestellungen und Admin-Panel."
+    "krokshop": "Moderner Schuh-E-Shop — Katalog, Größen, Warenkorb, Bestellungen und Admin-Panel.",
+    "dentcare": "Moderne Zahnklinik — Leistungen, Preisliste, Ärztesteam, Online-Terminbuchung."
   },
   "testimonials": {
     "badge": "Bewertungen",

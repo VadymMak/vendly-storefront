@@ -133,7 +133,8 @@
     "ljservis": "Electronics repair service with gallery, price list and contact form",
     "barbershop": "Barbershop with online booking, team and services showcase",
     "transport": "Transport company with fleet, routes and quote request form",
-    "krokshop": "Modern shoe e-shop — catalog, sizes, cart, orders and admin panel."
+    "krokshop": "Modern shoe e-shop — catalog, sizes, cart, orders and admin panel.",
+    "dentcare": "Modern dental clinic — services, pricing, doctor team, online booking."
   },
   "testimonials": {
     "badge": "Reviews",

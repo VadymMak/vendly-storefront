@@ -34,6 +34,10 @@ const PREVIEW_ITEMS: Record<string, { heading: string; products: string[] }> = {
     heading: 'Služby',
     products: ['Dekorácia osláv', 'Fotozone prenájom', 'Svadobné aranžmány'],
   },
+  fashion: {
+    heading: 'Produkty',
+    products: ['Pánske tenisky', 'Dámske lodičky', 'Detská obuv'],
+  },
 };
 
 /* ── Inline SVG icons ── */

@@ -72,7 +72,7 @@ const SHOPS: FeaturedShop[] = [
     tags: ['wellness', 'yoga', 'fitness'],
     emoji: '🧘',
     colorVar: 'var(--color-wellness)',
-    url: 'https://zenflow.vercel.app',
+    url: 'https://zenflow-ivory.vercel.app',
   },
 ];
 

@@ -76,7 +76,7 @@ export const BUSINESS_TYPES: BusinessType[] = [
     icon: '🧘',
     title: 'Fitness a wellness',
     description: 'Yoga štúdiá, fitness centrá, tanečné školy — rozvrh, trénerovia a online rezervácie.',
-    demo: 'https://zenflow.vercel.app',
+    demo: 'https://zenflow-ivory.vercel.app',
   },
   {
     id: 'digital',

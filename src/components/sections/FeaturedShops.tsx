@@ -74,6 +74,14 @@ const SHOPS: FeaturedShop[] = [
     colorVar: 'var(--color-wellness)',
     url: 'https://zenflow-ivory.vercel.app',
   },
+  {
+    name: 'Ember Lounge',
+    descKey: 'ember',
+    tags: ['nightlife', 'hookah', 'bar'],
+    emoji: '🪩',
+    colorVar: 'var(--color-nightlife)',
+    url: 'https://ember-lounge.vercel.app',
+  },
 ];
 
 function ArrowIcon() {

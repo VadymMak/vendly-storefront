@@ -46,6 +46,10 @@ const PREVIEW_ITEMS: Record<string, { heading: string; products: string[] }> = {
     heading: 'Lekcie',
     products: ['Hatha Yoga', 'Vinyasa Flow', 'Meditácia'],
   },
+  nightlife: {
+    heading: 'Karte',
+    products: ['Premium Shisha', 'Signature Cocktails', 'Orientalischer Tee'],
+  },
 };
 
 /* ── Inline SVG icons ── */

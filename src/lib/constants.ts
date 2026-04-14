@@ -79,6 +79,13 @@ export const BUSINESS_TYPES: BusinessType[] = [
     demo: 'https://zenflow-ivory.vercel.app',
   },
   {
+    id: 'nightlife',
+    icon: '🪩',
+    title: 'Bary a nočný život',
+    description: 'Hookah bary, cocktail bary, kluby — menu, rezervácie a eventy v 3 jazykoch.',
+    demo: 'https://ember-lounge.vercel.app',
+  },
+  {
     id: 'digital',
     icon: '💻',
     title: 'Digitálne produkty',

@@ -72,6 +72,13 @@ export const BUSINESS_TYPES: BusinessType[] = [
     demo: 'https://dentcare-trencin.vercel.app',
   },
   {
+    id: 'wellness',
+    icon: '🧘',
+    title: 'Fitness a wellness',
+    description: 'Yoga štúdiá, fitness centrá, tanečné školy — rozvrh, trénerovia a online rezervácie.',
+    demo: 'https://zenflow.vercel.app',
+  },
+  {
     id: 'digital',
     icon: '💻',
     title: 'Digitálne produkty',

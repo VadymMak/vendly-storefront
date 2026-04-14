@@ -66,6 +66,14 @@ const SHOPS: FeaturedShop[] = [
     colorVar: 'var(--color-medical)',
     url: 'https://dentcare-trencin.vercel.app',
   },
+  {
+    name: 'ZenFlow',
+    descKey: 'zenflow',
+    tags: ['wellness', 'yoga', 'fitness'],
+    emoji: '🧘',
+    colorVar: 'var(--color-wellness)',
+    url: 'https://zenflow.vercel.app',
+  },
 ];
 
 function ArrowIcon() {

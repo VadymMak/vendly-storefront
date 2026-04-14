@@ -134,7 +134,8 @@
     "barbershop": "Barbershop s online rezerváciami, tímom a prehľadom služieb",
     "transport": "Dopravná spoločnosť s flotilou, trasami a formulárom na cenovú ponuku",
     "krokshop": "Moderný e-shop s obuvou — katalóg, veľkosti, košík, objednávky a admin panel.",
-    "dentcare": "Moderná zubná klinika — služby, cenník, tím lekárov, online objednávky."
+    "dentcare": "Moderná zubná klinika — služby, cenník, tím lekárov, online objednávky.",
+    "zenflow": "Moderné yoga štúdio — rozvrh lekcií, inštruktori, cenník a online rezervácie."
   },
   "testimonials": {
     "badge": "Recenzie",

@@ -134,7 +134,8 @@
     "barbershop": "Barbershop with online booking, team and services showcase",
     "transport": "Transport company with fleet, routes and quote request form",
     "krokshop": "Modern shoe e-shop — catalog, sizes, cart, orders and admin panel.",
-    "dentcare": "Modern dental clinic — services, pricing, doctor team, online booking."
+    "dentcare": "Modern dental clinic — services, pricing, doctor team, online booking.",
+    "zenflow": "Modern yoga studio — class schedule, instructors, pricing and online booking."
   },
   "testimonials": {
     "badge": "Reviews",

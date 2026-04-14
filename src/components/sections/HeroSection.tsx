@@ -42,6 +42,10 @@ const PREVIEW_ITEMS: Record<string, { heading: string; products: string[] }> = {
     heading: 'Služby',
     products: ['Implantáty', 'Bielenie zubov', 'Ortodontia'],
   },
+  wellness: {
+    heading: 'Lekcie',
+    products: ['Hatha Yoga', 'Vinyasa Flow', 'Meditácia'],
+  },
 };
 
 /* ── Inline SVG icons ── */

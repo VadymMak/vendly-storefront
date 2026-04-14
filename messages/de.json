@@ -31,7 +31,11 @@
     "statStores": "erstellte Shops",
     "statCountries": "Länder",
     "statLanguages": "Sprachen",
-    "statUptime": "Uptime"
+    "statUptime": "Uptime",
+    "title": "Professionelle Webseite",
+    "titleHighlight": "in 48 Stunden",
+    "cta1": "WhatsApp schreiben",
+    "cta2": "Portfolio ansehen"
   },
   "socialProof": {
     "text": "Hunderte Unternehmer in SK, CZ, UA und DE vertrauen uns",
@@ -172,7 +176,9 @@
     "button": "Shop erstellen",
     "free": "Völlig kostenlos",
     "noCard": "Keine Kreditkarte",
-    "fast": "In 5 Minuten fertig"
+    "fast": "In 5 Minuten fertig",
+    "whatsapp": "WhatsApp schreiben",
+    "form": "Formular ausfüllen"
   },
   "footer": {
     "description": "Plattform für Kleinunternehmen in SK, CZ, UA und DE.",
@@ -703,5 +709,96 @@
     "aiLocked": "KI-Berater — Starter & Pro",
     "aiLockedDesc": "Wechseln Sie zum Starter- oder Pro-Plan für personalisierte KI-Empfehlungen.",
     "fabLabel": "Berater"
+  },
+  "process": {
+    "label": "So funktioniert es",
+    "title": "3 einfache Schritte",
+    "step1": { "title": "Schreiben Sie uns", "desc": "Erzählen Sie uns von Ihrem Business. Senden Sie Logo, Fotos und Texte per WhatsApp oder Formular." },
+    "step2": { "title": "Wir zeigen die fertige Website", "desc": "Innerhalb von 48 Stunden senden wir Ihnen einen Link zur fertigen Seite. 2 Korrekturschleifen kostenlos." },
+    "step3": { "title": "Zahlen Sie wenn es gefällt", "desc": "Zufrieden? Sie zahlen €249. Nicht? Wir löschen die Seite. Null Risiko." }
+  },
+  "portfolio": {
+    "label": "Unsere Arbeiten",
+    "title": "Abgeschlossene Projekte",
+    "subtitle": "Sehen Sie sich unsere echten Projekte an. Jedes wurde innerhalb von 48 Stunden erstellt.",
+    "viewAll": "Alle anzeigen",
+    "viewDemo": "Demo ansehen",
+    "krajina": "Online-Essensbestellungen — Menü, Warenkorb, Lieferung.",
+    "adriano": "Restaurant — Menü, Reservierungen, Fotogalerie.",
+    "barbershop": "Barbershop — Leistungen, Preisliste, Online-Buchung.",
+    "ljservis": "Elektronik-Reparatur — Aufträge, Preisliste, Kontakt.",
+    "krokshop": "Schuh-E-Shop — Katalog, Warenkorb, Admin-Panel.",
+    "dentcare": "Zahnklinik — Leistungen, Preisliste, Ärztesteam.",
+    "zenflow": "Yoga-Studio — Stundenplan, Trainer, Mitgliedschaft.",
+    "ember": "Hookah-Bar — Menü, Galerie, Reservierungen in 3 Sprachen.",
+    "transport": "Transportunternehmen — Leistungen, Preisliste, Aufträge."
+  },
+  "packages": {
+    "label": "Preise",
+    "title": "Einfach und transparent",
+    "subtitle": "Keine versteckten Gebühren. Zahlen Sie nur wenn Sie zufrieden sind.",
+    "perMonth": "/ Monat",
+    "oneTime": "einmalig",
+    "revisions": "Korrekturschleifen",
+    "monthlyChanges": "Änderung/Monat",
+    "landing": {
+      "desc": "Professionelle One-Pager für Ihr Business",
+      "f1": "1 Landing Page",
+      "f2": "Auswahl aus 30+ Vorlagen",
+      "f3": "2 Korrekturschleifen (8 Änderungen)",
+      "f4": "KI-Chatbot inklusive",
+      "f5": "WhatsApp-Integration",
+      "f6": "SEO-Optimierung",
+      "f7": "Fertig in 48 Stunden",
+      "cta": "Landing bestellen"
+    },
+    "premium": {
+      "badge": "Am beliebtesten",
+      "desc": "Individuelles Design mit Prioritätssupport",
+      "f1": "Individuelles Design (kein Template)",
+      "f2": "5 Korrekturschleifen",
+      "f3": "Bis zu 3 Sprachen",
+      "f4": "Prioritätssupport (4h)",
+      "f5": "KI-Chatbot inklusive",
+      "f6": "WhatsApp + Formulare",
+      "f7": "3 Änderungen pro Monat",
+      "cta": "Premium bestellen"
+    },
+    "individual": {
+      "desc": "Mehrseitige Webseite nach Maß",
+      "f1": "5–10 Seiten",
+      "f2": "Komplett einzigartiges Design",
+      "f3": "Unbegrenzte Korrekturen",
+      "f4": "Bis zu 5 Sprachen",
+      "f5": "Prioritätssupport",
+      "f6": "Vollständige KI-Integration",
+      "f7": "5 Änderungen pro Monat",
+      "cta": "Uns schreiben"
+    }
+  },
+  "included": {
+    "label": "Was enthalten ist",
+    "title": "Alles was Sie brauchen",
+    "responsive": { "title": "Responsives Design", "desc": "Perfekt auf Handy und Desktop." },
+    "seo": { "title": "SEO-Optimierung", "desc": "Gefunden auf Google ab dem ersten Tag." },
+    "ai": { "title": "KI-Chatbot", "desc": "Automatischer Assistent für Ihre Kunden." },
+    "whatsapp": { "title": "WhatsApp-Button", "desc": "Kunden schreiben Ihnen mit einem Klick." },
+    "multilang": { "title": "Mehrsprachigkeit", "desc": "SK, EN, DE, CS, UK — je nach Bedarf." },
+    "hosting": { "title": "Hosting & SSL", "desc": "Schnelles Hosting und Sicherheitszertifikat inklusive." }
+  },
+  "competitor": {
+    "label": "Vergleich",
+    "title": "Warum VendShop",
+    "creation": "Website-Erstellung",
+    "monthly": "Monatliche Gebühr",
+    "aichat": "KI-Chatbot",
+    "delivery": "Lieferzeit",
+    "effort": "Ihr Aufwand"
+  },
+  "stats": {
+    "projects": "Abgeschlossene Projekte",
+    "delivery": "Lieferung",
+    "rating": "Bewertung",
+    "from": "Ab"
   }
 }

@@ -341,6 +341,55 @@ export interface Testimonial {
   avatarInitials: string;
 }
 
+// === New landing page types ===
+
+export interface PackagePlan {
+  id: string;
+  name: string;
+  price: number;
+  monthlyPrice: number;
+  currency: string;
+  description: string;
+  features: string[];
+  revisionRounds: number;
+  monthlyChanges: number;
+  highlighted: boolean;
+  badge?: string;
+  cta: string;
+}
+
+export interface PortfolioItem {
+  id: string;
+  name: string;
+  url: string;
+  tags: string[];
+  descKey: string;
+  screenshotPlaceholder: string;
+}
+
+export interface CompetitorRow {
+  feature: string;
+  vendshop: string;
+  wix: string;
+  squarespace: string;
+  freelancer: string;
+}
+
+export interface ProcessStep {
+  id: string;
+  step: number;
+  icon: string;
+  titleKey: string;
+  descKey: string;
+}
+
+export interface IncludedFeature {
+  id: string;
+  icon: string;
+  titleKey: string;
+  descKey: string;
+}
+
 export interface ColorSchemeTokens {
   bg: string;
   bgCard: string;

@@ -31,7 +31,11 @@
     "statStores": "stores created",
     "statCountries": "countries",
     "statLanguages": "languages",
-    "statUptime": "uptime"
+    "statUptime": "uptime",
+    "title": "Professional website",
+    "titleHighlight": "in 48 hours",
+    "cta1": "Message on WhatsApp",
+    "cta2": "View portfolio"
   },
   "socialProof": {
     "text": "Trusted by hundreds of entrepreneurs in SK, CZ, UA and DE",
@@ -172,7 +176,9 @@
     "button": "Create store",
     "free": "Completely free",
     "noCard": "No credit card",
-    "fast": "Ready in 5 minutes"
+    "fast": "Ready in 5 minutes",
+    "whatsapp": "Message on WhatsApp",
+    "form": "Fill out the form"
   },
   "footer": {
     "description": "Platform for small business in SK, CZ, UA and DE.",
@@ -703,5 +709,96 @@
     "aiLocked": "AI Advisor — Starter & Pro",
     "aiLockedDesc": "Upgrade to Starter or Pro plan to unlock personalized AI recommendations.",
     "fabLabel": "Advisor"
+  },
+  "process": {
+    "label": "How it works",
+    "title": "3 simple steps",
+    "step1": { "title": "Contact us", "desc": "Tell us about your business. Send logo, photos and content via WhatsApp or form." },
+    "step2": { "title": "We show the finished site", "desc": "Within 48 hours we send you a link to the ready website. 2 revision rounds free." },
+    "step3": { "title": "Pay if you like it", "desc": "Happy? Pay €249. Not happy? We delete the site. Zero risk." }
+  },
+  "portfolio": {
+    "label": "Our work",
+    "title": "Completed projects",
+    "subtitle": "Browse our real projects. Each was built within 48 hours.",
+    "viewAll": "View all",
+    "viewDemo": "View demo",
+    "krajina": "Online food orders — menu, cart, delivery.",
+    "adriano": "Restaurant — menu, reservations, photo gallery.",
+    "barbershop": "Barbershop — services, pricing, online booking.",
+    "ljservis": "Electronics repair — orders, pricing, contact.",
+    "krokshop": "Shoe e-shop — catalog, cart, admin panel.",
+    "dentcare": "Dental clinic — services, pricing, doctor team.",
+    "zenflow": "Yoga studio — schedule, instructors, membership.",
+    "ember": "Hookah bar — menu, gallery, reservations in 3 languages.",
+    "transport": "Transport company — services, pricing, orders."
+  },
+  "packages": {
+    "label": "Pricing",
+    "title": "Simple and transparent",
+    "subtitle": "No hidden fees. Pay only if you are satisfied.",
+    "perMonth": "/ month",
+    "oneTime": "one-time",
+    "revisions": "revision rounds",
+    "monthlyChanges": "change/month",
+    "landing": {
+      "desc": "Professional one-pager for your business",
+      "f1": "1 landing page",
+      "f2": "Choice of 30+ templates",
+      "f3": "2 revision rounds (8 changes)",
+      "f4": "AI chatbot included",
+      "f5": "WhatsApp integration",
+      "f6": "SEO optimization",
+      "f7": "Ready in 48 hours",
+      "cta": "Order Landing"
+    },
+    "premium": {
+      "badge": "Most popular",
+      "desc": "Custom design with priority support",
+      "f1": "Custom design (not a template)",
+      "f2": "5 revision rounds",
+      "f3": "Up to 3 languages",
+      "f4": "Priority support (4h)",
+      "f5": "AI chatbot included",
+      "f6": "WhatsApp + forms",
+      "f7": "3 changes per month",
+      "cta": "Order Premium"
+    },
+    "individual": {
+      "desc": "Multi-page custom website",
+      "f1": "5–10 pages",
+      "f2": "Completely unique design",
+      "f3": "Unlimited revisions",
+      "f4": "Up to 5 languages",
+      "f5": "Priority support",
+      "f6": "Full AI integration",
+      "f7": "5 changes per month",
+      "cta": "Contact us"
+    }
+  },
+  "included": {
+    "label": "What's included",
+    "title": "Everything you need",
+    "responsive": { "title": "Responsive design", "desc": "Perfect on mobile and desktop." },
+    "seo": { "title": "SEO optimization", "desc": "Found on Google from day one." },
+    "ai": { "title": "AI chatbot", "desc": "Automatic assistant for your customers." },
+    "whatsapp": { "title": "WhatsApp button", "desc": "Customers write to you with one click." },
+    "multilang": { "title": "Multilingual", "desc": "SK, EN, DE, CS, UK — as needed." },
+    "hosting": { "title": "Hosting & SSL", "desc": "Fast hosting and security certificate included." }
+  },
+  "competitor": {
+    "label": "Comparison",
+    "title": "Why VendShop",
+    "creation": "Website creation",
+    "monthly": "Monthly fee",
+    "aichat": "AI chatbot",
+    "delivery": "Delivery time",
+    "effort": "Your effort"
+  },
+  "stats": {
+    "projects": "Completed projects",
+    "delivery": "Delivery",
+    "rating": "Rating",
+    "from": "From"
   }
 }

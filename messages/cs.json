@@ -31,7 +31,11 @@
     "statStores": "vytvořených obchodů",
     "statCountries": "země",
     "statLanguages": "jazyků",
-    "statUptime": "uptime"
+    "statUptime": "uptime",
+    "title": "Profesionální webová stránka",
+    "titleHighlight": "za 48 hodin",
+    "cta1": "Napsat na WhatsApp",
+    "cta2": "Prohlédnout portfolio"
   },
   "socialProof": {
     "text": "Důvěřují nám stovky podnikatelů v SK, CZ, UA a DE",
@@ -172,7 +176,9 @@
     "button": "Vytvořit obchod",
     "free": "Zcela zdarma",
     "noCard": "Bez kreditní karty",
-    "fast": "Hotovo za 5 minut"
+    "fast": "Hotovo za 5 minut",
+    "whatsapp": "Napsat na WhatsApp",
+    "form": "Vyplnit formulář"
   },
   "footer": {
     "description": "Platforma pro malý byznys v SK, CZ, UA a DE.",
@@ -703,5 +709,96 @@
     "aiLocked": "AI Poradce — Starter & Pro",
     "aiLockedDesc": "Přejděte na plán Starter nebo Pro pro personalizovaná AI doporučení.",
     "fabLabel": "Poradce"
+  },
+  "process": {
+    "label": "Jak to funguje",
+    "title": "3 jednoduché kroky",
+    "step1": { "title": "Napište nám", "desc": "Řekněte nám o vašem byznysu. Pošlete logo, fotky a texty přes WhatsApp nebo formulář." },
+    "step2": { "title": "Ukážeme hotový web", "desc": "Do 48 hodin vám pošleme odkaz na hotovou stránku. 2 kola úprav zdarma." },
+    "step3": { "title": "Platíte pokud se líbí", "desc": "Spokojeni? Zaplatíte €249. Ne? Stránku smažeme. Nulové riziko." }
+  },
+  "portfolio": {
+    "label": "Naše práce",
+    "title": "Hotové projekty",
+    "subtitle": "Prohlédněte si naše reálné projekty. Každý byl vytvořen do 48 hodin.",
+    "viewAll": "Zobrazit vše",
+    "viewDemo": "Prohlédnout demo",
+    "krajina": "Online objednávky jídla — menu, košík, doručení.",
+    "adriano": "Restaurace — menu, rezervace, fotogalerie.",
+    "barbershop": "Barbershop — služby, ceník, online rezervace.",
+    "ljservis": "Opravna elektroniky — objednávky, ceník, kontakt.",
+    "krokshop": "E-shop s obuví — katalog, košík, admin panel.",
+    "dentcare": "Zubní klinika — služby, ceník, tým lékařů.",
+    "zenflow": "Yoga studio — rozvrh, instruktoři, členství.",
+    "ember": "Hookah bar — menu, galerie, rezervace ve 3 jazycích.",
+    "transport": "Dopravní společnost — služby, ceník, objednávky."
+  },
+  "packages": {
+    "label": "Ceník",
+    "title": "Jednoduché a transparentní",
+    "subtitle": "Žádné skryté poplatky. Platíte jen pokud jste spokojeni.",
+    "perMonth": "/ měsíc",
+    "oneTime": "jednorázově",
+    "revisions": "kola úprav",
+    "monthlyChanges": "změna/měsíc",
+    "landing": {
+      "desc": "Profesionální jednostránkový web pro váš byznys",
+      "f1": "1 landing stránka",
+      "f2": "Výběr z 30+ šablon",
+      "f3": "2 kola úprav (8 změn)",
+      "f4": "AI chatbot zahrnut",
+      "f5": "WhatsApp integrace",
+      "f6": "SEO optimalizace",
+      "f7": "Hotové za 48 hodin",
+      "cta": "Objednat Landing"
+    },
+    "premium": {
+      "badge": "Nejpopulárnější",
+      "desc": "Vlastní design s prioritní podporou",
+      "f1": "Vlastní design (ne šablona)",
+      "f2": "5 kol úprav",
+      "f3": "Až 3 jazyky",
+      "f4": "Prioritní podpora (4h)",
+      "f5": "AI chatbot zahrnut",
+      "f6": "WhatsApp + formuláře",
+      "f7": "3 změny měsíčně",
+      "cta": "Objednat Premium"
+    },
+    "individual": {
+      "desc": "Vícestránkový web na míru",
+      "f1": "5–10 stránek",
+      "f2": "Zcela unikátní design",
+      "f3": "Neomezené úpravy",
+      "f4": "Až 5 jazyků",
+      "f5": "Prioritní podpora",
+      "f6": "Plná AI integrace",
+      "f7": "5 změn měsíčně",
+      "cta": "Napsat nám"
+    }
+  },
+  "included": {
+    "label": "Co je v ceně",
+    "title": "Vše co potřebujete",
+    "responsive": { "title": "Responzivní design", "desc": "Perfektní na mobilu i desktopu." },
+    "seo": { "title": "SEO optimalizace", "desc": "Najdou vás na Google od prvního dne." },
+    "ai": { "title": "AI chatbot", "desc": "Automatický asistent pro vaše zákazníky." },
+    "whatsapp": { "title": "WhatsApp tlačítko", "desc": "Zákazníci vám napíší jedním kliknutím." },
+    "multilang": { "title": "Vícejazyčnost", "desc": "SK, EN, DE, CS, UK — dle potřeby." },
+    "hosting": { "title": "Hosting a SSL", "desc": "Rychlý hosting a bezpečnostní certifikát v ceně." }
+  },
+  "competitor": {
+    "label": "Srovnání",
+    "title": "Proč VendShop",
+    "creation": "Vytvoření webu",
+    "monthly": "Měsíční poplatek",
+    "aichat": "AI chatbot",
+    "delivery": "Dodací lhůta",
+    "effort": "Vaše námaha"
+  },
+  "stats": {
+    "projects": "Hotových projektů",
+    "delivery": "Dodání",
+    "rating": "Hodnocení",
+    "from": "Od"
   }
 }

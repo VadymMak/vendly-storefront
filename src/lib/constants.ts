@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -431,6 +431,117 @@ export const QUICK_BADGES: QuickBadgeDefinition[] = [
   { id: 'organic',          icon: 'sprout',       labelKey: 'badgeOrganic' },
   { id: 'reservation',      icon: 'calendar',     labelKey: 'badgeReservation' },
   { id: 'discount',         icon: 'percent',      labelKey: 'badgeDiscount' },
+];
+
+// ===== New landing page data (done-for-you service concept) =====
+
+export const PROCESS_STEPS: ProcessStep[] = [
+  { id: 'contact', step: 1, icon: '💬', titleKey: 'process.step1.title', descKey: 'process.step1.desc' },
+  { id: 'preview', step: 2, icon: '🖥️', titleKey: 'process.step2.title', descKey: 'process.step2.desc' },
+  { id: 'pay', step: 3, icon: '✅', titleKey: 'process.step3.title', descKey: 'process.step3.desc' },
+];
+
+export const PACKAGES: PackagePlan[] = [
+  {
+    id: 'landing',
+    name: 'Landing',
+    price: 249,
+    monthlyPrice: 29,
+    currency: '€',
+    description: 'packages.landing.desc',
+    features: [
+      'packages.landing.f1',
+      'packages.landing.f2',
+      'packages.landing.f3',
+      'packages.landing.f4',
+      'packages.landing.f5',
+      'packages.landing.f6',
+      'packages.landing.f7',
+    ],
+    revisionRounds: 2,
+    monthlyChanges: 1,
+    highlighted: false,
+    cta: 'packages.landing.cta',
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 399,
+    monthlyPrice: 39,
+    currency: '€',
+    description: 'packages.premium.desc',
+    features: [
+      'packages.premium.f1',
+      'packages.premium.f2',
+      'packages.premium.f3',
+      'packages.premium.f4',
+      'packages.premium.f5',
+      'packages.premium.f6',
+      'packages.premium.f7',
+    ],
+    revisionRounds: 5,
+    monthlyChanges: 3,
+    highlighted: true,
+    badge: 'packages.premium.badge',
+    cta: 'packages.premium.cta',
+  },
+  {
+    id: 'individual',
+    name: 'Individual',
+    price: 799,
+    monthlyPrice: 49,
+    currency: '€',
+    description: 'packages.individual.desc',
+    features: [
+      'packages.individual.f1',
+      'packages.individual.f2',
+      'packages.individual.f3',
+      'packages.individual.f4',
+      'packages.individual.f5',
+      'packages.individual.f6',
+      'packages.individual.f7',
+    ],
+    revisionRounds: -1,
+    monthlyChanges: 5,
+    highlighted: false,
+    cta: 'packages.individual.cta',
+  },
+];
+
+export const PORTFOLIO_ITEMS: PortfolioItem[] = [
+  { id: 'krajina', name: 'Krajina', url: 'https://krajina-trencin.vercel.app', tags: ['food', 'delivery'], descKey: 'portfolio.krajina', screenshotPlaceholder: '🍕' },
+  { id: 'adriano', name: 'Adriano', url: 'https://adriano-trencin.vercel.app', tags: ['restaurant', 'menu'], descKey: 'portfolio.adriano', screenshotPlaceholder: '🍽️' },
+  { id: 'barbershop', name: 'Barbershop', url: 'https://barbershop-trencin.vercel.app', tags: ['beauty', 'booking'], descKey: 'portfolio.barbershop', screenshotPlaceholder: '💈' },
+  { id: 'lj-servis', name: 'LJ Servis', url: 'https://lj-servis.vercel.app', tags: ['repair', 'service'], descKey: 'portfolio.ljservis', screenshotPlaceholder: '🔧' },
+  { id: 'krokshop', name: 'KrokShop', url: 'https://krokshop-trencin.vercel.app', tags: ['e-commerce', 'fashion'], descKey: 'portfolio.krokshop', screenshotPlaceholder: '👟' },
+  { id: 'dentcare', name: 'DentCare', url: 'https://dentcare-trencin.vercel.app', tags: ['medical', 'clinic'], descKey: 'portfolio.dentcare', screenshotPlaceholder: '🦷' },
+  { id: 'zenflow', name: 'ZenFlow', url: 'https://zenflow-ivory.vercel.app', tags: ['wellness', 'yoga'], descKey: 'portfolio.zenflow', screenshotPlaceholder: '🧘' },
+  { id: 'ember', name: 'Ember Lounge', url: 'https://ember-lounge.vercel.app', tags: ['bar', 'nightlife'], descKey: 'portfolio.ember', screenshotPlaceholder: '🪩' },
+  { id: 'transport', name: 'Transport', url: 'https://transportation-trencin.vercel.app', tags: ['transport', 'logistics'], descKey: 'portfolio.transport', screenshotPlaceholder: '🚛' },
+];
+
+export const INCLUDED_FEATURES: IncludedFeature[] = [
+  { id: 'responsive', icon: '📱', titleKey: 'included.responsive.title', descKey: 'included.responsive.desc' },
+  { id: 'seo', icon: '🔍', titleKey: 'included.seo.title', descKey: 'included.seo.desc' },
+  { id: 'ai', icon: '🤖', titleKey: 'included.ai.title', descKey: 'included.ai.desc' },
+  { id: 'whatsapp', icon: '💬', titleKey: 'included.whatsapp.title', descKey: 'included.whatsapp.desc' },
+  { id: 'multilang', icon: '🌍', titleKey: 'included.multilang.title', descKey: 'included.multilang.desc' },
+  { id: 'hosting', icon: '☁️', titleKey: 'included.hosting.title', descKey: 'included.hosting.desc' },
+];
+
+export const COMPETITOR_TABLE: CompetitorRow[] = [
+  { feature: 'competitor.creation', vendshop: '€249', wix: '€0 (DIY)', squarespace: '€0 (DIY)', freelancer: '€500–2000' },
+  { feature: 'competitor.monthly', vendshop: '€29', wix: '€17–39', squarespace: '€16–39', freelancer: '€0' },
+  { feature: 'competitor.aichat', vendshop: '✓', wix: '✗', squarespace: '✗', freelancer: '✗' },
+  { feature: 'competitor.delivery', vendshop: '48h', wix: 'weeks (DIY)', squarespace: 'weeks (DIY)', freelancer: '2–4 weeks' },
+  { feature: 'competitor.effort', vendshop: 'Zero', wix: 'Everything', squarespace: 'Everything', freelancer: 'Calls, revisions' },
+];
+
+export const STATS = [
+  { value: '9+', labelKey: 'stats.projects' },
+  { value: '48h', labelKey: 'stats.delivery' },
+  { value: '4.9★', labelKey: 'stats.rating' },
+  { value: '€249', labelKey: 'stats.from' },
 ];
 
 // ===== Shop item category labels =====

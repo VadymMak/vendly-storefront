@@ -31,7 +31,11 @@
     "statStores": "vytvorených obchodov",
     "statCountries": "krajiny",
     "statLanguages": "jazykov",
-    "statUptime": "uptime"
+    "statUptime": "uptime",
+    "title": "Profesionálna webová stránka",
+    "titleHighlight": "za 48 hodín",
+    "cta1": "Napísať na WhatsApp",
+    "cta2": "Pozrieť portfólio"
   },
   "socialProof": {
     "text": "Dôverujú nám stovky podnikateľov v SK, CZ, UA a DE",
@@ -172,7 +176,9 @@
     "button": "Vytvoriť obchod",
     "free": "Úplne zadarmo",
     "noCard": "Bez kreditnej karty",
-    "fast": "Hotové za 5 minút"
+    "fast": "Hotové za 5 minút",
+    "whatsapp": "Napísať na WhatsApp",
+    "form": "Vyplniť formulár"
   },
   "footer": {
     "description": "Platforma pre malý biznis v SK, CZ, UA a DE.",
@@ -703,5 +709,96 @@
     "aiLocked": "AI Poradca — Starter & Pro",
     "aiLockedDesc": "Prejdite na plán Starter alebo Pro pre personalizované AI odporúčania.",
     "fabLabel": "Poradca"
+  },
+  "process": {
+    "label": "Ako to funguje",
+    "title": "3 jednoduché kroky",
+    "step1": { "title": "Napíšte nám", "desc": "Povedzte nám o vašom biznise. Pošlite logo, fotky a texty cez WhatsApp alebo formulár." },
+    "step2": { "title": "Ukážeme hotový web", "desc": "Do 48 hodín vám pošleme odkaz na hotovú stránku. 2 kolá úprav zdarma." },
+    "step3": { "title": "Platíte ak sa páči", "desc": "Spokojní? Zaplatíte €249. Nie? Stránku zmažeme. Nulové riziko." }
+  },
+  "portfolio": {
+    "label": "Naše práce",
+    "title": "Hotové projekty",
+    "subtitle": "Pozrite si naše reálne projekty. Každý bol vytvorený do 48 hodín.",
+    "viewAll": "Zobraziť všetky",
+    "viewDemo": "Pozrieť demo",
+    "krajina": "Objednávky jedla online — menu, košík, doručenie.",
+    "adriano": "Reštaurácia — menu, rezervácie, fotogaléria.",
+    "barbershop": "Barbershop — služby, cenník, online rezervácia.",
+    "ljservis": "Servis elektroniky — objednávky, cenník, kontakt.",
+    "krokshop": "E-shop s obuvou — katalóg, košík, admin panel.",
+    "dentcare": "Zubná klinika — služby, cenník, tím lekárov.",
+    "zenflow": "Yoga štúdio — rozvrh, inštruktori, členstvo.",
+    "ember": "Hookah bar — menu, galéria, rezervácie v 3 jazykoch.",
+    "transport": "Prepravná spoločnosť — služby, cenník, objednávky."
+  },
+  "packages": {
+    "label": "Cenník",
+    "title": "Jednoduché a transparentné",
+    "subtitle": "Žiadne skryté poplatky. Platíte len ak ste spokojní.",
+    "perMonth": "/ mesiac",
+    "oneTime": "jednorazovo",
+    "revisions": "kolá úprav",
+    "monthlyChanges": "zmena/mesiac",
+    "landing": {
+      "desc": "Profesionálna jednostranova pre váš biznis",
+      "f1": "1 landing stránka",
+      "f2": "Výber z 30+ šablón",
+      "f3": "2 kolá úprav (8 zmien)",
+      "f4": "AI chatbot zahrnutý",
+      "f5": "WhatsApp integrácia",
+      "f6": "SEO optimalizácia",
+      "f7": "Hotové za 48 hodín",
+      "cta": "Objednať Landing"
+    },
+    "premium": {
+      "badge": "Najpopulárnejší",
+      "desc": "Vlastný dizajn s prioritnou podporou",
+      "f1": "Vlastný dizajn (nie šablóna)",
+      "f2": "5 kôl úprav",
+      "f3": "Až 3 jazyky",
+      "f4": "Prioritná podpora (4h)",
+      "f5": "AI chatbot zahrnutý",
+      "f6": "WhatsApp + formuláre",
+      "f7": "3 zmeny mesačne",
+      "cta": "Objednať Premium"
+    },
+    "individual": {
+      "desc": "Viacstranový web na mieru",
+      "f1": "5–10 stránok",
+      "f2": "Úplne unikátny dizajn",
+      "f3": "Neobmedzené úpravy",
+      "f4": "Až 5 jazykov",
+      "f5": "Prioritná podpora",
+      "f6": "Plná AI integrácia",
+      "f7": "5 zmien mesačne",
+      "cta": "Napísať nám"
+    }
+  },
+  "included": {
+    "label": "Čo je v cene",
+    "title": "Všetko čo potrebujete",
+    "responsive": { "title": "Responzívny dizajn", "desc": "Perfektný na mobile aj desktope." },
+    "seo": { "title": "SEO optimalizácia", "desc": "Nájdu vás na Google od prvého dňa." },
+    "ai": { "title": "AI chatbot", "desc": "Automatický asistent pre vašich zákazníkov." },
+    "whatsapp": { "title": "WhatsApp tlačidlo", "desc": "Zákazníci vám napíšu jedným klikom." },
+    "multilang": { "title": "Viacjazyčnosť", "desc": "SK, EN, DE, CS, UK — podľa potreby." },
+    "hosting": { "title": "Hosting a SSL", "desc": "Rýchly hosting a bezpečnostný certifikát v cene." }
+  },
+  "competitor": {
+    "label": "Porovnanie",
+    "title": "Prečo VendShop",
+    "creation": "Vytvorenie webu",
+    "monthly": "Mesačný poplatok",
+    "aichat": "AI chatbot",
+    "delivery": "Dodacia lehota",
+    "effort": "Vaša námaha"
+  },
+  "stats": {
+    "projects": "Hotových projektov",
+    "delivery": "Dodanie",
+    "rating": "Hodnotenie",
+    "from": "Od"
   }
 }

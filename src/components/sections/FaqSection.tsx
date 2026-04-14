@@ -38,7 +38,7 @@ function QuestionIcon() {
   );
 }
 
-const FAQ_IDS = ['1', '2', '3', '4', '5', '6', '7'] as const;
+const FAQ_IDS = ['1', '2', '3', '4', '5'] as const;
 
 export default function FaqSection() {
   const [openId, setOpenId] = useState<string | null>(null);

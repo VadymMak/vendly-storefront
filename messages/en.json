@@ -12,19 +12,19 @@
     "error": "An error occurred"
   },
   "nav": {
-    "features": "Features",
+    "features": "Portfolio",
     "howItWorks": "How it works",
     "pricing": "Pricing",
-    "faq": "FAQ",
+    "faq": "Reviews",
     "about": "About",
     "contact": "Contact",
-    "cta": "Start for free"
+    "cta": "WhatsApp"
   },
   "hero": {
     "badge": "New platform for small business",
     "titleLine1": "Your online store.",
     "titleLine2": "Ready in 5 minutes.",
-    "subtitle": "No coding, no design skills. Create a professional store, accept payments via Stripe, and sell in 5 languages. Free forever.",
+    "subtitle": "No coding, no design skills. Our team creates a professional website for your business. From €249.",
     "cta": "Start for free",
     "demo": "View demo",
     "quickAnswer": "Free forever · 5 min setup · No credit card · AI-powered",

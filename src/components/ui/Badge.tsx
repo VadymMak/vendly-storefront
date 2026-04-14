@@ -6,7 +6,7 @@ interface BadgeProps {
 
 const variantStyles = {
   default: 'bg-gray-100 text-neutral',
-  primary: 'bg-accent text-primary',
+  primary: 'bg-primary/10 text-primary',
   secondary: 'bg-secondary/10 text-secondary',
 } as const;
 

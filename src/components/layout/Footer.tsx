@@ -58,7 +58,7 @@ export default function Footer() {
 
   const footerLinks = {
     product: [
-      { label: t('features'), href: '#features' },
+      { label: t('features'), href: '#portfolio' },
       { label: t('pricing'), href: '#pricing' },
       { label: t('templates'), href: '#' },
       { label: t('examples'), href: '#' },
@@ -76,7 +76,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="border-t border-gray-100 bg-secondary text-white">
+    <footer className="border-t border-[--color-border] bg-[--color-bg] text-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-5">
           {/* Brand */}
@@ -88,7 +88,7 @@ export default function Footer() {
               </svg>
               <h3 className="text-lg font-bold text-primary">Vendly</h3>
             </div>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-[--color-text-muted]">
               {t('description')}
             </p>
 
@@ -108,11 +108,11 @@ export default function Footer() {
 
           {/* Product */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('product')}</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[--color-text-dim]">{t('product')}</h4>
             <ul className="mt-4 space-y-2">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-gray-300 transition-colors hover:text-white">
+                  <a href={link.href} className="text-sm text-[--color-text-muted] transition-colors hover:text-primary">
                     {link.label}
                   </a>
                 </li>
@@ -122,11 +122,11 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('support')}</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[--color-text-dim]">{t('support')}</h4>
             <ul className="mt-4 space-y-2">
               {footerLinks.support.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-gray-300 transition-colors hover:text-white">
+                  <a href={link.href} className="text-sm text-[--color-text-muted] transition-colors hover:text-primary">
                     {link.label}
                   </a>
                 </li>
@@ -136,11 +136,11 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('legal')}</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[--color-text-dim]">{t('legal')}</h4>
             <ul className="mt-4 space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-gray-300 transition-colors hover:text-white">
+                  <a href={link.href} className="text-sm text-[--color-text-muted] transition-colors hover:text-primary">
                     {link.label}
                   </a>
                 </li>
@@ -150,20 +150,20 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-400">{t('connect')}</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[--color-text-dim]">{t('connect')}</h4>
             <ul className="mt-4 space-y-2">
               <li>
-                <a href="https://wa.me/421000000000" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-300 transition-colors hover:text-white">
+                <a href="https://wa.me/421000000000" target="_blank" rel="noopener noreferrer" className="text-sm text-[--color-text-muted] transition-colors hover:text-primary">
                   WhatsApp
                 </a>
               </li>
               <li>
-                <a href="https://github.com/VadymMak/vendly" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-300 transition-colors hover:text-white">
+                <a href="https://github.com/VadymMak/vendly" target="_blank" rel="noopener noreferrer" className="text-sm text-[--color-text-muted] transition-colors hover:text-primary">
                   GitHub
                 </a>
               </li>
               <li>
-                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-300 transition-colors hover:text-white">
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-sm text-[--color-text-muted] transition-colors hover:text-primary">
                   LinkedIn
                 </a>
               </li>
@@ -172,13 +172,13 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-gray-700 pt-8 sm:flex-row">
-          <p className="text-sm text-gray-400">
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[--color-border] pt-8 sm:flex-row">
+          <p className="text-sm text-[--color-text-dim]">
             &copy; {new Date().getFullYear()} {SITE_NAME}. {t('copyright')}
           </p>
-          <div className="flex gap-4 text-sm text-gray-500">
-            <a href="/terms" className="transition-colors hover:text-gray-300">{t('terms')}</a>
-            <a href="/privacy" className="transition-colors hover:text-gray-300">{t('privacy')}</a>
+          <div className="flex gap-4 text-sm text-[--color-text-dim]">
+            <a href="/terms" className="transition-colors hover:text-primary">{t('terms')}</a>
+            <a href="/privacy" className="transition-colors hover:text-primary">{t('privacy')}</a>
           </div>
         </div>
       </div>

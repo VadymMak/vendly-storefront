@@ -13,7 +13,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
-      className={`shrink-0 text-neutral transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+      className={`shrink-0 text-[--color-text-muted] transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
     >
       <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -49,14 +49,14 @@ export default function FaqSection() {
   };
 
   return (
-    <section id="faq" className="scroll-reveal bg-green-50/40 py-20">
+    <section id="faq" className="scroll-reveal bg-[--color-bg-alt] py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className="text-center animate-fade-in-up">
           <Badge variant="primary">{t('badge')}</Badge>
-          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             {t('title')}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral">
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-[--color-text-muted]">
             {t('subtitle')}
           </p>
         </div>
@@ -69,8 +69,8 @@ export default function FaqSection() {
                 key={num}
                 className={`rounded-xl border transition-all duration-300 ${
                   isOpen
-                    ? 'border-primary/30 bg-accent shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    ? 'border-primary/30 bg-[--color-card] shadow-sm'
+                    : 'border-[--color-border] bg-[--color-card] hover:border-primary/20'
                 }`}
               >
                 <button
@@ -79,12 +79,12 @@ export default function FaqSection() {
                   aria-expanded={isOpen}
                 >
                   <QuestionIcon />
-                  <span className="flex-1 font-medium text-secondary">{t(`q${num}`)}</span>
+                  <span className="flex-1 font-medium text-white">{t(`q${num}`)}</span>
                   <ChevronIcon open={isOpen} />
                 </button>
 
                 {isOpen && (
-                  <div className="animate-accordion-open overflow-hidden border-t border-primary/10 px-4 text-sm text-neutral leading-relaxed sm:px-6 sm:text-base">
+                  <div className="animate-accordion-open overflow-hidden border-t border-[--color-border] px-4 text-sm text-[--color-text-muted] leading-relaxed sm:px-6 sm:text-base">
                     {t(`a${num}`)}
                   </div>
                 )}

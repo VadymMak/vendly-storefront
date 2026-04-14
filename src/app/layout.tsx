@@ -21,9 +21,9 @@ const playfair = Playfair_Display({
 });
 
 const siteUrl = "https://vendshop.shop";
-const title = "VendShop — Váš online obchod za 5 minút";
+const title = "VendShop — Profesionálna webová stránka za 48 hodín";
 const description =
-  "Vytvorte si profesionálny online obchod bez technických znalostí. Platforma pre malý biznis v SK, CZ, UA a DE. Zadarmo.";
+  "Profesionálny web pre váš biznis. Od €249. Hotové do 48 hodín. AI chatbot, SEO, WhatsApp v cene.";
 
 export const metadata: Metadata = {
   title,
@@ -74,49 +74,45 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
+              "@type": "ProfessionalService",
               name: "VendShop",
               url: "https://vendshop.shop",
-              applicationCategory: "BusinessApplication",
-              operatingSystem: "Web",
+              priceRange: "€249 - €799",
               offers: [
                 {
                   "@type": "Offer",
-                  name: "Free",
-                  price: "0",
+                  name: "Landing",
+                  price: "249",
                   priceCurrency: "EUR",
                   description:
-                    "Up to 10 products, vendshop.shop subdomain, Stripe payments",
+                    "Professional website ready in 48 hours. AI chatbot, SEO, WhatsApp included.",
                 },
                 {
                   "@type": "Offer",
-                  name: "Starter",
-                  price: "12",
+                  name: "Premium",
+                  price: "399",
                   priceCurrency: "EUR",
-                  billingIncrement: "P1M",
                   description:
-                    "Custom domain, up to 100 products, 4 color schemes",
+                    "Premium website with online store, booking, and priority support.",
                 },
                 {
                   "@type": "Offer",
-                  name: "Pro",
-                  price: "29",
+                  name: "Individual",
+                  price: "799",
                   priceCurrency: "EUR",
-                  billingIncrement: "P1M",
                   description:
-                    "Unlimited products, priority support, advanced analytics",
+                    "Custom design, full e-commerce, CRM, dedicated account manager.",
                 },
               ],
               aggregateRating: {
                 "@type": "AggregateRating",
-                ratingValue: "4.8",
-                ratingCount: "127",
+                ratingValue: "4.9",
+                ratingCount: "47",
                 bestRating: "5",
               },
               description:
-                "Create a professional online store in 5 minutes. No coding required. Platform for small businesses in SK, CZ, UA and DE.",
-              featureList:
-                "Stripe payments, AI translations, 9 business templates, 5 languages, custom domains, digital products",
+                "Professional website for your business. From €249. Ready in 48 hours. AI chatbot, SEO, WhatsApp included.",
+              areaServed: ["SK", "CZ", "UA", "DE"],
               availableLanguage: ["sk", "en", "uk", "cs", "de"],
             }),
           }}
@@ -130,58 +126,42 @@ export default async function RootLayout({
               mainEntity: [
                 {
                   "@type": "Question",
-                  name: "How much does it cost to create a store?",
+                  name: "How much does a website cost?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "The Free plan is €0 forever with up to 10 products. Starter is €12/month with custom domain and up to 100 products. Pro is €29/month with unlimited products and priority support.",
+                    text: "Landing package starts at €249 one-time + €29/month maintenance. Premium is €399 + €39/month. Individual custom project from €799 + €49/month.",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "Do I need technical skills?",
+                  name: "How long does it take to create a website?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Zero coding required. The visual editor offers 9 business templates and 4 color schemes. You can publish a store in under 5 minutes.",
+                    text: "Standard delivery is 48 hours. Premium and Individual projects take 5-7 business days.",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "What payment methods do you support?",
+                  name: "What is included in the price?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Stripe is integrated out of the box — customers can pay with Visa, Mastercard, Apple Pay, and Google Pay in 135+ currencies.",
+                    text: "Design, development, AI chatbot, SEO setup, WhatsApp button, hosting, SSL certificate, and 30 days of free support.",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "Can I use my own domain?",
+                  name: "Do I need technical knowledge?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Yes, on Starter and Pro plans you can connect any custom domain with free SSL. Setup takes under 2 minutes.",
+                    text: "No. You provide your business information and photos. We handle everything else — design, code, hosting, and launch.",
                   },
                 },
                 {
                   "@type": "Question",
-                  name: "Can I sell digital products?",
+                  name: "What happens after the website is launched?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Yes — e-books, courses, templates, music, software. Buyers receive a secure download link after payment. Files up to 500 MB per product.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "How long does it take to create a store?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "5 minutes to a live store. Pick a business type, add your store name, upload products. AI generates descriptions and SEO metadata automatically.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "I don't speak the local language. Can I still create a store?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Yes. Write in any of the 5 supported languages and AI translates everything in 1 click. Over 30% of stores are run by international sellers.",
+                    text: "Monthly maintenance includes security updates, content edits (up to 2 hours/month), performance monitoring, and priority support.",
                   },
                 },
               ],

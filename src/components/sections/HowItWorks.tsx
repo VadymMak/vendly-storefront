@@ -26,12 +26,12 @@ export default function HowItWorks() {
   const t = useTranslations('process');
 
   return (
-    <section id="how-it-works" className="scroll-reveal bg-accent py-20 sm:py-28">
+    <section id="how-it-works" className="scroll-reveal bg-[--color-bg-alt] py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center">
           <Badge variant="primary">{t('label')}</Badge>
-          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             {t('title')}
           </h2>
         </div>
@@ -43,20 +43,20 @@ export default function HowItWorks() {
             const descKey = step.descKey.replace('process.', '') as `step${1 | 2 | 3}.desc`;
             return (
               <Fragment key={step.id}>
-                <div className="flex flex-col items-center rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8">
+                <div className="flex flex-col items-center rounded-2xl border border-[--color-border] bg-[--color-card] p-6 text-center shadow-sm sm:p-8">
                   {/* Step number */}
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
                     {step.step}
                   </div>
                   {/* Icon */}
-                  <div className="mt-5 flex h-16 w-16 items-center justify-center rounded-xl bg-accent text-4xl">
+                  <div className="mt-5 flex h-16 w-16 items-center justify-center rounded-xl bg-[--color-bg] text-4xl">
                     {step.icon}
                   </div>
                   {/* Text */}
-                  <h3 className="mt-5 text-xl font-semibold text-secondary">
+                  <h3 className="mt-5 text-xl font-semibold text-white">
                     {t(titleKey)}
                   </h3>
-                  <p className="mt-3 leading-relaxed text-neutral">
+                  <p className="mt-3 leading-relaxed text-[--color-text-muted]">
                     {t(descKey)}
                   </p>
                 </div>
@@ -67,7 +67,7 @@ export default function HowItWorks() {
         </div>
 
         {/* Zero-risk note */}
-        <p className="mt-10 text-center text-sm font-medium text-neutral">
+        <p className="mt-10 text-center text-sm font-medium text-[--color-text-muted]">
           💚 Nulové riziko — platíte len ak ste spokojní s výsledkom
         </p>
       </div>

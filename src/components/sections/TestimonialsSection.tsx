@@ -54,24 +54,24 @@ function TestimonialCard({ name, initials, businessType, rating, text }: Testimo
   const business = BUSINESS_TYPES.find((b) => b.id === businessType);
 
   return (
-    <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md sm:p-8">
+    <div className="flex flex-col rounded-2xl border border-[--color-border] bg-[--color-card] p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/20 sm:p-8">
       <QuoteIcon />
 
-      <p className="mt-4 flex-1 text-sm leading-relaxed text-neutral sm:text-base">
+      <p className="mt-4 flex-1 text-sm leading-relaxed text-[--color-text-muted] sm:text-base">
         {text}
       </p>
 
-      <div className="mt-6 flex items-center gap-3 border-t border-gray-100 pt-5">
+      <div className="mt-6 flex items-center gap-3 border-t border-[--color-border] pt-5">
         {/* Avatar */}
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
           {initials}
         </div>
 
         <div className="flex-1">
-          <p className="text-sm font-semibold text-secondary">{name}</p>
+          <p className="text-sm font-semibold text-white">{name}</p>
           <div className="flex items-center gap-1.5">
             {business && <span className="text-xs">{business.icon}</span>}
-            <span className="text-xs text-neutral">{business?.title}</span>
+            <span className="text-xs text-[--color-text-muted]">{business?.title}</span>
           </div>
         </div>
 
@@ -87,15 +87,15 @@ export default function TestimonialsSection() {
   const t = useTranslations('testimonials');
 
   return (
-    <section id="testimonials" className="scroll-reveal bg-accent py-16 sm:py-24">
+    <section id="testimonials" className="scroll-reveal bg-[--color-bg] py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center">
           <Badge variant="primary">{t('badge')}</Badge>
-          <h2 className="mt-4 text-2xl font-bold text-secondary sm:text-3xl lg:text-4xl">
+          <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             {t('title')}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base text-neutral">
+          <p className="mx-auto mt-4 max-w-2xl text-base text-[--color-text-muted]">
             {t('subtitle')}
           </p>
         </div>

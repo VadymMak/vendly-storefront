@@ -309,29 +309,33 @@ export default function OnboardingChat() {
           </div>
 
           {/* ── Messages ── */}
+          {/* Outer div scrolls; inner div is flex-col justify-end so messages
+              stick to the bottom (messenger-style) when there are few of them. */}
           <div
-            className="flex-1 overflow-y-auto space-y-3 p-4"
+            className="flex-1 overflow-y-auto"
             style={{ background: 'var(--color-card)' }}
           >
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+            <div className="flex min-h-full flex-col justify-end gap-3 p-4">
+              {messages.map((msg, i) => (
                 <div
-                  className={[
-                    'max-w-[88%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap',
-                    msg.sender === 'bot'
-                      ? 'rounded-tl-none text-white/90'
-                      : 'bg-primary rounded-tr-none text-white',
-                  ].join(' ')}
-                  style={msg.sender === 'bot' ? { background: 'var(--color-bg-alt)' } : {}}
+                  key={i}
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {msg.text}
+                  <div
+                    className={[
+                      'max-w-[88%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap',
+                      msg.sender === 'bot'
+                        ? 'rounded-tl-none text-white/90'
+                        : 'bg-primary rounded-tr-none text-white',
+                    ].join(' ')}
+                    style={msg.sender === 'bot' ? { background: 'var(--color-bg-alt)' } : {}}
+                  >
+                    {msg.text}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
           {/* ── Interactive area ── */}

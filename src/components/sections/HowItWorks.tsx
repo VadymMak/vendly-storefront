@@ -59,6 +59,15 @@ export default function HowItWorks() {
                   <p className="mt-3 leading-relaxed text-[--color-text-muted]">
                     {t(descKey)}
                   </p>
+                  {/* CTA button on step 1 */}
+                  {i === 0 && (
+                    <button
+                      onClick={() => window.dispatchEvent(new Event('open-vendshop-chat'))}
+                      className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
+                    >
+                      {t('step1.cta')}
+                    </button>
+                  )}
                 </div>
                 {i < PROCESS_STEPS.length - 1 && <StepArrow />}
               </Fragment>

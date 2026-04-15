@@ -714,7 +714,7 @@
   "process": {
     "label": "How it works",
     "title": "3 simple steps",
-    "step1": { "title": "Contact us", "desc": "Tell us about your business. Send logo, photos and content via WhatsApp or form." },
+    "step1": { "title": "Contact us", "desc": "Tell us about your business. Send logo, photos and content via WhatsApp or form.", "cta": "Start here →" },
     "step2": { "title": "We show the finished site", "desc": "Within 48 hours we send you a link to the ready website. 2 revision rounds free." },
     "step3": { "title": "Pay if you like it", "desc": "Happy? Pay €249. Not happy? We delete the site. Zero risk." }
   },

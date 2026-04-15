@@ -714,7 +714,7 @@
   "process": {
     "label": "So funktioniert es",
     "title": "3 einfache Schritte",
-    "step1": { "title": "Schreiben Sie uns", "desc": "Erzählen Sie uns von Ihrem Business. Senden Sie Logo, Fotos und Texte per WhatsApp oder Formular." },
+    "step1": { "title": "Schreiben Sie uns", "desc": "Erzählen Sie uns von Ihrem Business. Senden Sie Logo, Fotos und Texte per WhatsApp oder Formular.", "cta": "Jetzt starten →" },
     "step2": { "title": "Wir zeigen die fertige Website", "desc": "Innerhalb von 48 Stunden senden wir Ihnen einen Link zur fertigen Seite. 2 Korrekturschleifen kostenlos." },
     "step3": { "title": "Zahlen Sie wenn es gefällt", "desc": "Zufrieden? Sie zahlen €249. Nicht? Wir löschen die Seite. Null Risiko." }
   },

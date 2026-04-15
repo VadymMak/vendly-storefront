@@ -20,6 +20,16 @@ const DEMO_URLS: Record<string, string> = {
 
 const WA_URL = 'https://wa.me/421901234567';
 
+// Tooltip text per language
+const TOOLTIP_TEXT: Record<string, string> = {
+  sk: 'Chcete web? Začnite tu! 👇',
+  en: 'Want a website? Start here! 👇',
+  de: 'Wollen Sie eine Website? Starten Sie hier! 👇',
+  cs: 'Chcete web? Začněte zde! 👇',
+  uk: 'Хочете сайт? Почніть тут! 👇',
+  ru: 'Хотите сайт? Начните здесь! 👇',
+};
+
 // Brief button labels per language (not in chatbot-translations to avoid touching that file)
 const BRIEF_BTN: Record<string, string> = {
   sk: '📋 Vyplniť brief pre váš web →',
@@ -109,6 +119,8 @@ export default function OnboardingChat() {
   const [briefLeadId, setBriefLeadId]     = useState<string | null>(null);
   const [isOpen, setIsOpen]               = useState(false);
   const [hasStarted, setHasStarted]       = useState(false);
+  const [showTooltip, setShowTooltip]     = useState(false);
+  const [dotVisible, setDotVisible]       = useState(false);
   const [phase, setPhase]                 = useState<Phase>('business-type');
   const [businessType, setBusinessType]   = useState('');
   const [demoUrl, setDemoUrl]             = useState('');
@@ -135,6 +147,25 @@ export default function OnboardingChat() {
     }
   }, [phase]);
 
+  const dismissTooltip = () => {
+    setShowTooltip(false);
+    setDotVisible(false);
+    localStorage.setItem('vendshop-chat-seen', 'true');
+  };
+
+  // Show tooltip + dot on first visit (3s delay, 8s auto-hide)
+  useEffect(() => {
+    const seen = localStorage.getItem('vendshop-chat-seen');
+    if (seen) return;
+    setDotVisible(true);
+    const showTimer = setTimeout(() => setShowTooltip(true), 3000);
+    const hideTimer = setTimeout(() => setShowTooltip(false), 11000); // 3s delay + 8s visible
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, []);
+
   // ── Message helpers ──────────────────────────────────────────────────────
 
   const pushBot  = (text: string) => setMessages((p) => [...p, { text, sender: 'bot' }]);
@@ -143,6 +174,7 @@ export default function OnboardingChat() {
   // ── Open / close ─────────────────────────────────────────────────────────
 
   const handleOpen = () => {
+    dismissTooltip();
     setIsOpen(true);
     if (hasStarted) return;
     setHasStarted(true);
@@ -152,6 +184,17 @@ export default function OnboardingChat() {
   };
 
   const handleToggle = () => (isOpen ? setIsOpen(false) : handleOpen());
+
+  // Listen for programmatic open event (e.g. from HowItWorks)
+  useEffect(() => {
+    const handler = () => {
+      dismissTooltip();
+      handleOpen();
+    };
+    window.addEventListener('open-vendshop-chat', handler);
+    return () => window.removeEventListener('open-vendshop-chat', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasStarted, lang]);
 
   // ── Step 0a: business type ────────────────────────────────────────────────
 
@@ -514,6 +557,46 @@ export default function OnboardingChat() {
         </div>
       )}
 
+      {/* ── Tooltip notification ── */}
+      {showTooltip && !isOpen && (
+        <div
+          className="fixed z-[51] flex flex-col items-end"
+          style={{ bottom: '100px', right: '24px' }}
+        >
+          <div
+            className="relative rounded-lg px-4 py-3 text-sm font-medium text-white"
+            style={{
+              background: '#16a34a',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              maxWidth: '240px',
+            }}
+          >
+            {/* Close button */}
+            <button
+              onClick={dismissTooltip}
+              className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30"
+              aria-label="Close tooltip"
+              style={{ fontSize: '10px', lineHeight: 1 }}
+            >
+              ×
+            </button>
+            {TOOLTIP_TEXT[lang] ?? TOOLTIP_TEXT.en}
+            {/* Arrow pointing down */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2"
+              style={{
+                bottom: '-8px',
+                width: 0,
+                height: 0,
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                borderTop: '8px solid #16a34a',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Toggle button ── */}
       <button
         onClick={handleToggle}
@@ -521,6 +604,10 @@ export default function OnboardingChat() {
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
       >
         {isOpen ? <CloseIcon /> : <ChatIcon />}
+        {/* Notification dot */}
+        {dotVisible && !isOpen && (
+          <span className="absolute top-0 right-0 h-[10px] w-[10px] rounded-full bg-red-500 ring-2 ring-white animate-pulse" />
+        )}
       </button>
     </>
   );

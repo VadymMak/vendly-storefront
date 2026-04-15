@@ -714,7 +714,7 @@
   "process": {
     "label": "Jak to funguje",
     "title": "3 jednoduché kroky",
-    "step1": { "title": "Napište nám", "desc": "Řekněte nám o vašem byznysu. Pošlete logo, fotky a texty přes WhatsApp nebo formulář." },
+    "step1": { "title": "Napište nám", "desc": "Řekněte nám o vašem byznysu. Pošlete logo, fotky a texty přes WhatsApp nebo formulář.", "cta": "Napsat nám →" },
     "step2": { "title": "Ukážeme hotový web", "desc": "Do 48 hodin vám pošleme odkaz na hotovou stránku. 2 kola úprav zdarma." },
     "step3": { "title": "Platíte pokud se líbí", "desc": "Spokojeni? Zaplatíte €249. Ne? Stránku smažeme. Nulové riziko." }
   },

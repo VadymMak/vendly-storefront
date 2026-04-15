@@ -71,6 +71,13 @@ export default function AdminNav({ userName }: AdminNavProps) {
           >
             {tAdmin('users')}
           </Link>
+          <Link href="/admin/leads"
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === '/admin/leads' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
+            }`}
+          >
+            Leads
+          </Link>
           <Link href="/dashboard"
             className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-white/60 transition-colors"
           >

@@ -9,6 +9,7 @@ import PricingSection from '@/components/sections/PricingSection';
 import TestimonialsSection from '@/components/sections/TestimonialsSection';
 import FaqSection from '@/components/sections/FaqSection';
 import CtaSection from '@/components/sections/CtaSection';
+import OnboardingChat from '@/components/widgets/OnboardingChat';
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
         <CtaSection />
       </main>
       <Footer />
+      <OnboardingChat />
     </>
   );
 }

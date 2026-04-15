@@ -733,7 +733,8 @@
     "zenflow": "Yoga-Studio — Stundenplan, Trainer, Mitgliedschaft.",
     "ember": "Hookah-Bar — Menü, Galerie, Reservierungen in 3 Sprachen.",
     "transport": "Transportunternehmen — Leistungen, Preisliste, Aufträge.",
-    "lensart": "Fotografie-Portfolio — Hochzeiten, Porträts, Produkte, Events und Online-Galerie."
+    "lensart": "Fotografie-Portfolio — Hochzeiten, Porträts, Produkte, Events und Online-Galerie.",
+    "autofix": "Autowerkstatt — Diagnostik, Reifen, Preisliste und Online-Terminbuchung."
   },
   "packages": {
     "label": "Preise",

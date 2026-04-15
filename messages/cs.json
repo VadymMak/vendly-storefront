@@ -733,7 +733,8 @@
     "zenflow": "Yoga studio — rozvrh, instruktoři, členství.",
     "ember": "Hookah bar — menu, galerie, rezervace ve 3 jazycích.",
     "transport": "Dopravní společnost — služby, ceník, objednávky.",
-    "lensart": "Fotografické portfolio — svatby, portréty, produkty, eventy a online galerie."
+    "lensart": "Fotografické portfolio — svatby, portréty, produkty, eventy a online galerie.",
+    "autofix": "Autoservis — diagnostika, pneumatiky, ceník služeb a online objednávky."
   },
   "packages": {
     "label": "Ceník",

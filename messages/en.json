@@ -733,7 +733,8 @@
     "zenflow": "Yoga studio — schedule, instructors, membership.",
     "ember": "Hookah bar — menu, gallery, reservations in 3 languages.",
     "transport": "Transport company — services, pricing, orders.",
-    "lensart": "Photography portfolio — weddings, portraits, products, events and online gallery."
+    "lensart": "Photography portfolio — weddings, portraits, products, events and online gallery.",
+    "autofix": "Auto service — diagnostics, tires, service pricing and online booking."
   },
   "packages": {
     "label": "Pricing",

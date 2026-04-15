@@ -526,6 +526,7 @@ export const PORTFOLIO_ITEMS: PortfolioItem[] = [
   { id: 'ember', name: 'Ember Lounge', url: 'https://ember-lounge.vercel.app', tags: ['bar', 'nightlife'], descKey: 'portfolio.ember', screenshotPlaceholder: '🪩' },
   { id: 'transport', name: 'Transport', url: 'https://transportation-trencin.vercel.app', tags: ['transport', 'logistics'], descKey: 'portfolio.transport', screenshotPlaceholder: '🚛' },
   { id: 'lensart', name: 'LensArt', url: 'https://lens-art-five.vercel.app', tags: ['photography', 'portfolio'], descKey: 'portfolio.lensart', screenshotPlaceholder: '📸' },
+  { id: 'autofix', name: 'AutoFix', url: 'https://auto-fix-roan.vercel.app', tags: ['auto', 'service'], descKey: 'portfolio.autofix', screenshotPlaceholder: '🔧' },
 ];
 
 export const INCLUDED_FEATURES: IncludedFeature[] = [

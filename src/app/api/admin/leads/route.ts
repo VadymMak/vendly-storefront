@@ -10,24 +10,35 @@ export async function GET() {
   return NextResponse.json(leads);
 }
 
-// PATCH /api/admin/leads — update status / notes / siteUrl / siteName
+// PATCH /api/admin/leads — update any field by id
 export async function PATCH(request: Request) {
-  const body = await request.json() as {
-    id: string;
-    status?: string;
-    notes?: string;
-    siteUrl?: string;
-    siteName?: string;
-  };
+  const body = await request.json() as Record<string, unknown>;
+  const { id, ...updates } = body;
 
-  const { id, ...fields } = body;
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  }
+
+  const lead = await db.lead.update({
+    where: { id },
+    data: updates,
+  });
+
+  return NextResponse.json(lead);
+}
+
+// DELETE /api/admin/leads — soft delete (status = 'deleted')
+export async function DELETE(request: Request) {
+  const body = await request.json() as { id?: string };
+  const { id } = body;
+
   if (!id) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   }
 
   const lead = await db.lead.update({
     where: { id },
-    data: fields,
+    data: { status: 'deleted' },
   });
 
   return NextResponse.json(lead);

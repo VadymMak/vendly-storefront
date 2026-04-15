@@ -176,16 +176,38 @@ enum ReviewStatus {
 
 // Лид из чат-бота OnboardingChat
 model Lead {
-  id           String   @id @default(cuid())
-  businessType String
-  services     String
-  contact      String
-  language     String
-  demoUrl      String?
-  status       String   @default("new")  // new | in_progress | site_ready | paid | active
-  notes        String?
-  siteName     String?
-  siteUrl      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(cuid())
+
+  // Контакт
+  contactName     String?
+  businessName    String?
+  businessType    String
+  contact         String
+  email           String?
+  language        String
+
+  // Сайт
+  services        String
+  siteUrl         String?
+  githubRepo      String?
+  vercelProject   String?
+  customDomain    String?
+  templateUsed    String?
+  demoUrl         String?
+
+  // Статус и финансы
+  status          String    @default("new")    // new, in_progress, site_ready, sent, paid, active, blocked, deleted
+  package         String?                       // landing, premium, individual
+  priceOneTime    Float?                        // 249, 399, 799
+  priceMonthly    Float?                        // 29, 39, 49
+  paidOneTime     Boolean   @default(false)
+  paidOneTimeDate DateTime?
+  nextPaymentDate DateTime?
+
+  // Заметки
+  notes           String?
+
+  // Даты
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }

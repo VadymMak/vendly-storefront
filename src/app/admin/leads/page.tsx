@@ -6,42 +6,456 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface Lead {
   id: string;
-  businessType: string;
-  services: string;
-  contact: string;
-  language: string;
-  demoUrl: string | null;
-  status: string;
-  notes: string | null;
-  siteName: string | null;
-  siteUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+  contactName:     string | null;
+  businessName:    string | null;
+  businessType:    string;
+  contact:         string;
+  email:           string | null;
+  language:        string;
+  services:        string;
+  siteUrl:         string | null;
+  githubRepo:      string | null;
+  vercelProject:   string | null;
+  customDomain:    string | null;
+  templateUsed:    string | null;
+  demoUrl:         string | null;
+  status:          string;
+  package:         string | null;
+  priceOneTime:    number | null;
+  priceMonthly:    number | null;
+  paidOneTime:     boolean;
+  paidOneTimeDate: string | null;
+  nextPaymentDate: string | null;
+  notes:           string | null;
+  createdAt:       string;
+  updatedAt:       string;
 }
 
-type EditFields = { notes: string; siteUrl: string; siteName: string };
+type EditMap = Record<string, Partial<Lead>>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_CYCLE = ['new', 'in_progress', 'site_ready', 'paid', 'active'] as const;
+const STATUS_CYCLE = ['new', 'in_progress', 'site_ready', 'sent', 'paid', 'active', 'blocked', 'deleted'] as const;
+type Status = typeof STATUS_CYCLE[number];
 
-const STATUS_META: Record<string, { label: string; classes: string }> = {
-  new:         { label: 'Новый',      classes: 'bg-yellow-100 text-yellow-800' },
-  in_progress: { label: 'В работе',   classes: 'bg-blue-100 text-blue-800' },
-  site_ready:  { label: 'Сайт готов', classes: 'bg-purple-100 text-purple-800' },
-  paid:        { label: 'Оплачен',    classes: 'bg-green-100 text-green-800' },
-  active:      { label: 'Активный',   classes: 'bg-green-500 text-white' },
+const STATUS_META: Record<string, { label: string; bg: string }> = {
+  new:         { label: 'New',         bg: 'bg-yellow-500' },
+  in_progress: { label: 'In Progress', bg: 'bg-blue-500' },
+  site_ready:  { label: 'Site Ready',  bg: 'bg-purple-500' },
+  sent:        { label: 'Sent',        bg: 'bg-orange-500' },
+  paid:        { label: 'Paid',        bg: 'bg-green-500' },
+  active:      { label: 'Active',      bg: 'bg-emerald-400' },
+  blocked:     { label: 'Blocked',     bg: 'bg-red-500' },
+  deleted:     { label: 'Deleted',     bg: 'bg-gray-500' },
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const FILTER_OPTIONS: Array<{ key: string; label: string }> = [
+  { key: 'all',         label: 'All' },
+  { key: 'new',         label: 'New' },
+  { key: 'in_progress', label: 'In Progress' },
+  { key: 'site_ready',  label: 'Site Ready' },
+  { key: 'sent',        label: 'Sent' },
+  { key: 'paid',        label: 'Paid' },
+  { key: 'active',      label: 'Active' },
+  { key: 'blocked',     label: 'Blocked' },
+];
+
+const PACKAGE_OPTIONS = [
+  { value: '',           label: '— не выбран —' },
+  { value: 'landing',    label: 'Landing (€249)' },
+  { value: 'premium',    label: 'Premium (€399)' },
+  { value: 'individual', label: 'Individual (€799)' },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function toDateInputValue(iso: string | null): string {
+  if (!iso) return '';
+  return iso.slice(0, 10);
+}
+
+function waLink(contact: string): string {
+  const digits = contact.replace(/\D/g, '');
+  return `https://wa.me/${digits}`;
+}
+
+// ─── UI primitives ────────────────────────────────────────────────────────────
+
+const inputCls = 'w-full rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2 text-sm text-white outline-none focus:border-[#6366F1] transition-colors placeholder:text-gray-500';
+const labelCls = 'mb-1 block text-xs font-medium uppercase tracking-wide text-gray-400';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className={labelCls}>{label}</p>
+      {children}
+    </div>
+  );
+}
+
+// ─── Lead Card ────────────────────────────────────────────────────────────────
+
+function LeadCard({
+  lead,
+  onUpdate,
+  onDelete,
+}: {
+  lead: Lead;
+  onUpdate: (id: string, patch: Partial<Lead>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen]       = useState(false);
+  const [draft, setDraft]     = useState<Partial<Lead>>({});
+  const [saving, setSaving]   = useState(false);
+  const [saved, setSaved]     = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  // Merge db values with draft for display
+  const val = <K extends keyof Lead>(key: K): Lead[K] =>
+    (key in draft ? draft[key] : lead[key]) as Lead[K];
+
+  const set = (key: keyof Lead, value: unknown) =>
+    setDraft((p) => ({ ...p, [key]: value }));
+
+  async function save() {
+    if (Object.keys(draft).length === 0) return;
+    setSaving(true);
+    await fetch('/api/admin/leads', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: lead.id, ...draft }),
+    });
+    onUpdate(lead.id, draft);
+    setDraft({});
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function cycleStatus() {
+    const idx  = STATUS_CYCLE.indexOf(lead.status as Status);
+    const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+    onUpdate(lead.id, { status: next });
+    await fetch('/api/admin/leads', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: lead.id, status: next }),
+    });
+  }
+
+  async function softDelete() {
+    await fetch('/api/admin/leads', {
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: lead.id }),
+    });
+    onDelete(lead.id);
+  }
+
+  const meta = STATUS_META[lead.status] ?? STATUS_META.new;
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[#374151] bg-[#1E293B]">
+      {/* ── Summary row ── */}
+      <div
+        className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-[#263349] transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {/* Status badge */}
+        <button
+          onClick={(e) => { e.stopPropagation(); void cycleStatus(); }}
+          title="Click to cycle status"
+          className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-80 ${meta.bg}`}
+        >
+          {meta.label}
+        </button>
+
+        {/* Main info */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-white">
+              {lead.businessName || lead.contactName || lead.contact}
+            </span>
+            <span className="rounded bg-[#334155] px-1.5 py-0.5 text-xs text-gray-300">
+              {lead.businessType}
+            </span>
+            {lead.package && (
+              <span className="rounded bg-indigo-900/60 px-1.5 py-0.5 text-xs text-indigo-300 capitalize">
+                {lead.package}
+              </span>
+            )}
+            <span className="text-xs text-gray-500">{lead.language.toUpperCase()}</span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-gray-400">{lead.contact}</p>
+        </div>
+
+        {/* Right info */}
+        <div className="flex shrink-0 items-center gap-3 text-xs text-gray-400">
+          {lead.paidOneTime && (
+            <span className="rounded bg-green-900/50 px-2 py-0.5 text-green-400 font-medium">✓ Paid</span>
+          )}
+          {lead.priceOneTime && (
+            <span className="text-gray-300">€{lead.priceOneTime}</span>
+          )}
+          <span className="hidden sm:block">
+            {new Date(lead.createdAt).toLocaleDateString('sk')}
+          </span>
+          <span className="text-gray-500">{open ? '▲' : '▼'}</span>
+        </div>
+      </div>
+
+      {/* ── Expanded ── */}
+      {open && (
+        <div className="border-t border-[#374151] px-4 py-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+
+            {/* ── Left: Contact info ── */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Контакт</p>
+
+              <Field label="Имя контакта">
+                <input type="text" className={inputCls} value={val('contactName') ?? ''}
+                  placeholder="Иван Новак"
+                  onChange={(e) => set('contactName', e.target.value)} />
+              </Field>
+
+              <Field label="Название бизнеса">
+                <input type="text" className={inputCls} value={val('businessName') ?? ''}
+                  placeholder="Café Merkur"
+                  onChange={(e) => set('businessName', e.target.value)} />
+              </Field>
+
+              <Field label="Тип бизнеса">
+                <p className="rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2 text-sm text-gray-300">
+                  {lead.businessType}
+                </p>
+              </Field>
+
+              <Field label="Контакт">
+                <div className="flex items-center gap-2">
+                  <p className="flex-1 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2 text-sm text-gray-300 truncate">
+                    {lead.contact}
+                  </p>
+                  <a
+                    href={waLink(lead.contact)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 rounded-lg bg-green-700 px-2.5 py-2 text-xs font-medium text-white hover:bg-green-600"
+                  >
+                    WA
+                  </a>
+                </div>
+              </Field>
+
+              <Field label="Email">
+                <input type="email" className={inputCls} value={val('email') ?? ''}
+                  placeholder="hello@business.sk"
+                  onChange={(e) => set('email', e.target.value)} />
+              </Field>
+
+              <Field label="Язык">
+                <p className="text-sm text-gray-400">{lead.language.toUpperCase()}</p>
+              </Field>
+
+              <Field label="Услуги">
+                <p className="text-sm text-gray-300 leading-relaxed">{lead.services}</p>
+              </Field>
+
+              {lead.demoUrl && (
+                <Field label="Показан демо">
+                  <a href={lead.demoUrl} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-indigo-400 hover:underline break-all">
+                    {lead.demoUrl}
+                  </a>
+                </Field>
+              )}
+            </div>
+
+            {/* ── Right: Site & Finance ── */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Сайт и финансы</p>
+
+              <Field label="URL сайта">
+                <div className="flex items-center gap-2">
+                  <input type="url" className={inputCls} value={val('siteUrl') ?? ''}
+                    placeholder="https://..."
+                    onChange={(e) => set('siteUrl', e.target.value)} />
+                  {(val('siteUrl') ?? lead.siteUrl) && (
+                    <a
+                      href={val('siteUrl') as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0 rounded-lg border border-[#374151] px-2.5 py-2 text-xs text-gray-300 hover:bg-[#334155]"
+                    >
+                      ↗
+                    </a>
+                  )}
+                </div>
+              </Field>
+
+              <Field label="GitHub Repo">
+                <div className="flex items-center gap-2">
+                  <input type="url" className={inputCls} value={val('githubRepo') ?? ''}
+                    placeholder="https://github.com/..."
+                    onChange={(e) => set('githubRepo', e.target.value)} />
+                  {(val('githubRepo') ?? lead.githubRepo) && (
+                    <a
+                      href={val('githubRepo') as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0 rounded-lg border border-[#374151] px-2.5 py-2 text-xs text-gray-300 hover:bg-[#334155]"
+                    >
+                      ↗
+                    </a>
+                  )}
+                </div>
+              </Field>
+
+              <Field label="Custom Domain">
+                <input type="text" className={inputCls} value={val('customDomain') ?? ''}
+                  placeholder="mycafe.sk"
+                  onChange={(e) => set('customDomain', e.target.value)} />
+              </Field>
+
+              <Field label="Пакет">
+                <select
+                  className={inputCls}
+                  value={val('package') ?? ''}
+                  onChange={(e) => set('package', e.target.value || null)}
+                >
+                  {PACKAGE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Цена разово (€)">
+                  <input type="number" className={inputCls} value={val('priceOneTime') ?? ''}
+                    placeholder="249"
+                    onChange={(e) => set('priceOneTime', e.target.value ? parseFloat(e.target.value) : null)} />
+                </Field>
+                <Field label="Цена / мес (€)">
+                  <input type="number" className={inputCls} value={val('priceMonthly') ?? ''}
+                    placeholder="29"
+                    onChange={(e) => set('priceMonthly', e.target.value ? parseFloat(e.target.value) : null)} />
+                </Field>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id={`paid-${lead.id}`}
+                  checked={val('paidOneTime') as boolean}
+                  onChange={(e) => set('paidOneTime', e.target.checked)}
+                  className="h-4 w-4 accent-green-500"
+                />
+                <label htmlFor={`paid-${lead.id}`} className="text-sm text-gray-300 cursor-pointer">
+                  Разовая оплата получена
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Дата оплаты">
+                  <input type="date" className={inputCls}
+                    value={toDateInputValue(val('paidOneTimeDate') as string | null)}
+                    onChange={(e) => set('paidOneTimeDate', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                </Field>
+                <Field label="След. платёж">
+                  <input type="date" className={inputCls}
+                    value={toDateInputValue(val('nextPaymentDate') as string | null)}
+                    onChange={(e) => set('nextPaymentDate', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                </Field>
+              </div>
+            </div>
+
+            {/* ── Notes (full width) ── */}
+            <div className="sm:col-span-2">
+              <Field label="Заметки">
+                <textarea
+                  rows={4}
+                  className={`${inputCls} resize-none`}
+                  value={val('notes') as string ?? ''}
+                  placeholder="Заметки о клиенте, переговорах, договорённостях..."
+                  onChange={(e) => set('notes', e.target.value)}
+                />
+              </Field>
+            </div>
+          </div>
+
+          {/* ── Action bar ── */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {/* WhatsApp */}
+              <a
+                href={waLink(lead.contact)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 transition-colors"
+              >
+                🔗 WhatsApp
+              </a>
+
+              {/* Delete */}
+              {confirming ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400">Удалить?</span>
+                  <button
+                    onClick={() => void softDelete()}
+                    className="rounded-lg bg-red-700 px-3 py-2 text-xs font-medium text-white hover:bg-red-600"
+                  >
+                    Да
+                  </button>
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="rounded-lg border border-[#374151] px-3 py-2 text-xs text-gray-400 hover:bg-[#334155]"
+                  >
+                    Нет
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirming(true)}
+                  className="rounded-lg border border-red-800 px-3 py-2 text-xs text-red-400 hover:bg-red-900/30 transition-colors"
+                >
+                  🗑️ Удалить
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {saved && (
+                <span className="text-xs font-medium text-green-400">✓ Сохранено</span>
+              )}
+              <button
+                onClick={() => void save()}
+                disabled={saving || Object.keys(draft).length === 0}
+                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-40"
+              >
+                {saving ? 'Saving…' : '💾 Сохранить'}
+              </button>
+            </div>
+          </div>
+
+          {/* ID row */}
+          <p className="mt-3 font-mono text-[10px] text-gray-600">{lead.id}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LeadsPage() {
   const [leads, setLeads]     = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [editState, setEditState] = useState<Record<string, EditFields>>({});
-  const [saving, setSaving]   = useState<string | null>(null);
-  const [saved, setSaved]     = useState<string | null>(null);
+  const [filter, setFilter]   = useState('all');
+  const [, setEditMap]        = useState<EditMap>({});
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -49,20 +463,6 @@ export default function LeadsPage() {
       const res  = await fetch('/api/admin/leads');
       const data = await res.json() as Lead[];
       setLeads(data);
-      // Seed edit state for each lead (only for leads not already in editState)
-      setEditState((prev) => {
-        const next = { ...prev };
-        data.forEach((lead) => {
-          if (!next[lead.id]) {
-            next[lead.id] = {
-              notes:    lead.notes    ?? '',
-              siteUrl:  lead.siteUrl  ?? '',
-              siteName: lead.siteName ?? '',
-            };
-          }
-        });
-        return next;
-      });
     } finally {
       setLoading(false);
     }
@@ -70,228 +470,87 @@ export default function LeadsPage() {
 
   useEffect(() => { void loadLeads(); }, [loadLeads]);
 
-  // Cycle status on click
-  async function cycleStatus(lead: Lead) {
-    const idx        = STATUS_CYCLE.indexOf(lead.status as typeof STATUS_CYCLE[number]);
-    const nextStatus = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
-    // Optimistic update
-    setLeads((prev) => prev.map((l) => l.id === lead.id ? { ...l, status: nextStatus } : l));
-    await fetch('/api/admin/leads', {
-      method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: lead.id, status: nextStatus }),
-    });
+  function handleUpdate(id: string, patch: Partial<Lead>) {
+    setLeads((prev) => prev.map((l) => l.id === id ? { ...l, ...patch } : l));
+    setEditMap((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...patch } }));
   }
 
-  // Save notes / siteUrl / siteName
-  async function saveLead(id: string) {
-    setSaving(id);
-    const fields = editState[id];
-    await fetch('/api/admin/leads', {
-      method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...fields }),
-    });
-    // Reflect saved values back into leads list
-    setLeads((prev) => prev.map((l) =>
-      l.id === id ? { ...l, notes: fields.notes, siteUrl: fields.siteUrl, siteName: fields.siteName } : l,
-    ));
-    setSaving(null);
-    setSaved(id);
-    setTimeout(() => setSaved(null), 2000);
+  function handleDelete(id: string) {
+    setLeads((prev) => prev.map((l) => l.id === id ? { ...l, status: 'deleted' } : l));
   }
 
-  function updateField(id: string, key: keyof EditFields, value: string) {
-    setEditState((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
-  }
+  // Counts per status (excluding deleted from visible counts)
+  const counts: Record<string, number> = { all: 0 };
+  leads.forEach((l) => {
+    if (l.status !== 'deleted') counts.all = (counts.all ?? 0) + 1;
+    counts[l.status] = (counts[l.status] ?? 0) + 1;
+  });
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const visible = leads.filter((l) =>
+    filter === 'all' ? l.status !== 'deleted' : l.status === filter,
+  );
 
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-secondary">Лиды из чат-бота</h1>
-          <p className="mt-1 text-sm text-neutral">
-            {loading ? 'Загрузка…' : `${leads.length} лидов`}
+          <h1 className="text-2xl font-bold text-white">VendShop CRM</h1>
+          <p className="mt-0.5 text-sm text-gray-400">
+            {loading ? 'Loading…' : `${visible.length} лидов`}
           </p>
         </div>
         <button
           onClick={() => void loadLeads()}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+          className="rounded-lg border border-[#374151] bg-[#1E293B] px-3 py-2 text-sm text-gray-300 hover:bg-[#263349] transition-colors"
         >
-          ↻ Обновить
+          ↻ Refresh
         </button>
       </div>
 
-      {/* Status legend */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {Object.entries(STATUS_META).map(([key, { label, classes }]) => (
-          <span key={key} className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}>
-            {label}
-          </span>
-        ))}
-        <span className="text-xs text-neutral self-center ml-1">← кликни на статус для смены</span>
+      {/* Filters */}
+      <div className="mb-5 flex flex-wrap gap-2">
+        {FILTER_OPTIONS.map(({ key, label }) => {
+          const count = counts[key] ?? 0;
+          const active = filter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                active
+                  ? 'bg-indigo-600 text-white'
+                  : 'border border-[#374151] bg-[#1E293B] text-gray-400 hover:bg-[#263349]'
+              }`}
+            >
+              {label}
+              {count > 0 && (
+                <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
+                  active ? 'bg-indigo-500 text-white' : 'bg-[#334155] text-gray-300'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
       {loading ? (
-        <div className="py-16 text-center text-neutral">Загрузка…</div>
-      ) : leads.length === 0 ? (
-        <div className="py-16 text-center text-neutral">Лидов пока нет. Заполни чат на главной!</div>
+        <div className="py-16 text-center text-gray-500">Loading…</div>
+      ) : visible.length === 0 ? (
+        <div className="py-16 text-center text-gray-500">No leads in this category.</div>
       ) : (
         <div className="space-y-2">
-          {leads.map((lead) => {
-            const meta = STATUS_META[lead.status] ?? STATUS_META.new;
-            const isExpanded = expanded === lead.id;
-            const edit = editState[lead.id] ?? { notes: '', siteUrl: '', siteName: '' };
-
-            return (
-              <div
-                key={lead.id}
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                {/* ── Summary row ── */}
-                <div className="flex items-center gap-3 px-4 py-3">
-                  {/* Left: contact + type */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-secondary">{lead.contact}</span>
-                      <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                        {lead.businessType}
-                      </span>
-                      <span className="text-xs text-gray-400">{lead.language.toUpperCase()}</span>
-                      {lead.siteName && (
-                        <span className="text-xs font-medium text-primary">{lead.siteName}</span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-neutral">{lead.services}</p>
-                  </div>
-
-                  {/* Right: date + status badge + expand */}
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="hidden text-xs text-gray-400 sm:block">
-                      {new Date(lead.createdAt).toLocaleDateString('sk')}
-                    </span>
-                    <button
-                      onClick={() => void cycleStatus(lead)}
-                      title="Кликни для смены статуса"
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-80 ${meta.classes}`}
-                    >
-                      {meta.label}
-                    </button>
-                    <button
-                      onClick={() => setExpanded(isExpanded ? null : lead.id)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50"
-                      aria-label={isExpanded ? 'Свернуть' : 'Развернуть'}
-                    >
-                      {isExpanded ? '▲' : '▼'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* ── Expanded details ── */}
-                {isExpanded && (
-                  <div className="border-t border-gray-100 bg-gray-50 px-4 py-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-
-                      {/* ID */}
-                      <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">ID</p>
-                        <p className="font-mono text-xs text-gray-600">{lead.id}</p>
-                      </div>
-
-                      {/* Created */}
-                      <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">Создан</p>
-                        <p className="text-xs text-gray-600">
-                          {new Date(lead.createdAt).toLocaleString('sk')}
-                        </p>
-                      </div>
-
-                      {/* Services (full) */}
-                      <div className="sm:col-span-2">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">Услуги</p>
-                        <p className="text-sm text-gray-700">{lead.services}</p>
-                      </div>
-
-                      {/* Demo URL */}
-                      {lead.demoUrl && (
-                        <div className="sm:col-span-2">
-                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-400">Показан демо</p>
-                          <a
-                            href={lead.demoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline"
-                          >
-                            {lead.demoUrl}
-                          </a>
-                        </div>
-                      )}
-
-                      {/* Site name */}
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-400">
-                          Название сайта
-                        </label>
-                        <input
-                          type="text"
-                          value={edit.siteName}
-                          onChange={(e) => updateField(lead.id, 'siteName', e.target.value)}
-                          placeholder="Название проекта"
-                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Site URL */}
-                      <div>
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-400">
-                          URL готового сайта
-                        </label>
-                        <input
-                          type="url"
-                          value={edit.siteUrl}
-                          onChange={(e) => updateField(lead.id, 'siteUrl', e.target.value)}
-                          placeholder="https://..."
-                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-                        />
-                      </div>
-
-                      {/* Notes */}
-                      <div className="sm:col-span-2">
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-400">
-                          Заметки
-                        </label>
-                        <textarea
-                          value={edit.notes}
-                          onChange={(e) => updateField(lead.id, 'notes', e.target.value)}
-                          rows={3}
-                          placeholder="Заметки о лиде, переговорах, статусе..."
-                          className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Save button */}
-                    <div className="mt-3 flex items-center justify-end gap-3">
-                      {saved === lead.id && (
-                        <span className="text-xs font-medium text-green-600">✓ Сохранено</span>
-                      )}
-                      <button
-                        onClick={() => void saveLead(lead.id)}
-                        disabled={saving === lead.id}
-                        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark disabled:opacity-60"
-                      >
-                        {saving === lead.id ? 'Сохранение…' : 'Сохранить'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {visible.map((lead) => (
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       )}
     </div>

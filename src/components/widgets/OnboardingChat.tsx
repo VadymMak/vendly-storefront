@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useLocale } from 'next-intl';
 import { CHATBOT_TRANSLATIONS } from '@/lib/chatbot-translations';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -19,16 +20,26 @@ const DEMO_URLS: Record<string, string> = {
 
 const WA_URL = 'https://wa.me/421901234567';
 
+// Locales supported in the site header. 'ru' is NOT a site locale —
+// Russian speakers use one of the five supported locales, so we detect
+// their preference separately via navigator.language.
+const SITE_LANGS = new Set(['sk', 'en', 'de', 'cs', 'uk']);
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function detectLanguage(): string {
-  if (typeof navigator === 'undefined') return 'en';
-  const l = navigator.language.toLowerCase();
-  if (l.startsWith('sk')) return 'sk';
-  if (l.startsWith('de')) return 'de';
-  if (l.startsWith('cs')) return 'cs';
-  if (l.startsWith('uk')) return 'uk';
-  if (l.startsWith('ru')) return 'ru';
+/**
+ * Maps the next-intl site locale to a chatbot translation key.
+ * - Site locale found in translations → use it directly.
+ * - Site locale NOT found (shouldn't happen with current LOCALE_OPTIONS) →
+ *   fall back to 'ru' if the browser language is Russian, else 'en'.
+ */
+function resolveLang(siteLocale: string): string {
+  if (SITE_LANGS.has(siteLocale)) return siteLocale;
+  // 'ru' is not a header locale; detect it from the browser as a bonus path.
+  if (typeof navigator !== 'undefined' &&
+      navigator.language.toLowerCase().startsWith('ru')) {
+    return 'ru';
+  }
   return 'en';
 }
 
@@ -77,9 +88,16 @@ function SendIcon() {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function OnboardingChat() {
+  // ── Locale (drives chatbot language reactively) ────────────────────────────
+  // useLocale() reads from NextIntlClientProvider context. When the user
+  // switches language in the header (POST /api/locale + router.refresh()),
+  // next-intl updates the context and this component re-renders with the
+  // new locale — no extra state needed.
+  const siteLocale = useLocale();
+  const lang       = resolveLang(siteLocale);
+
   const [isOpen, setIsOpen]               = useState(false);
   const [hasStarted, setHasStarted]       = useState(false);
-  const [lang, setLang]                   = useState('en');
   const [phase, setPhase]                 = useState<Phase>('business-type');
   const [businessType, setBusinessType]   = useState('');
   const [demoUrl, setDemoUrl]             = useState('');
@@ -117,10 +135,8 @@ export default function OnboardingChat() {
     setIsOpen(true);
     if (hasStarted) return;
     setHasStarted(true);
-    const detected = detectLanguage();
-    setLang(detected);
-    const tr = CHATBOT_TRANSLATIONS[detected] ?? CHATBOT_TRANSLATIONS.en;
-    setMessages([{ text: tr.greeting, sender: 'bot' }]);
+    // `t` is already resolved from the current site locale — use it directly.
+    setMessages([{ text: t.greeting, sender: 'bot' }]);
     setPhase('business-type');
   };
 

@@ -20,6 +20,16 @@ const DEMO_URLS: Record<string, string> = {
 
 const WA_URL = 'https://wa.me/421901234567';
 
+// Brief button labels per language (not in chatbot-translations to avoid touching that file)
+const BRIEF_BTN: Record<string, string> = {
+  sk: '📋 Vyplniť brief pre váš web →',
+  en: '📋 Fill in your website brief →',
+  de: '📋 Brief für Ihre Website ausfüllen →',
+  cs: '📋 Vyplnit brief pro váš web →',
+  uk: '📋 Заповнити бриф для вашого сайту →',
+  ru: '📋 Заполнить бриф для сайта →',
+};
+
 // Locales supported in the site header. 'ru' is NOT a site locale —
 // Russian speakers use one of the five supported locales, so we detect
 // their preference separately via navigator.language.
@@ -96,6 +106,7 @@ export default function OnboardingChat() {
   const siteLocale = useLocale();
   const lang       = resolveLang(siteLocale);
 
+  const [briefLeadId, setBriefLeadId]     = useState<string | null>(null);
   const [isOpen, setIsOpen]               = useState(false);
   const [hasStarted, setHasStarted]       = useState(false);
   const [phase, setPhase]                 = useState<Phase>('business-type');
@@ -242,7 +253,7 @@ export default function OnboardingChat() {
         .map((o) => o.label)
         .join(', ');
 
-      await fetch('/api/submit-lead', {
+      const res  = await fetch('/api/submit-lead', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -255,6 +266,8 @@ export default function OnboardingChat() {
           demoUrl,
         }),
       });
+      const data = await res.json() as { ok?: boolean; leadId?: string };
+      if (data.leadId) setBriefLeadId(data.leadId);
     } catch {
       // silent — lead visible in server logs
     }
@@ -475,14 +488,26 @@ export default function OnboardingChat() {
 
             {/* Phase: done */}
             {phase === 'done' && (
-              <a
-                href={WA_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
-              >
-                {t.waButton}
-              </a>
+              <div className="flex flex-col gap-2">
+                {briefLeadId && (
+                  <a
+                    href={`https://vendshop.shop/brief/${briefLeadId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
+                  >
+                    {BRIEF_BTN[lang] ?? BRIEF_BTN.en}
+                  </a>
+                )}
+                <a
+                  href={WA_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  {t.waButton}
+                </a>
+              </div>
             )}
 
           </div>

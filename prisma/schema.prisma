@@ -204,6 +204,26 @@ model Lead {
   paidOneTimeDate DateTime?
   nextPaymentDate DateTime?
 
+  // Brief данные
+  address         String?
+  workingHours    String?
+  socialInstagram String?
+  socialFacebook  String?
+  referenceUrl    String?
+  wishes          String?
+  priceListUrl    String?
+  logoUrl         String?
+  photoUrls       String?   // JSON строка: ["url1","url2","url3"]
+
+  // Визуальный стиль
+  selectedPalette String?   // dark, light, warm, professional, natural, custom
+  selectedHero    String?   // fullscreen, split, centered
+  selectedMood    String?   // modern, cozy, strict
+
+  // Brief статус
+  briefSubmitted   Boolean   @default(false)
+  briefSubmittedAt DateTime?
+
   // Заметки
   notes           String?
 

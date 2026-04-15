@@ -26,6 +26,21 @@ interface Lead {
   paidOneTime:     boolean;
   paidOneTimeDate: string | null;
   nextPaymentDate: string | null;
+  // Brief fields
+  address:          string | null;
+  workingHours:     string | null;
+  socialInstagram:  string | null;
+  socialFacebook:   string | null;
+  referenceUrl:     string | null;
+  wishes:           string | null;
+  priceListUrl:     string | null;
+  logoUrl:          string | null;
+  photoUrls:        string | null; // JSON string
+  selectedPalette:  string | null;
+  selectedHero:     string | null;
+  selectedMood:     string | null;
+  briefSubmitted:   boolean;
+  briefSubmittedAt: string | null;
   notes:           string | null;
   createdAt:       string;
   updatedAt:       string;
@@ -383,6 +398,156 @@ function LeadCard({
                   onChange={(e) => set('notes', e.target.value)}
                 />
               </Field>
+            </div>
+
+            {/* ── Brief section (full width) ── */}
+            <div className="sm:col-span-2">
+              <div className="rounded-xl border border-[#374151] bg-[#0B1120] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Бриф</p>
+                  {lead.briefSubmitted ? (
+                    <span className="rounded-full bg-green-900/50 px-2.5 py-0.5 text-xs font-medium text-green-400">
+                      ✅ Заполнен {lead.briefSubmittedAt ? new Date(lead.briefSubmittedAt).toLocaleDateString('sk') : ''}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-yellow-900/40 px-2.5 py-0.5 text-xs font-medium text-yellow-400">
+                      ⏳ Ожидает бриф
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      void navigator.clipboard.writeText(`https://vendshop.shop/brief/${lead.id}`);
+                    }}
+                    className="rounded-lg border border-[#374151] px-2.5 py-1 text-xs text-gray-400 hover:bg-[#334155] transition-colors ml-auto"
+                    title="Скопировать ссылку на бриф"
+                  >
+                    🔗 Ссылка
+                  </button>
+                </div>
+
+                {lead.briefSubmitted ? (
+                  <div className="space-y-3">
+                    {/* Style badges */}
+                    <div className="flex flex-wrap gap-2">
+                      {lead.selectedPalette && (
+                        <span className="rounded-lg bg-violet-900/50 px-2.5 py-1 text-xs font-medium text-violet-300 border border-violet-800/50">
+                          🎨 {lead.selectedPalette}
+                        </span>
+                      )}
+                      {lead.selectedHero && (
+                        <span className="rounded-lg bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-300 border border-blue-800/50">
+                          📐 {lead.selectedHero}
+                        </span>
+                      )}
+                      {lead.selectedMood && (
+                        <span className="rounded-lg bg-pink-900/50 px-2.5 py-1 text-xs font-medium text-pink-300 border border-pink-800/50">
+                          💡 {lead.selectedMood}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Info grid */}
+                    <div className="grid gap-2 text-xs sm:grid-cols-2">
+                      {lead.address && (
+                        <div>
+                          <span className="text-gray-500">Адрес: </span>
+                          <span className="text-gray-300">{lead.address}</span>
+                        </div>
+                      )}
+                      {lead.workingHours && (
+                        <div>
+                          <span className="text-gray-500">Часы: </span>
+                          <span className="text-gray-300">{lead.workingHours}</span>
+                        </div>
+                      )}
+                      {lead.email && (
+                        <div>
+                          <span className="text-gray-500">Email: </span>
+                          <span className="text-gray-300">{lead.email}</span>
+                        </div>
+                      )}
+                      {lead.socialInstagram && (
+                        <div>
+                          <span className="text-gray-500">Instagram: </span>
+                          <a href={`https://instagram.com/${lead.socialInstagram.replace('@','')}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="text-cyan-400 hover:underline">{lead.socialInstagram}</a>
+                        </div>
+                      )}
+                      {lead.socialFacebook && (
+                        <div>
+                          <span className="text-gray-500">Facebook: </span>
+                          <a href={lead.socialFacebook.startsWith('http') ? lead.socialFacebook : `https://${lead.socialFacebook}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="text-cyan-400 hover:underline">{lead.socialFacebook}</a>
+                        </div>
+                      )}
+                      {lead.referenceUrl && (
+                        <div className="sm:col-span-2">
+                          <span className="text-gray-500">Референс: </span>
+                          <a href={lead.referenceUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-cyan-400 hover:underline break-all">{lead.referenceUrl}</a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Wishes */}
+                    {lead.wishes && (
+                      <div>
+                        <p className="mb-1 text-xs text-gray-500">Пожелания:</p>
+                        <p className="rounded-lg bg-[#0F172A] px-3 py-2 text-xs text-gray-300 leading-relaxed">
+                          {lead.wishes}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Price list */}
+                    {lead.priceListUrl && (
+                      <div>
+                        <a href={lead.priceListUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#374151] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155]">
+                          📄 Открыть прайс
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Logo */}
+                    {lead.logoUrl && (
+                      <div>
+                        <p className="mb-1 text-xs text-gray-500">Логотип:</p>
+                        <a href={lead.logoUrl} target="_blank" rel="noopener noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={lead.logoUrl} alt="logo" className="h-16 w-16 rounded-lg object-contain bg-[#0F172A] p-1 border border-[#374151]" />
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Photos */}
+                    {lead.photoUrls && (() => {
+                      try {
+                        const urls = JSON.parse(lead.photoUrls) as string[];
+                        if (!urls.length) return null;
+                        return (
+                          <div>
+                            <p className="mb-1.5 text-xs text-gray-500">Фото ({urls.length}):</p>
+                            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                              {urls.map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                                  className="aspect-square overflow-hidden rounded-lg bg-[#0F172A]">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={url} alt={`photo ${i+1}`} className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      } catch { return null; }
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-600">Клиент ещё не заполнил бриф.</p>
+                )}
+              </div>
             </div>
           </div>
 

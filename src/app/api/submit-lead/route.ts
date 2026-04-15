@@ -36,6 +36,8 @@ export async function POST(request: Request) {
       'Демо: '   + (data.demoUrl      || '-'),
       'ID: '     + (lead?.id           || '-'),
       'Время: '  + new Date().toLocaleString('sk-SK'),
+      '',
+      'Бриф: '   + (lead?.id ? `vendshop.shop/brief/${lead.id}` : '-'),
     ].join('\n');
 
     try {

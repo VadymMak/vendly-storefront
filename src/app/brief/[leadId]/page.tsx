@@ -1,0 +1,750 @@
+'use client';
+
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useParams } from 'next/navigation';
+import { BRIEF_TRANSLATIONS, getBriefT } from '@/lib/brief-translations';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface PublicLead {
+  businessType:   string;
+  services:       string;
+  contact:        string;
+  language:       string;
+  businessName:   string | null;
+  briefSubmitted: boolean;
+}
+
+interface FormState {
+  businessName:       string;
+  address:            string;
+  email:              string;
+  workingHours:       string;
+  additionalServices: string;
+  selectedPalette:    string;
+  selectedHero:       string;
+  selectedMood:       string;
+  socialInstagram:    string;
+  socialFacebook:     string;
+  referenceUrl:       string;
+  wishes:             string;
+  website:            string; // honeypot
+}
+
+const INITIAL_FORM: FormState = {
+  businessName: '', address: '', email: '', workingHours: '',
+  additionalServices: '', selectedPalette: '', selectedHero: '', selectedMood: '',
+  socialInstagram: '', socialFacebook: '', referenceUrl: '', wishes: '',
+  website: '',
+};
+
+// ─── Style data ───────────────────────────────────────────────────────────────
+
+const PALETTES = [
+  { id: 'dark',         gradient: 'linear-gradient(135deg, #0A0A0A 0%, #D4A853 100%)' },
+  { id: 'light',        gradient: 'linear-gradient(135deg, #E8F5E9 0%, #16a34a 100%)' },
+  { id: 'warm',         gradient: 'linear-gradient(135deg, #F5F0EB 0%, #7C9A82 100%)' },
+  { id: 'professional', gradient: 'linear-gradient(135deg, #1A2332 0%, #F97316 100%)' },
+  { id: 'natural',      gradient: 'linear-gradient(135deg, #FFFDF9 0%, #2D5A3D 100%)' },
+  { id: 'custom',       gradient: 'linear-gradient(135deg, #374151 0%, #6B7280 100%)' },
+];
+
+// SVG previews for hero styles
+const HERO_SVGS: Record<string, React.ReactNode> = {
+  fullscreen: (
+    <svg viewBox="0 0 120 72" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+      <rect width="120" height="72" fill="#334155" rx="3"/>
+      <text x="60" y="28" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="sans-serif">IMAGE</text>
+      <rect x="0" y="48" width="120" height="24" fill="rgba(0,0,0,0.5)" rx="0"/>
+      <rect x="10" y="53" width="55" height="5" rx="2" fill="#94a3b8"/>
+      <rect x="10" y="62" width="28" height="6" rx="3" fill="#16a34a"/>
+    </svg>
+  ),
+  split: (
+    <svg viewBox="0 0 120 72" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+      <rect width="120" height="72" fill="#1e293b" rx="3"/>
+      <rect x="60" width="60" height="72" fill="#334155" rx="0"/>
+      <text x="90" y="40" textAnchor="middle" fill="#64748b" fontSize="9" fontFamily="sans-serif">IMAGE</text>
+      <rect x="8" y="18" width="40" height="5" rx="2" fill="#94a3b8"/>
+      <rect x="8" y="28" width="32" height="4" rx="2" fill="#475569"/>
+      <rect x="8" y="37" width="26" height="4" rx="2" fill="#475569"/>
+      <rect x="8" y="50" width="28" height="8" rx="3" fill="#16a34a"/>
+    </svg>
+  ),
+  centered: (
+    <svg viewBox="0 0 120 72" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+      <rect width="120" height="72" fill="#334155" rx="3"/>
+      <rect width="120" height="72" fill="rgba(0,0,0,0.45)" rx="3"/>
+      <rect x="30" y="20" width="60" height="6" rx="2" fill="rgba(255,255,255,0.85)"/>
+      <rect x="38" y="32" width="44" height="4" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="42" y="44" width="36" height="8" rx="3" fill="#16a34a"/>
+    </svg>
+  ),
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function waLink(contact: string) {
+  return `https://wa.me/${contact.replace(/\D/g, '')}`;
+}
+
+function resolveLang(lang: string): string {
+  return lang in BRIEF_TRANSLATIONS ? lang : 'en';
+}
+
+// ─── Shared UI ────────────────────────────────────────────────────────────────
+
+const inputCls = 'w-full rounded-xl border border-[#374151] bg-[#0F172A] px-4 py-3 text-sm text-white outline-none transition-colors focus:border-green-500 placeholder:text-gray-500';
+const labelCls = 'mb-1.5 block text-sm font-medium text-gray-300';
+
+function SectionCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-[#374151] bg-[#1E293B] p-5 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeading({ icon, title }: { icon: string; title: string }) {
+  return (
+    <div className="mb-4 flex items-center gap-2">
+      <span className="text-xl">{icon}</span>
+      <h2 className="text-lg font-bold text-white">{title}</h2>
+    </div>
+  );
+}
+
+// ─── Drop Zone ────────────────────────────────────────────────────────────────
+
+function DropZone({
+  onFiles,
+  accept,
+  uploading,
+  label,
+  hint,
+  children,
+  className = '',
+}: {
+  onFiles: (files: FileList) => void;
+  accept: string;
+  uploading: boolean;
+  label: string;
+  hint: string;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+  };
+
+  return (
+    <div
+      onClick={() => !uploading && inputRef.current?.click()}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      className={`cursor-pointer rounded-xl border-2 border-dashed transition-colors ${
+        dragging ? 'border-green-500 bg-green-500/10' : 'border-[#374151] hover:border-green-600/60 hover:bg-green-500/5'
+      } ${className}`}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => e.target.files && onFiles(e.target.files)}
+        multiple={false}
+      />
+      {children ?? (
+        <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 text-center">
+          {uploading ? (
+            <span className="text-sm text-gray-400 animate-pulse">Uploading…</span>
+          ) : (
+            <>
+              <span className="text-2xl">📁</span>
+              <p className="text-sm font-medium text-gray-300">{label}</p>
+              <p className="text-xs text-gray-500">{hint}</p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MultiDropZone({
+  onFiles,
+  uploading,
+  label,
+  hint,
+}: {
+  onFiles: (files: FileList) => void;
+  uploading: boolean;
+  label: string;
+  hint: string;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+  };
+
+  return (
+    <div
+      onClick={() => !uploading && inputRef.current?.click()}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      className={`cursor-pointer rounded-xl border-2 border-dashed transition-colors ${
+        dragging ? 'border-green-500 bg-green-500/10' : 'border-[#374151] hover:border-green-600/60 hover:bg-green-500/5'
+      }`}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => e.target.files && onFiles(e.target.files)}
+      />
+      <div className="flex flex-col items-center justify-center gap-2 py-8 px-4 text-center">
+        {uploading ? (
+          <span className="text-sm text-gray-400 animate-pulse">Uploading…</span>
+        ) : (
+          <>
+            <span className="text-2xl">🖼️</span>
+            <p className="text-sm font-medium text-gray-300">{label}</p>
+            <p className="text-xs text-gray-500">{hint}</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function BriefPage() {
+  const { leadId } = useParams<{ leadId: string }>();
+
+  const [lead, setLead]         = useState<PublicLead | null>(null);
+  const [pageStatus, setPage]   = useState<'loading' | 'invalid' | 'submitted' | 'form' | 'done'>('loading');
+  const [form, setForm]         = useState<FormState>(INITIAL_FORM);
+  const [logoUrl, setLogoUrl]   = useState('');
+  const [priceListUrl, setPriceList] = useState('');
+  const [photoUrls, setPhotos]  = useState<string[]>([]);
+
+  const [uploadingLogo, setULogo]  = useState(false);
+  const [uploadingPrice, setUPrice] = useState(false);
+  const [uploadingPhotos, setUPhotos] = useState(false);
+  const [submitting, setSubmitting]  = useState(false);
+  const [uploadErr, setUploadErr]    = useState('');
+
+  // Fetch lead info
+  useEffect(() => {
+    if (!leadId) return;
+    fetch(`/api/brief/${leadId}`)
+      .then((r) => {
+        if (r.status === 404) { setPage('invalid'); return null; }
+        return r.json() as Promise<PublicLead>;
+      })
+      .then((data) => {
+        if (!data) return;
+        setLead(data);
+        if (data.briefSubmitted) {
+          setPage('submitted');
+        } else {
+          setForm((p) => ({ ...p, businessName: data.businessName ?? '' }));
+          setPage('form');
+        }
+      })
+      .catch(() => setPage('invalid'));
+  }, [leadId]);
+
+  const lang = lead ? resolveLang(lead.language) : 'en';
+  const t    = getBriefT(lang);
+
+  // Progress calculation (6 key fields)
+  const progress = useMemo(() => {
+    let n = 0;
+    if (form.businessName.trim())  n++;
+    if (form.selectedPalette)      n++;
+    if (form.selectedHero)         n++;
+    if (form.selectedMood)         n++;
+    if (form.email.trim())         n++;
+    if (photoUrls.length > 0 || logoUrl) n++;
+    return Math.round((n / 6) * 100);
+  }, [form, photoUrls, logoUrl]);
+
+  // Upload helper
+  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('leadId', leadId);
+    const res = await fetch('/api/brief/upload', { method: 'POST', body: fd });
+    if (!res.ok) { const e = await res.json() as { error?: string }; throw new Error(e.error ?? 'Upload failed'); }
+    const data = await res.json() as { url: string };
+    return data.url;
+  }, [leadId]);
+
+  const handleLogoFiles = useCallback(async (files: FileList) => {
+    if (!files[0]) return;
+    setULogo(true);
+    setUploadErr('');
+    try { setLogoUrl(await uploadFile(files[0]) ?? ''); }
+    catch (e) { setUploadErr(e instanceof Error ? e.message : t.uploadError); }
+    finally   { setULogo(false); }
+  }, [uploadFile, t]);
+
+  const handlePriceFiles = useCallback(async (files: FileList) => {
+    if (!files[0]) return;
+    setUPrice(true);
+    setUploadErr('');
+    try { setPriceList(await uploadFile(files[0]) ?? ''); }
+    catch (e) { setUploadErr(e instanceof Error ? e.message : t.uploadError); }
+    finally   { setUPrice(false); }
+  }, [uploadFile, t]);
+
+  const handlePhotoFiles = useCallback(async (files: FileList) => {
+    const available = 20 - photoUrls.length;
+    if (available <= 0) return;
+    const list = Array.from(files).slice(0, available);
+    setUPhotos(true);
+    setUploadErr('');
+    try {
+      const urls = await Promise.all(list.map((f) => uploadFile(f)));
+      setPhotos((p) => [...p, ...(urls.filter(Boolean) as string[])]);
+    } catch (e) {
+      setUploadErr(e instanceof Error ? e.message : t.uploadError);
+    } finally {
+      setUPhotos(false);
+    }
+  }, [uploadFile, photoUrls.length, t]);
+
+  const removePhoto = (idx: number) =>
+    setPhotos((p) => p.filter((_, i) => i !== idx));
+
+  const handleSubmit = async () => {
+    // Honeypot check
+    if (form.website) return;
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...form,
+        logoUrl:    logoUrl || null,
+        priceListUrl: priceListUrl || null,
+        photoUrls:  photoUrls.length ? JSON.stringify(photoUrls) : null,
+      };
+      const res = await fetch(`/api/brief/${leadId}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      if (res.ok) setPage('done');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const setField = (key: keyof FormState, val: string) =>
+    setForm((p) => ({ ...p, [key]: val }));
+
+  // ── Render states ──────────────────────────────────────────────────────────
+
+  if (pageStatus === 'loading') return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0B0F1A]">
+      <p className="animate-pulse text-gray-400">{t.loadingText}</p>
+    </div>
+  );
+
+  if (pageStatus === 'invalid') return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0B0F1A] px-4">
+      <div className="max-w-md text-center">
+        <p className="mb-2 text-4xl">🔗</p>
+        <p className="text-lg font-semibold text-white">{t.invalidLink}</p>
+      </div>
+    </div>
+  );
+
+  if (pageStatus === 'submitted' || pageStatus === 'done') return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0B0F1A] px-4">
+      <div className="max-w-sm text-center">
+        {/* Animated checkmark */}
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-900/40 ring-4 ring-green-500/30">
+          <svg className="h-10 w-10 text-green-400" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ strokeDasharray: 30, strokeDashoffset: pageStatus === 'done' ? 0 : 30, transition: 'stroke-dashoffset 0.5s ease' }} />
+          </svg>
+        </div>
+        <h1 className="mb-2 text-2xl font-bold text-white">{t.thankTitle}</h1>
+        <p className="mb-1 text-gray-400">{t.thankSubtitle}</p>
+        {lead && (
+          <p className="mb-6 text-sm text-gray-500">{t.thankContact} <span className="text-green-400">{lead.contact}</span></p>
+        )}
+        <a
+          href={lead ? waLink(lead.contact) : 'https://wa.me/421901234567'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-500 transition-colors"
+        >
+          💬 {t.thankWa}
+        </a>
+      </div>
+    </div>
+  );
+
+  // ── FORM ───────────────────────────────────────────────────────────────────
+
+  const bt = lead?.businessType ?? 'other';
+
+  return (
+    <div className="min-h-screen bg-[#0B0F1A] pb-28">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-40 border-b border-[#374151] bg-[#0B0F1A]/90 backdrop-blur-sm">
+        <div className="mx-auto max-w-2xl px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" fill="white"/>
+                  <polyline points="9 22 9 12 15 12 15 22" stroke="white" strokeWidth="1.5"/>
+                </svg>
+              </div>
+              <span className="font-bold text-white">VendShop</span>
+            </div>
+            <span className="text-xs text-gray-400">{progress}%</span>
+          </div>
+          {/* Progress bar */}
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#374151]">
+            <div
+              className="h-full rounded-full bg-green-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-center text-xs text-gray-500">{t.subtitle}</p>
+        </div>
+      </header>
+
+      {/* ── Content ── */}
+      <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
+
+        {/* Upload error toast */}
+        {uploadErr && (
+          <div className="rounded-xl border border-red-800 bg-red-900/40 px-4 py-3 text-sm text-red-300">
+            ⚠️ {uploadErr}
+          </div>
+        )}
+
+        {/* Honeypot — hidden from humans */}
+        <input
+          type="text"
+          name="website"
+          value={form.website}
+          onChange={(e) => setField('website', e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          style={{ display: 'none' }}
+          aria-hidden="true"
+        />
+
+        {/* ── Section 1: Business info ── */}
+        <SectionCard>
+          <SectionHeading icon="🏢" title={t.s1Title} />
+          <div className="space-y-3">
+            <div>
+              <label className={labelCls}>{t.labelBizName}</label>
+              <input type="text" className={inputCls} value={form.businessName}
+                placeholder="Café Merkur" onChange={(e) => setField('businessName', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>{t.labelAddress}</label>
+              <input type="text" className={inputCls} value={form.address}
+                placeholder={t.phAddress} onChange={(e) => setField('address', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>{t.labelEmail}</label>
+              <input type="email" className={inputCls} value={form.email}
+                placeholder="hello@business.sk" onChange={(e) => setField('email', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>{t.labelHours}</label>
+              <input type="text" className={inputCls} value={form.workingHours}
+                placeholder={t.phHours} onChange={(e) => setField('workingHours', e.target.value)} />
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* ── Section 2: Services & prices ── */}
+        <SectionCard>
+          <SectionHeading icon="📋" title={t.s2Title} />
+          {lead && (
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{t.labelYourServices}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {lead.services.split(',').map((s) => s.trim()).filter(Boolean).map((s) => (
+                  <span key={s} className="rounded-lg bg-green-900/40 px-2.5 py-1 text-xs font-medium text-green-400 border border-green-800/50">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="space-y-3">
+            <div>
+              <label className={labelCls}>{t.labelAdditional}</label>
+              <textarea
+                rows={3}
+                className={`${inputCls} resize-none`}
+                value={form.additionalServices}
+                placeholder={t.phAdditional}
+                onChange={(e) => setField('additionalServices', e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>{t.labelPriceList}</label>
+              {priceListUrl ? (
+                <div className="flex items-center gap-3 rounded-xl border border-[#374151] bg-[#0F172A] px-4 py-3">
+                  <span className="text-sm text-green-400">✓ {t.hintPriceList}</span>
+                  <a href={priceListUrl} target="_blank" rel="noopener noreferrer"
+                    className="ml-auto text-xs text-gray-400 hover:text-white underline">↗</a>
+                  <button onClick={() => setPriceList('')} className="text-xs text-red-400 hover:text-red-300">×</button>
+                </div>
+              ) : (
+                <DropZone
+                  onFiles={handlePriceFiles}
+                  accept="application/pdf,image/*"
+                  uploading={uploadingPrice}
+                  label={t.dragPriceList}
+                  hint={t.hintPriceList}
+                  className="py-4"
+                />
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* ── Section 3: Style ── */}
+        <SectionCard>
+          <SectionHeading icon="🎨" title={t.s3Title} />
+
+          {/* Palettes */}
+          <div className="mb-5">
+            <p className={labelCls}>{t.labelPalette}</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {PALETTES.map(({ id, gradient }) => (
+                <button
+                  key={id}
+                  onClick={() => setField('selectedPalette', id)}
+                  className={`group relative overflow-hidden rounded-xl border-2 transition-all ${
+                    form.selectedPalette === id
+                      ? 'border-green-500 ring-2 ring-green-500/30'
+                      : 'border-[#374151] hover:border-[#4B5563]'
+                  }`}
+                >
+                  <div className="h-14 w-full" style={{ background: gradient }} />
+                  <div className="bg-[#1E293B] py-1.5 px-2 text-center">
+                    <span className="text-xs font-medium text-gray-300">
+                      {t.palettes[id] ?? id}
+                    </span>
+                  </div>
+                  {form.selectedPalette === id && (
+                    <div className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Hero style */}
+          <div className="mb-5">
+            <p className={labelCls}>{t.labelHero}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(['fullscreen', 'split', 'centered'] as const).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setField('selectedHero', id)}
+                  className={`rounded-xl border-2 overflow-hidden transition-all ${
+                    form.selectedHero === id
+                      ? 'border-green-500 ring-2 ring-green-500/30'
+                      : 'border-[#374151] hover:border-[#4B5563]'
+                  }`}
+                >
+                  <div className="h-14 w-full bg-[#0F172A] p-1">
+                    {HERO_SVGS[id]}
+                  </div>
+                  <div className="bg-[#1E293B] py-1.5 px-1 text-center">
+                    <span className="text-[10px] font-medium text-gray-400 leading-tight block">
+                      {t.heros[id] ?? id}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mood */}
+          <div>
+            <p className={labelCls}>{t.labelMood}</p>
+            <div className="space-y-2">
+              {(['modern', 'cozy', 'strict'] as const).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setField('selectedMood', id)}
+                  className={`flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                    form.selectedMood === id
+                      ? 'border-green-500 bg-green-900/20'
+                      : 'border-[#374151] hover:border-[#4B5563] hover:bg-[#263349]'
+                  }`}
+                >
+                  <span className="text-sm font-medium text-white">{t.moods[id] ?? id}</span>
+                  {form.selectedMood === id && (
+                    <div className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* ── Section 4: Photos & logo ── */}
+        <SectionCard>
+          <SectionHeading icon="📸" title={t.s4Title} />
+
+          {/* Logo */}
+          <div className="mb-5">
+            <p className={labelCls}>{t.labelLogo}</p>
+            {logoUrl ? (
+              <div className="flex items-center gap-3">
+                <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-[#374151] bg-[#0F172A]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoUrl} alt="logo" className="h-full w-full object-contain p-1" />
+                </div>
+                <button
+                  onClick={() => setLogoUrl('')}
+                  className="rounded-lg border border-red-800 px-3 py-1.5 text-xs text-red-400 hover:bg-red-900/30 transition-colors"
+                >
+                  × {t.deletePhoto}
+                </button>
+              </div>
+            ) : (
+              <DropZone
+                onFiles={handleLogoFiles}
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                uploading={uploadingLogo}
+                label={t.dragLogo}
+                hint={t.hintLogo}
+                className="h-24"
+              />
+            )}
+          </div>
+
+          {/* Photos */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className={labelCls}>{t.labelPhotos}</p>
+              <span className="text-xs text-gray-500">{photoUrls.length}/20</span>
+            </div>
+            <p className="mb-2 text-xs text-gray-500">
+              {t.photoHintByType[bt] ?? t.photoHintByType.other}
+            </p>
+            <MultiDropZone
+              onFiles={handlePhotoFiles}
+              uploading={uploadingPhotos}
+              label={t.dragPhotos}
+              hint={t.hintPhotos}
+            />
+            {photoUrls.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {photoUrls.map((url, i) => (
+                  <div key={i} className="group relative aspect-square overflow-hidden rounded-xl bg-[#0F172A]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`photo ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-xs text-gray-600">{t.hintMaxPhotos}</p>
+          </div>
+        </SectionCard>
+
+        {/* ── Section 5: Additional ── */}
+        <SectionCard>
+          <SectionHeading icon="✨" title={t.s5Title} />
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelCls}>{t.labelInstagram}</label>
+                <input type="text" className={inputCls} value={form.socialInstagram}
+                  placeholder={t.phInstagram} onChange={(e) => setField('socialInstagram', e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>{t.labelFacebook}</label>
+                <input type="text" className={inputCls} value={form.socialFacebook}
+                  placeholder={t.phFacebook} onChange={(e) => setField('socialFacebook', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>{t.labelReference}</label>
+              <input type="url" className={inputCls} value={form.referenceUrl}
+                placeholder={t.phReference} onChange={(e) => setField('referenceUrl', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>{t.labelWishes}</label>
+              <textarea
+                rows={4}
+                className={`${inputCls} resize-none`}
+                value={form.wishes}
+                placeholder={t.phWishes}
+                onChange={(e) => setField('wishes', e.target.value)}
+              />
+            </div>
+          </div>
+        </SectionCard>
+
+      </main>
+
+      {/* ── Sticky submit button ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#374151] bg-[#0B0F1A]/95 backdrop-blur-sm px-4 py-3">
+        <div className="mx-auto max-w-2xl">
+          <button
+            onClick={() => void handleSubmit()}
+            disabled={submitting}
+            className="w-full rounded-xl bg-green-600 py-4 text-base font-bold text-white transition-all hover:bg-green-500 active:scale-[0.98] disabled:opacity-60"
+          >
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                {t.submitting}
+              </span>
+            ) : t.submit}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

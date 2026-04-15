@@ -110,6 +110,86 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ─── Lead Card ────────────────────────────────────────────────────────────────
 
+// ─── Prompt helpers ───────────────────────────────────────────────────────────
+
+function getTemplateType(businessType: string): string {
+  if (['restaurant', 'bar'].includes(businessType)) return 'menu';
+  if (['fitness', 'yoga'].includes(businessType)) return 'schedule';
+  if (businessType === 'photography') return 'portfolio';
+  return 'services';
+}
+
+function getHeadingFont(businessType: string): string {
+  if (['beauty', 'medical'].includes(businessType)) return 'playfair';
+  if (['auto', 'repair'].includes(businessType)) return 'oswald';
+  if (['bar', 'restaurant'].includes(businessType)) return 'cormorant';
+  return 'inter';
+}
+
+function getTagline(businessType: string): string {
+  const map: Record<string, string> = {
+    auto:         'Profesionálny autoservis',
+    beauty:       'Salón krásy',
+    restaurant:   'Reštaurácia & Café',
+    medical:      'Zdravotnícka klinika',
+    fitness:      'Fitness & Wellness',
+    bar:          'Premium Lounge Bar',
+    photography:  'Profesionálna fotografia',
+    ecommerce:    'Online obchod',
+    other:        'Profesionálne služby',
+  };
+  return map[businessType] ?? 'Profesionálne služby';
+}
+
+function extractRepoName(githubUrl: string | null): string {
+  if (!githubUrl) return '';
+  const parts = githubUrl.replace(/\/$/, '').split('/');
+  return parts[parts.length - 1] ?? '';
+}
+
+function buildPrompt(lead: Lead, repoName: string): string {
+  const phone = (lead.contact ?? '').replace(/[\s+\-()]/g, '');
+  const services = lead.services ?? '';
+  const servicesList = services
+    .split(/[,\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => `  '${s}'`)
+    .join(',\n');
+
+  return `Кастомизируй vendshop-template для ${lead.businessType}.
+
+## lib/config.ts:
+name: '${lead.businessName ?? 'Business Name'}'
+tagline: '${getTagline(lead.businessType)}'
+templateType: '${getTemplateType(lead.businessType)}'
+palette: '${lead.selectedPalette ?? 'professional'}'
+headingFont: '${getHeadingFont(lead.businessType)}'
+whatsappNumber: '${phone}'
+contactEmail: '${lead.email ?? ''}'
+
+## lib/constants.ts:
+ADDRESS: ${lead.address ?? 'Адрес не указан'}
+WORKING_HOURS: ${lead.workingHours ?? 'Пн-Пт 9:00-18:00'}
+SERVICES: [
+${servicesList}
+]
+LANGUAGE: ${lead.language}
+SOCIAL_INSTAGRAM: ${lead.socialInstagram ?? ''}
+SOCIAL_FACEBOOK: ${lead.socialFacebook ?? ''}
+
+Пожелания клиента: ${lead.wishes ?? 'нет'}
+Референс: ${lead.referenceUrl ?? 'нет'}
+
+USE_LOCAL_IMAGES = false
+
+pnpm install && npx tsc --noEmit && pnpm build
+git remote add origin https://github.com/VadymMak/${repoName || '{repoName}'}.git
+git push -u origin main`;
+}
+
+// ─── Lead Card ────────────────────────────────────────────────────────────────
+
 function LeadCard({
   lead,
   onUpdate,
@@ -124,6 +204,8 @@ function LeadCard({
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [repoName, setRepoName]     = useState(() => extractRepoName(lead.githubRepo));
+  const [promptCopied, setPromptCopied] = useState(false);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -314,7 +396,10 @@ function LeadCard({
                 <div className="flex items-center gap-2">
                   <input type="url" className={inputCls} value={val('githubRepo') ?? ''}
                     placeholder="https://github.com/..."
-                    onChange={(e) => set('githubRepo', e.target.value)} />
+                    onChange={(e) => {
+                      set('githubRepo', e.target.value);
+                      setRepoName(extractRepoName(e.target.value));
+                    }} />
                   {(val('githubRepo') ?? lead.githubRepo) && (
                     <a
                       href={val('githubRepo') as string}
@@ -327,6 +412,16 @@ function LeadCard({
                     </a>
                   )}
                 </div>
+              </Field>
+
+              <Field label="Repo name (для промпта)">
+                <input
+                  type="text"
+                  className={inputCls}
+                  value={repoName}
+                  placeholder="vendly-cafe-merkur"
+                  onChange={(e) => setRepoName(e.target.value)}
+                />
               </Field>
 
               <Field label="Custom Domain">
@@ -414,15 +509,33 @@ function LeadCard({
                       ⏳ Ожидает бриф
                     </span>
                   )}
-                  <button
-                    onClick={() => {
-                      void navigator.clipboard.writeText(`https://vendshop.shop/brief/${lead.id}`);
-                    }}
-                    className="rounded-lg border border-[#374151] px-2.5 py-1 text-xs text-gray-400 hover:bg-[#334155] transition-colors ml-auto"
-                    title="Скопировать ссылку на бриф"
-                  >
-                    🔗 Ссылка
-                  </button>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      onClick={() => {
+                        const prompt = buildPrompt(
+                          { ...lead, ...draft } as Lead,
+                          repoName,
+                        );
+                        void navigator.clipboard.writeText(prompt).then(() => {
+                          setPromptCopied(true);
+                          setTimeout(() => setPromptCopied(false), 2500);
+                        });
+                      }}
+                      className="rounded-lg border border-cyan-800 bg-cyan-900/30 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-800/50 transition-colors"
+                      title="Сгенерировать промпт для VSCode Claude"
+                    >
+                      {promptCopied ? '✅ Промпт скопирован!' : '📋 Сгенерировать промпт'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        void navigator.clipboard.writeText(`https://vendshop.shop/brief/${lead.id}`);
+                      }}
+                      className="rounded-lg border border-[#374151] px-2.5 py-1 text-xs text-gray-400 hover:bg-[#334155] transition-colors"
+                      title="Скопировать ссылку на бриф"
+                    >
+                      🔗 Ссылка
+                    </button>
+                  </div>
                 </div>
 
                 {lead.briefSubmitted ? (

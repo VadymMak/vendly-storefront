@@ -1,280 +1,300 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { CHATBOT_TRANSLATIONS, type ButtonItem } from '@/lib/chatbot-translations';
+import { CHATBOT_TRANSLATIONS } from '@/lib/chatbot-translations';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEMO_URLS: Record<string, string> = {
-  restaurant: 'https://adriano-trencin.vercel.app',
-  auto: 'https://auto-fix-roan.vercel.app',
-  beauty: 'https://barbershop-trencin.vercel.app',
-  medical: 'https://dentcare-trencin.vercel.app',
-  fitness: 'https://zenflow-ivory.vercel.app',
-  ecommerce: 'https://krokshop-trencin.vercel.app',
+  restaurant:  'https://adriano-trencin.vercel.app',
+  auto:        'https://auto-fix-roan.vercel.app',
+  beauty:      'https://barbershop-trencin.vercel.app',
+  medical:     'https://dentcare-trencin.vercel.app',
+  fitness:     'https://zenflow-ivory.vercel.app',
+  ecommerce:   'https://krokshop-trencin.vercel.app',
   photography: 'https://lens-art-five.vercel.app',
-  bar: 'https://ember-lounge.vercel.app',
+  bar:         'https://ember-lounge.vercel.app',
+  other:       'https://vendshop.shop/#portfolio',
 };
 
 const WA_URL = 'https://wa.me/421901234567';
 
-const ALT_DEMOS = Object.values(DEMO_URLS);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function detectLanguage(): string {
   if (typeof navigator === 'undefined') return 'en';
-  const lang = navigator.language.toLowerCase();
-  if (lang.startsWith('sk')) return 'sk';
-  if (lang.startsWith('de')) return 'de';
-  if (lang.startsWith('cs')) return 'cs';
-  if (lang.startsWith('uk')) return 'uk';
-  if (lang.startsWith('ru')) return 'ru';
+  const l = navigator.language.toLowerCase();
+  if (l.startsWith('sk')) return 'sk';
+  if (l.startsWith('de')) return 'de';
+  if (l.startsWith('cs')) return 'cs';
+  if (l.startsWith('uk')) return 'uk';
+  if (l.startsWith('ru')) return 'ru';
   return 'en';
 }
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Phase =
+  | 'business-type'   // step 0a — choose business type
+  | 'demo'            // step 0b — show demo preview
+  | 'services'        // step 1  — multi-select sections
+  | 'contact'         // step 2  — enter contact
+  | 'confirm'         // step 3  — review & confirm
+  | 'edit'            // step 3b — pick what to edit
+  | 'done';           // step 4  — thank you
 
 interface Message {
   text: string;
   sender: 'bot' | 'user';
-  buttons?: ButtonItem[];
 }
 
-interface Answers {
-  businessType: string;
-  businessName: string;
-  services: string;
-  style: string;
-  contact: string;
-  language: string;
-  demoUrl: string;
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function ChatIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+    </svg>
+  );
 }
 
-const DEFAULT_ANSWERS: Answers = {
-  businessType: '',
-  businessName: '',
-  services: '',
-  style: '',
-  contact: '',
-  language: 'en',
-  demoUrl: '',
-};
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function OnboardingChat() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
-  const [step, setStep] = useState(0);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [answers, setAnswers] = useState<Answers>(DEFAULT_ANSWERS);
-  const [inputValue, setInputValue] = useState('');
-  const [lang, setLang] = useState('en');
-  const [altDemoIdx, setAltDemoIdx] = useState(0);
+  const [isOpen, setIsOpen]               = useState(false);
+  const [hasStarted, setHasStarted]       = useState(false);
+  const [lang, setLang]                   = useState('en');
+  const [phase, setPhase]                 = useState<Phase>('business-type');
+  const [businessType, setBusinessType]   = useState('');
+  const [demoUrl, setDemoUrl]             = useState('');
+  const [selectedServices, setSelected]   = useState<string[]>([]);
+  const [contact, setContact]             = useState('');
+  const [inputValue, setInputValue]       = useState('');
+  const [messages, setMessages]           = useState<Message[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef       = useRef<HTMLInputElement>(null);
 
+  const t = CHATBOT_TRANSLATIONS[lang] ?? CHATBOT_TRANSLATIONS.en;
+
+  // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const t = CHATBOT_TRANSLATIONS[lang] ?? CHATBOT_TRANSLATIONS.en;
+  // Focus input when contact phase is reached
+  useEffect(() => {
+    if (phase === 'contact') {
+      const timer = setTimeout(() => inputRef.current?.focus(), 120);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
 
-  const pushMsg = (msg: Message) => setMessages((prev) => [...prev, msg]);
+  // ── Message helpers ──────────────────────────────────────────────────────
+
+  const pushBot  = (text: string) => setMessages((p) => [...p, { text, sender: 'bot' }]);
+  const pushUser = (text: string) => setMessages((p) => [...p, { text, sender: 'user' }]);
+
+  // ── Open / close ─────────────────────────────────────────────────────────
 
   const handleOpen = () => {
     setIsOpen(true);
     if (hasStarted) return;
     setHasStarted(true);
-    const detectedLang = detectLanguage();
-    setLang(detectedLang);
-    const tr = CHATBOT_TRANSLATIONS[detectedLang] ?? CHATBOT_TRANSLATIONS.en;
-    setAnswers((prev) => ({ ...prev, language: detectedLang }));
-    setMessages([{ text: tr.greeting, sender: 'bot', buttons: tr.businessTypes }]);
-    setStep(0);
+    const detected = detectLanguage();
+    setLang(detected);
+    const tr = CHATBOT_TRANSLATIONS[detected] ?? CHATBOT_TRANSLATIONS.en;
+    setMessages([{ text: tr.greeting, sender: 'bot' }]);
+    setPhase('business-type');
   };
 
-  const handleButtonClick = (value: string, label: string) => {
-    // Open external URL without advancing state
-    if (value.startsWith('open:')) {
-      window.open(value.slice(5), '_blank', 'noopener,noreferrer');
-      return;
-    }
+  const handleToggle = () => (isOpen ? setIsOpen(false) : handleOpen());
 
-    pushMsg({ text: label, sender: 'user' });
+  // ── Step 0a: business type ────────────────────────────────────────────────
 
-    switch (step) {
-      case 0: {
-        // Business type selected
-        const demoUrl = DEMO_URLS[value] ?? '';
-        setAnswers((prev) => ({ ...prev, businessType: value, demoUrl }));
-
-        if (value === 'other') {
-          pushMsg({ text: t.nameQuestion, sender: 'bot' });
-          setStep(2);
-        } else {
-          const buttons: ButtonItem[] = [
-            ...(demoUrl ? [{ label: t.demoButton, value: `open:${demoUrl}` }] : []),
-            { label: t.likeButton, value: 'continue' },
-            { label: t.anotherButton, value: 'another' },
-          ];
-          pushMsg({ text: t.demoMessage, sender: 'bot', buttons });
-          setStep(1);
-        }
-        break;
-      }
-
-      case 1: {
-        if (value === 'continue') {
-          pushMsg({ text: t.nameQuestion, sender: 'bot' });
-          setStep(2);
-        } else if (value === 'another') {
-          const idx = altDemoIdx % ALT_DEMOS.length;
-          const newDemoUrl = ALT_DEMOS[idx] ?? DEMO_URLS.restaurant;
-          setAltDemoIdx((i) => i + 1);
-          const buttons: ButtonItem[] = [
-            { label: t.demoButton, value: `open:${newDemoUrl}` },
-            { label: t.likeButton, value: 'continue' },
-            { label: t.anotherButton, value: 'another' },
-          ];
-          pushMsg({ text: t.demoMessage, sender: 'bot', buttons });
-          // stay at step 1
-        }
-        break;
-      }
-
-      case 4: {
-        // Style selected
-        setAnswers((prev) => ({ ...prev, style: value }));
-        pushMsg({ text: t.contactQuestion, sender: 'bot' });
-        setStep(5);
-        break;
-      }
-
-      case 6: {
-        // Confirmation
-        if (value === 'yes') {
-          pushMsg({
-            text: t.thankYou(answers.contact),
-            sender: 'bot',
-            buttons: [{ label: t.waButton, value: `open:${WA_URL}` }],
-          });
-          setStep(7);
-          void submitLead(answers);
-        } else {
-          pushMsg({ text: t.editWhat, sender: 'bot', buttons: t.editOptions });
-          setStep(8);
-        }
-        break;
-      }
-
-      case 8: {
-        // Edit selection → jump back to that step
-        const stepMap: Record<string, number> = {
-          name: 2,
-          services: 3,
-          style: 4,
-          contact: 5,
-        };
-        const target = stepMap[value] ?? 2;
-
-        if (value === 'style') {
-          pushMsg({ text: t.styleQuestion, sender: 'bot', buttons: t.styleOptions });
-        } else {
-          const questionMap: Record<string, string> = {
-            name: t.nameQuestion,
-            services: t.servicesQuestion,
-            contact: t.contactQuestion,
-          };
-          pushMsg({ text: questionMap[value] ?? t.nameQuestion, sender: 'bot' });
-        }
-        setStep(target);
-        break;
-      }
-    }
+  const handleBusinessType = (value: string, label: string) => {
+    const url = DEMO_URLS[value] ?? DEMO_URLS.other;
+    setBusinessType(value);
+    setDemoUrl(url);
+    setSelected([]);
+    pushUser(label);
+    pushBot(t.demoMessage);
+    setPhase('demo');
   };
 
-  const handleTextSubmit = () => {
+  // ── Step 0b: demo → next ─────────────────────────────────────────────────
+
+  const handleLike = () => {
+    pushUser(t.likeButton);
+    pushBot(t.servicesQuestion);
+    setPhase('services');
+  };
+
+  // ── Step 1: multi-select services ─────────────────────────────────────────
+
+  const toggleService = (value: string) =>
+    setSelected((prev) =>
+      prev.includes(value) ? prev.filter((s) => s !== value) : [...prev, value],
+    );
+
+  const handleServicesNext = () => {
+    if (selectedServices.length === 0) return;
+    const opts = t.serviceOptions[businessType] ?? [];
+    const labels = opts.filter((o) => selectedServices.includes(o.value)).map((o) => o.label);
+    pushUser(labels.join(', '));
+    pushBot(t.contactQuestion);
+    setPhase('contact');
+  };
+
+  // ── Step 2: contact ───────────────────────────────────────────────────────
+
+  const handleContactSubmit = () => {
     const text = inputValue.trim();
     if (!text) return;
+    setContact(text);
     setInputValue('');
-    pushMsg({ text, sender: 'user' });
+    pushUser(text);
 
-    switch (step) {
-      case 2: {
-        // Business name
-        setAnswers((prev) => ({ ...prev, businessName: text }));
-        pushMsg({ text: t.servicesQuestion, sender: 'bot' });
-        setStep(3);
-        break;
-      }
-      case 3: {
-        // Services
-        setAnswers((prev) => ({ ...prev, services: text }));
-        pushMsg({ text: t.styleQuestion, sender: 'bot', buttons: t.styleOptions });
-        setStep(4);
-        break;
-      }
-      case 5: {
-        // Contact — build confirmation
-        const updated: Answers = { ...answers, contact: text };
-        setAnswers(updated);
+    const btLabel      = t.businessTypeLabels[businessType] ?? businessType;
+    const opts         = t.serviceOptions[businessType] ?? [];
+    const serviceLabels = opts
+      .filter((o) => selectedServices.includes(o.value))
+      .map((o) => o.label)
+      .join(', ');
 
-        const btLabel =
-          t.businessTypes.find((bt) => bt.value === updated.businessType)?.label ??
-          updated.businessType;
-        const styleLabel =
-          t.styleOptions.find((s) => s.value === updated.style)?.label ?? updated.style;
+    pushBot(t.confirmMessage({ businessTypeLabel: btLabel, services: serviceLabels, contact: text }));
+    setPhase('confirm');
+  };
 
-        pushMsg({
-          text: t.confirmMessage({
-            businessName: updated.businessName,
-            businessType: btLabel,
-            services: updated.services,
-            style: styleLabel,
-          }),
-          sender: 'bot',
-          buttons: [
-            { label: t.confirmYes, value: 'yes' },
-            { label: t.confirmEdit, value: 'edit' },
-          ],
-        });
-        setStep(6);
-        break;
-      }
+  // ── Step 3: confirm ───────────────────────────────────────────────────────
+
+  const handleConfirmYes = () => {
+    pushUser(t.confirmYes);
+    pushBot(t.thankYou(contact));
+    setPhase('done');
+    void submitLead();
+  };
+
+  const handleConfirmEdit = () => {
+    pushUser(t.confirmEdit);
+    pushBot(t.editWhat);
+    setPhase('edit');
+  };
+
+  // ── Step 3b: edit target ──────────────────────────────────────────────────
+
+  const handleEditTarget = (value: string, label: string) => {
+    pushUser(label);
+    if (value === 'businessType') {
+      setBusinessType('');
+      setSelected([]);
+      setContact('');
+      pushBot(t.greeting);
+      setPhase('business-type');
+    } else if (value === 'services') {
+      pushBot(t.servicesQuestion);
+      setPhase('services');
+    } else {
+      pushBot(t.contactQuestion);
+      setPhase('contact');
     }
   };
 
-  async function submitLead(data: Answers) {
+  // ── Submit lead ───────────────────────────────────────────────────────────
+
+  async function submitLead() {
     try {
+      const opts          = t.serviceOptions[businessType] ?? [];
+      const serviceLabels = opts
+        .filter((o) => selectedServices.includes(o.value))
+        .map((o) => o.label)
+        .join(', ');
+
       await fetch('/api/submit-lead', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          businessType,
+          businessName: '',
+          services: serviceLabels,
+          style:    '',
+          contact,
+          language: lang,
+          demoUrl,
+        }),
       });
     } catch {
-      // silent fail — lead still visible in server logs
+      // silent — lead visible in server logs
     }
   }
 
-  const showInput = step === 2 || step === 3 || step === 5;
+  // ── Progress ──────────────────────────────────────────────────────────────
+
+  const progressStep =
+    phase === 'business-type' || phase === 'demo' ? 1 :
+    phase === 'services'                          ? 2 :
+    phase === 'contact'                           ? 3 :
+    phase === 'confirm' || phase === 'edit'       ? 4 :
+    null; // done
+
+  const currentOpts = t.serviceOptions[businessType] ?? [];
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
       {/* ── Chat window ── */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[560px] w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
-          {/* Header */}
-          <div className="flex shrink-0 items-center justify-between bg-secondary px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-              <span className="text-sm font-semibold text-white">VendShop Asistent</span>
+        <div
+          className={[
+            'fixed z-50 flex flex-col overflow-hidden shadow-2xl',
+            // Mobile: full-width slide up from bottom
+            'bottom-0 right-0 w-full h-[85vh] rounded-t-2xl',
+            // Desktop: 380×560 floating card
+            'sm:bottom-24 sm:right-6 sm:w-[380px] sm:h-[560px] sm:rounded-2xl',
+            'border border-white/10',
+          ].join(' ')}
+        >
+          {/* ── Header ── */}
+          <div className="shrink-0 flex flex-col bg-secondary px-4 pt-3 pb-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                <span className="text-sm font-semibold text-white">VendShop Asistent</span>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Close chat"
+              >
+                <CloseIcon />
+              </button>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-xl leading-none text-white/50 transition-colors hover:text-white"
-              aria-label="Close chat"
-            >
-              ×
-            </button>
+            {/* Progress indicator */}
+            <p className="mt-1 text-xs text-white/45">
+              {progressStep !== null ? t.progressStep(progressStep) : t.progressDone}
+            </p>
           </div>
 
-          {/* Messages */}
+          {/* ── Messages ── */}
           <div
-            className="flex-1 space-y-3 overflow-y-auto p-4 scrollbar-hide"
+            className="flex-1 overflow-y-auto space-y-3 p-4"
             style={{ background: 'var(--color-card)' }}
           >
             {messages.map((msg, i) => (
@@ -282,105 +302,180 @@ export default function OnboardingChat() {
                 key={i}
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="max-w-[88%] space-y-2">
-                  {/* Bubble */}
-                  <div
-                    className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                      msg.sender === 'bot'
-                        ? 'rounded-tl-none text-white/90'
-                        : 'bg-primary rounded-tr-none text-white'
-                    }`}
-                    style={
-                      msg.sender === 'bot'
-                        ? { background: 'var(--color-bg-alt)' }
-                        : {}
-                    }
-                  >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                  </div>
-
-                  {/* Buttons — only on the last message */}
-                  {i === messages.length - 1 && msg.buttons && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {msg.buttons.map((btn) => (
-                        <button
-                          key={btn.value}
-                          onClick={() => handleButtonClick(btn.value, btn.label)}
-                          className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs text-primary transition-colors hover:bg-primary/20"
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div
+                  className={[
+                    'max-w-[88%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap',
+                    msg.sender === 'bot'
+                      ? 'rounded-tl-none text-white/90'
+                      : 'bg-primary rounded-tr-none text-white',
+                  ].join(' ')}
+                  style={msg.sender === 'bot' ? { background: 'var(--color-bg-alt)' } : {}}
+                >
+                  {msg.text}
                 </div>
               </div>
             ))}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Text input */}
-          {showInput && (
-            <div
-              className="flex shrink-0 gap-2 border-t p-3"
-              style={{
-                background: 'var(--color-card)',
-                borderColor: 'var(--color-border)',
-              }}
-            >
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleTextSubmit()}
-                placeholder="..."
-                className="flex-1 rounded-lg border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary placeholder:text-white/30"
-                style={{
-                  color: 'var(--color-text)',
-                  borderColor: 'var(--color-border)',
-                }}
-              />
-              <button
-                onClick={handleTextSubmit}
-                disabled={!inputValue.trim()}
-                className="flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-white transition-colors hover:bg-primary-dark disabled:opacity-40"
-                aria-label="Send"
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <path
-                    d="M4 9h10M10 5l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+          {/* ── Interactive area ── */}
+          <div
+            className="shrink-0 border-t p-3"
+            style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+          >
+
+            {/* Phase: choose business type */}
+            {phase === 'business-type' && (
+              <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto">
+                {t.businessTypes.map((bt) => (
+                  <button
+                    key={bt.value}
+                    onClick={() => handleBusinessType(bt.value, bt.label)}
+                    className="min-h-[48px] flex-shrink-0 w-full rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-left text-sm font-medium text-primary transition-colors hover:bg-primary/20 active:bg-primary/30"
+                  >
+                    {bt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Phase: demo preview */}
+            {phase === 'demo' && (
+              <div className="flex flex-col gap-2">
+                <a
+                  href={demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  {t.demoButton}
+                </a>
+                <p className="text-center text-xs text-white/40">{t.socialProof}</p>
+                <button
+                  onClick={handleLike}
+                  className="min-h-[48px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
+                >
+                  {t.likeButton}
+                </button>
+              </div>
+            )}
+
+            {/* Phase: multi-select services */}
+            {phase === 'services' && (
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 max-h-44 overflow-y-auto">
+                  {currentOpts.map((opt) => {
+                    const selected = selectedServices.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => toggleService(opt.value)}
+                        className={[
+                          'min-h-[48px] flex-shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition-colors',
+                          selected
+                            ? 'border-primary bg-primary text-white'
+                            : 'border-primary/30 bg-transparent text-primary hover:bg-primary/10 active:bg-primary/20',
+                        ].join(' ')}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedServices.length > 0 && (
+                  <button
+                    onClick={handleServicesNext}
+                    className="min-h-[48px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
+                  >
+                    {t.nextButton}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Phase: contact input */}
+            {phase === 'contact' && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-white/40 leading-relaxed">{t.trustMessage}</p>
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    type="tel"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleContactSubmit()}
+                    placeholder={t.contactPlaceholder}
+                    className="flex-1 min-h-[48px] rounded-xl border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary placeholder:text-white/30"
+                    style={{ color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
                   />
-                </svg>
-              </button>
-            </div>
-          )}
+                  <button
+                    onClick={handleContactSubmit}
+                    disabled={!inputValue.trim()}
+                    className="flex min-h-[48px] w-12 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary-dark disabled:opacity-40 active:scale-95"
+                    aria-label="Send"
+                  >
+                    <SendIcon />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Phase: confirm */}
+            {phase === 'confirm' && (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleConfirmYes}
+                  className="min-h-[48px] w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
+                >
+                  {t.confirmYes}
+                </button>
+                <button
+                  onClick={handleConfirmEdit}
+                  className="min-h-[48px] w-full rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  {t.confirmEdit}
+                </button>
+              </div>
+            )}
+
+            {/* Phase: edit menu */}
+            {phase === 'edit' && (
+              <div className="flex flex-col gap-1.5">
+                {t.editOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleEditTarget(opt.value, opt.label)}
+                    className="min-h-[48px] w-full rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Phase: done */}
+            {phase === 'done' && (
+              <a
+                href={WA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+              >
+                {t.waButton}
+              </a>
+            )}
+
+          </div>
         </div>
       )}
 
       {/* ── Toggle button ── */}
       <button
-        onClick={isOpen ? () => setIsOpen(false) : handleOpen}
-        className="fixed bottom-6 right-6 z-50 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:scale-110 hover:bg-primary-dark"
+        onClick={handleToggle}
+        className="fixed bottom-6 right-6 z-50 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all duration-200 hover:scale-110 hover:bg-primary-dark active:scale-95"
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
       >
-        {isOpen ? (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M18 6L6 18M6 6l12 12"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        ) : (
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
-          </svg>
-        )}
+        {isOpen ? <CloseIcon /> : <ChatIcon />}
       </button>
     </>
   );

@@ -25,15 +25,16 @@ export async function POST(request: Request) {
   `.trim();
 
   try {
-    await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: telegramChatId,
         text: message,
-        parse_mode: 'HTML',
       }),
     });
+    const result = await res.json();
+    console.log('Telegram response:', result);
   } catch (err) {
     console.error('Telegram send failed:', err);
   }

@@ -140,7 +140,8 @@
     "krokshop": "Moderní e-shop s obuví — katalog, velikosti, košík, objednávky a admin panel.",
     "dentcare": "Moderní zubní klinika — služby, ceník, tým lékařů, online objednávky.",
     "zenflow": "Moderní yoga studio — rozvrh lekcí, instruktoři, ceník a online rezervace.",
-    "ember": "Prémiový hookah & cocktail bar — menu, galerie, eventy a rezervace ve 3 jazycích."
+    "ember": "Prémiový hookah & cocktail bar — menu, galerie, eventy a rezervace ve 3 jazycích.",
+    "lensart": "Fotografické studio — svatby, portréty, produkty, eventy a online galerie."
   },
   "testimonials": {
     "badge": "Recenze",
@@ -731,7 +732,8 @@
     "dentcare": "Zubní klinika — služby, ceník, tým lékařů.",
     "zenflow": "Yoga studio — rozvrh, instruktoři, členství.",
     "ember": "Hookah bar — menu, galerie, rezervace ve 3 jazycích.",
-    "transport": "Dopravní společnost — služby, ceník, objednávky."
+    "transport": "Dopravní společnost — služby, ceník, objednávky.",
+    "lensart": "Fotografické portfolio — svatby, portréty, produkty, eventy a online galerie."
   },
   "packages": {
     "label": "Ceník",

@@ -140,7 +140,8 @@
     "krokshop": "Moderner Schuh-E-Shop — Katalog, Größen, Warenkorb, Bestellungen und Admin-Panel.",
     "dentcare": "Moderne Zahnklinik — Leistungen, Preisliste, Ärztesteam, Online-Terminbuchung.",
     "zenflow": "Modernes Yoga-Studio — Kursplan, Trainer, Preise und Online-Buchung.",
-    "ember": "Premium Hookah & Cocktail Bar — Speisekarte, Galerie, Events und Reservierungen in 3 Sprachen."
+    "ember": "Premium Hookah & Cocktail Bar — Speisekarte, Galerie, Events und Reservierungen in 3 Sprachen.",
+    "lensart": "Fotografie-Studio — Hochzeiten, Porträts, Produkte, Events und Online-Galerie."
   },
   "testimonials": {
     "badge": "Bewertungen",
@@ -731,7 +732,8 @@
     "dentcare": "Zahnklinik — Leistungen, Preisliste, Ärztesteam.",
     "zenflow": "Yoga-Studio — Stundenplan, Trainer, Mitgliedschaft.",
     "ember": "Hookah-Bar — Menü, Galerie, Reservierungen in 3 Sprachen.",
-    "transport": "Transportunternehmen — Leistungen, Preisliste, Aufträge."
+    "transport": "Transportunternehmen — Leistungen, Preisliste, Aufträge.",
+    "lensart": "Fotografie-Portfolio — Hochzeiten, Porträts, Produkte, Events und Online-Galerie."
   },
   "packages": {
     "label": "Preise",

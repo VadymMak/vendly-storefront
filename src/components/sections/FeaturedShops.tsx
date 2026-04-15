@@ -82,6 +82,14 @@ const SHOPS: FeaturedShop[] = [
     colorVar: 'var(--color-nightlife)',
     url: 'https://ember-lounge.vercel.app',
   },
+  {
+    name: 'LensArt',
+    descKey: 'lensart',
+    tags: ['photography', 'portfolio'],
+    emoji: '📸',
+    colorVar: 'var(--color-photography)',
+    url: 'https://lens-art-five.vercel.app',
+  },
 ];
 
 function ArrowIcon() {

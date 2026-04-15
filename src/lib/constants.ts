@@ -86,6 +86,13 @@ export const BUSINESS_TYPES: BusinessType[] = [
     demo: 'https://ember-lounge.vercel.app',
   },
   {
+    id: 'photography',
+    icon: '📸',
+    title: 'Fotografia',
+    description: 'Fotografické štúdiá, videografi — portfólio, cenník a online rezervácie.',
+    demo: 'https://lens-art-five.vercel.app',
+  },
+  {
     id: 'digital',
     icon: '💻',
     title: 'Digitálne produkty',
@@ -518,6 +525,7 @@ export const PORTFOLIO_ITEMS: PortfolioItem[] = [
   { id: 'zenflow', name: 'ZenFlow', url: 'https://zenflow-ivory.vercel.app', tags: ['wellness', 'yoga'], descKey: 'portfolio.zenflow', screenshotPlaceholder: '🧘' },
   { id: 'ember', name: 'Ember Lounge', url: 'https://ember-lounge.vercel.app', tags: ['bar', 'nightlife'], descKey: 'portfolio.ember', screenshotPlaceholder: '🪩' },
   { id: 'transport', name: 'Transport', url: 'https://transportation-trencin.vercel.app', tags: ['transport', 'logistics'], descKey: 'portfolio.transport', screenshotPlaceholder: '🚛' },
+  { id: 'lensart', name: 'LensArt', url: 'https://lens-art-five.vercel.app', tags: ['photography', 'portfolio'], descKey: 'portfolio.lensart', screenshotPlaceholder: '📸' },
 ];
 
 export const INCLUDED_FEATURES: IncludedFeature[] = [

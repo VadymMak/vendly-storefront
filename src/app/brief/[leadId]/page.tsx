@@ -3,7 +3,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { BRIEF_TRANSLATIONS, getBriefT } from '@/lib/brief-translations';
-import type { BriefService } from '@/lib/types';
+import type { BriefService, WeekSchedule } from '@/lib/types';
+import { DEFAULT_WEEK_SCHEDULE } from '@/lib/constants';
+import { formatStructuredHours } from '@/lib/working-hours';
+import WeekScheduleEditor from '@/components/ui/WeekScheduleEditor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -258,6 +261,10 @@ export default function BriefPage() {
   const [priceListUrl, setPriceList] = useState('');
   const [photoUrls, setPhotos]  = useState<string[]>([]);
 
+  const [hours, setHours] = useState<WeekSchedule>(
+    DEFAULT_WEEK_SCHEDULE.map((d) => ({ ...d })) as WeekSchedule,
+  );
+
   const [uploadingLogo, setULogo]   = useState(false);
   const [uploadingPrice, setUPrice] = useState(false);
   const [uploadingPhotos, setUPhotos] = useState(false);
@@ -303,9 +310,9 @@ export default function BriefPage() {
     if (photoUrls.length >= 5)          q += 2;
     else if (photoUrls.length >= 1)     q += 1;
     if (logoUrl)                        q += 1;
-    if (form.workingHours.trim())       q += 1;
+    if (hours.some((d) => d.open))      q += 1;
     return Math.min(q, 10);
-  }, [form, filledServices.length, servicesWithPrices, photoUrls.length, logoUrl]);
+  }, [form, filledServices.length, servicesWithPrices, photoUrls.length, logoUrl, hours]);
 
   const progressPct = Math.round((step / TOTAL_STEPS) * 100);
 
@@ -399,6 +406,7 @@ export default function BriefPage() {
       const cleanServices = services.filter((s) => s.name.trim());
       const payload = {
         ...form,
+        workingHours: formatStructuredHours(hours, lead?.language ?? 'en'),
         briefServicesJson: cleanServices.length ? JSON.stringify(cleanServices) : null,
         logoUrl:      logoUrl || null,
         priceListUrl: priceListUrl || null,
@@ -538,11 +546,25 @@ export default function BriefPage() {
               </div>
               <div>
                 <label className={labelCls}>{t.labelHours}</label>
-                <input
-                  type="text" className={inputCls} value={form.workingHours}
-                  placeholder={t.phHours}
-                  onChange={(e) => setField('workingHours', e.target.value)}
-                />
+                <p className="mb-3 text-xs text-gray-500">{t.workingHoursHint}</p>
+                <div className="rounded-xl border border-[#374151] bg-[#0F172A] px-4 py-3">
+                  <WeekScheduleEditor
+                    value={hours}
+                    onChange={setHours}
+                    variant="dark"
+                    labels={{
+                      days: {
+                        mon: t.dayMon, tue: t.dayTue, wed: t.dayWed,
+                        thu: t.dayThu, fri: t.dayFri, sat: t.daySat, sun: t.daySun,
+                      },
+                      closed: t.dayClosed,
+                      break: t.break,
+                    }}
+                  />
+                </div>
+                <p className="mt-2 text-xs italic text-gray-500">
+                  {t.preview}: {formatStructuredHours(hours, lang)}
+                </p>
               </div>
             </div>
           </div>
@@ -909,7 +931,7 @@ export default function BriefPage() {
                   <div><span className="text-gray-500">{t.labelBizName}:</span> {form.businessName || '—'}</div>
                   {form.address      && <div><span className="text-gray-500">{t.labelAddress}:</span> {form.address}</div>}
                   {form.email        && <div><span className="text-gray-500">{t.labelEmail}:</span> {form.email}</div>}
-                  {form.workingHours && <div><span className="text-gray-500">{t.labelHours}:</span> {form.workingHours}</div>}
+                  {hours.some((d) => d.open) && <div><span className="text-gray-500">{t.labelHours}:</span> {formatStructuredHours(hours, lang)}</div>}
                 </div>
               </ReviewRow>
 

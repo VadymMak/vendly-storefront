@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { ShopData, StoreSettingsFormData, DaySchedule, WeekSchedule } from '@/lib/types';
-import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE, DAY_KEYS } from '@/lib/constants';
+import type { ShopData, StoreSettingsFormData, WeekSchedule } from '@/lib/types';
+import { QUICK_BADGES, DEFAULT_WEEK_SCHEDULE, DEFAULT_ORDER_ACCEPTANCE } from '@/lib/constants';
+import { formatStructuredHours } from '@/lib/working-hours';
 import ImageUpload from '@/components/ui/ImageUpload';
 import BannerCropper from '@/components/ui/BannerCropper';
 import ColorPicker from '@/components/ui/ColorPicker';
 import TranslateButton from '@/components/ui/TranslateButton';
 import BulkTranslateButton from '@/components/ui/BulkTranslateButton';
+import WeekScheduleEditor from '@/components/ui/WeekScheduleEditor';
 
 const LANGUAGES = [
   { value: 'sk', label: 'Slovenčina' },
@@ -29,52 +31,6 @@ const COLOR_SCHEMES = [
 ] as const;
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
-
-const LOCALIZED_DAYS: Record<string, string[]> = {
-  sk: ['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'],
-  cs: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'],
-  uk: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'],
-  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
-  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-};
-
-const LOCALIZED_CLOSED: Record<string, string> = {
-  sk: 'Zatvorené',
-  cs: 'Zavřeno',
-  uk: 'Зачинено',
-  de: 'Geschlossen',
-  en: 'Closed',
-};
-
-/** Generate a compact opening hours string from structured schedule in shop language */
-function formatStructuredHours(hours: WeekSchedule, lang: string): string {
-  const days = LOCALIZED_DAYS[lang] || LOCALIZED_DAYS.en;
-  const closed = LOCALIZED_CLOSED[lang] || LOCALIZED_CLOSED.en;
-
-  const groups: { start: number; end: number; open: boolean; from: string; to: string }[] = [];
-
-  for (let i = 0; i < 7; i++) {
-    const d = hours[i];
-    const key = d.open ? `${d.from}-${d.to}` : 'closed';
-    const last = groups[groups.length - 1];
-    const lastKey = last ? (last.open ? `${last.from}-${last.to}` : 'closed') : '';
-
-    if (last && lastKey === key && last.end === i - 1) {
-      last.end = i;
-    } else {
-      groups.push({ start: i, end: i, open: d.open, from: d.from, to: d.to });
-    }
-  }
-
-  return groups
-    .map((g) => {
-      const range = g.start === g.end
-        ? days[g.start]
-        : `${days[g.start]}–${days[g.end]}`;
-      return g.open ? `${range} ${g.from}–${g.to}` : `${range} ${closed}`;
-    })
-    .join(', ');
-}
 
 type Tab = 'general' | 'design' | 'contact' | 'promo' | 'categories' | 'publishing' | 'danger';
 
@@ -837,54 +793,23 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                     <p className="text-sm font-semibold text-secondary">{t('workingHours')}</p>
                     <p className="mt-0.5 text-xs text-gray-400">{t('workingHoursHint')}</p>
                   </div>
-                  <div className="space-y-2">
-                    {form.structuredHours.map((day, i) => {
-                      const dayKey = DAY_KEYS[i];
-                      const updateDay = (patch: Partial<DaySchedule>) => {
-                        const next = [...form.structuredHours] as WeekSchedule;
-                        next[i] = { ...next[i], ...patch };
-                        set('structuredHours', next);
-                      };
-                      return (
-                        <div key={dayKey} className="flex items-center gap-3">
-                          <span className="w-10 text-xs font-medium text-gray-600 uppercase">{t(`day_${dayKey}`)}</span>
-                          <button
-                            type="button"
-                            onClick={() => updateDay({ open: !day.open })}
-                            className={`relative h-5 w-10 rounded-full transition-colors ${day.open ? 'bg-primary' : 'bg-gray-300'}`}
-                          >
-                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${day.open ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                          </button>
-                          {day.open ? (
-                            <div className="flex items-center gap-1.5 text-sm">
-                              <input type="time" value={day.from} onChange={(e) => updateDay({ from: e.target.value })}
-                                className="rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
-                              <span className="text-gray-400">—</span>
-                              <input type="time" value={day.to} onChange={(e) => updateDay({ to: e.target.value })}
-                                className="rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
-                              <button type="button"
-                                onClick={() => updateDay(day.breakFrom ? { breakFrom: undefined, breakTo: undefined } : { breakFrom: '12:00', breakTo: '13:00' })}
-                                className={`ml-2 rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${day.breakFrom ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400 hover:text-gray-600'}`}
-                              >
-                                {t('break')}
-                              </button>
-                              {day.breakFrom && (
-                                <div className="flex items-center gap-1 text-xs">
-                                  <input type="time" value={day.breakFrom} onChange={(e) => updateDay({ breakFrom: e.target.value })}
-                                    className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" />
-                                  <span className="text-gray-400">—</span>
-                                  <input type="time" value={day.breakTo || '13:00'} onChange={(e) => updateDay({ breakTo: e.target.value })}
-                                    className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" />
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">{t('dayClosed')}</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <WeekScheduleEditor
+                    value={form.structuredHours}
+                    onChange={(next) => set('structuredHours', next)}
+                    labels={{
+                      days: {
+                        mon: t('day_mon'),
+                        tue: t('day_tue'),
+                        wed: t('day_wed'),
+                        thu: t('day_thu'),
+                        fri: t('day_fri'),
+                        sat: t('day_sat'),
+                        sun: t('day_sun'),
+                      },
+                      closed: t('dayClosed'),
+                      break: t('break'),
+                    }}
+                  />
                   {/* openingHours is auto-generated from structuredHours on save */}
                 </div>
 

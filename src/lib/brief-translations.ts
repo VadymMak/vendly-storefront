@@ -14,6 +14,17 @@ export interface BriefT {
   labelEmail: string;
   labelHours: string;
   phHours: string;
+  workingHoursHint: string;
+  dayMon: string;
+  dayTue: string;
+  dayWed: string;
+  dayThu: string;
+  dayFri: string;
+  daySat: string;
+  daySun: string;
+  dayClosed: string;
+  break: string;
+  preview: string;
   // Section 2
   s2Title: string;
   s2Subtitle: string;
@@ -193,6 +204,11 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelEmail: 'Email',
     labelHours: 'Pracovné hodiny',
     phHours: 'Po–Pi 8:00–18:00, So 9:00–14:00',
+    workingHoursHint: 'Označte dni, keď ste otvorení, a nastavte čas. Zatvorené dni — vypnite prepínač.',
+    dayMon: 'Po', dayTue: 'Ut', dayWed: 'St', dayThu: 'Št', dayFri: 'Pi', daySat: 'So', daySun: 'Ne',
+    dayClosed: 'Zatvorené',
+    break: 'Prestávka',
+    preview: 'Náhľad',
     s2Title: 'Služby a ceny',
     s2Subtitle: 'Čím konkrétnejšie — tým presnejšie na webe. Pridajte každú službu samostatne.',
     labelYourServices: 'Sekcie z prihlášky',
@@ -308,6 +324,11 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelEmail: 'Email',
     labelHours: 'Working hours',
     phHours: 'Mon–Fri 8:00–18:00, Sat 9:00–14:00',
+    workingHoursHint: 'Mark days when you are open and set the hours. Closed days — turn off the toggle.',
+    dayMon: 'Mon', dayTue: 'Tue', dayWed: 'Wed', dayThu: 'Thu', dayFri: 'Fri', daySat: 'Sat', daySun: 'Sun',
+    dayClosed: 'Closed',
+    break: 'Break',
+    preview: 'Preview',
     s2Title: 'Services & pricing',
     s2Subtitle: 'The more specific — the more accurate on the website. Add each service separately.',
     labelYourServices: 'Sections from intake',
@@ -423,6 +444,11 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelEmail: 'E-Mail',
     labelHours: 'Öffnungszeiten',
     phHours: 'Mo–Fr 8:00–18:00, Sa 9:00–14:00',
+    workingHoursHint: 'Markieren Sie die Tage, an denen Sie geöffnet haben, und stellen Sie die Zeiten ein. Geschlossene Tage — Schalter ausschalten.',
+    dayMon: 'Mo', dayTue: 'Di', dayWed: 'Mi', dayThu: 'Do', dayFri: 'Fr', daySat: 'Sa', daySun: 'So',
+    dayClosed: 'Geschlossen',
+    break: 'Pause',
+    preview: 'Vorschau',
     s2Title: 'Dienstleistungen & Preise',
     s2Subtitle: 'Je konkreter — desto präziser auf der Website. Jede Leistung einzeln hinzufügen.',
     labelYourServices: 'Ausgewählte Abschnitte',
@@ -538,6 +564,11 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelEmail: 'Email',
     labelHours: 'Pracovní hodiny',
     phHours: 'Po–Pá 8:00–18:00, So 9:00–14:00',
+    workingHoursHint: 'Označte dny, kdy jste otevřeni, a nastavte čas. Zavřené dny — vypněte přepínač.',
+    dayMon: 'Po', dayTue: 'Út', dayWed: 'St', dayThu: 'Čt', dayFri: 'Pá', daySat: 'So', daySun: 'Ne',
+    dayClosed: 'Zavřeno',
+    break: 'Pauza',
+    preview: 'Náhled',
     s2Title: 'Služby a ceny',
     s2Subtitle: 'Čím konkrétnější — tím přesnější na webu. Každou službu přidejte zvlášť.',
     labelYourServices: 'Vybrané sekce',
@@ -653,6 +684,11 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelEmail: 'Email',
     labelHours: 'Години роботи',
     phHours: 'Пн–Пт 8:00–18:00, Сб 9:00–14:00',
+    workingHoursHint: 'Відмітьте дні, коли ви відкриті, та встановіть час. Закриті дні — вимкніть перемикач.',
+    dayMon: 'Пн', dayTue: 'Вт', dayWed: 'Ср', dayThu: 'Чт', dayFri: 'Пт', daySat: 'Сб', daySun: 'Нд',
+    dayClosed: 'Зачинено',
+    break: 'Перерва',
+    preview: 'Перегляд',
     s2Title: 'Послуги та ціни',
     s2Subtitle: 'Чим конкретніше — тим точніше на сайті. Додайте кожну послугу окремо.',
     labelYourServices: 'Вибрані секції',
@@ -768,6 +804,11 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelEmail: 'Email',
     labelHours: 'Время работы',
     phHours: 'Пн–Пт 8:00–18:00, Сб 9:00–14:00',
+    workingHoursHint: 'Отметьте дни, когда вы открыты, и установите время. Закрытые дни — выключите переключатель.',
+    dayMon: 'Пн', dayTue: 'Вт', dayWed: 'Ср', dayThu: 'Чт', dayFri: 'Пт', daySat: 'Сб', daySun: 'Вс',
+    dayClosed: 'Закрыто',
+    break: 'Обед',
+    preview: 'Предпросмотр',
     s2Title: 'Услуги и цены',
     s2Subtitle: 'Чем конкретнее — тем точнее на сайте. Добавьте каждую услугу отдельно.',
     labelYourServices: 'Выбранные секции',

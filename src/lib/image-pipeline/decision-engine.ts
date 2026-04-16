@@ -6,6 +6,7 @@ import {
 } from './quality-gate';
 import { analyzeImagesForHero } from './vision-analysis';
 import { generateHeroImage, shouldRegenerate, isFluxEnabled } from './flux-generator';
+import { cropForHero, type CropResult } from './auto-crop';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ export interface PipelineResult {
   decision: Decision;
   heroImage: HeroImage | null;
   heroConfig: HeroConfig | null;
+  cropData: CropResult | null;
   qualityReport: QualityReport;
   warnings: string[];
 }
@@ -65,6 +67,10 @@ function isQualityGateEnabled(): boolean {
 
 function isVisionAnalysisEnabled(): boolean {
   return process.env.VISION_ANALYSIS_ENABLED === 'true';
+}
+
+function isAutoCropEnabled(): boolean {
+  return process.env.AUTO_CROP_ENABLED === 'true';
 }
 
 /** Pick the best (largest resolution) image from a failed list. */
@@ -93,6 +99,7 @@ export async function runImagePipeline(
   let decision: Decision = 'SKIP';
   let heroImage: HeroImage | null = null;
   let heroConfig: HeroConfig | null = null;
+  let cropData: CropResult | null = null;
   let generatedCount = 0;
 
   // ── a) Empty input ──────────────────────────────────────────────────────────
@@ -117,6 +124,7 @@ export async function runImagePipeline(
       decision,
       heroImage,
       heroConfig,
+      cropData,
       qualityReport: { totalImages: 0, passedCount: 0, failedCount: 0, generatedCount },
       warnings,
     };
@@ -191,6 +199,7 @@ export async function runImagePipeline(
         decision,
         heroImage,
         heroConfig,
+        cropData,
         qualityReport: {
           totalImages:   images.length,
           passedCount:   0,
@@ -262,10 +271,22 @@ export async function runImagePipeline(
     }
   }
 
+  // ── e) Auto-crop final hero image ────────────────────────────────────────────
+  if (heroImage && isAutoCropEnabled()) {
+    try {
+      const cropResult = await cropForHero(heroImage.buffer);
+      heroImage = { ...heroImage, buffer: cropResult.buffer };
+      cropData  = cropResult;
+    } catch (err) {
+      warnings.push(`Auto-crop failed, using original: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   return {
     decision,
     heroImage,
     heroConfig,
+    cropData,
     qualityReport: {
       totalImages:   images.length,
       passedCount:   passed.length,

@@ -36,10 +36,11 @@ interface Lead {
   priceListUrl:     string | null;
   logoUrl:          string | null;
   photoUrls:        string | null; // JSON string
-  selectedPalette:  string | null;
-  selectedHero:     string | null;
-  selectedMood:     string | null;
-  briefSubmitted:   boolean;
+  selectedPalette:   string | null;
+  selectedHero:      string | null;
+  selectedMood:      string | null;
+  briefServicesJson: string | null;
+  briefSubmitted:    boolean;
   briefSubmittedAt: string | null;
   notes:           string | null;
   createdAt:       string;
@@ -292,6 +293,38 @@ function cleanChatServices(raw: string | null): string[] {
     .filter((s) => s.length > 0 && !junk.test(s));
 }
 
+// Parse structured services submitted in the brief form (JSON array).
+// Returns [] if missing or malformed.
+interface ParsedBriefService {
+  name: string; price: string; duration: string; note: string;
+}
+function parseBriefServices(raw: string | null): ParsedBriefService[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw) as Array<{ name?: string; price?: string; duration?: string; note?: string }>;
+    return arr
+      .filter((s) => s && typeof s.name === 'string' && s.name.trim())
+      .map((s) => ({
+        name:     (s.name ?? '').trim(),
+        price:    (s.price ?? '').trim(),
+        duration: (s.duration ?? '').trim(),
+        note:     (s.note ?? '').trim(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// Format a structured service into a single readable line for the prompt.
+function formatBriefServiceLine(s: ParsedBriefService, currency: string): string {
+  const currencySymbol = currency.split(' ')[0];
+  const parts: string[] = [s.name];
+  if (s.price)    parts.push(`${s.price} ${currencySymbol}`);
+  if (s.duration) parts.push(s.duration);
+  if (s.note)     parts.push(`(${s.note})`);
+  return parts.join(' — ');
+}
+
 function buildPrompt(lead: Lead, repoName: string): string {
   // ── Derived values ─────────────────────────────────────────────────────────
   const phone        = (lead.contact ?? '').replace(/[\s+\-()]/g, '');
@@ -306,11 +339,23 @@ function buildPrompt(lead: Lead, repoName: string): string {
   const moodDesc     = getMoodDescription(mood, lead.language);
   const currency     = getCurrency(lead.language);
 
-  // ── Services (clean onboarding list — emojis stripped, UI buttons filtered)
-  const services = cleanChatServices(lead.services);
+  // ── Services — PRIMARY: brief form (structured with prices), FALLBACK: chat
+  const briefServices = parseBriefServices(lead.briefServicesJson);
+  const chatServices  = cleanChatServices(lead.services);
+
+  let services: string[];
+  let servicesSource: string;
+  if (briefServices.length > 0) {
+    services = briefServices.map((s) => formatBriefServiceLine(s, currency));
+    servicesSource = 'бриф-форма (СТРУКТУРИРОВАННО: название + цена + длительность + примечание)';
+  } else {
+    services = chatServices;
+    servicesSource = 'онбординг-чат (эмодзи убраны, UI-кнопки отфильтрованы)';
+  }
+
   const servicesList = services.length
     ? services.map((s) => `  - ${s}`).join('\n')
-    : '  (клиент не выбрал услуги в онбординге — извлеки из wishes или спроси)';
+    : '  (клиент не заполнил услуги — извлеки из wishes или спроси в чате)';
 
   // ── Photos + logo ──────────────────────────────────────────────────────────
   const photos   = parsePhotos(lead.photoUrls);
@@ -438,7 +483,7 @@ export const SITE_CONFIG: SiteConfig = {
 
 ## STEP 2 — lib/constants.ts
 
-### SERVICES (из онбординга — эмодзи убраны, кнопки вроде "Прайс" отфильтрованы)
+### SERVICES — источник: ${servicesSource}
 Используй ЭТИ названия дословно (переведи на ${lead.language} если нужно):
 ${servicesList}
 
@@ -446,8 +491,8 @@ ${servicesList}
 {
   name:        '...' на ${lead.language},
   description: '...' 1-2 предложения, тон: ${mood},
-  price:       '... ${currency.split(' ')[0]}' (извлеки из STEP 3),
-  duration:    '...' если применимо (например "30 мин"),
+  price:       '... ${currency.split(' ')[0]}'${briefServices.length > 0 ? ' (уже указана клиентом — НЕ меняй)' : ' (извлеки из STEP 3)'},
+  duration:    '...' если применимо${briefServices.length > 0 ? ' (уже указана клиентом)' : ''},
 }
 
 ### GALLERY_IMAGES — используй ВСЕ ${photos.length} фото

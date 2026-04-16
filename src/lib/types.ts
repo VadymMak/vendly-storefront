@@ -6,6 +6,15 @@ export interface BusinessType {
   demo: string;
 }
 
+// ===== Brief form =====
+
+export interface BriefService {
+  name:     string; // "Стрижка женская"
+  price:    string; // "650" or "650-800"
+  duration: string; // "60" (minutes) — free text
+  note:     string; // "только длинные волосы" (optional)
+}
+
 export interface PricingPlan {
   id: string;
   name: string;

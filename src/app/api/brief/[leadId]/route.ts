@@ -71,7 +71,7 @@ export async function PATCH(
     socialInstagram, socialFacebook, referenceUrl, wishes,
     priceListUrl, logoUrl, photoUrls,
     selectedPalette, selectedHero, selectedMood,
-    additionalServices,
+    additionalServices, briefServicesJson,
   } = raw;
 
   // Build update — only include defined values
@@ -95,9 +95,10 @@ export async function PATCH(
   setIfDefined('priceListUrl',    priceListUrl);
   setIfDefined('logoUrl',         logoUrl);
   setIfDefined('photoUrls',       photoUrls);
-  setIfDefined('selectedPalette', selectedPalette);
-  setIfDefined('selectedHero',    selectedHero);
-  setIfDefined('selectedMood',    selectedMood);
+  setIfDefined('selectedPalette',   selectedPalette);
+  setIfDefined('selectedHero',      selectedHero);
+  setIfDefined('selectedMood',      selectedMood);
+  setIfDefined('briefServicesJson', briefServicesJson);
 
   // Append additional services to existing services string
   if (additionalServices?.trim()) {

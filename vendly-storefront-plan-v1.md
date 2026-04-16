@@ -111,6 +111,25 @@
 - [x] Текст генерируется при сохранении и показывается на публичной странице магазина
 - [x] Локализация дней недели и "Зачинено/Closed" на язык магазина (sk/cs/uk/de/en)
 
+### П15 — Brief form complete redesign (5-step conversational) ✅
+- [x] Полный редизайн `/brief/[leadId]/page.tsx` по рекомендации Grok: прогрессивная выдача, 5 шагов
+- [x] Шаг 1: Basic info — businessName с language hint tooltip, address, workingHours, email, socials
+- [x] Шаг 2: Услуги — структурированная таблица (name | price | duration | note), add/remove rows, validation
+- [x] Шаг 3: Visual — palette (4 опции) + mood (clean/warm/bold/elegant) + hero layout (classic/compact)
+- [x] Шаг 4: Photos — logo + priceList + photos (min 3 recommended) с concrete checklist подсказками
+- [x] Шаг 5: Review + quality score (0-10, colored: green ≥8, yellow ≥5, red <5), edit buttons для каждой секции
+- [x] Per-step validation: businessName required → services ≥1 → palette+hero+mood → photos OR logo → submit
+- [x] `BriefService` тип в `types.ts`: {name, price, duration, note}
+- [x] Prisma schema: `briefServicesJson String?` поле в Lead model (JSON-serialized BriefService[])
+- [x] API route `/api/brief/[leadId]`: принимает и сохраняет `briefServicesJson`
+- [x] Admin `buildPrompt`: когда есть brief services — использует структурированные данные с тегом "бриф-форма (СТРУКТУРИРОВАННО)", цены уже указаны клиентом, не меняй
+- [x] Admin leads page: `parseBriefServices` + `formatBriefServiceLine` helpers для отображения и промпта
+- [x] i18n: ~30 новых ключей в `brief-translations.ts` для всех 6 языков (sk/en/de/cs/uk/ru)
+- [x] Tooltip компонент (hover) для контекстных подсказок
+- [x] StepHeader с progress bar + step X of 5
+- [x] `npx tsc --noEmit`: exit 0
+- [ ] ⚠️ Требуется локально: `pnpm db:push && pnpm db:generate` (sandbox не смог достать Prisma CDN — 403)
+
 ## 3. Phase 2 — Storefront Design Overhaul (текущая фаза)
 
 ### Стратегия

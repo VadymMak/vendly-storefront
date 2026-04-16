@@ -114,6 +114,7 @@
 ### П15 — Brief form complete redesign (5-step conversational) ✅
 - [x] Полный редизайн `/brief/[leadId]/page.tsx` по рекомендации Grok: прогрессивная выдача, 5 шагов
 - [x] Шаг 1: Basic info — businessName с language hint tooltip, address, workingHours, email, socials
+- [x] Step 1 workingHours: replaced text input with WeekScheduleEditor (visual picker, auto-generated text)
 - [x] Шаг 2: Услуги — структурированная таблица (name | price | duration | note), add/remove rows, validation
 - [x] Шаг 3: Visual — palette (4 опции) + mood (clean/warm/bold/elegant) + hero layout (classic/compact)
 - [x] Шаг 4: Photos — logo + priceList + photos (min 3 recommended) с concrete checklist подсказками

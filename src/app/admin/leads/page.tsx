@@ -403,6 +403,7 @@ function LeadCard({
   const [confirming, setConfirming] = useState(false);
   const [repoName, setRepoName]     = useState(() => extractRepoName(lead.githubRepo));
   const [promptCopied, setPromptCopied] = useState(false);
+  const [promptText, setPromptText]     = useState<string | null>(null);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -709,19 +710,16 @@ function LeadCard({
                   <div className="flex items-center gap-2 ml-auto">
                     <button
                       onClick={() => {
-                        const prompt = buildPrompt(
-                          { ...lead, ...draft } as Lead,
-                          repoName,
-                        );
-                        void navigator.clipboard.writeText(prompt).then(() => {
-                          setPromptCopied(true);
-                          setTimeout(() => setPromptCopied(false), 2500);
-                        });
+                        if (promptText !== null) {
+                          setPromptText(null);
+                          return;
+                        }
+                        setPromptText(buildPrompt({ ...lead, ...draft } as Lead, repoName));
                       }}
                       className="rounded-lg border border-cyan-800 bg-cyan-900/30 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-800/50 transition-colors"
                       title="Сгенерировать промпт для VSCode Claude"
                     >
-                      {promptCopied ? '✅ Промпт скопирован!' : '📋 Сгенерировать промпт'}
+                      {promptText !== null ? '✕ Закрыть' : '📋 Промпт'}
                     </button>
                     <button
                       onClick={() => {
@@ -856,6 +854,43 @@ function LeadCard({
                   </div>
                 ) : (
                   <p className="text-xs text-gray-600">Клиент ещё не заполнил бриф.</p>
+                )}
+
+                {/* ── Prompt preview ── */}
+                {promptText !== null && (
+                  <div className="mt-4 rounded-xl border border-cyan-800/50 bg-[#0F172A] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+                        Промпт для VSCode Claude
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-500">
+                          {promptText.length} символов · {promptText.split('\n').length} строк
+                        </span>
+                        <button
+                          onClick={() => {
+                            void navigator.clipboard.writeText(promptText).then(() => {
+                              setPromptCopied(true);
+                              setTimeout(() => setPromptCopied(false), 2500);
+                            });
+                          }}
+                          className="rounded-lg bg-cyan-700 px-3 py-1 text-xs font-semibold text-white hover:bg-cyan-600 transition-colors"
+                        >
+                          {promptCopied ? '✅ Скопировано' : '📋 Копировать'}
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      rows={18}
+                      spellCheck={false}
+                      className="w-full rounded-lg border border-[#374151] bg-[#0B1120] p-3 font-mono text-[11px] leading-relaxed text-gray-200 outline-none focus:border-cyan-600 resize-y"
+                    />
+                    <p className="mt-1 text-[10px] text-gray-500">
+                      Можешь редактировать промпт перед копированием. Изменения не сохраняются — только для текущей копии.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

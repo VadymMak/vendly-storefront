@@ -38,68 +38,76 @@ function buildPrompt(businessType: string, style: 'photo' | 'illustration'): str
   return `${styled}${QUALITY_SUFFIX}`;
 }
 
+// ─── Feature flag ─────────────────────────────────────────────────────────────
+
+export function isFluxEnabled(): boolean {
+  return process.env.REPLICATE_ENABLED === 'true' && !!process.env.REPLICATE_API_TOKEN;
+}
+
 // ─── generateHeroImage ────────────────────────────────────────────────────────
 
 export async function generateHeroImage(
   businessName: string,
   businessType: string,
   style: 'photo' | 'illustration',
-): Promise<GeneratedImage> {
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) {
-    throw new Error('REPLICATE_API_TOKEN env var is missing');
-  }
+): Promise<GeneratedImage | null> {
+  if (!isFluxEnabled()) return null;
 
   const prompt = buildPrompt(businessType, style);
 
-  const replicate = new Replicate({ auth: token });
+  try {
+    const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN! });
 
-  const output = await replicate.run('black-forest-labs/flux-schnell', {
-    input: {
+    const output = await replicate.run('black-forest-labs/flux-schnell', {
+      input: {
+        prompt,
+        num_outputs:    1,
+        aspect_ratio:   '16:9',
+        output_format:  'webp',
+        output_quality: 90,
+      },
+    });
+
+    // output is an array of URL strings (or ReadableStream objects depending on SDK version)
+    const outputArray = Array.isArray(output) ? output : [output];
+    const firstItem = outputArray[0];
+
+    if (!firstItem) {
+      throw new Error(`Replicate returned empty output for business "${businessName}"`);
+    }
+
+    // Resolve to URL string — may be a string or a FileOutput object with a url() method
+    let imageUrl: string;
+    if (typeof firstItem === 'string') {
+      imageUrl = firstItem;
+    } else if (
+      typeof firstItem === 'object' &&
+      firstItem !== null &&
+      typeof (firstItem as { url?: () => string }).url === 'function'
+    ) {
+      imageUrl = (firstItem as { url: () => string }).url();
+    } else {
+      imageUrl = String(firstItem);
+    }
+
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      throw new Error(`Failed to download generated image: HTTP ${imgRes.status}`);
+    }
+
+    const arrayBuffer = await imgRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    return {
+      buffer,
       prompt,
-      num_outputs:    1,
-      aspect_ratio:   '16:9',
-      output_format:  'webp',
-      output_quality: 90,
-    },
-  });
-
-  // output is an array of URL strings (or ReadableStream objects depending on SDK version)
-  const outputArray = Array.isArray(output) ? output : [output];
-  const firstItem = outputArray[0];
-
-  if (!firstItem) {
-    throw new Error(`Replicate returned empty output for business "${businessName}"`);
+      model: 'flux-schnell',
+      cost:  0.003,
+    };
+  } catch (error) {
+    console.error('Flux generation failed:', error);
+    return null;
   }
-
-  // Resolve to URL string — may be a string or a FileOutput object with a url() method
-  let imageUrl: string;
-  if (typeof firstItem === 'string') {
-    imageUrl = firstItem;
-  } else if (
-    typeof firstItem === 'object' &&
-    firstItem !== null &&
-    typeof (firstItem as { url?: () => string }).url === 'function'
-  ) {
-    imageUrl = (firstItem as { url: () => string }).url();
-  } else {
-    imageUrl = String(firstItem);
-  }
-
-  const imgRes = await fetch(imageUrl);
-  if (!imgRes.ok) {
-    throw new Error(`Failed to download generated image: HTTP ${imgRes.status}`);
-  }
-
-  const arrayBuffer = await imgRes.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  return {
-    buffer,
-    prompt,
-    model: 'flux-schnell',
-    cost:  0.003,
-  };
 }
 
 // ─── shouldRegenerate ─────────────────────────────────────────────────────────

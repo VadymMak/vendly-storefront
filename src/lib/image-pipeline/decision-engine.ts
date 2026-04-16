@@ -40,12 +40,27 @@ interface QualityReport {
   generatedCount: number;
 }
 
+interface GalleryImage {
+  name: string;
+  suitableFor: string[];
+}
+
+interface ProcessingStats {
+  totalUploaded: number;
+  passedQualityGate: number;
+  rejected: number;
+  regenerated: number;
+  costUsd: number;
+}
+
 export interface PipelineResult {
   decision: Decision;
   heroImage: HeroImage | null;
   heroConfig: HeroConfig | null;
   cropData: CropResult | null;
   qualityReport: QualityReport;
+  galleryImages: GalleryImage[];
+  processingStats: ProcessingStats;
   warnings: string[];
 }
 
@@ -126,6 +141,8 @@ export async function runImagePipeline(
       heroConfig,
       cropData,
       qualityReport: { totalImages: 0, passedCount: 0, failedCount: 0, generatedCount },
+      galleryImages: [],
+      processingStats: { totalUploaded: 0, passedQualityGate: 0, rejected: 0, regenerated: generatedCount, costUsd: 0 },
       warnings,
     };
   }
@@ -137,7 +154,7 @@ export async function runImagePipeline(
   if (!isQualityGateEnabled()) {
     // Skip gate — treat all as passed with dummy analyses
     passed = await Promise.all(
-      images.map(({ buffer, name }) => analyzeImageQuality(buffer, name)),
+      images.map(({ buffer, name }) => analyzeImageQuality(buffer, name).then((r) => r.analysis)),
     );
   } else {
     try {
@@ -146,7 +163,8 @@ export async function runImagePipeline(
       warnings.push(`Quality gate failed, passing all images: ${err instanceof Error ? err.message : String(err)}`);
       passed = images.map(({ buffer, name }) => ({
         filePath: name, width: 0, height: 0, sizeKb: 0, format: 'unknown',
-        isBlurry: false, brightness: 128, contrast: 50, passed: true, failReasons: [],
+        colorSpace: 'srgb', wasConverted: false,
+        isBlurry: false, isDuplicate: false, brightness: 128, contrast: 50, passed: true, failReasons: [],
       }));
     }
   }
@@ -157,8 +175,8 @@ export async function runImagePipeline(
 
     if (best) {
       try {
-        const fixedBuffer = await autoFixImage(best.image.buffer);
-        const reanalysis  = await analyzeImageQuality(fixedBuffer, best.image.name);
+        const fixedBuffer    = await autoFixImage(best.image.buffer);
+        const { analysis: reanalysis } = await analyzeImageQuality(fixedBuffer, best.image.name);
 
         if (reanalysis.passed) {
           passed = [reanalysis];
@@ -205,6 +223,14 @@ export async function runImagePipeline(
           passedCount:   0,
           failedCount:   failed.length,
           generatedCount,
+        },
+        galleryImages: [],
+        processingStats: {
+          totalUploaded:    images.length,
+          passedQualityGate: 0,
+          rejected:         failed.length,
+          regenerated:      generatedCount,
+          costUsd:          0,
         },
         warnings,
       };
@@ -274,13 +300,19 @@ export async function runImagePipeline(
   // ── e) Auto-crop final hero image ────────────────────────────────────────────
   if (heroImage && isAutoCropEnabled()) {
     try {
-      const cropResult = await cropForHero(heroImage.buffer);
+      const cropCoords = heroConfig?.cropSuggestion ?? undefined;
+      const cropResult = await cropForHero(heroImage.buffer, cropCoords);
       heroImage = { ...heroImage, buffer: cropResult.buffer };
       cropData  = cropResult;
     } catch (err) {
       warnings.push(`Auto-crop failed, using original: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+
+  const galleryImages: GalleryImage[] = passedWithBuffers.map((img) => ({
+    name:        img.name,
+    suitableFor: ['gallery'],
+  }));
 
   return {
     decision,
@@ -292,6 +324,14 @@ export async function runImagePipeline(
       passedCount:   passed.length,
       failedCount:   failed.length,
       generatedCount,
+    },
+    galleryImages,
+    processingStats: {
+      totalUploaded:    images.length,
+      passedQualityGate: passed.length,
+      rejected:         failed.length,
+      regenerated:      generatedCount,
+      costUsd:          0,
     },
     warnings,
   };

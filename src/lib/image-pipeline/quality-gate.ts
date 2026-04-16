@@ -8,7 +8,10 @@ export interface ImageAnalysis {
   height: number;
   sizeKb: number;
   format: string;
+  colorSpace: string;
+  wasConverted: boolean;
   isBlurry: boolean;
+  isDuplicate: boolean;
   brightness: number;  // 0–255 average greyscale mean
   contrast: number;    // 0–100 derived from stdev
   passed: boolean;
@@ -17,71 +20,128 @@ export interface ImageAnalysis {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MIN_WIDTH      = 1200;
-const MIN_HEIGHT     = 630;
-const MIN_SIZE_KB    = 50;
-const BLUR_THRESHOLD = 25;   // stdev below this → blurry
-const MAX_STDEV      = 128;  // used to normalise contrast to 0–100
+const MIN_WIDTH         = 1200;
+const MIN_HEIGHT        = 630;
+const MIN_SIZE_KB       = 50;
+const BLUR_THRESHOLD    = 25;    // stdev below this → blurry
+const MAX_STDEV         = 128;   // used to normalise contrast 0–100
+const HASH_SIZE         = 8;     // 8×8 = 64-bit perceptual hash
+const DEFAULT_HAMMING   = 10;    // duplicate threshold
+
+// ─── Perceptual hash ──────────────────────────────────────────────────────────
+
+export async function calculateImageHash(buffer: Buffer): Promise<string> {
+  const pixels = await sharp(buffer)
+    .resize(HASH_SIZE, HASH_SIZE, { fit: 'fill' })
+    .greyscale()
+    .raw()
+    .toBuffer();
+
+  const arr   = Array.from(pixels);
+  const mean  = arr.reduce((s, v) => s + v, 0) / arr.length;
+  return arr.map((p) => (p >= mean ? '1' : '0')).join('');
+}
+
+function hammingDistance(a: string, b: string): number {
+  if (a.length !== b.length) return Infinity;
+  let dist = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) dist++;
+  }
+  return dist;
+}
+
+export function isDuplicate(
+  hash: string,
+  existingHashes: string[],
+  threshold: number = DEFAULT_HAMMING,
+): boolean {
+  return existingHashes.some((h) => hammingDistance(hash, h) <= threshold);
+}
 
 // ─── analyzeImageQuality ──────────────────────────────────────────────────────
 
 export async function analyzeImageQuality(
-  imageBuffer: Buffer,
+  rawBuffer: Buffer,
   fileName: string,
-): Promise<ImageAnalysis> {
+  knownHashes: string[] = [],
+): Promise<{ analysis: ImageAnalysis; hash: string }> {
   const failReasons: string[] = [];
+  let wasConverted = false;
 
-  // a) Metadata
-  const meta = await sharp(imageBuffer).metadata();
+  // Normalise colorspace / bit-depth / alpha
+  let meta = await sharp(rawBuffer).metadata();
+  let buffer = rawBuffer;
+
+  const colorSpace = meta.space ?? 'srgb';
+
+  if (meta.space === 'cmyk') {
+    buffer = await sharp(buffer).toColorspace('srgb').toBuffer();
+    wasConverted = true;
+    meta = await sharp(buffer).metadata();
+  }
+
+  if (meta.depth && meta.depth !== 'uchar' && meta.depth !== 'char') {
+    // High bit-depth (16-bit etc.) — normalise to 8-bit sRGB
+    buffer = await sharp(buffer).toColorspace('srgb').toBuffer();
+    wasConverted = true;
+    meta = await sharp(buffer).metadata();
+  }
+
+  if (meta.hasAlpha) {
+    buffer = await sharp(buffer).flatten({ background: '#ffffff' }).toBuffer();
+    wasConverted = true;
+    meta = await sharp(buffer).metadata();
+  }
+
+  // Dimensions
   const width  = meta.width  ?? 0;
   const height = meta.height ?? 0;
   const format = meta.format ?? 'unknown';
-  const sizeKb = Math.round(imageBuffer.byteLength / 1024);
+  const sizeKb = Math.round(buffer.byteLength / 1024);
 
-  // b) Size check
-  if (width < MIN_WIDTH) {
-    failReasons.push(`Width ${width}px < minimum ${MIN_WIDTH}px`);
-  }
-  if (height < MIN_HEIGHT) {
-    failReasons.push(`Height ${height}px < minimum ${MIN_HEIGHT}px`);
-  }
+  if (width < MIN_WIDTH)   failReasons.push(`Width ${width}px < minimum ${MIN_WIDTH}px`);
+  if (height < MIN_HEIGHT) failReasons.push(`Height ${height}px < minimum ${MIN_HEIGHT}px`);
+  if (sizeKb < MIN_SIZE_KB) failReasons.push(`File size ${sizeKb}KB < minimum ${MIN_SIZE_KB}KB`);
 
-  // c) Blur detection via greyscale stdev
-  const greyStats = await sharp(imageBuffer).greyscale().stats();
+  // Blur via greyscale stdev
+  const greyStats = await sharp(buffer).greyscale().stats();
   const stdev     = greyStats.channels[0]?.stdev ?? 0;
   const isBlurry  = stdev < BLUR_THRESHOLD;
-  if (isBlurry) {
-    failReasons.push(`Image appears blurry (stdev ${stdev.toFixed(1)} < ${BLUR_THRESHOLD})`);
-  }
+  if (isBlurry) failReasons.push(`Blurry (stdev ${stdev.toFixed(1)} < ${BLUR_THRESHOLD})`);
 
-  // d) Brightness (greyscale mean)
-  const brightness = greyStats.channels[0]?.mean ?? 0;
+  const brightness = Math.round(greyStats.channels[0]?.mean ?? 0);
+  const contrast   = Math.min(100, Math.round((stdev / MAX_STDEV) * 100));
 
-  // e) Contrast (stdev as proxy, normalised to 0–100)
-  const contrast = Math.min(100, Math.round((stdev / MAX_STDEV) * 100));
-
-  // f) Size in KB
-  if (sizeKb < MIN_SIZE_KB) {
-    failReasons.push(`File size ${sizeKb}KB < minimum ${MIN_SIZE_KB}KB`);
-  }
+  // Perceptual hash + duplicate check
+  const hash   = await calculateImageHash(buffer);
+  const isDup  = isDuplicate(hash, knownHashes);
+  if (isDup) failReasons.push('Duplicate of a previously processed image');
 
   const passed =
     width >= MIN_WIDTH &&
     height >= MIN_HEIGHT &&
+    sizeKb >= MIN_SIZE_KB &&
     !isBlurry &&
-    sizeKb >= MIN_SIZE_KB;
+    !isDup;
 
   return {
-    filePath:  fileName,
-    width,
-    height,
-    sizeKb,
-    format,
-    isBlurry,
-    brightness: Math.round(brightness),
-    contrast,
-    passed,
-    failReasons,
+    analysis: {
+      filePath: fileName,
+      width,
+      height,
+      sizeKb,
+      format,
+      colorSpace,
+      wasConverted,
+      isBlurry,
+      isDuplicate: isDup,
+      brightness,
+      contrast,
+      passed,
+      failReasons,
+    },
+    hash,
   };
 }
 
@@ -89,10 +149,20 @@ export async function analyzeImageQuality(
 
 export async function filterImages(
   images: Array<{ buffer: Buffer; name: string }>,
-): Promise<{ passed: ImageAnalysis[]; failed: ImageAnalysis[] }> {
-  const results = await Promise.all(
-    images.map(({ buffer, name }) => analyzeImageQuality(buffer, name)),
-  );
+  existingHashes: string[] = [],
+): Promise<{ passed: ImageAnalysis[]; failed: ImageAnalysis[]; hashes: Map<string, string> }> {
+  const seenHashes = [...existingHashes];
+  const hashes = new Map<string, string>();
+
+  const results: ImageAnalysis[] = [];
+
+  // Process sequentially so each image can check hashes of those before it
+  for (const { buffer, name } of images) {
+    const { analysis, hash } = await analyzeImageQuality(buffer, name, seenHashes);
+    hashes.set(name, hash);
+    if (!analysis.isDuplicate) seenHashes.push(hash);
+    results.push(analysis);
+  }
 
   const passed = results
     .filter((r) => r.passed)
@@ -100,33 +170,27 @@ export async function filterImages(
 
   const failed = results.filter((r) => !r.passed);
 
-  return { passed, failed };
+  return { passed, failed, hashes };
 }
 
 // ─── autoFixImage ─────────────────────────────────────────────────────────────
 
 export async function autoFixImage(imageBuffer: Buffer): Promise<Buffer> {
-  const greyStats  = await sharp(imageBuffer).greyscale().stats();
-  const mean       = greyStats.channels[0]?.mean ?? 128;
+  const greyStats = await sharp(imageBuffer).greyscale().stats();
+  const mean      = greyStats.channels[0]?.mean ?? 128;
 
   let pipeline = sharp(imageBuffer);
 
-  // Resize if wider than 2400px (preserve aspect ratio)
   const meta = await pipeline.metadata();
   if ((meta.width ?? 0) > 2400) {
     pipeline = pipeline.resize({ width: 2400, withoutEnlargement: true });
   }
 
-  // Normalize brightness for very dark or very bright images
   if (mean < 80) {
-    // Too dark — brighten
     pipeline = pipeline.modulate({ brightness: 1.3 });
   } else if (mean > 200) {
-    // Too bright — darken
     pipeline = pipeline.modulate({ brightness: 0.8 });
   }
 
-  // Convert to WebP at quality 85
-  const result = await pipeline.webp({ quality: 85 }).toBuffer();
-  return result;
+  return pipeline.webp({ quality: 85 }).toBuffer();
 }

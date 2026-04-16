@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { generateSiteConfig, type LeadData } from '@/lib/generate-site-config';
+import { commitFiles } from '@/lib/github-commit';
 
-// GitHub API response types
+// ─── Local types ──────────────────────────────────────────────────────────────
+
 interface GitHubRepoResponse {
   id: number;
   name: string;
@@ -10,12 +13,13 @@ interface GitHubRepoResponse {
   clone_url: string;
 }
 
-// Vercel API response types
 interface VercelProjectResponse {
   id: string;
   name: string;
   alias?: { domain: string }[];
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function slugify(text: string): string {
   return text
@@ -36,57 +40,77 @@ function buildRepoName(businessName: string | null, businessType: string): strin
   return `${base}-${type}`;
 }
 
+/** Fetch raw file content from a GitHub repo. Tries each path in order, returns null if all fail. */
+async function fetchTemplateFile(
+  owner: string,
+  token: string,
+  repo: string,
+  paths: string[],
+): Promise<string | null> {
+  for (const path of paths) {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+      {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.raw+json',
+        },
+      },
+    );
+    if (res.ok) return res.text();
+  }
+  return null;
+}
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
+
 export async function POST(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const { id } = await params;
 
   // Validate required env vars
-  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-  const GITHUB_OWNER = process.env.GITHUB_OWNER;
+  const GITHUB_TOKEN       = process.env.GITHUB_TOKEN;
+  const GITHUB_OWNER       = process.env.GITHUB_OWNER;
   const GITHUB_TEMPLATE_REPO = process.env.GITHUB_TEMPLATE_REPO;
-  const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
+  const VERCEL_TOKEN       = process.env.VERCEL_TOKEN;
 
   const missingVars = [
-    !GITHUB_TOKEN && 'GITHUB_TOKEN',
-    !GITHUB_OWNER && 'GITHUB_OWNER',
+    !GITHUB_TOKEN        && 'GITHUB_TOKEN',
+    !GITHUB_OWNER        && 'GITHUB_OWNER',
     !GITHUB_TEMPLATE_REPO && 'GITHUB_TEMPLATE_REPO',
-    !VERCEL_TOKEN && 'VERCEL_TOKEN',
+    !VERCEL_TOKEN        && 'VERCEL_TOKEN',
   ].filter(Boolean);
 
   if (missingVars.length > 0) {
     return NextResponse.json(
       { error: `Missing required env vars: ${missingVars.join(', ')}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
-  // 1. Find lead
+  // Step 1 — Find lead
   const lead = await db.lead.findUnique({ where: { id } });
-
   if (!lead) {
     return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
   }
 
-  // 2. Guard: already in progress or done
+  // Step 2 — Guard: already in progress or done
   if (lead.siteStatus !== 'none' && lead.siteStatus !== 'error') {
     return NextResponse.json(
       { error: 'Site already creating or created' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // 3. Mark as creating
-  await db.lead.update({
-    where: { id },
-    data: { siteStatus: 'creating' },
-  });
+  // Step 3 — Mark as creating
+  await db.lead.update({ where: { id }, data: { siteStatus: 'creating' } });
 
   let repoName = buildRepoName(lead.businessName, lead.businessType);
 
   try {
-    // 4. Create GitHub repo from template
+    // Step 4 — Create GitHub repo from template
     const githubRes = await fetch(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
       {
@@ -96,18 +120,13 @@ export async function POST(
           Accept: 'application/vnd.github+json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          owner: GITHUB_OWNER,
-          name: repoName,
-          private: false,
-        }),
-      }
+        body: JSON.stringify({ owner: GITHUB_OWNER, name: repoName, private: false }),
+      },
     );
 
-    // Handle name collision: 422 Unprocessable Entity
     if (githubRes.status === 422) {
+      // Name collision — append random suffix and retry
       repoName = `${repoName}-${randomSuffix()}`;
-
       const retryRes = await fetch(
         `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
         {
@@ -117,33 +136,25 @@ export async function POST(
             Accept: 'application/vnd.github+json',
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            owner: GITHUB_OWNER,
-            name: repoName,
-            private: false,
-          }),
-        }
+          body: JSON.stringify({ owner: GITHUB_OWNER, name: repoName, private: false }),
+        },
       );
-
       if (!retryRes.ok) {
         const errBody = await retryRes.text();
         throw new Error(`GitHub API error (retry): ${retryRes.status} — ${errBody}`);
       }
-
-      const _retryData: GitHubRepoResponse = await retryRes.json();
-      void _retryData;
+      void (await retryRes.json() as GitHubRepoResponse);
     } else if (!githubRes.ok) {
       const errBody = await githubRes.text();
       throw new Error(`GitHub API error: ${githubRes.status} — ${errBody}`);
     } else {
-      const _githubData: GitHubRepoResponse = await githubRes.json();
-      void _githubData;
+      void (await githubRes.json() as GitHubRepoResponse);
     }
 
-    // 5. Wait for GitHub to finish generating from template
+    // Step 5 — Wait for GitHub to finish generating from template
     await new Promise<void>((resolve) => setTimeout(resolve, 3000));
 
-    // 6. Create Vercel project with GitHub integration
+    // Step 6 — Create Vercel project with GitHub integration
     const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
       method: 'POST',
       headers: {
@@ -153,10 +164,7 @@ export async function POST(
       body: JSON.stringify({
         name: repoName,
         framework: 'nextjs',
-        gitRepository: {
-          type: 'github',
-          repo: `${GITHUB_OWNER}/${repoName}`,
-        },
+        gitRepository: { type: 'github', repo: `${GITHUB_OWNER}/${repoName}` },
       }),
     });
 
@@ -164,38 +172,99 @@ export async function POST(
       const errBody = await vercelRes.text();
       throw new Error(`Vercel API error: ${vercelRes.status} — ${errBody}`);
     }
+    void (await vercelRes.json() as VercelProjectResponse);
 
-    const _vercelData: VercelProjectResponse = await vercelRes.json();
-    void _vercelData;
-
-    const repoUrl = `https://github.com/${GITHUB_OWNER}/${repoName}`;
+    const repoUrl   = `https://github.com/${GITHUB_OWNER}/${repoName}`;
     const vercelUrl = `https://${repoName}.vercel.app`;
 
-    // 7. Update lead
+    // ── Steps 7–9: config generation (non-fatal) ────────────────────────────
+    let configGenerated = false;
+    let configWarning: string | null = null;
+
+    try {
+      // Step 7 — Read template files from vendshop-template via GitHub API
+      const [templateConfigTs, templateConstantsTs] = await Promise.all([
+        fetchTemplateFile(GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!, [
+          'lib/config.ts',
+          'src/config.ts',
+        ]),
+        fetchTemplateFile(GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!, [
+          'lib/constants.ts',
+          'src/lib/constants.ts',
+          'src/constants.ts',
+        ]),
+      ]);
+
+      if (!templateConfigTs || !templateConstantsTs) {
+        throw new Error(
+          `Could not read template files from ${GITHUB_TEMPLATE_REPO} ` +
+          `(config: ${templateConfigTs ? 'ok' : 'missing'}, constants: ${templateConstantsTs ? 'ok' : 'missing'})`,
+        );
+      }
+
+      // Step 8 — Generate config with Claude API
+      const leadData: LeadData = {
+        businessName:      lead.businessName,
+        businessType:      lead.businessType,
+        contact:           lead.contact,
+        email:             lead.email,
+        language:          lead.language,
+        address:           lead.address,
+        workingHours:      lead.workingHours,
+        socialInstagram:   lead.socialInstagram,
+        socialFacebook:    lead.socialFacebook,
+        referenceUrl:      lead.referenceUrl,
+        wishes:            lead.wishes,
+        priceListUrl:      lead.priceListUrl,
+        logoUrl:           lead.logoUrl,
+        photoUrls:         lead.photoUrls,
+        briefServicesJson: lead.briefServicesJson,
+        selectedPalette:   lead.selectedPalette,
+        selectedHero:      lead.selectedHero,
+        selectedMood:      lead.selectedMood,
+      };
+
+      const generated = await generateSiteConfig(leadData, templateConfigTs, templateConstantsTs);
+
+      // Step 9 — Commit generated files to the new repo
+      // Use the same paths as in the template
+      await commitFiles(repoName, [
+        { path: 'lib/config.ts',    content: generated.configTs },
+        { path: 'lib/constants.ts', content: generated.constantsTs },
+      ]);
+
+      configGenerated = true;
+
+      // Step 10 — Wait for Vercel to pick up the new commit
+      await new Promise<void>((resolve) => setTimeout(resolve, 5000));
+
+    } catch (configErr) {
+      const msg = configErr instanceof Error ? configErr.message : String(configErr);
+      configWarning = `Config generation failed: ${msg}`;
+      // Non-fatal — continue with default template content
+    }
+
+    // Step 11 — Update lead
     await db.lead.update({
       where: { id },
       data: {
-        siteRepoUrl: repoUrl,
-        siteRepoName: repoName,
+        siteRepoUrl:   repoUrl,
+        siteRepoName:  repoName,
         siteVercelUrl: vercelUrl,
-        siteStatus: 'created',
+        siteStatus:    'created',
         siteCreatedAt: new Date(),
-        siteError: null,
+        siteError:     configWarning,
       },
     });
 
-    // 8. Return success
-    return NextResponse.json({ success: true, repoUrl, vercelUrl });
+    return NextResponse.json({ success: true, repoUrl, vercelUrl, configGenerated });
+
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
-    // 9. On error — update lead and return 500
     await db.lead.update({
       where: { id },
-      data: {
-        siteStatus: 'error',
-        siteError: message,
-      },
+      data: { siteStatus: 'error', siteError: message },
     });
 
     return NextResponse.json({ error: message }, { status: 500 });

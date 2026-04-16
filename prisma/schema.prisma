@@ -228,6 +228,15 @@ model Lead {
   // Заметки
   notes           String?
 
+  // Site Automation
+  siteRepoUrl     String?
+  siteRepoName    String?
+  siteVercelUrl   String?
+  siteStatus      String?   @default("none")  // none | creating | created | qa_pending | qa_passed | qa_failed | error
+  siteError       String?
+  siteCreatedAt   DateTime?
+  siteQaReport    String?
+
   // Даты
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

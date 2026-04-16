@@ -57,6 +57,22 @@ interface Lead {
 
 type EditMap = Record<string, Partial<Lead>>;
 
+interface QaDetails {
+  heroReadable: boolean;
+  navigationVisible: boolean;
+  colorsConsistent: boolean;
+  layoutCorrect: boolean;
+  fontsLoaded: boolean;
+}
+
+interface QaReport {
+  passed: boolean;
+  score: number;
+  issues: string[];
+  recommendations: string[];
+  details: QaDetails;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_CYCLE = ['new', 'in_progress', 'site_ready', 'sent', 'paid', 'active', 'blocked', 'deleted'] as const;
@@ -583,6 +599,8 @@ function LeadCard({
   const [siteStatus, setSiteStatus]     = useState<string | null>(lead.siteStatus ?? 'none');
   const [siteRepoUrl, setSiteRepoUrl]   = useState<string | null>(lead.siteRepoUrl);
   const [siteVercelUrl, setSiteVercelUrl] = useState<string | null>(lead.siteVercelUrl);
+  const [qaRunning, setQaRunning]       = useState(false);
+  const [siteQaReport, setSiteQaReport] = useState<string | null>(lead.siteQaReport);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -656,6 +674,25 @@ function LeadCard({
       onUpdate(lead.id, { siteStatus: 'error', siteError: msg });
     } finally {
       setSiteCreating(false);
+    }
+  }
+
+  async function runQa() {
+    setQaRunning(true);
+    try {
+      const res  = await fetch(`/api/leads/${lead.id}/screenshot`, { method: 'POST' });
+      const data = await res.json() as { success?: boolean; qaReport?: QaReport; error?: string };
+      if (res.ok && data.qaReport) {
+        const newStatus    = data.qaReport.passed ? 'qa_passed' : 'qa_failed';
+        const reportString = JSON.stringify(data.qaReport);
+        setSiteStatus(newStatus);
+        setSiteQaReport(reportString);
+        onUpdate(lead.id, { siteStatus: newStatus, siteQaReport: reportString });
+      }
+    } catch {
+      // silent — API will return error JSON if something breaks
+    } finally {
+      setQaRunning(false);
     }
   }
 
@@ -1119,63 +1156,175 @@ function LeadCard({
                 {siteStatus && siteStatus !== 'none' && (
                   <div className="mb-3 space-y-2">
                     {siteStatus === 'creating' && (
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-400 border border-yellow-800/50">
-                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                          </svg>
-                          Создаётся...
-                        </span>
-                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-400 border border-yellow-800/50">
+                        <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        Создаётся...
+                      </span>
                     )}
 
-                    {siteStatus === 'created' && (
-                      <div className="space-y-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/50 px-3 py-1 text-xs font-medium text-green-400 border border-green-800/50">
-                          <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                          </svg>
-                          Создан
-                        </span>
+                    {(siteStatus === 'created' || siteStatus === 'qa_passed' || siteStatus === 'qa_failed' || siteStatus === 'qa_pending') && (
+                      <div className="space-y-3">
+                        {/* Status badge */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {siteStatus === 'created' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/50 px-3 py-1 text-xs font-medium text-green-400 border border-green-800/50">
+                              <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Создан
+                            </span>
+                          )}
+                          {siteStatus === 'qa_passed' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/50 px-3 py-1 text-xs font-medium text-emerald-400 border border-emerald-800/50">
+                              <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              QA Пройден
+                            </span>
+                          )}
+                          {siteStatus === 'qa_failed' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-900/50 px-3 py-1 text-xs font-medium text-orange-400 border border-orange-800/50">
+                              <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                              QA Не пройден
+                            </span>
+                          )}
+                          {siteStatus === 'qa_pending' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-400 border border-yellow-800/50">
+                              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                              </svg>
+                              QA Проверяется...
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Links */}
                         <div className="flex flex-wrap gap-2">
                           {siteRepoUrl && (
-                            <a
-                              href={siteRepoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors"
-                            >
-                              {/* GitHub icon */}
+                            <a href={siteRepoUrl} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors">
                               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                               </svg>
                               GitHub
-                              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
-                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
-                              </svg>
+                              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
                             </a>
                           )}
                           {siteVercelUrl && (
-                            <a
-                              href={siteVercelUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors"
-                            >
-                              {/* Vercel triangle icon */}
+                            <a href={siteVercelUrl} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors">
                               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M24 22.525H0l12-21.05 12 21.05z"/>
                               </svg>
                               Vercel Preview
-                              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
-                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
-                              </svg>
+                              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
                             </a>
                           )}
                         </div>
+
+                        {/* Run QA button — show when created or qa_failed */}
+                        {(siteStatus === 'created' || siteStatus === 'qa_failed') && (
+                          <button
+                            onClick={() => void runQa()}
+                            disabled={qaRunning}
+                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {qaRunning ? (
+                              <>
+                                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                </svg>
+                                Проверка...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                                </svg>
+                                {siteStatus === 'qa_failed' ? 'Повторить QA' : 'Проверить сайт'}
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* QA Report */}
+                        {siteQaReport && (() => {
+                          let report: QaReport | null = null;
+                          try { report = JSON.parse(siteQaReport) as QaReport; } catch { return null; }
+                          if (!report) return null;
+
+                          const scoreColor =
+                            report.score >= 70 ? 'text-emerald-400' :
+                            report.score >= 50 ? 'text-yellow-400' :
+                                                 'text-red-400';
+
+                          const detailLabels: { key: keyof QaDetails; label: string }[] = [
+                            { key: 'heroReadable',        label: 'Hero текст читаемый' },
+                            { key: 'navigationVisible',   label: 'Навигация видна' },
+                            { key: 'colorsConsistent',    label: 'Цвета согласованы' },
+                            { key: 'layoutCorrect',       label: 'Layout не сломан' },
+                            { key: 'fontsLoaded',         label: 'Шрифты загружены' },
+                          ];
+
+                          return (
+                            <div className="mt-2 rounded-lg border border-[#374151] bg-[#0F172A] p-3 space-y-3">
+                              {/* Score + passed */}
+                              <div className="flex items-center gap-3">
+                                <span className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
+                                  {report.score}
+                                  <span className="text-xs font-normal text-gray-500">/100</span>
+                                </span>
+                                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${report.passed ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800/50' : 'bg-red-900/50 text-red-400 border border-red-800/50'}`}>
+                                  {report.passed ? 'PASSED' : 'FAILED'}
+                                </span>
+                              </div>
+
+                              {/* Details */}
+                              <div className="grid grid-cols-2 gap-1">
+                                {detailLabels.map(({ key, label }) => (
+                                  <div key={key} className="flex items-center gap-1.5 text-[11px]">
+                                    {report!.details[key] ? (
+                                      <svg className="h-3.5 w-3.5 shrink-0 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                                      </svg>
+                                    ) : (
+                                      <svg className="h-3.5 w-3.5 shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
+                                      </svg>
+                                    )}
+                                    <span className="text-gray-400">{label}</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Issues */}
+                              {report.issues.length > 0 && (
+                                <div>
+                                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-red-400">Проблемы</p>
+                                  <ul className="space-y-0.5">
+                                    {report.issues.map((issue, i) => (
+                                      <li key={i} className="text-[11px] text-red-300">• {issue}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Recommendations */}
+                              {report.recommendations.length > 0 && (
+                                <div>
+                                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Рекомендации</p>
+                                  <ul className="space-y-0.5">
+                                    {report.recommendations.map((rec, i) => (
+                                      <li key={i} className="text-[11px] text-gray-500">• {rec}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
 
@@ -1214,7 +1363,6 @@ function LeadCard({
                       </>
                     ) : (
                       <>
-                        {/* GitHub icon */}
                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                         </svg>

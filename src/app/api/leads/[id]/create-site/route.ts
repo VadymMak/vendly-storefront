@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { generateSiteConfig, type LeadData } from '@/lib/generate-site-config';
+import { generateSiteConfig, type LeadData, type HeroConfigHint } from '@/lib/generate-site-config';
 import { commitFiles } from '@/lib/github-commit';
+import { runImagePipeline } from '@/lib/image-pipeline/decision-engine';
 
 // ─── Local types ──────────────────────────────────────────────────────────────
 
@@ -202,7 +203,61 @@ export async function POST(
         );
       }
 
-      // Step 8 — Generate config with Claude API
+      // Step 8 — Optionally run image pipeline (feature-flagged)
+      const imagePipelineEnabled =
+        process.env.IMAGE_QUALITY_GATE === 'true' ||
+        process.env.VISION_ANALYSIS_ENABLED === 'true';
+
+      let detectedHeroConfig: HeroConfigHint | null = null;
+      let heroImageBase64: string | null = null;
+
+      if (imagePipelineEnabled && lead.photoUrls) {
+        try {
+          const photoUrls: string[] = [];
+          const parsed = JSON.parse(lead.photoUrls) as unknown;
+          if (Array.isArray(parsed)) {
+            for (const u of parsed) {
+              if (typeof u === 'string' && u.trim()) photoUrls.push(u.trim());
+            }
+          }
+
+          if (photoUrls.length > 0) {
+            const images = await Promise.all(
+              photoUrls.map(async (url, i) => {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status} for photo ${i + 1}`);
+                const ab = await res.arrayBuffer();
+                return { buffer: Buffer.from(ab), name: `photo-${i + 1}.jpg` };
+              }),
+            );
+
+            const pipelineResult = await runImagePipeline(
+              images,
+              lead.businessName ?? '',
+              lead.businessType,
+            );
+
+            if (pipelineResult.heroConfig) {
+              detectedHeroConfig = {
+                heroTextColor:  pipelineResult.heroConfig.heroTextColor,
+                heroOverlay:    pipelineResult.heroConfig.heroOverlay,
+                overlayOpacity: pipelineResult.heroConfig.overlayOpacity,
+                textPosition:   pipelineResult.heroConfig.textPosition,
+              };
+            }
+
+            if (pipelineResult.heroImage?.buffer) {
+              heroImageBase64 = pipelineResult.heroImage.buffer.toString('base64');
+            }
+          }
+        } catch (imgErr) {
+          // Non-fatal — log and continue without hero config
+          const msg = imgErr instanceof Error ? imgErr.message : String(imgErr);
+          configWarning = `Image pipeline warning: ${msg}`;
+        }
+      }
+
+      // Step 9 — Generate config with Claude API
       const leadData: LeadData = {
         businessName:      lead.businessName,
         businessType:      lead.businessType,
@@ -224,18 +279,27 @@ export async function POST(
         selectedMood:      lead.selectedMood,
       };
 
-      const generated = await generateSiteConfig(leadData, templateConfigTs, templateConstantsTs);
+      const generated = await generateSiteConfig(
+        leadData,
+        templateConfigTs,
+        templateConstantsTs,
+        detectedHeroConfig,
+      );
 
-      // Step 9 — Commit generated files to the new repo
-      // Use the same paths as in the template
-      await commitFiles(repoName, [
+      // Step 10 — Commit generated files (+ hero image if available)
+      const filesToCommit = [
         { path: 'lib/config.ts',    content: generated.configTs },
         { path: 'lib/constants.ts', content: generated.constantsTs },
-      ]);
+        ...(heroImageBase64
+          ? [{ path: 'public/images/hero.webp', content: heroImageBase64, encoding: 'base64' as const }]
+          : []),
+      ];
+
+      await commitFiles(repoName, filesToCommit);
 
       configGenerated = true;
 
-      // Step 10 — Wait for Vercel to pick up the new commit
+      // Step 11 — Wait for Vercel to pick up the new commit
       await new Promise<void>((resolve) => setTimeout(resolve, 5000));
 
     } catch (configErr) {
@@ -244,7 +308,7 @@ export async function POST(
       // Non-fatal — continue with default template content
     }
 
-    // Step 11 — Update lead
+    // Step 12 — Update lead
     await db.lead.update({
       where: { id },
       data: {

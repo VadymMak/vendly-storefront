@@ -28,6 +28,13 @@ export interface SiteConfigFiles {
   constantsTs: string;
 }
 
+export interface HeroConfigHint {
+  heroTextColor: string;
+  heroOverlay: string;
+  overlayOpacity: number;
+  textPosition: 'top' | 'center' | 'bottom';
+}
+
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 
 function buildSystemPrompt(): string {
@@ -48,6 +55,7 @@ function buildUserPrompt(
   lead: LeadData,
   templateConfigTs: string,
   templateConstantsTs: string,
+  heroConfig?: HeroConfigHint | null,
 ): string {
   // Safely extract photo URLs for the prompt
   let photoList = '(none provided)';
@@ -120,6 +128,16 @@ Generate config.ts and constants.ts customized for this business.
 - constants.ts: use the services listed above in SERVICE_CATEGORIES; fill CONTACT_ITEMS with real address/phone/email/hours; write REVIEWS as 4 plausible placeholder reviews in the business language; write FAQ_ITEMS relevant to this business type (5 items); update NAV_ITEMS labels to the correct language; IMAGES.gallery should use the provided photo URLs (or keep Unsplash placeholders if none provided)
 - All visible text MUST be in language "${lead.language}"
 
+${heroConfig ? `
+=== HERO VISUAL SETTINGS (LOCKED — DO NOT CHANGE) ===
+These values were determined by automated visual analysis of the business's actual photos.
+Use them exactly as provided in config.ts:
+  textColor:    ${heroConfig.heroTextColor}
+  overlay:      ${heroConfig.heroOverlay}
+  overlayOpacity: ${heroConfig.overlayOpacity}
+  textPosition: ${heroConfig.textPosition}
+Do NOT override or guess these values.
+` : ''}
 Return ONLY valid JSON (no markdown, no code fences) matching this exact structure:
 {"configTs": "<full content of config.ts>", "constantsTs": "<full content of constants.ts>"}`;
 }
@@ -130,6 +148,7 @@ export async function generateSiteConfig(
   lead: LeadData,
   templateConfigTs: string,
   templateConstantsTs: string,
+  heroConfig?: HeroConfigHint | null,
 ): Promise<SiteConfigFiles> {
   const client = new Anthropic();
 
@@ -140,7 +159,7 @@ export async function generateSiteConfig(
     messages: [
       {
         role:    'user',
-        content: buildUserPrompt(lead, templateConfigTs, templateConstantsTs),
+        content: buildUserPrompt(lead, templateConfigTs, templateConstantsTs, heroConfig),
       },
     ],
   });

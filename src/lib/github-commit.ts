@@ -3,6 +3,8 @@
 export interface FileCommit {
   path: string;
   content: string;
+  /** Set to 'base64' when content is already base64-encoded (e.g. binary files). Default: treated as UTF-8. */
+  encoding?: 'base64';
 }
 
 interface GitRefResponse {
@@ -90,7 +92,7 @@ export async function commitFiles(
         {
           method: 'POST',
           body: JSON.stringify({
-            content:  toBase64(file.content),
+            content:  file.encoding === 'base64' ? file.content : toBase64(file.content),
             encoding: 'base64',
           }),
         },

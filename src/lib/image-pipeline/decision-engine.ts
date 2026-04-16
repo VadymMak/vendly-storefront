@@ -19,7 +19,7 @@ interface CropSuggestion {
   height: number;
 }
 
-interface HeroConfig {
+export interface HeroConfig {
   heroTextColor: string;
   heroOverlay: string;
   overlayOpacity: number;

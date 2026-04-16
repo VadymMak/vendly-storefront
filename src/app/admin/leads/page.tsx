@@ -126,19 +126,102 @@ function getHeadingFont(businessType: string): string {
   return 'inter';
 }
 
-function getTagline(businessType: string): string {
-  const map: Record<string, string> = {
-    auto:         'Profesionálny autoservis',
-    beauty:       'Salón krásy',
-    restaurant:   'Reštaurácia & Café',
-    medical:      'Zdravotnícka klinika',
-    fitness:      'Fitness & Wellness',
-    bar:          'Premium Lounge Bar',
-    photography:  'Profesionálna fotografia',
-    ecommerce:    'Online obchod',
-    other:        'Profesionálne služby',
+// Maps brief palette IDs (dark/light/warm/professional/natural/custom)
+// to template palette presets (dark-premium/clean-light/warm-cozy/...).
+// For businessType 'medical' we force 'medical' palette regardless.
+function mapPalette(briefPalette: string | null, businessType: string): string {
+  if (businessType === 'medical') return 'medical';
+  switch (briefPalette) {
+    case 'dark':         return 'dark-premium';
+    case 'light':        return 'clean-light';
+    case 'warm':         return 'warm-cozy';
+    case 'professional': return 'professional';
+    case 'natural':      return 'natural';
+    case 'custom':       return 'professional';
+    default:             return 'professional';
+  }
+}
+
+// Language-aware taglines. Falls back to English for unknown languages.
+function getTagline(businessType: string, language: string): string {
+  const map: Record<string, Record<string, string>> = {
+    sk: {
+      auto:         'Profesionálny autoservis',
+      beauty:       'Salón krásy',
+      restaurant:   'Reštaurácia & Café',
+      medical:      'Zdravotnícka klinika',
+      fitness:      'Fitness & Wellness',
+      bar:          'Premium Lounge Bar',
+      photography:  'Profesionálna fotografia',
+      ecommerce:    'Online obchod',
+      other:        'Profesionálne služby',
+    },
+    en: {
+      auto:         'Professional Auto Service',
+      beauty:       'Beauty Salon',
+      restaurant:   'Restaurant & Café',
+      medical:      'Medical Clinic',
+      fitness:      'Fitness & Wellness',
+      bar:          'Premium Lounge Bar',
+      photography:  'Professional Photography',
+      ecommerce:    'Online Shop',
+      other:        'Professional Services',
+    },
+    ru: {
+      auto:         'Профессиональный автосервис',
+      beauty:       'Салон красоты',
+      restaurant:   'Ресторан & Кафе',
+      medical:      'Медицинская клиника',
+      fitness:      'Фитнес & Wellness',
+      bar:          'Premium Lounge Bar',
+      photography:  'Профессиональная фотография',
+      ecommerce:    'Интернет-магазин',
+      other:        'Профессиональные услуги',
+    },
+    uk: {
+      auto:         'Професійний автосервіс',
+      beauty:       'Салон краси',
+      restaurant:   'Ресторан & Кафе',
+      medical:      'Медична клініка',
+      fitness:      'Фітнес & Wellness',
+      bar:          'Premium Lounge Bar',
+      photography:  'Професійна фотографія',
+      ecommerce:    'Інтернет-магазин',
+      other:        'Професійні послуги',
+    },
+    de: {
+      auto:         'Professionelle Autowerkstatt',
+      beauty:       'Schönheitssalon',
+      restaurant:   'Restaurant & Café',
+      medical:      'Medizinische Klinik',
+      fitness:      'Fitness & Wellness',
+      bar:          'Premium Lounge Bar',
+      photography:  'Professionelle Fotografie',
+      ecommerce:    'Online-Shop',
+      other:        'Professionelle Dienstleistungen',
+    },
+    cs: {
+      auto:         'Profesionální autoservis',
+      beauty:       'Salon krásy',
+      restaurant:   'Restaurace & Café',
+      medical:      'Zdravotnická klinika',
+      fitness:      'Fitness & Wellness',
+      bar:          'Premium Lounge Bar',
+      photography:  'Profesionální fotografie',
+      ecommerce:    'Internetový obchod',
+      other:        'Profesionální služby',
+    },
   };
-  return map[businessType] ?? 'Profesionálne služby';
+  const langMap = map[language] ?? map.en;
+  return langMap[businessType] ?? langMap.other;
+}
+
+function parsePhotos(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json) as unknown;
+    return Array.isArray(arr) ? (arr as string[]) : [];
+  } catch { return []; }
 }
 
 function extractRepoName(githubUrl: string | null): string {
@@ -148,44 +231,158 @@ function extractRepoName(githubUrl: string | null): string {
 }
 
 function buildPrompt(lead: Lead, repoName: string): string {
-  const phone = (lead.contact ?? '').replace(/[\s+\-()]/g, '');
-  const services = lead.services ?? '';
-  const servicesList = services
+  // ── Derived values ─────────────────────────────────────────────────────────
+  const phone        = (lead.contact ?? '').replace(/[\s+\-()]/g, '');
+  const templateType = getTemplateType(lead.businessType);
+  const palette      = mapPalette(lead.selectedPalette, lead.businessType);
+  const tagline      = getTagline(lead.businessType, lead.language);
+  const headingFont  = getHeadingFont(lead.businessType);
+  const businessName = lead.businessName ?? 'Business Name';
+  const name         = repoName || '{repoName}';
+  const isEcommerce  = lead.businessType === 'ecommerce';
+
+  // ── Services (from onboarding chat + additional from brief wishes) ─────────
+  const servicesRaw = [lead.services ?? '', lead.wishes ?? '']
+    .join('\n')
     .split(/[,\n]+/)
     .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => `  '${s}'`)
-    .join(',\n');
+    .filter(Boolean);
+  const servicesList = servicesRaw.length
+    ? servicesRaw.map((s) => `  - ${s}`).join('\n')
+    : '  - (нет услуг — спроси клиента)';
 
-  return `Кастомизируй vendshop-template для ${lead.businessType}.
+  // ── Photos + logo ──────────────────────────────────────────────────────────
+  const photos   = parsePhotos(lead.photoUrls);
+  const photosBlock = photos.length
+    ? photos.map((url, i) => `  ${i + 1}. ${url}`).join('\n')
+    : '  (клиент не загрузил фото — используй Unsplash URLs по нише)';
+  const logoBlock = lead.logoUrl
+    ? `LOGO_URL: ${lead.logoUrl}`
+    : 'LOGO: клиент не загрузил — используй текстовый логотип (businessName)';
 
-## lib/config.ts:
-name: '${lead.businessName ?? 'Business Name'}'
-tagline: '${getTagline(lead.businessType)}'
-templateType: '${getTemplateType(lead.businessType)}'
-palette: '${lead.selectedPalette ?? 'professional'}'
-headingFont: '${getHeadingFont(lead.businessType)}'
-whatsappNumber: '${phone}'
-contactEmail: '${lead.email ?? ''}'
+  // ── Handle ecommerce separately ────────────────────────────────────────────
+  if (isEcommerce) {
+    return `# VendShop site: ${businessName} (E-COMMERCE)
+# ⚠️ Использовать шаблон vendshop-ecommerce (НЕ vendshop-template)
+# Клиент: ${lead.contact} | Язык: ${lead.language}
+# Lead ID: ${lead.id}
 
-## lib/constants.ts:
-ADDRESS: ${lead.address ?? 'Адрес не указан'}
-WORKING_HOURS: ${lead.workingHours ?? 'Пн-Пт 9:00-18:00'}
-SERVICES: [
+## STEP 0 — Pre-flight
+1. Клонировать vendshop-ecommerce через GitHub "Use this template"
+2. Вызвать build_context_for_query: "vendshop ecommerce customization ${lead.businessType}"
+3. Читай ТОЛЬКО: lib/config.ts, lib/constants.ts, lib/ui-translations.ts
+   НЕ читай компоненты и страницы — архитектура уже правильная.
+
+## STEP 1 — lib/config.ts
+name:           '${businessName}'
+tagline:        '${tagline}'
+palette:        '${palette}'
+language:       '${lead.language}'
+whatsappNumber: '+${phone}'
+contactEmail:   '${lead.email ?? ''}'
+address:        '${lead.address ?? ''}'
+workingHours:   '${lead.workingHours ?? ''}'
+socialInstagram:'${lead.socialInstagram ?? ''}'
+socialFacebook: '${lead.socialFacebook ?? ''}'
+useLocalImages: false
+
+## STEP 2 — lib/constants.ts
+PRODUCTS (из онбординга + пожеланий):
 ${servicesList}
-]
-LANGUAGE: ${lead.language}
-SOCIAL_INSTAGRAM: ${lead.socialInstagram ?? ''}
-SOCIAL_FACEBOOK: ${lead.socialFacebook ?? ''}
 
-Пожелания клиента: ${lead.wishes ?? 'нет'}
-Референс: ${lead.referenceUrl ?? 'нет'}
+Для каждого товара нужно: name, description (1-2 предложения), price, image URL, category.
+Цены извлеки из wishes ниже — если формат "Товар - 50€" или прайс-лист по URL.
 
-USE_LOCAL_IMAGES = false
+## STEP 3 — Brand assets
+${logoBlock}
 
-pnpm install && npx tsc --noEmit && pnpm build
-git remote add origin https://github.com/VadymMak/${repoName || '{repoName}'}.git
-git push -u origin main`;
+PHOTOS (${photos.length}):
+${photosBlock}
+
+Prices PDF/image: ${lead.priceListUrl ?? 'нет — цены из wishes'}
+
+## STEP 4 — Client wishes
+${lead.wishes ?? '(клиент не оставил пожеланий)'}
+
+Reference: ${lead.referenceUrl ?? 'нет'}
+
+## STEP 5 — Deploy
+npx tsc --noEmit && pnpm build
+git remote add origin https://github.com/VadymMak/${name}.git
+git push -u origin main
+После Vercel deploy → добавь subdomain: ${name}.vendshop.shop`;
+  }
+
+  // ── Regular template (landing) ─────────────────────────────────────────────
+  return `# VendShop site: ${businessName}
+# Template: vendshop-template (templateType: ${templateType})
+# Клиент: ${lead.contact} | Язык: ${lead.language}
+# Lead ID: ${lead.id}
+
+## STEP 0 — Pre-flight (ОБЯЗАТЕЛЬНО)
+1. Клонировать vendshop-template через GitHub "Use this template" → название ${name}
+2. Вызвать build_context_for_query: "vendshop template customization ${lead.businessType}"
+3. Читай ТОЛЬКО эти файлы:
+   - lib/config.ts (палитра, язык, tagline, контакты)
+   - lib/constants.ts (услуги, фото, адрес)
+   - lib/ui-translations.ts (проверь что нужный язык есть)
+   НЕ читай компоненты/страницы — архитектура уже правильная, палитры протестированы.
+
+## STEP 1 — lib/config.ts
+export const SITE_CONFIG: SiteConfig = {
+  name:           '${businessName}',
+  tagline:        '${tagline}',
+  templateType:   '${templateType}',
+  palette:        '${palette}',              // пресет, не трогай цвета вручную
+  language:       '${lead.language}',        // ВСЕ UI-тексты из ui-translations.ts
+  headingFont:    '${headingFont}',
+  whatsappNumber: '+${phone}',
+  contactEmail:   '${lead.email ?? ''}',
+  address:        '${lead.address ?? ''}',
+  workingHours:   '${lead.workingHours ?? 'По договоренности'}',
+  socialInstagram:'${lead.socialInstagram ?? ''}',
+  socialFacebook: '${lead.socialFacebook ?? ''}',
+  heroStyle:      '${lead.selectedHero ?? 'fullscreen'}',  // fullscreen | split | centered
+  mood:           '${lead.selectedMood ?? 'modern'}',      // modern | cozy | strict
+  useLocalImages: false,
+};
+
+## STEP 2 — lib/constants.ts
+SERVICES (из онбординга + доп. из wishes):
+${servicesList}
+
+Для каждой услуги: name, description (1-2 предложения), price (если в wishes указана), duration (если релевантно).
+Если цен нет — поставь "По запросу" / "Na vyžiadanie" / "On request" в зависимости от языка.
+
+## STEP 3 — Brand assets
+${logoBlock}
+
+PHOTOS (${photos.length}):
+${photosBlock}
+
+Prices PDF/image: ${lead.priceListUrl ?? 'нет — цены из wishes'}
+
+## STEP 4 — Client context
+Пожелания: ${lead.wishes ?? '(нет)'}
+Референс: ${lead.referenceUrl ?? '(нет)'}
+Бизнес-тип: ${lead.businessType}
+${lead.selectedMood ? `Настроение: ${lead.selectedMood} — это влияет на копирайтинг (modern = краткий и профессиональный, cozy = тёплый и дружелюбный, strict = формальный и строгий)` : ''}
+
+## STEP 5 — Verify & deploy
+- npx tsc --noEmit
+- pnpm lint
+- pnpm build (должен пройти без ошибок)
+- git remote add origin https://github.com/VadymMak/${name}.git
+- git push -u origin main
+- Vercel → deploy → добавь subdomain: ${name}.vendshop.shop (CNAME уже настроен)
+
+## ⚠️ Checklist перед пушем
+- [ ] Все UI-тексты идут через t() из ui-translations.ts (не хардкод словацкого)
+- [ ] Палитра применена через getPalette() — не поменяны цвета руками
+- [ ] Все фото клиента использованы (или объяснено почему нет)
+- [ ] Логотип клиента подставлен (если есть)
+- [ ] Цены из wishes/прайс-листа попали в services
+- [ ] Контакты (WhatsApp, Instagram, FB) кликабельные`;
 }
 
 // ─── Lead Card ────────────────────────────────────────────────────────────────

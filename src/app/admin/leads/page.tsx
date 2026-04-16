@@ -230,6 +230,68 @@ function extractRepoName(githubUrl: string | null): string {
   return parts[parts.length - 1] ?? '';
 }
 
+// Strips emojis, variation selectors and ZWJs from user input.
+// Emoji come from onboarding chat button labels (✂️ Стрижки) and are NOT services.
+function stripEmojis(str: string): string {
+  return str.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').trim();
+}
+
+// Currency label per language — based on our target markets (SK/CZ/UA/DE).
+function getCurrency(language: string): string {
+  switch (language) {
+    case 'uk': return 'грн (UAH)';
+    case 'sk': return '€ (EUR)';
+    case 'cs': return 'Kč (CZK)';
+    case 'de': return '€ (EUR)';
+    case 'ru': return 'грн (UAH) если клиент из Украины, иначе € (EUR)';
+    case 'en':
+    default:   return '€ (EUR)';
+  }
+}
+
+// Concrete mood description — replaces vague "cozy" with actionable adjectives.
+// Per language so VSCode Claude writes copy directly in that language.
+function getMoodDescription(mood: string, language: string): string {
+  const descriptions: Record<string, Record<string, string>> = {
+    cozy: {
+      ru: 'тёплый, дружелюбный, уютный, персональный — используй эмоциональные слова, обращайся к клиенту на "ты" или мягко на "вы", как к другу',
+      uk: 'теплий, дружній, затишний, персональний — використовуй емоційні слова, звертайся до клієнта по-дружньому',
+      sk: 'teplý, priateľský, útulný, osobný — používaj emocionálne slová, oslovuj klienta ako priateľa',
+      en: 'warm, friendly, cozy, personal — use emotional language, address client as a friend',
+      de: 'warm, freundlich, gemütlich, persönlich — verwende emotionale Sprache',
+      cs: 'teplý, přátelský, útulný, osobní — používej emocionální slova',
+    },
+    modern: {
+      ru: 'минималистичный, профессиональный, краткий — факты и конкретика без лишних эмоций, обращение на "вы"',
+      uk: 'мінімалістичний, професійний, стислий — факти без зайвих емоцій',
+      sk: 'minimalistický, profesionálny, stručný — fakty bez emócií',
+      en: 'minimalistic, professional, concise — facts and specifics, no fluff',
+      de: 'minimalistisch, professionell, präzise — Fakten ohne Emotionen',
+      cs: 'minimalistický, profesionální, stručný — fakta bez emocí',
+    },
+    strict: {
+      ru: 'формальный, деловой, уважительный тон — обращение только на "Вы", корпоративная стилистика',
+      uk: 'формальний, діловий, шанобливий тон — тільки на "Ви"',
+      sk: 'formálny, obchodný, zdvorilý tón — výhradne vykanie',
+      en: 'formal, business-like, respectful tone — corporate style',
+      de: 'formell, geschäftlich, respektvoll — Siezen',
+      cs: 'formální, obchodní, zdvořilý tón — výhradně vykání',
+    },
+  };
+  return descriptions[mood]?.[language] ?? descriptions[mood]?.en ?? 'professional tone';
+}
+
+// Cleans onboarding chat selections: strips emojis, removes items that are
+// clearly UI buttons not services (Прайс, Запис, Price, Booking).
+function cleanChatServices(raw: string | null): string[] {
+  if (!raw) return [];
+  const junk = /^(прайс|прайс-лист|запис|запись|price|prices|pricing|booking|záznam|cennik|cennik|rezervácia|termin|termín)$/i;
+  return raw
+    .split(/[,\n]+/)
+    .map((s) => stripEmojis(s))
+    .filter((s) => s.length > 0 && !junk.test(s));
+}
+
 function buildPrompt(lead: Lead, repoName: string): string {
   // ── Derived values ─────────────────────────────────────────────────────────
   const phone        = (lead.contact ?? '').replace(/[\s+\-()]/g, '');
@@ -240,44 +302,61 @@ function buildPrompt(lead: Lead, repoName: string): string {
   const businessName = lead.businessName ?? 'Business Name';
   const name         = repoName || '{repoName}';
   const isEcommerce  = lead.businessType === 'ecommerce';
+  const mood         = lead.selectedMood ?? 'modern';
+  const moodDesc     = getMoodDescription(mood, lead.language);
+  const currency     = getCurrency(lead.language);
 
-  // ── Services (from onboarding chat + additional from brief wishes) ─────────
-  const servicesRaw = [lead.services ?? '', lead.wishes ?? '']
-    .join('\n')
-    .split(/[,\n]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const servicesList = servicesRaw.length
-    ? servicesRaw.map((s) => `  - ${s}`).join('\n')
-    : '  - (нет услуг — спроси клиента)';
+  // ── Services (clean onboarding list — emojis stripped, UI buttons filtered)
+  const services = cleanChatServices(lead.services);
+  const servicesList = services.length
+    ? services.map((s) => `  - ${s}`).join('\n')
+    : '  (клиент не выбрал услуги в онбординге — извлеки из wishes или спроси)';
 
   // ── Photos + logo ──────────────────────────────────────────────────────────
   const photos   = parsePhotos(lead.photoUrls);
   const photosBlock = photos.length
     ? photos.map((url, i) => `  ${i + 1}. ${url}`).join('\n')
-    : '  (клиент не загрузил фото — используй Unsplash URLs по нише)';
+    : '  (клиент не загрузил фото — используй Unsplash URLs по нише, с фильтром по полу/возрасту клиентуры)';
   const logoBlock = lead.logoUrl
     ? `LOGO_URL: ${lead.logoUrl}`
-    : 'LOGO: клиент не загрузил — используй текстовый логотип (businessName)';
+    : 'LOGO: клиент не загрузил — используй текстовый логотип (businessName) в шрифте headingFont';
+
+  // ── Name/tagline language check ────────────────────────────────────────────
+  // Detect obvious language mismatch (Cyrillic name on Latin-only language etc.)
+  const nameIsCyrillic    = /[А-ЯЁІЇЄҐа-яёіїєґ]/.test(businessName);
+  const langUsesCyrillic  = ['uk', 'ru'].includes(lead.language);
+  const langUsesLatin     = ['sk', 'cs', 'en', 'de'].includes(lead.language);
+  const nameMismatchWarn  =
+    (nameIsCyrillic && langUsesLatin) || (!nameIsCyrillic && langUsesCyrillic && businessName !== 'Business Name')
+      ? `\n⚠️ ВНИМАНИЕ: businessName "${businessName}" написано в алфавите, отличном от language="${lead.language}". Если клиент не уточнил — оставь как есть (это официальное название бренда). НЕ переводи без уверенности.`
+      : '';
 
   // ── Handle ecommerce separately ────────────────────────────────────────────
   if (isEcommerce) {
-    return `# VendShop site: ${businessName} (E-COMMERCE)
-# ⚠️ Использовать шаблон vendshop-ecommerce (НЕ vendshop-template)
-# Клиент: ${lead.contact} | Язык: ${lead.language}
-# Lead ID: ${lead.id}
+    return `# VendShop E-COMMERCE: ${businessName}
+# ⚠️ Шаблон: vendshop-ecommerce (НЕ vendshop-template)
+# Клиент: ${lead.contact} | Язык: ${lead.language} | Валюта: ${currency}
+# Lead ID: ${lead.id}${nameMismatchWarn}
 
-## STEP 0 — Pre-flight
-1. Клонировать vendshop-ecommerce через GitHub "Use this template"
-2. Вызвать build_context_for_query: "vendshop ecommerce customization ${lead.businessType}"
-3. Читай ТОЛЬКО: lib/config.ts, lib/constants.ts, lib/ui-translations.ts
-   НЕ читай компоненты и страницы — архитектура уже правильная.
+## STEP 0 — Жёсткие правила
+
+### Что делать
+1. Клонировать vendshop-ecommerce через GitHub "Use this template" → имя: ${name}
+2. Вызвать build_context_for_query (multi-ai-chat MCP): "vendshop ecommerce customization ${lead.businessType}"
+3. Редактировать ТОЛЬКО: lib/config.ts, lib/constants.ts, lib/ui-translations.ts
+
+### Что НЕ делать
+- НЕ трогать компоненты, страницы, корзину, чекаут — архитектура уже работает
+- НЕ переписывать существующие переводы в ui-translations.ts — только ДОБАВЛЯЙ недостающие ключи
+- НЕ придумывать товары — используй ТОЛЬКО то что указано ниже
+- НЕ копировать цвета/шрифты/структуру с Reference URL — только идею настроения
 
 ## STEP 1 — lib/config.ts
 name:           '${businessName}'
 tagline:        '${tagline}'
 palette:        '${palette}'
 language:       '${lead.language}'
+currency:       '${currency.split(' ')[0]}'
 whatsappNumber: '+${phone}'
 contactEmail:   '${lead.email ?? ''}'
 address:        '${lead.address ?? ''}'
@@ -286,55 +365,65 @@ socialInstagram:'${lead.socialInstagram ?? ''}'
 socialFacebook: '${lead.socialFacebook ?? ''}'
 useLocalImages: false
 
-## STEP 2 — lib/constants.ts
-PRODUCTS (из онбординга + пожеланий):
+## STEP 2 — PRODUCTS (из онбординга)
 ${servicesList}
 
-Для каждого товара нужно: name, description (1-2 предложения), price, image URL, category.
-Цены извлеки из wishes ниже — если формат "Товар - 50€" или прайс-лист по URL.
-
-## STEP 3 — Brand assets
-${logoBlock}
-
-PHOTOS (${photos.length}):
-${photosBlock}
-
-Prices PDF/image: ${lead.priceListUrl ?? 'нет — цены из wishes'}
-
-## STEP 4 — Client wishes
+## STEP 3 — Цены и дополнения (сырой текст от клиента)
 ${lead.wishes ?? '(клиент не оставил пожеланий)'}
 
-Reference: ${lead.referenceUrl ?? 'нет'}
+Распарси: прайс (${currency}) → привяжи к товарам; feature-пожелания ("онлайн оплата", "доставка") → в FAQ или /about.
+
+## STEP 4 — Brand assets
+${logoBlock}
+PHOTOS (${photos.length}):
+${photosBlock}
+Price list: ${lead.priceListUrl ?? 'нет'}
 
 ## STEP 5 — Deploy
 npx tsc --noEmit && pnpm build
 git remote add origin https://github.com/VadymMak/${name}.git
 git push -u origin main
-После Vercel deploy → добавь subdomain: ${name}.vendshop.shop`;
+Vercel → subdomain: ${name}.vendshop.shop`;
   }
 
   // ── Regular template (landing) ─────────────────────────────────────────────
-  return `# VendShop site: ${businessName}
-# Template: vendshop-template (templateType: ${templateType})
-# Клиент: ${lead.contact} | Язык: ${lead.language}
-# Lead ID: ${lead.id}
+  return `# VendShop Landing: ${businessName}
+# Шаблон: vendshop-template (templateType: ${templateType})
+# Клиент: ${lead.contact} | Язык: ${lead.language} | Валюта: ${currency}
+# Lead ID: ${lead.id}${nameMismatchWarn}
 
-## STEP 0 — Pre-flight (ОБЯЗАТЕЛЬНО)
-1. Клонировать vendshop-template через GitHub "Use this template" → название ${name}
-2. Вызвать build_context_for_query: "vendshop template customization ${lead.businessType}"
-3. Читай ТОЛЬКО эти файлы:
-   - lib/config.ts (палитра, язык, tagline, контакты)
-   - lib/constants.ts (услуги, фото, адрес)
-   - lib/ui-translations.ts (проверь что нужный язык есть)
-   НЕ читай компоненты/страницы — архитектура уже правильная, палитры протестированы.
+## STEP 0 — Жёсткие правила (прочти первым, следуй строго)
+
+### ✅ ЧТО ДЕЛАТЬ
+1. Клонировать vendshop-template через GitHub "Use this template" → имя репо: ${name}
+2. Вызвать build_context_for_query (multi-ai-chat MCP) с query:
+   "vendshop template customization ${lead.businessType} ${lead.language}"
+3. Читать и редактировать ТОЛЬКО три файла:
+   - lib/config.ts  (палитра, язык, tagline, контакты, hero, mood)
+   - lib/constants.ts  (SERVICES array, GALLERY_IMAGES, BUSINESS_INFO)
+   - lib/ui-translations.ts  (убедись что ключи языка "${lead.language}" есть — ДОБАВЛЯЙ недостающие, НЕ переписывай существующие)
+
+### ❌ ЧТО НЕ ДЕЛАТЬ
+- НЕ читать и НЕ менять компоненты/страницы/анимации — всё уже работает
+- НЕ переписывать уже существующие переводы в ui-translations.ts
+- НЕ придумывать услуги — используй ТОЛЬКО список из STEP 2
+- НЕ добавлять эмодзи в названия услуг (они были в онбординге только как иконки кнопок)
+- НЕ копировать с Reference URL цвета, шрифты, структуру — бери ТОЛЬКО общее настроение
+- НЕ менять цвета палитры вручную — использовать \`palette: '${palette}'\` и всё
+
+### 📏 ПРАВИЛА КАЧЕСТВА
+- Все UI-тексты через t() из ui-translations.ts — НИКАКОГО хардкода словацкого/английского
+- Все тексты сайта (SERVICES.description, ABOUT, FAQ, CTA) на языке "${lead.language}"
+- Валюта для цен: ${currency}
+- Mood: ${mood} — копирайтинг должен быть ${moodDesc}
 
 ## STEP 1 — lib/config.ts
 export const SITE_CONFIG: SiteConfig = {
   name:           '${businessName}',
   tagline:        '${tagline}',
   templateType:   '${templateType}',
-  palette:        '${palette}',              // пресет, не трогай цвета вручную
-  language:       '${lead.language}',        // ВСЕ UI-тексты из ui-translations.ts
+  palette:        '${palette}',              // пресет, цвета уже правильные
+  language:       '${lead.language}',        // основной язык сайта
   headingFont:    '${headingFont}',
   whatsappNumber: '+${phone}',
   contactEmail:   '${lead.email ?? ''}',
@@ -343,46 +432,77 @@ export const SITE_CONFIG: SiteConfig = {
   socialInstagram:'${lead.socialInstagram ?? ''}',
   socialFacebook: '${lead.socialFacebook ?? ''}',
   heroStyle:      '${lead.selectedHero ?? 'fullscreen'}',  // fullscreen | split | centered
-  mood:           '${lead.selectedMood ?? 'modern'}',      // modern | cozy | strict
+  mood:           '${mood}',                               // ${mood} = ${moodDesc.split(' — ')[0]}
   useLocalImages: false,
 };
 
 ## STEP 2 — lib/constants.ts
-SERVICES (из онбординга + доп. из wishes):
+
+### SERVICES (из онбординга — эмодзи убраны, кнопки вроде "Прайс" отфильтрованы)
+Используй ЭТИ названия дословно (переведи на ${lead.language} если нужно):
 ${servicesList}
 
-Для каждой услуги: name, description (1-2 предложения), price (если в wishes указана), duration (если релевантно).
-Если цен нет — поставь "По запросу" / "Na vyžiadanie" / "On request" в зависимости от языка.
+Структура каждого элемента массива:
+{
+  name:        '...' на ${lead.language},
+  description: '...' 1-2 предложения, тон: ${mood},
+  price:       '... ${currency.split(' ')[0]}' (извлеки из STEP 3),
+  duration:    '...' если применимо (например "30 мин"),
+}
 
-## STEP 3 — Brand assets
-${logoBlock}
-
-PHOTOS (${photos.length}):
+### GALLERY_IMAGES — используй ВСЕ ${photos.length} фото
 ${photosBlock}
 
-Prices PDF/image: ${lead.priceListUrl ?? 'нет — цены из wishes'}
+### BUSINESS_INFO
+${logoBlock}
+Price list: ${lead.priceListUrl ?? '(нет)'}
 
-## STEP 4 — Client context
-Пожелания: ${lead.wishes ?? '(нет)'}
-Референс: ${lead.referenceUrl ?? '(нет)'}
-Бизнес-тип: ${lead.businessType}
-${lead.selectedMood ? `Настроение: ${lead.selectedMood} — это влияет на копирайтинг (modern = краткий и профессиональный, cozy = тёплый и дружелюбный, strict = формальный и строгий)` : ''}
+## STEP 3 — Сырой текст от клиента (wishes) — распарсить
+\`\`\`
+${lead.wishes ?? '(клиент не оставил пожеланий)'}
+\`\`\`
 
-## STEP 5 — Verify & deploy
-- npx tsc --noEmit
-- pnpm lint
-- pnpm build (должен пройти без ошибок)
-- git remote add origin https://github.com/VadymMak/${name}.git
-- git push -u origin main
-- Vercel → deploy → добавь subdomain: ${name}.vendshop.shop (CNAME уже настроен)
+Из этого текста извлеки:
+1. **Цены** (${currency}) → прикрепи к соответствующим услугам из SERVICES
+2. **Feature-пожелания** ("онлайн запись", "мультиязычность") → добавь в FAQ или секцию "Что мы предлагаем"
+3. **Языковые пожелания** ("сайт на русском и английском") → это уже решено через language="${lead.language}", игнорируй или добавь пометку в FAQ
 
-## ⚠️ Checklist перед пушем
-- [ ] Все UI-тексты идут через t() из ui-translations.ts (не хардкод словацкого)
-- [ ] Палитра применена через getPalette() — не поменяны цвета руками
-- [ ] Все фото клиента использованы (или объяснено почему нет)
-- [ ] Логотип клиента подставлен (если есть)
-- [ ] Цены из wishes/прайс-листа попали в services
-- [ ] Контакты (WhatsApp, Instagram, FB) кликабельные`;
+## STEP 4 — Настроение и референс
+
+**Mood: ${mood}** → ${moodDesc}
+
+**Reference: ${lead.referenceUrl ?? '(нет)'}**
+Взять ТОЛЬКО: общее ощущение, структуру секций, идеи для CTA.
+НЕ копировать: цвета, шрифты, конкретные тексты, картинки.
+
+**Бизнес-тип: ${lead.businessType}** — учитывай целевую аудиторию при выборе tone of voice.
+
+## STEP 5 — SEO (секция в app/layout.tsx — только metadata)
+- title: "${businessName} — ${tagline}${lead.address ? ' | ' + lead.address.split(',')[0] : ''}"
+- description: 1 предложение на ${lead.language} — кто мы, что делаем, где находимся
+- openGraph: image = первое фото из GALLERY_IMAGES, locale = "${lead.language}"
+
+## STEP 6 — Verify & deploy
+1. npx tsc --noEmit  (должен пройти без ошибок)
+2. pnpm lint  (без warnings)
+3. pnpm build  (без ошибок)
+4. git remote add origin https://github.com/VadymMak/${name}.git
+5. git push -u origin main
+6. Vercel deploy → добавить subdomain: ${name}.vendshop.shop (wildcard CNAME уже настроен)
+
+## ⚠️ ЖЁСТКИЙ CHECKLIST — пройди перед пушем
+- [ ] Все UI-тексты через t() — ни одной строки на словацком если language != 'sk'
+- [ ] Существующие переводы в ui-translations.ts НЕ переписаны
+- [ ] Палитра: только \`palette: '${palette}'\` — цвета руками НЕ трогал
+- [ ] SERVICES: ${services.length > 0 ? services.length : 'N'} услуг, все названия без эмодзи
+- [ ] Услуги НЕ придуманы — только из STEP 2
+- [ ] Все ${photos.length} фото клиента использованы в GALLERY_IMAGES
+- [ ] Логотип: ${lead.logoUrl ? 'подставлен из LOGO_URL' : 'текстовый (клиент не загрузил)'}
+- [ ] Цены в ${currency} привязаны к услугам
+- [ ] WhatsApp +${phone} кликабельный, ведёт на wa.me/${phone}
+- [ ] SEO metadata заполнена на языке ${lead.language}
+- [ ] Reference URL НЕ скопирован (цвета/шрифты/структура — свои)
+- [ ] Сайт визуально проверен на mobile (шаблон responsive, но убедись)`;
 }
 
 // ─── Lead Card ────────────────────────────────────────────────────────────────

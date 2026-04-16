@@ -43,6 +43,14 @@ interface Lead {
   briefSubmitted:    boolean;
   briefSubmittedAt: string | null;
   notes:           string | null;
+  // Site Automation
+  siteRepoUrl:     string | null;
+  siteRepoName:    string | null;
+  siteVercelUrl:   string | null;
+  siteStatus:      string | null;
+  siteError:       string | null;
+  siteCreatedAt:   string | null;
+  siteQaReport:    string | null;
   createdAt:       string;
   updatedAt:       string;
 }
@@ -569,6 +577,12 @@ function LeadCard({
   const [repoName, setRepoName]     = useState(() => extractRepoName(lead.githubRepo));
   const [promptCopied, setPromptCopied] = useState(false);
   const [promptText, setPromptText]     = useState<string | null>(null);
+  const [siteCreating, setSiteCreating] = useState(false);
+  const [siteError, setSiteError]       = useState<string | null>(null);
+  // Local optimistic overrides for site fields
+  const [siteStatus, setSiteStatus]     = useState<string | null>(lead.siteStatus ?? 'none');
+  const [siteRepoUrl, setSiteRepoUrl]   = useState<string | null>(lead.siteRepoUrl);
+  const [siteVercelUrl, setSiteVercelUrl] = useState<string | null>(lead.siteVercelUrl);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -610,6 +624,39 @@ function LeadCard({
       body:    JSON.stringify({ id: lead.id }),
     });
     onDelete(lead.id);
+  }
+
+  async function createSite() {
+    setSiteCreating(true);
+    setSiteError(null);
+    setSiteStatus('creating');
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/create-site`, { method: 'POST' });
+      const data = await res.json() as { success?: boolean; repoUrl?: string; vercelUrl?: string; error?: string };
+      if (!res.ok) {
+        const msg = data.error ?? `HTTP ${res.status}`;
+        setSiteStatus('error');
+        setSiteError(msg);
+        onUpdate(lead.id, { siteStatus: 'error', siteError: msg });
+      } else {
+        setSiteStatus('created');
+        setSiteRepoUrl(data.repoUrl ?? null);
+        setSiteVercelUrl(data.vercelUrl ?? null);
+        onUpdate(lead.id, {
+          siteStatus:   'created',
+          siteRepoUrl:  data.repoUrl ?? null,
+          siteVercelUrl: data.vercelUrl ?? null,
+          siteError:    null,
+        });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setSiteStatus('error');
+      setSiteError(msg);
+      onUpdate(lead.id, { siteStatus: 'error', siteError: msg });
+    } finally {
+      setSiteCreating(false);
+    }
   }
 
   const meta = STATUS_META[lead.status] ?? STATUS_META.new;
@@ -1060,6 +1107,124 @@ function LeadCard({
               </div>
             </div>
           </div>
+
+            {/* ── Site Automation ── */}
+            <div className="sm:col-span-2">
+              <div className="rounded-xl border border-[#374151] bg-[#0B1120] p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                  Автоматизация сайта
+                </p>
+
+                {/* Status block — show when status is not "none" */}
+                {siteStatus && siteStatus !== 'none' && (
+                  <div className="mb-3 space-y-2">
+                    {siteStatus === 'creating' && (
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-400 border border-yellow-800/50">
+                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                          Создаётся...
+                        </span>
+                      </div>
+                    )}
+
+                    {siteStatus === 'created' && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/50 px-3 py-1 text-xs font-medium text-green-400 border border-green-800/50">
+                          <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                          </svg>
+                          Создан
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {siteRepoUrl && (
+                            <a
+                              href={siteRepoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors"
+                            >
+                              {/* GitHub icon */}
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                              </svg>
+                              GitHub
+                              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                              </svg>
+                            </a>
+                          )}
+                          {siteVercelUrl && (
+                            <a
+                              href={siteVercelUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors"
+                            >
+                              {/* Vercel triangle icon */}
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M24 22.525H0l12-21.05 12 21.05z"/>
+                              </svg>
+                              Vercel Preview
+                              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {siteStatus === 'error' && (
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-900/50 px-3 py-1 text-xs font-medium text-red-400 border border-red-800/50">
+                          <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                          </svg>
+                          Ошибка
+                        </span>
+                        {(siteError ?? lead.siteError) && (
+                          <p className="rounded-lg bg-red-950/30 border border-red-900/50 px-3 py-2 font-mono text-[10px] text-red-400 break-all">
+                            {siteError ?? lead.siteError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Create Site button — show when none or error */}
+                {(siteStatus === 'none' || siteStatus === null || siteStatus === 'error') && (
+                  <button
+                    onClick={() => void createSite()}
+                    disabled={siteCreating}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {siteCreating ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        Создание...
+                      </>
+                    ) : (
+                      <>
+                        {/* GitHub icon */}
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                        </svg>
+                        {siteStatus === 'error' ? 'Повторить' : 'Создать сайт'}
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
 
           {/* ── Action bar ── */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

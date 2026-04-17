@@ -247,13 +247,16 @@ export async function POST(
       selectedPalette: lead.selectedPalette,
     };
     const configTs = generateConfigTs(configInput);
-    console.log('[create-site] Step 7: config.ts generated, length:', configTs.length);
+    // Derive templateType the same way generate-config.ts does — share the logic
+    const templateType = ['restaurant', 'food'].includes(lead.businessType) ? 'menu' : 'services';
+    console.log('[create-site] Step 7: config.ts generated, templateType:', templateType, 'length:', configTs.length);
 
     // Step 8 — Generate constants.ts with Claude (FATAL if fails — don't create repo)
     console.log('[create-site] Step 8: Generating constants.ts with Claude (ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY, ')');
     const constantsInput: LeadConstantsInput = {
       businessName:      lead.businessName,
       businessType:      lead.businessType,
+      templateType,
       contact:           lead.contact,
       email:             lead.email,
       language:          lead.language,

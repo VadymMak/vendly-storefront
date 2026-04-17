@@ -57,8 +57,12 @@ const VALID_LANGS: SiteLanguage[] = ['sk', 'en', 'de', 'cs', 'uk', 'ru'];
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function generateConfigTs(lead: LeadConfigInput): string {
   const preset  = BUSINESS_TYPE_PRESET[lead.businessType] ?? DEFAULT_PRESET;
-  const palette: PalettePreset =
-    (lead.selectedPalette && PALETTE_MAP[lead.selectedPalette]) || preset.palette;
+  // Empty string is falsy in intent but truthy in JS — trim + explicit check
+  const mappedPalette = lead.selectedPalette?.trim()
+    ? PALETTE_MAP[lead.selectedPalette.trim()]
+    : undefined;
+  console.log('[generate-config] selectedPalette:', JSON.stringify(lead.selectedPalette), '→ mapped:', mappedPalette, '→ preset:', preset.palette);
+  const palette: PalettePreset = mappedPalette ?? preset.palette;
   const headingFont: HeadingFont = preset.headingFont;
 
   const templateType: TemplateType =

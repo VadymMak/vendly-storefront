@@ -9,6 +9,7 @@ import Anthropic from '@anthropic-ai/sdk';
 export interface LeadConstantsInput {
   businessName:      string | null;
   businessType:      string;
+  templateType:      string;         // 'services' | 'menu' | 'schedule' | 'portfolio'
   contact:           string;
   email:             string | null;
   language:          string;
@@ -141,6 +142,7 @@ function ensureServiceFields(code: string): string {
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(lead: LeadConstantsInput, templateConstants: string): string {
+  const isMenuType = lead.templateType === 'menu';
   // Parse photoUrls safely
   let photoList = '(none provided — use Unsplash placeholders)';
   if (lead.photoUrls) {
@@ -204,7 +206,15 @@ ${photoList}
 - IMAGES.hero and IMAGES.about: use a relevant Unsplash URL for "${lead.businessType}" (unless photos provided)
 - IMAGES.gallery: MUST use ALL provided photo URLs below as-is (copy each URL exactly). If zero photos provided, use 5 relevant Unsplash URLs for "${lead.businessType}"
 - HERO: generate \`export const HERO = { title: '...', subtitle: '...' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}"
-- SERVICE_CATEGORIES: fill from brief services above; if none, generate 2-3 realistic categories for "${lead.businessType}"
+${isMenuType
+  ? `- templateType is 'menu' → fill MENU_CATEGORIES from brief services. Keep SERVICE_CATEGORIES = []
+- MenuCategory → EXACTLY 3 fields: id, name, items
+- MenuItem → EXACTLY 4 fields: id, name, description, price (NO icon field)
+  CORRECT: { id: '1-1', name: 'Dish', description: 'Short desc', price: '10€' }
+  WRONG:   { id: '1-1', name: 'Dish', price: '10€' }
+  → ALL 4 fields REQUIRED. NO 'icon' on MenuItem.`
+  : `- templateType is 'services' → fill SERVICE_CATEGORIES from brief services; if none, generate 2-3 realistic categories for "${lead.businessType}". Keep MENU_CATEGORIES = []`
+}
 - CONTACT_ITEMS: use real address/phone/email/hours from business data; leave lines empty ('') if not provided
 - REVIEWS: 4 realistic placeholder reviews in language "${lead.language}"
 - FAQ_ITEMS: 5 relevant questions for "${lead.businessType}" in language "${lead.language}"
@@ -230,14 +240,19 @@ Review → EXACTLY 6 fields: id, name, initial, text, rating, detail
   WRONG:   { id: '1', name: 'Jan Novák', text: 'Great!', rating: 5 }
   → 'initial' = first letter of name. 'detail' = short context. NO 'date' field.
 
-=== FEW-SHOT EXAMPLE (food, Ukrainian) ===
+=== FEW-SHOT EXAMPLE (food/menu type, Ukrainian) ===
 import type {
   NavItem, StatItem, WhyItem, GalleryImage, Review,
   ContactItem, FaqItem, ChatConfig, ServiceCategory,
-  DaySchedule, MenuCategory, ImageMap,
+  DaySchedule, MenuCategory, ImageMap, HeroContent,
 } from './types';
 
 export const USE_LOCAL_IMAGES = false;
+
+export const HERO: HeroContent = {
+  title: 'Смачна Кухня',
+  subtitle: 'Найкращі страви з натуральних інгредієнтів. Затишна атмосфера та швидке обслуговування.',
+};
 
 export const IMAGES: ImageMap = {
   hero: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&q=80',
@@ -251,26 +266,32 @@ export const IMAGES: ImageMap = {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Головна',  href: '#hero'     },
-  { label: 'Меню',     href: '#services' },
+  { label: 'Меню',     href: '#menu'     },
   { label: 'Відгуки',  href: '#reviews'  },
   { label: 'Контакти', href: '#contact'  },
 ];
 
-export const SERVICE_CATEGORIES: ServiceCategory[] = [
+// templateType = 'menu' → SERVICE_CATEGORIES is empty, MENU_CATEGORIES is filled
+export const SERVICE_CATEGORIES: ServiceCategory[] = [];
+
+export const MENU_CATEGORIES: MenuCategory[] = [
   {
     id: '1',
     name: 'Основні страви',
     items: [
-      { id: '1-1', name: 'Борщ',     description: 'Традиційний борщ',    price: '80 грн', icon: '🍲' },
-      { id: '1-2', name: 'Вареники', description: 'З картоплею і грибами', price: '90 грн', icon: '🥟' },
+      { id: '1-1', name: 'Борщ',     description: 'Традиційний борщ зі сметаною',      price: '80 грн' },
+      { id: '1-2', name: 'Вареники', description: 'З картоплею і грибами, зі сметаною', price: '90 грн' },
+    ],
+  },
+  {
+    id: '2',
+    name: 'Напої',
+    items: [
+      { id: '2-1', name: 'Компот', description: 'Домашній компот із сухофруктів', price: '30 грн' },
+      { id: '2-2', name: 'Чай',    description: 'Чорний або зелений чай',        price: '25 грн' },
     ],
   },
 ];
-
-export const HERO = {
-  title: 'Смачна Кухня',
-  subtitle: 'Найкращі страви з натуральних інгредієнтів. Затишна атмосфера та швидке обслуговування.',
-};
 
 export const REVIEWS: Review[] = [
   {
@@ -329,7 +350,11 @@ export async function generateConstantsTs(
   const code = ensureServiceFields(withImports);
 
   // Basic validation — ensure required exports are present
-  const required = ['SERVICE_CATEGORIES', 'NAV_ITEMS', 'REVIEWS', 'FAQ_ITEMS', 'HERO'];
+  const isMenuType = ['food', 'restaurant'].includes(lead.businessType);
+  const required = [
+    isMenuType ? 'MENU_CATEGORIES' : 'SERVICE_CATEGORIES',
+    'NAV_ITEMS', 'REVIEWS', 'FAQ_ITEMS', 'HERO',
+  ];
   const missing  = required.filter((key) => !code.includes(key));
   if (missing.length > 0) {
     console.error('[generate-constants] Missing required exports:', missing.join(', '));

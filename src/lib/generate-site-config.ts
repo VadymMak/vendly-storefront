@@ -172,6 +172,14 @@ Use them exactly as provided in config.ts:
   textPosition:   ${heroConfig.textPosition}
 Do NOT override or guess these values.
 ` : ''}
+⚠️ CRITICAL — APOSTROPHES IN STRINGS:
+All string values use single quotes in TypeScript. If any text contains an apostrophe (e.g. Ukrainian "об'єму", "зв'яжіться", "п'ятницю", Russian "д'Артаньян"), you MUST escape it as \\' — otherwise the build will fail with a syntax error.
+Examples:
+  WRONG:  description: 'Доставка води об'єму 19 л'
+  CORRECT: description: 'Доставка води об\\'єму 19 л'
+  WRONG:  text: 'Зв'яжіться з нами'
+  CORRECT: text: 'Зв\\'яжіться з нами'
+
 Return ONLY valid JSON (no markdown, no code fences) matching this exact structure:
 {"configTs": "<full content of config.ts>", "constantsTs": "<full content of constants.ts>"}`;
 }

@@ -107,6 +107,11 @@ const PACKAGE_OPTIONS = [
   { value: 'individual', label: 'Individual (€799)' },
 ];
 
+const BUSINESS_TYPE_OPTIONS = [
+  'food', 'restaurant', 'beauty', 'repair', 'services',
+  'home_services', 'digital', 'education', 'health', 'physical', 'ecommerce',
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDateInputValue(iso: string | null): string {
@@ -770,9 +775,15 @@ function LeadCard({
               </Field>
 
               <Field label="Тип бизнеса">
-                <p className="rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2 text-sm text-gray-300">
-                  {lead.businessType}
-                </p>
+                <select
+                  className={inputCls}
+                  value={val('businessType') as string}
+                  onChange={(e) => set('businessType', e.target.value)}
+                >
+                  {BUSINESS_TYPE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </Field>
 
               <Field label="Контакт">

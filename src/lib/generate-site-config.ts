@@ -184,6 +184,28 @@ Return ONLY valid JSON (no markdown, no code fences) matching this exact structu
 {"configTs": "<full content of config.ts>", "constantsTs": "<full content of constants.ts>"}`;
 }
 
+// ─── JSON extraction ─────────────────────────────────────────────────────────
+
+/**
+ * Try multiple strategies to extract a valid JSON object from Claude's response.
+ * Claude sometimes wraps JSON in markdown fences or adds prose before/after.
+ */
+function extractJSON(text: string): string {
+  // 1. Extract from ```json ... ``` or ``` ... ``` fences
+  const fenceMatch = text.match(/```(?:json|typescript|ts)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) return fenceMatch[1].trim();
+
+  // 2. Find the outermost { ... } span
+  const firstBrace = text.indexOf('{');
+  const lastBrace  = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return text.substring(firstBrace, lastBrace + 1);
+  }
+
+  // 3. Return trimmed as-is and let JSON.parse surface the real error
+  return text.trim();
+}
+
 // ─── Main function ────────────────────────────────────────────────────────────
 
 export async function generateSiteConfig(
@@ -211,18 +233,17 @@ export async function generateSiteConfig(
     throw new Error('Unexpected response type from Anthropic API');
   }
 
-  const raw = firstContent.text.trim();
+  const raw = firstContent.text;
+  console.log('[generate-config] Raw Claude response (first 500 chars):', raw.substring(0, 500));
 
-  // Strip markdown code fences if model wrapped JSON in them
-  const cleaned = raw
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
+  const cleaned = extractJSON(raw);
+  console.log('[generate-config] Cleaned text (first 500 chars):', cleaned.substring(0, 500));
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned);
   } catch {
+    console.error('[generate-config] Failed to parse. Full response:', raw);
     throw new Error(`Failed to parse JSON from Claude response. Raw output:\n${raw.slice(0, 500)}`);
   }
 

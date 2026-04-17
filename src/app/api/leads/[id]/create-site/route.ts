@@ -22,12 +22,24 @@ interface VercelProjectResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function slugify(text: string): string {
+const CYRILLIC_MAP: Record<string, string> = {
+  а:'a', б:'b', в:'v', г:'g', д:'d', е:'e', ж:'zh', з:'z', и:'i', й:'y',
+  к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t', у:'u',
+  ф:'f', х:'kh', ц:'ts', ч:'ch', ш:'sh', щ:'shch', ъ:'', ы:'y', ь:'',
+  э:'e', ю:'yu', я:'ya', і:'i', ї:'yi', є:'ye', ґ:'g',
+};
+
+function transliterate(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/-{2,}/g, '-')
+    .split('')
+    .map((ch) => CYRILLIC_MAP[ch] ?? ch)
+    .join('');
+}
+
+function slugify(text: string): string {
+  return transliterate(text)
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
 
@@ -37,7 +49,6 @@ function randomSuffix(): string {
 
 function buildRepoName(businessName: string | null | undefined, businessType: string): string {
   let base = slugify(businessName ?? '');
-  if (!base || base.startsWith('-')) base = base.replace(/^-+/, '');
   if (!base) base = 'site';
   if (!/^[a-z0-9]/.test(base)) base = 'site';
   const type = slugify(businessType);
@@ -79,6 +90,9 @@ export async function POST(
   const GITHUB_OWNER       = process.env.GITHUB_OWNER;
   const GITHUB_TEMPLATE_REPO = process.env.GITHUB_TEMPLATE_REPO;
   const VERCEL_TOKEN       = process.env.VERCEL_TOKEN;
+  const ANTHROPIC_API_KEY  = process.env.ANTHROPIC_API_KEY;
+
+  console.log('[create-site] ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY);
 
   const missingVars = [
     !GITHUB_TOKEN        && 'GITHUB_TOKEN',
@@ -120,6 +134,7 @@ export async function POST(
   await db.lead.update({ where: { id }, data: { siteStatus: 'creating' } });
 
   let repoName = buildRepoName(lead.businessName, lead.businessType);
+  console.log('[create-site] Step 1: Creating GitHub repo:', repoName);
 
   try {
     // Step 4 — Create GitHub repo from template
@@ -139,6 +154,7 @@ export async function POST(
     if (githubRes.status === 422) {
       // Name collision — append random suffix and retry
       repoName = `${repoName}-${randomSuffix()}`;
+      console.log('[create-site] Step 1: Name collision, retrying with:', repoName);
       const retryRes = await fetch(
         `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
         {
@@ -166,6 +182,7 @@ export async function POST(
     // Step 5 — Wait for GitHub to finish generating from template
     await new Promise<void>((resolve) => setTimeout(resolve, 3000));
 
+    console.log('[create-site] Step 2: Creating Vercel project');
     // Step 6 — Create Vercel project with GitHub integration
     const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
       method: 'POST',
@@ -194,6 +211,7 @@ export async function POST(
     let configWarning: string | null = null;
 
     try {
+      console.log('[create-site] Step 3: Reading template files');
       // Step 7 — Read template files from vendshop-template via GitHub API
       const [templateConfigTs, templateConstantsTs] = await Promise.all([
         fetchTemplateFile(GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!, [
@@ -268,6 +286,7 @@ export async function POST(
         }
       }
 
+      console.log('[create-site] Step 4: Generating config with Claude API');
       // Step 9 — Generate config with Claude API
       const leadData: LeadData = {
         businessName:      lead.businessName,
@@ -297,6 +316,7 @@ export async function POST(
         detectedHeroConfig,
       );
 
+      console.log('[create-site] Step 5: Committing files to repo');
       // Step 10 — Commit generated files (+ hero image if available)
       const filesToCommit = [
         { path: 'lib/config.ts',    content: generated.configTs },
@@ -315,6 +335,7 @@ export async function POST(
 
     } catch (configErr) {
       const msg = configErr instanceof Error ? configErr.message : String(configErr);
+      console.error('[create-site] Error at step 3-5:', msg);
       configWarning = `Config generation failed: ${msg}`;
       // Non-fatal — continue with default template content
     }
@@ -336,6 +357,7 @@ export async function POST(
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error('[create-site] Error at step 1-2:', message);
 
     await db.lead.update({
       where: { id },

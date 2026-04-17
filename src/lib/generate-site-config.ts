@@ -90,6 +90,17 @@ function buildUserPrompt(
     } catch { /* ignore */ }
   }
 
+  // Map brief palette selection → valid PalettePreset from template types.ts
+  const paletteMap: Record<string, string> = {
+    dark:         'dark-premium',
+    light:        'clean-light',
+    warm:         'warm-cozy',
+    professional: 'professional',
+    natural:      'natural',
+    custom:       'professional',
+  };
+  const resolvedPalette = paletteMap[lead.selectedPalette ?? ''] ?? 'professional';
+
   return `Here are the TEMPLATE FILES to use as structural reference:
 
 === TEMPLATE: lib/config.ts ===
@@ -108,7 +119,6 @@ address:         ${lead.address ?? '(none)'}
 workingHours:    ${lead.workingHours ?? '(none)'}
 instagram:       ${lead.socialInstagram ?? '(none)'}
 facebook:        ${lead.socialFacebook ?? '(none)'}
-palette:         ${lead.selectedPalette ?? '(auto-select based on business type)'}
 heroStyle:       ${lead.selectedHero ?? 'fullscreen'}
 mood:            ${lead.selectedMood ?? 'modern'}
 logoUrl:         ${lead.logoUrl ?? '(none)'}
@@ -122,20 +132,44 @@ ${servicesList}
 Photo URLs (use in IMAGES.gallery):
 ${photoList}
 
-=== INSTRUCTIONS ===
-Generate config.ts and constants.ts customized for this business.
-- config.ts: set correct businessName, tagline (short catchphrase in the business language), templateType (services/menu/schedule/portfolio based on businessType), palette, language, headingFont, whatsappNumber (digits only, no + or spaces), contactEmail
-- constants.ts: use the services listed above in SERVICE_CATEGORIES; fill CONTACT_ITEMS with real address/phone/email/hours; write REVIEWS as 4 plausible placeholder reviews in the business language; write FAQ_ITEMS relevant to this business type (5 items); update NAV_ITEMS labels to the correct language; IMAGES.gallery should use the provided photo URLs (or keep Unsplash placeholders if none provided)
-- All visible text MUST be in language "${lead.language}"
+=== INSTRUCTIONS FOR config.ts ===
+Generate EXACTLY these fields (all required, TypeScript will fail if any is wrong):
+
+  name: string — use businessName above
+  tagline: string — short catchphrase in language "${lead.language}"
+  templateType: MUST be one of: 'services' | 'schedule' | 'menu' | 'portfolio'
+    → use 'menu' for restaurant/food, 'schedule' for fitness/yoga, 'portfolio' for photography, 'services' for everything else
+  palette: MUST be one of: 'dark-premium' | 'clean-light' | 'warm-cozy' | 'professional' | 'natural' | 'medical'
+    → use exactly: ${resolvedPalette}
+    ⚠️ DO NOT invent palette names like 'light', 'dark', 'warm' — they are NOT valid
+  language: MUST be one of: 'sk' | 'en' | 'de' | 'cs' | 'uk' | 'ru'
+    → use exactly: ${lead.language}
+  headingFont: MUST be one of: 'oswald' | 'playfair' | 'cormorant' | 'inter'
+    → use 'playfair' for beauty/medical, 'cormorant' for restaurant/bar, 'oswald' for auto/repair, 'inter' for others
+  whatsappNumber: string — digits only, no +, no spaces, no dashes
+    → use: ${lead.contact.replace(/\D/g, '')}
+  contactEmail: string — use email above or empty string ""
+
+=== INSTRUCTIONS FOR constants.ts ===
+- SERVICE_CATEGORIES: use the services listed above (translate names to language "${lead.language}")
+- CONTACT_ITEMS: fill with address="${lead.address ?? ''}", phone="${lead.contact}", email="${lead.email ?? ''}", hours="${lead.workingHours ?? ''}"
+- REVIEWS: write 4 plausible placeholder reviews in language "${lead.language}"
+- FAQ_ITEMS: 5 items relevant to ${lead.businessType} in language "${lead.language}"
+- NAV_ITEMS: labels in language "${lead.language}"
+- IMAGES.gallery: use provided photo URLs (or Unsplash placeholders if none)
+- socialInstagram: "${lead.socialInstagram ?? ''}"
+- socialFacebook: "${lead.socialFacebook ?? ''}"
+
+All visible text MUST be in language "${lead.language}".
 
 ${heroConfig ? `
 === HERO VISUAL SETTINGS (LOCKED — DO NOT CHANGE) ===
 These values were determined by automated visual analysis of the business's actual photos.
 Use them exactly as provided in config.ts:
-  textColor:    ${heroConfig.heroTextColor}
-  overlay:      ${heroConfig.heroOverlay}
+  textColor:      ${heroConfig.heroTextColor}
+  overlay:        ${heroConfig.heroOverlay}
   overlayOpacity: ${heroConfig.overlayOpacity}
-  textPosition: ${heroConfig.textPosition}
+  textPosition:   ${heroConfig.textPosition}
 Do NOT override or guess these values.
 ` : ''}
 Return ONLY valid JSON (no markdown, no code fences) matching this exact structure:

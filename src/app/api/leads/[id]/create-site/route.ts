@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { generateSiteConfig, type LeadData, type HeroConfigHint } from '@/lib/generate-site-config';
+import { generateConfigTs, type LeadConfigInput } from '@/lib/generate-config';
+import { generateConstantsTs, type LeadConstantsInput } from '@/lib/generate-constants';
 import { commitFiles } from '@/lib/github-commit';
 import { runImagePipeline } from '@/lib/image-pipeline/decision-engine';
 
@@ -62,7 +63,7 @@ async function waitForDeployment(
   teamId: string | undefined,
   maxWaitMs = 55000,
 ): Promise<{ ready: boolean; url: string | null }> {
-  const startTime = Date.now();
+  const startTime    = Date.now();
   const pollInterval = 5000;
 
   while (Date.now() - startTime < maxWaitMs) {
@@ -127,19 +128,19 @@ export async function POST(
   const { id } = await params;
 
   // Validate required env vars
-  const GITHUB_TOKEN       = process.env.GITHUB_TOKEN;
-  const GITHUB_OWNER       = process.env.GITHUB_OWNER;
+  const GITHUB_TOKEN        = process.env.GITHUB_TOKEN;
+  const GITHUB_OWNER        = process.env.GITHUB_OWNER;
   const GITHUB_TEMPLATE_REPO = process.env.GITHUB_TEMPLATE_REPO;
-  const VERCEL_TOKEN       = process.env.VERCEL_TOKEN;
-  const ANTHROPIC_API_KEY  = process.env.ANTHROPIC_API_KEY;
+  const VERCEL_TOKEN        = process.env.VERCEL_TOKEN;
+  const ANTHROPIC_API_KEY   = process.env.ANTHROPIC_API_KEY;
 
   console.log('[create-site] ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY);
 
   const missingVars = [
-    !GITHUB_TOKEN        && 'GITHUB_TOKEN',
-    !GITHUB_OWNER        && 'GITHUB_OWNER',
+    !GITHUB_TOKEN         && 'GITHUB_TOKEN',
+    !GITHUB_OWNER         && 'GITHUB_OWNER',
     !GITHUB_TEMPLATE_REPO && 'GITHUB_TEMPLATE_REPO',
-    !VERCEL_TOKEN        && 'VERCEL_TOKEN',
+    !VERCEL_TOKEN         && 'VERCEL_TOKEN',
   ].filter(Boolean);
 
   if (missingVars.length > 0) {
@@ -163,7 +164,7 @@ export async function POST(
     );
   }
 
-  // Step 2b — Validate businessName
+  // Step 3 — Validate businessName
   if (!lead.businessName || lead.businessName.trim() === '') {
     return NextResponse.json(
       { error: 'Business name is required. Please fill in the brief form first.' },
@@ -171,14 +172,115 @@ export async function POST(
     );
   }
 
-  // Step 3 — Mark as creating
+  // Step 4 — Mark as creating
   await db.lead.update({ where: { id }, data: { siteStatus: 'creating' } });
 
-  let repoName = buildRepoName(lead.businessName, lead.businessType);
-  console.log('[create-site] Step 1: Creating GitHub repo:', repoName);
+  const repoName = buildRepoName(lead.businessName, lead.businessType);
+  console.log('[create-site] Target repo name:', repoName);
 
   try {
-    // Step 4 — Create GitHub repo from template
+    // Step 5 — Read template constants.ts (used as structural reference for Claude)
+    console.log('[create-site] Step 5: Reading template constants from', GITHUB_TEMPLATE_REPO);
+    const templateConstantsTs = await fetchTemplateFile(
+      GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!,
+      ['lib/constants.ts', 'src/lib/constants.ts', 'src/constants.ts'],
+    );
+
+    if (!templateConstantsTs) {
+      throw new Error(`Could not read lib/constants.ts from ${GITHUB_TEMPLATE_REPO}`);
+    }
+    console.log('[create-site] Step 5: Template constants loaded, length:', templateConstantsTs.length);
+
+    // Step 6 — Optional image pipeline (feature-flagged, non-fatal)
+    let heroImageBase64: string | null = null;
+
+    const imagePipelineEnabled =
+      process.env.IMAGE_QUALITY_GATE === 'true' ||
+      process.env.VISION_ANALYSIS_ENABLED === 'true';
+
+    if (imagePipelineEnabled && lead.photoUrls) {
+      console.log('[create-site] Step 6: Running image pipeline');
+      try {
+        const photoUrls: string[] = [];
+        const parsed = JSON.parse(lead.photoUrls) as unknown;
+        if (Array.isArray(parsed)) {
+          for (const u of parsed) {
+            if (typeof u === 'string' && u.trim()) photoUrls.push(u.trim());
+          }
+        }
+
+        if (photoUrls.length > 0) {
+          const images = await Promise.all(
+            photoUrls.map(async (url, i) => {
+              const res = await fetch(url);
+              if (!res.ok) throw new Error(`HTTP ${res.status} for photo ${i + 1}`);
+              const ab = await res.arrayBuffer();
+              return { buffer: Buffer.from(ab), name: `photo-${i + 1}.jpg` };
+            }),
+          );
+
+          const pipelineResult = await runImagePipeline(
+            images,
+            lead.businessName ?? '',
+            lead.businessType,
+          );
+
+          if (pipelineResult.heroImage?.buffer) {
+            heroImageBase64 = pipelineResult.heroImage.buffer.toString('base64');
+            console.log('[create-site] Step 6: Hero image generated');
+          }
+        }
+      } catch (imgErr) {
+        // Non-fatal — continue without hero image
+        console.warn('[create-site] Step 6: Image pipeline warning:', imgErr instanceof Error ? imgErr.message : imgErr);
+      }
+    }
+
+    // Step 7 — Generate config.ts programmatically (instant, no AI)
+    console.log('[create-site] Step 7: Generating config.ts programmatically');
+    const configInput: LeadConfigInput = {
+      businessName:    lead.businessName,
+      businessType:    lead.businessType,
+      contact:         lead.contact,
+      email:           lead.email,
+      language:        lead.language,
+      selectedPalette: lead.selectedPalette,
+    };
+    const configTs = generateConfigTs(configInput);
+    console.log('[create-site] Step 7: config.ts generated, length:', configTs.length);
+
+    // Step 8 — Generate constants.ts with Claude (FATAL if fails — don't create repo)
+    console.log('[create-site] Step 8: Generating constants.ts with Claude (ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY, ')');
+    const constantsInput: LeadConstantsInput = {
+      businessName:      lead.businessName,
+      businessType:      lead.businessType,
+      contact:           lead.contact,
+      email:             lead.email,
+      language:          lead.language,
+      address:           lead.address,
+      workingHours:      lead.workingHours,
+      socialInstagram:   lead.socialInstagram,
+      socialFacebook:    lead.socialFacebook,
+      wishes:            lead.wishes,
+      photoUrls:         lead.photoUrls,
+      briefServicesJson: lead.briefServicesJson,
+    };
+
+    const constantsTs = await generateConstantsTs(constantsInput, templateConstantsTs);
+
+    if (!constantsTs) {
+      console.error('[create-site] Step 8: Constants generation failed — aborting (no repo created)');
+      await db.lead.update({
+        where: { id },
+        data: { siteStatus: 'error', siteError: 'Constants generation failed' },
+      });
+      return NextResponse.json({ error: 'Constants generation failed' }, { status: 500 });
+    }
+    console.log('[create-site] Step 8: constants.ts generated, length:', constantsTs.length);
+
+    // Step 9 — Create GitHub repo from template
+    let finalRepoName = repoName;
+    console.log('[create-site] Step 9: Creating GitHub repo:', finalRepoName);
     const githubRes = await fetch(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
       {
@@ -188,14 +290,14 @@ export async function POST(
           Accept: 'application/vnd.github+json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ owner: GITHUB_OWNER, name: repoName, private: false }),
+        body: JSON.stringify({ owner: GITHUB_OWNER, name: finalRepoName, private: false }),
       },
     );
 
     if (githubRes.status === 422) {
-      // Name collision — append random suffix and retry
-      repoName = `${repoName}-${randomSuffix()}`;
-      console.log('[create-site] Step 1: Name collision, retrying with:', repoName);
+      // Name collision — append random suffix and retry once
+      finalRepoName = `${finalRepoName}-${randomSuffix()}`;
+      console.log('[create-site] Step 9: Name collision, retrying with:', finalRepoName);
       const retryRes = await fetch(
         `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
         {
@@ -205,7 +307,7 @@ export async function POST(
             Accept: 'application/vnd.github+json',
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ owner: GITHUB_OWNER, name: repoName, private: false }),
+          body: JSON.stringify({ owner: GITHUB_OWNER, name: finalRepoName, private: false }),
         },
       );
       if (!retryRes.ok) {
@@ -220,155 +322,29 @@ export async function POST(
       void (await githubRes.json() as GitHubRepoResponse);
     }
 
-    // Step 2 — Wait for GitHub to finish generating from template
-    // 7s instead of 3s: the git ref for heads/main must be accessible before commitFiles()
-    // The old flow had implicit extra delay from Vercel API calls (~2-3s); new flow does not.
-    console.log('[create-site] Step 2: Waiting 7s for GitHub repo to settle...');
+    const repoUrl   = `https://github.com/${GITHUB_OWNER}/${finalRepoName}`;
+    const vercelUrl = `https://${finalRepoName}.vercel.app`;
+
+    // Step 10 — Wait for GitHub repo to settle (heads/main ref must be accessible)
+    console.log('[create-site] Step 10: Waiting 7s for GitHub repo to settle...');
     await new Promise<void>((resolve) => setTimeout(resolve, 7000));
-    console.log('[create-site] Step 2: Done waiting');
+    console.log('[create-site] Step 10: Done waiting');
 
-    const repoUrl   = `https://github.com/${GITHUB_OWNER}/${repoName}`;
-    const vercelUrl = `https://${repoName}.vercel.app`;
+    // Step 11 — Commit generated files
+    console.log('[create-site] Step 11: Committing files to repo:', finalRepoName);
+    const filesToCommit = [
+      { path: 'lib/config.ts',    content: configTs },
+      { path: 'lib/constants.ts', content: constantsTs },
+      ...(heroImageBase64
+        ? [{ path: 'public/images/hero.webp', content: heroImageBase64, encoding: 'base64' as const }]
+        : []),
+    ];
 
-    // ── Steps 3–5: config generation (non-fatal) ────────────────────────────
-    // Vercel project is created AFTER all commits so it sees the final code immediately.
-    let configGenerated = false;
-    let configWarning: string | null = null;
+    await commitFiles(finalRepoName, filesToCommit);
+    console.log('[create-site] Step 11: commitFiles completed — committed', filesToCommit.length, 'file(s)');
 
-    try {
-      console.log('[create-site] Step 3: Reading template files');
-      // Step 3 — Read template files from vendshop-template via GitHub API
-      const [templateConfigTs, templateConstantsTs] = await Promise.all([
-        fetchTemplateFile(GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!, [
-          'lib/config.ts',
-          'src/config.ts',
-        ]),
-        fetchTemplateFile(GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!, [
-          'lib/constants.ts',
-          'src/lib/constants.ts',
-          'src/constants.ts',
-        ]),
-      ]);
-
-      if (!templateConfigTs || !templateConstantsTs) {
-        throw new Error(
-          `Could not read template files from ${GITHUB_TEMPLATE_REPO} ` +
-          `(config: ${templateConfigTs ? 'ok' : 'missing'}, constants: ${templateConstantsTs ? 'ok' : 'missing'})`,
-        );
-      }
-
-      // Step 4 — Optionally run image pipeline (feature-flagged)
-      const imagePipelineEnabled =
-        process.env.IMAGE_QUALITY_GATE === 'true' ||
-        process.env.VISION_ANALYSIS_ENABLED === 'true';
-
-      let detectedHeroConfig: HeroConfigHint | null = null;
-      let heroImageBase64: string | null = null;
-
-      if (imagePipelineEnabled && lead.photoUrls) {
-        try {
-          const photoUrls: string[] = [];
-          const parsed = JSON.parse(lead.photoUrls) as unknown;
-          if (Array.isArray(parsed)) {
-            for (const u of parsed) {
-              if (typeof u === 'string' && u.trim()) photoUrls.push(u.trim());
-            }
-          }
-
-          if (photoUrls.length > 0) {
-            const images = await Promise.all(
-              photoUrls.map(async (url, i) => {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error(`HTTP ${res.status} for photo ${i + 1}`);
-                const ab = await res.arrayBuffer();
-                return { buffer: Buffer.from(ab), name: `photo-${i + 1}.jpg` };
-              }),
-            );
-
-            const pipelineResult = await runImagePipeline(
-              images,
-              lead.businessName ?? '',
-              lead.businessType,
-            );
-
-            if (pipelineResult.heroConfig) {
-              detectedHeroConfig = {
-                heroTextColor:  pipelineResult.heroConfig.heroTextColor,
-                heroOverlay:    pipelineResult.heroConfig.heroOverlay,
-                overlayOpacity: pipelineResult.heroConfig.overlayOpacity,
-                textPosition:   pipelineResult.heroConfig.textPosition,
-              };
-            }
-
-            if (pipelineResult.heroImage?.buffer) {
-              heroImageBase64 = pipelineResult.heroImage.buffer.toString('base64');
-            }
-          }
-        } catch (imgErr) {
-          // Non-fatal — log and continue without hero config
-          const msg = imgErr instanceof Error ? imgErr.message : String(imgErr);
-          configWarning = `Image pipeline warning: ${msg}`;
-        }
-      }
-
-      console.log('[create-site] Step 4: Generating config with Claude API (ANTHROPIC_API_KEY present:', !!process.env.ANTHROPIC_API_KEY, ')');
-      // Step 4 — Generate config with Claude API
-      const leadData: LeadData = {
-        businessName:      lead.businessName,
-        businessType:      lead.businessType,
-        contact:           lead.contact,
-        email:             lead.email,
-        language:          lead.language,
-        address:           lead.address,
-        workingHours:      lead.workingHours,
-        socialInstagram:   lead.socialInstagram,
-        socialFacebook:    lead.socialFacebook,
-        referenceUrl:      lead.referenceUrl,
-        wishes:            lead.wishes,
-        priceListUrl:      lead.priceListUrl,
-        logoUrl:           lead.logoUrl,
-        photoUrls:         lead.photoUrls,
-        briefServicesJson: lead.briefServicesJson,
-        selectedPalette:   lead.selectedPalette,
-        selectedHero:      lead.selectedHero,
-        selectedMood:      lead.selectedMood,
-      };
-
-      const generated = await generateSiteConfig(
-        leadData,
-        templateConfigTs,
-        templateConstantsTs,
-        detectedHeroConfig,
-      );
-      console.log('[create-site] Step 4 result: configTs.length=', generated.configTs.length, 'constantsTs.length=', generated.constantsTs.length);
-
-      console.log('[create-site] Step 5: Committing files to repo:', repoName);
-      // Step 5 — Commit generated files (+ hero image if available)
-      const filesToCommit = [
-        { path: 'lib/config.ts',    content: generated.configTs },
-        { path: 'lib/constants.ts', content: generated.constantsTs },
-        ...(heroImageBase64
-          ? [{ path: 'public/images/hero.webp', content: heroImageBase64, encoding: 'base64' as const }]
-          : []),
-      ];
-
-      await commitFiles(repoName, filesToCommit);
-      console.log('[create-site] Step 5: commitFiles completed successfully');
-
-      configGenerated = true;
-
-    } catch (configErr) {
-      const msg = configErr instanceof Error ? configErr.message : String(configErr);
-      const stack = configErr instanceof Error ? configErr.stack : undefined;
-      console.error('[create-site] Error at step 3-5:', msg);
-      if (stack) console.error('[create-site] Stack:', stack);
-      configWarning = `Config generation failed: ${msg}`;
-      // Non-fatal — Vercel will deploy the default template content
-    }
-
-    // Step 6 — Create Vercel project AFTER all commits are in place
-    // This ensures Vercel's initial deploy picks up the fully generated code.
-    console.log('[create-site] Step 6: Creating Vercel project');
+    // Step 12 — Create Vercel project (AFTER all commits — sees final code immediately)
+    console.log('[create-site] Step 12: Creating Vercel project');
     const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
       method: 'POST',
       headers: {
@@ -376,9 +352,9 @@ export async function POST(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: repoName,
-        framework: 'nextjs',
-        gitRepository: { type: 'github', repo: `${GITHUB_OWNER}/${repoName}` },
+        name:          finalRepoName,
+        framework:     'nextjs',
+        gitRepository: { type: 'github', repo: `${GITHUB_OWNER}/${finalRepoName}` },
       }),
     });
 
@@ -387,10 +363,10 @@ export async function POST(
       throw new Error(`Vercel API error: ${vercelRes.status} — ${errBody}`);
     }
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
+    console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 7 — Trigger explicit production deployment (belt-and-suspenders:
-    // Vercel sometimes doesn't auto-deploy on project creation)
-    console.log('[create-site] Step 7: Triggering Vercel deployment');
+    // Step 13 — Trigger explicit production deployment (belt-and-suspenders)
+    console.log('[create-site] Step 13: Triggering Vercel deployment');
     const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
       method: 'POST',
       headers: {
@@ -398,55 +374,52 @@ export async function POST(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name:   repoName,
-        target: 'production',
-        gitSource: {
-          type:   'github',
-          org:    GITHUB_OWNER,
-          repo:   repoName,
-          ref:    'main',
-        },
+        name:      finalRepoName,
+        target:    'production',
+        gitSource: { type: 'github', org: GITHUB_OWNER, repo: finalRepoName, ref: 'main' },
       }),
     });
 
     if (!deployRes.ok) {
       const errBody = await deployRes.text();
-      // Non-fatal — project already exists, auto-deploy may still kick in
-      console.warn('[create-site] Step 7: Explicit deploy trigger failed (non-fatal):', deployRes.status, errBody);
+      console.warn('[create-site] Step 13: Explicit deploy trigger failed (non-fatal):', deployRes.status, errBody);
     } else {
-      console.log('[create-site] Step 7: Deployment triggered, project id:', vercelProject.id);
+      console.log('[create-site] Step 13: Deployment triggered');
     }
 
-    // Step 8 — Wait for deployment to become READY (max 55s to stay within serverless timeout)
-    console.log('[create-site] Step 8: Waiting for deployment to become READY...');
-    const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
-    const deploymentResult = await waitForDeployment(repoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 55000);
-    console.log('[create-site] Step 8: Deployment result:', deploymentResult);
+    // Step 14 — Wait for deployment to become READY (max 55s)
+    console.log('[create-site] Step 14: Polling for READY state...');
+    const VERCEL_TEAM_ID   = process.env.VERCEL_TEAM_ID;
+    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 55000);
+    console.log('[create-site] Step 14: Deployment result:', deploymentResult);
 
-    // Step 9 — Update lead
-    // ready=true  → siteStatus='created', use real deployment URL
-    // ready=false → siteStatus='creating' (timeout or build error), keep fallback URL so user knows it's still pending
-    const finalUrl = deploymentResult.url ?? vercelUrl;
+    // Step 15 — Save lead
+    const finalUrl    = deploymentResult.url ?? vercelUrl;
     const finalStatus = deploymentResult.ready ? 'created' : 'creating';
-    console.log('[create-site] Step 9: Saving lead with status:', finalStatus, 'url:', finalUrl);
+    console.log('[create-site] Step 15: Saving lead — status:', finalStatus, 'url:', finalUrl);
 
     await db.lead.update({
       where: { id },
       data: {
         siteRepoUrl:   repoUrl,
-        siteRepoName:  repoName,
+        siteRepoName:  finalRepoName,
         siteVercelUrl: finalUrl,
         siteStatus:    finalStatus,
         siteCreatedAt: new Date(),
-        siteError:     configWarning ?? (!deploymentResult.ready ? 'Deployment still in progress' : null),
+        siteError:     deploymentResult.ready ? null : 'Deployment still in progress',
       },
     });
 
-    return NextResponse.json({ success: true, repoUrl, vercelUrl: finalUrl, configGenerated, deploymentReady: deploymentResult.ready });
+    return NextResponse.json({
+      success:         true,
+      repoUrl,
+      vercelUrl:       finalUrl,
+      deploymentReady: deploymentResult.ready,
+    });
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[create-site] Error at step 1-2:', message);
+    console.error('[create-site] Fatal error:', message);
 
     await db.lead.update({
       where: { id },

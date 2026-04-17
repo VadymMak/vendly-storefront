@@ -21,6 +21,22 @@ export interface LeadConstantsInput {
   briefServicesJson: string | null;  // JSON string: [{name,price,duration,note}]
 }
 
+// ─── Required import block (always prepended if Claude omits it) ─────────────
+const REQUIRED_IMPORTS = `import type {
+  NavItem,
+  StatItem,
+  WhyItem,
+  GalleryImage,
+  Review,
+  ContactItem,
+  FaqItem,
+  ChatConfig,
+  ServiceCategory,
+  DaySchedule,
+  MenuCategory,
+  ImageMap,
+} from './types';`;
+
 // ─── Extract TypeScript code from Claude response ─────────────────────────────
 function extractConstantsCode(text: string): string | null {
   // 1. Explicit typescript/ts code fence
@@ -31,15 +47,26 @@ function extractConstantsCode(text: string): string | null {
   const plainFence = text.match(/```\s*\n([\s\S]*?)\n```/);
   if (plainFence) return plainFence[1].trim();
 
-  // 3. Find from `import {` — start of a TS file with imports
+  // 3. Find from `import type {` or `import {` — start of a TS file with imports
+  const importTypeIdx = text.indexOf('import type {');
+  if (importTypeIdx !== -1) return text.substring(importTypeIdx).trim();
+
   const importIdx = text.indexOf('import {');
   if (importIdx !== -1) return text.substring(importIdx).trim();
 
-  // 4. Find from first `export const`
+  // 4. Find from first `export const` — Claude skipped the import block
   const exportIdx = text.indexOf('export const');
   if (exportIdx !== -1) return text.substring(exportIdx).trim();
 
   return null;
+}
+
+/** Ensure the import block is always present at the top of generated constants.ts */
+function ensureImports(code: string): string {
+  if (code.trimStart().startsWith('import')) return code;
+  // Claude omitted the import block — prepend it
+  console.warn('[generate-constants] Import block missing — prepending required imports');
+  return `${REQUIRED_IMPORTS}\n\n${code}`;
 }
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
@@ -174,11 +201,14 @@ export async function generateConstantsTs(
 
   console.log('[generate-constants] Raw response (first 400 chars):', rawText.substring(0, 400));
 
-  const code = extractConstantsCode(rawText);
-  if (!code) {
+  const extracted = extractConstantsCode(rawText);
+  if (!extracted) {
     console.error('[generate-constants] Could not extract TypeScript. Full response:', rawText);
     return null;
   }
+
+  // Always guarantee the import block is present
+  const code = ensureImports(extracted);
 
   // Basic validation — ensure required exports are present
   const required = ['SERVICE_CATEGORIES', 'NAV_ITEMS', 'REVIEWS', 'FAQ_ITEMS'];

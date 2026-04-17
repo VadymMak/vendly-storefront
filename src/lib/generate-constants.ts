@@ -69,6 +69,76 @@ function ensureImports(code: string): string {
   return `${REQUIRED_IMPORTS}\n\n${code}`;
 }
 
+/**
+ * Post-process Claude output to fix common structural mistakes:
+ * 1. ServiceCategory: rename 'title:' → 'name:' (only in SERVICE_CATEGORIES block)
+ * 2. ServiceCategory: remove extra 'description:' from category level
+ * 3. ServiceItem: add missing 'description' and 'icon' fields
+ * 4. Review: add missing 'initial' and 'detail' fields, remove spurious 'date'
+ */
+function ensureServiceFields(code: string): string {
+  let result = code;
+
+  // ── 1. ServiceCategory: fix 'title:' → 'name:' inside SERVICE_CATEGORIES block ──
+  // Strategy: find the SERVICE_CATEGORIES = [...] block and rename title→name within it
+  result = result.replace(
+    /(export const SERVICE_CATEGORIES[\s\S]*?)(?=export const \w|$)/,
+    (block) => block.replace(/\btitle:\s*(?=['"])/g, 'name: '),
+  );
+
+  // ── 2. ServiceCategory: remove 'description:' line at category level ──
+  // Category-level description sits between {id/name} and {items:} — detect by pattern:
+  // lines of form `    description: '...',` that appear inside a category block before items:
+  result = result.replace(
+    /(export const SERVICE_CATEGORIES[\s\S]*?)(?=export const \w|$)/,
+    (block) =>
+      // Remove description lines that are directly inside category objects (before items:)
+      block.replace(
+        /(\{\s*\n\s+id:\s*'[^']*',\s*\n\s+(?:name|title):\s*'[^']*',\s*\n)\s+description:\s*'[^']*',\s*\n(\s+items:)/g,
+        '$1$2',
+      ),
+  );
+
+  // ── 3. ServiceItem: add missing 'description' before 'price' ──
+  // Target: objects with price: but without description: (ServiceItem shape)
+  result = result.replace(
+    /(\{\s*id:\s*'[^']*',\s*name:\s*'(?:[^'\\]|\\.)*',\s*)(price:\s*')/g,
+    (match, prefix, price) => `${prefix}description: '', ${price}`,
+  );
+
+  // ── 4. ServiceItem: add missing 'icon' after 'price' ──
+  result = result.replace(
+    /(description:\s*'(?:[^'\\]|\\.)*',\s*price:\s*'(?:[^'\\]|\\.)*',?\s*)(\})/g,
+    (match, content, closing) => {
+      if (match.includes('icon:')) return match;
+      return `${content.trimEnd()}, icon: '💼' ${closing}`;
+    },
+  );
+
+  // ── 5. Review: add missing 'initial' after 'name' ──
+  result = result.replace(
+    /(\{\s*\n?\s*id:\s*'([^']*)',\s*\n?\s*name:\s*'([^']*)',\s*\n?\s*)(text:|rating:)/g,
+    (match, prefix, _id, name, next) => {
+      const initial = name.trim().charAt(0) || 'X';
+      return `${prefix}initial: '${initial}',\n    ${next}`;
+    },
+  );
+
+  // ── 6. Review: add missing 'detail' before closing brace ──
+  result = result.replace(
+    /(rating:\s*\d+,?\s*\n?\s*)(\},)/g,
+    (match, ratingLine, closing) => {
+      if (match.includes('detail:')) return match;
+      return `${ratingLine}detail: '',\n  ${closing}`;
+    },
+  );
+
+  // ── 7. Review: remove 'date:' field (not in Review type) ──
+  result = result.replace(/\s*date:\s*'[^']*',?\s*\n/g, '\n');
+
+  return result;
+}
+
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(lead: LeadConstantsInput, templateConstants: string): string {
   // Parse photoUrls safely
@@ -142,6 +212,23 @@ ${photoList}
 - Keep SCHEDULE and MENU_CATEGORIES present in file (they are used depending on templateType)
 - APOSTROPHES: any apostrophe inside a single-quoted string MUST be escaped as \\' — e.g. об\\'єму, зв\\'язок
 
+⚠️ CRITICAL — EXACT FIELD NAMES (wrong fields = TypeScript build error):
+
+ServiceCategory → EXACTLY 3 fields: id, name, items
+  CORRECT: { id: '1', name: 'Category', items: [...] }
+  WRONG:   { id: '1', title: 'Category', description: '...', items: [...] }
+  → Use 'name' NOT 'title'. NO 'description' on the category itself.
+
+ServiceItem → EXACTLY 5 fields: id, name, description, price, icon
+  CORRECT: { id: '1-1', name: 'Service', description: 'Short desc', price: '50€', icon: '⭐' }
+  WRONG:   { id: '1-1', name: 'Service', price: '50€' }
+  → ALL 5 fields REQUIRED. Missing ANY field = build failure.
+
+Review → EXACTLY 6 fields: id, name, initial, text, rating, detail
+  CORRECT: { id: '1', name: 'Jan Novák', initial: 'J', text: 'Great!', rating: 5, detail: 'Regular customer' }
+  WRONG:   { id: '1', name: 'Jan Novák', text: 'Great!', rating: 5 }
+  → 'initial' = first letter of name. 'detail' = short context. NO 'date' field.
+
 === FEW-SHOT EXAMPLE (food, Ukrainian) ===
 import type {
   NavItem, StatItem, WhyItem, GalleryImage, Review,
@@ -162,10 +249,32 @@ export const IMAGES: ImageMap = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: 'Головна',   href: '#hero'     },
-  { label: 'Меню',      href: '#services' },
-  { label: 'Відгуки',   href: '#reviews'  },
-  { label: 'Контакти',  href: '#contact'  },
+  { label: 'Головна',  href: '#hero'     },
+  { label: 'Меню',     href: '#services' },
+  { label: 'Відгуки',  href: '#reviews'  },
+  { label: 'Контакти', href: '#contact'  },
+];
+
+export const SERVICE_CATEGORIES: ServiceCategory[] = [
+  {
+    id: '1',
+    name: 'Основні страви',
+    items: [
+      { id: '1-1', name: 'Борщ',     description: 'Традиційний борщ',    price: '80 грн', icon: '🍲' },
+      { id: '1-2', name: 'Вареники', description: 'З картоплею і грибами', price: '90 грн', icon: '🥟' },
+    ],
+  },
+];
+
+export const REVIEWS: Review[] = [
+  {
+    id: '1',
+    name: 'Олена Мельник',
+    initial: 'О',
+    text: 'Смачна їжа, швидке обслуговування. Рекомендую!',
+    rating: 5,
+    detail: 'Постійний клієнт',
+  },
 ];
 
 === END OF EXAMPLE ===
@@ -208,7 +317,10 @@ export async function generateConstantsTs(
   }
 
   // Always guarantee the import block is present
-  const code = ensureImports(extracted);
+  const withImports = ensureImports(extracted);
+
+  // Fix common structural mistakes (ServiceItem fields, Review fields, title→name)
+  const code = ensureServiceFields(withImports);
 
   // Basic validation — ensure required exports are present
   const required = ['SERVICE_CATEGORIES', 'NAV_ITEMS', 'REVIEWS', 'FAQ_ITEMS'];

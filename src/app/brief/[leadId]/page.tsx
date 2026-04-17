@@ -270,6 +270,7 @@ export default function BriefPage() {
   const [uploadingPhotos, setUPhotos] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadErr, setUploadErr]   = useState('');
+  const [bizNameErr, setBizNameErr] = useState('');
 
   // Fetch lead info
   useEffect(() => {
@@ -375,7 +376,7 @@ export default function BriefPage() {
   // ── Step validation ─────────────────────────────────────────────────────────
   const canProceed = useMemo(() => {
     switch (step) {
-      case 1: return form.businessName.trim().length > 0;
+      case 1: return form.businessName.trim().length >= 2;
       case 2: return filledServices.length >= 1;
       case 3: return !!form.selectedPalette && !!form.selectedHero && !!form.selectedMood;
       case 4: return photoUrls.length > 0 || !!logoUrl;
@@ -385,6 +386,18 @@ export default function BriefPage() {
   }, [step, form, filledServices.length, photoUrls.length, logoUrl]);
 
   const handleNext = () => {
+    if (step === 1) {
+      const name = form.businessName.trim();
+      if (!name) {
+        setBizNameErr('Введите название бизнеса');
+        return;
+      }
+      if (name.length < 2) {
+        setBizNameErr('Минимум 2 символа');
+        return;
+      }
+      setBizNameErr('');
+    }
     if (!canProceed) return;
     if (step < TOTAL_STEPS) {
       setStep((s) => s + 1);
@@ -523,10 +536,20 @@ export default function BriefPage() {
                   <Tooltip text={t.bizNameHint} />
                 </label>
                 <input
-                  type="text" className={inputCls} value={form.businessName}
+                  type="text"
+                  required
+                  minLength={2}
+                  className={`${inputCls} ${bizNameErr ? 'border-red-500 focus:border-red-500' : ''}`}
+                  value={form.businessName}
                   placeholder="Café Merkur"
-                  onChange={(e) => setField('businessName', e.target.value)}
+                  onChange={(e) => {
+                    setField('businessName', e.target.value);
+                    if (bizNameErr) setBizNameErr('');
+                  }}
                 />
+                {bizNameErr && (
+                  <p className="mt-1.5 text-xs text-red-400">{bizNameErr}</p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>{t.labelAddress}</label>

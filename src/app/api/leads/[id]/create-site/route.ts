@@ -35,8 +35,11 @@ function randomSuffix(): string {
   return Math.random().toString(36).substring(2, 6);
 }
 
-function buildRepoName(businessName: string | null, businessType: string): string {
-  const base = slugify(businessName ?? 'site');
+function buildRepoName(businessName: string | null | undefined, businessType: string): string {
+  let base = slugify(businessName ?? '');
+  if (!base || base.startsWith('-')) base = base.replace(/^-+/, '');
+  if (!base) base = 'site';
+  if (!/^[a-z0-9]/.test(base)) base = 'site';
   const type = slugify(businessType);
   return `${base}-${type}`;
 }
@@ -101,6 +104,14 @@ export async function POST(
   if (lead.siteStatus !== 'none' && lead.siteStatus !== 'error') {
     return NextResponse.json(
       { error: 'Site already creating or created' },
+      { status: 400 },
+    );
+  }
+
+  // Step 2b — Validate businessName
+  if (!lead.businessName || lead.businessName.trim() === '') {
+    return NextResponse.json(
+      { error: 'Business name is required. Please fill in the brief form first.' },
       { status: 400 },
     );
   }

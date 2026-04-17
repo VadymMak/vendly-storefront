@@ -180,7 +180,11 @@ export async function POST(
     }
 
     // Step 2 — Wait for GitHub to finish generating from template
-    await new Promise<void>((resolve) => setTimeout(resolve, 3000));
+    // 7s instead of 3s: the git ref for heads/main must be accessible before commitFiles()
+    // The old flow had implicit extra delay from Vercel API calls (~2-3s); new flow does not.
+    console.log('[create-site] Step 2: Waiting 7s for GitHub repo to settle...');
+    await new Promise<void>((resolve) => setTimeout(resolve, 7000));
+    console.log('[create-site] Step 2: Done waiting');
 
     const repoUrl   = `https://github.com/${GITHUB_OWNER}/${repoName}`;
     const vercelUrl = `https://${repoName}.vercel.app`;
@@ -266,7 +270,7 @@ export async function POST(
         }
       }
 
-      console.log('[create-site] Step 4: Generating config with Claude API');
+      console.log('[create-site] Step 4: Generating config with Claude API (ANTHROPIC_API_KEY present:', !!process.env.ANTHROPIC_API_KEY, ')');
       // Step 4 — Generate config with Claude API
       const leadData: LeadData = {
         businessName:      lead.businessName,
@@ -295,8 +299,9 @@ export async function POST(
         templateConstantsTs,
         detectedHeroConfig,
       );
+      console.log('[create-site] Step 4 result: configTs.length=', generated.configTs.length, 'constantsTs.length=', generated.constantsTs.length);
 
-      console.log('[create-site] Step 5: Committing files to repo');
+      console.log('[create-site] Step 5: Committing files to repo:', repoName);
       // Step 5 — Commit generated files (+ hero image if available)
       const filesToCommit = [
         { path: 'lib/config.ts',    content: generated.configTs },
@@ -307,12 +312,15 @@ export async function POST(
       ];
 
       await commitFiles(repoName, filesToCommit);
+      console.log('[create-site] Step 5: commitFiles completed successfully');
 
       configGenerated = true;
 
     } catch (configErr) {
       const msg = configErr instanceof Error ? configErr.message : String(configErr);
+      const stack = configErr instanceof Error ? configErr.stack : undefined;
       console.error('[create-site] Error at step 3-5:', msg);
+      if (stack) console.error('[create-site] Stack:', stack);
       configWarning = `Config generation failed: ${msg}`;
       // Non-fatal — Vercel will deploy the default template content
     }

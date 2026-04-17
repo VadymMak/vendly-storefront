@@ -202,7 +202,8 @@ ${photoList}
 - Start with the import block exactly as in the template
 - ALL visible text (labels, descriptions, reviews, FAQ, chat) MUST be in language "${lead.language}"
 - IMAGES.hero and IMAGES.about: use a relevant Unsplash URL for "${lead.businessType}" (unless photos provided)
-- IMAGES.gallery: use provided photo URLs; if none, use 5 Unsplash placeholders for "${lead.businessType}"
+- IMAGES.gallery: MUST use ALL provided photo URLs below as-is (copy each URL exactly). If zero photos provided, use 5 relevant Unsplash URLs for "${lead.businessType}"
+- HERO: generate \`export const HERO = { title: '...', subtitle: '...' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}"
 - SERVICE_CATEGORIES: fill from brief services above; if none, generate 2-3 realistic categories for "${lead.businessType}"
 - CONTACT_ITEMS: use real address/phone/email/hours from business data; leave lines empty ('') if not provided
 - REVIEWS: 4 realistic placeholder reviews in language "${lead.language}"
@@ -266,6 +267,11 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
 ];
 
+export const HERO = {
+  title: 'Смачна Кухня',
+  subtitle: 'Найкращі страви з натуральних інгредієнтів. Затишна атмосфера та швидке обслуговування.',
+};
+
 export const REVIEWS: Review[] = [
   {
     id: '1',
@@ -323,7 +329,7 @@ export async function generateConstantsTs(
   const code = ensureServiceFields(withImports);
 
   // Basic validation — ensure required exports are present
-  const required = ['SERVICE_CATEGORIES', 'NAV_ITEMS', 'REVIEWS', 'FAQ_ITEMS'];
+  const required = ['SERVICE_CATEGORIES', 'NAV_ITEMS', 'REVIEWS', 'FAQ_ITEMS', 'HERO'];
   const missing  = required.filter((key) => !code.includes(key));
   if (missing.length > 0) {
     console.error('[generate-constants] Missing required exports:', missing.join(', '));

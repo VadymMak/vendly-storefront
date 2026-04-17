@@ -179,40 +179,20 @@ export async function POST(
       void (await githubRes.json() as GitHubRepoResponse);
     }
 
-    // Step 5 — Wait for GitHub to finish generating from template
+    // Step 2 — Wait for GitHub to finish generating from template
     await new Promise<void>((resolve) => setTimeout(resolve, 3000));
-
-    console.log('[create-site] Step 2: Creating Vercel project');
-    // Step 6 — Create Vercel project with GitHub integration
-    const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${VERCEL_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: repoName,
-        framework: 'nextjs',
-        gitRepository: { type: 'github', repo: `${GITHUB_OWNER}/${repoName}` },
-      }),
-    });
-
-    if (!vercelRes.ok) {
-      const errBody = await vercelRes.text();
-      throw new Error(`Vercel API error: ${vercelRes.status} — ${errBody}`);
-    }
-    void (await vercelRes.json() as VercelProjectResponse);
 
     const repoUrl   = `https://github.com/${GITHUB_OWNER}/${repoName}`;
     const vercelUrl = `https://${repoName}.vercel.app`;
 
-    // ── Steps 7–9: config generation (non-fatal) ────────────────────────────
+    // ── Steps 3–5: config generation (non-fatal) ────────────────────────────
+    // Vercel project is created AFTER all commits so it sees the final code immediately.
     let configGenerated = false;
     let configWarning: string | null = null;
 
     try {
       console.log('[create-site] Step 3: Reading template files');
-      // Step 7 — Read template files from vendshop-template via GitHub API
+      // Step 3 — Read template files from vendshop-template via GitHub API
       const [templateConfigTs, templateConstantsTs] = await Promise.all([
         fetchTemplateFile(GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!, [
           'lib/config.ts',
@@ -232,7 +212,7 @@ export async function POST(
         );
       }
 
-      // Step 8 — Optionally run image pipeline (feature-flagged)
+      // Step 4 — Optionally run image pipeline (feature-flagged)
       const imagePipelineEnabled =
         process.env.IMAGE_QUALITY_GATE === 'true' ||
         process.env.VISION_ANALYSIS_ENABLED === 'true';
@@ -287,7 +267,7 @@ export async function POST(
       }
 
       console.log('[create-site] Step 4: Generating config with Claude API');
-      // Step 9 — Generate config with Claude API
+      // Step 4 — Generate config with Claude API
       const leadData: LeadData = {
         businessName:      lead.businessName,
         businessType:      lead.businessType,
@@ -317,7 +297,7 @@ export async function POST(
       );
 
       console.log('[create-site] Step 5: Committing files to repo');
-      // Step 10 — Commit generated files (+ hero image if available)
+      // Step 5 — Commit generated files (+ hero image if available)
       const filesToCommit = [
         { path: 'lib/config.ts',    content: generated.configTs },
         { path: 'lib/constants.ts', content: generated.constantsTs },
@@ -330,17 +310,65 @@ export async function POST(
 
       configGenerated = true;
 
-      // Step 11 — Wait for Vercel to pick up the new commit
-      await new Promise<void>((resolve) => setTimeout(resolve, 5000));
-
     } catch (configErr) {
       const msg = configErr instanceof Error ? configErr.message : String(configErr);
       console.error('[create-site] Error at step 3-5:', msg);
       configWarning = `Config generation failed: ${msg}`;
-      // Non-fatal — continue with default template content
+      // Non-fatal — Vercel will deploy the default template content
     }
 
-    // Step 12 — Update lead
+    // Step 6 — Create Vercel project AFTER all commits are in place
+    // This ensures Vercel's initial deploy picks up the fully generated code.
+    console.log('[create-site] Step 6: Creating Vercel project');
+    const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: repoName,
+        framework: 'nextjs',
+        gitRepository: { type: 'github', repo: `${GITHUB_OWNER}/${repoName}` },
+      }),
+    });
+
+    if (!vercelRes.ok) {
+      const errBody = await vercelRes.text();
+      throw new Error(`Vercel API error: ${vercelRes.status} — ${errBody}`);
+    }
+    const vercelProject = await vercelRes.json() as VercelProjectResponse;
+
+    // Step 7 — Trigger explicit production deployment (belt-and-suspenders:
+    // Vercel sometimes doesn't auto-deploy on project creation)
+    console.log('[create-site] Step 7: Triggering Vercel deployment');
+    const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name:   repoName,
+        target: 'production',
+        gitSource: {
+          type:   'github',
+          org:    GITHUB_OWNER,
+          repo:   repoName,
+          ref:    'main',
+        },
+      }),
+    });
+
+    if (!deployRes.ok) {
+      const errBody = await deployRes.text();
+      // Non-fatal — project already exists, auto-deploy may still kick in
+      console.warn('[create-site] Step 7: Explicit deploy trigger failed (non-fatal):', deployRes.status, errBody);
+    } else {
+      console.log('[create-site] Step 7: Deployment triggered, project id:', vercelProject.id);
+    }
+
+    // Step 8 — Update lead
     await db.lead.update({
       where: { id },
       data: {

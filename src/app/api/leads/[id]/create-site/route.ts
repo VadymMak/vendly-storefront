@@ -55,6 +55,47 @@ function buildRepoName(businessName: string | null | undefined, businessType: st
   return `${base}-${type}`;
 }
 
+/** Poll Vercel until the latest production deployment is READY or ERROR, or maxWaitMs exceeded. */
+async function waitForDeployment(
+  projectName: string,
+  vercelToken: string,
+  teamId: string | undefined,
+  maxWaitMs = 55000,
+): Promise<{ ready: boolean; url: string | null }> {
+  const startTime = Date.now();
+  const pollInterval = 5000;
+
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const teamQuery = teamId ? `&teamId=${teamId}` : '';
+      const res = await fetch(
+        `https://api.vercel.com/v6/deployments?projectId=${projectName}&limit=1&target=production${teamQuery}`,
+        { headers: { Authorization: `Bearer ${vercelToken}` } },
+      );
+      const data = await res.json() as { deployments?: { state: string; url: string }[] };
+      const deployment = data.deployments?.[0];
+
+      if (deployment) {
+        console.log('[create-site] Deployment status:', deployment.state);
+        if (deployment.state === 'READY') {
+          return { ready: true, url: `https://${deployment.url}` };
+        }
+        if (deployment.state === 'ERROR') {
+          console.error('[create-site] Deployment failed:', deployment.url);
+          return { ready: false, url: null };
+        }
+      }
+    } catch (e) {
+      console.error('[create-site] Poll error:', e);
+    }
+
+    await new Promise<void>((r) => setTimeout(r, pollInterval));
+  }
+
+  console.warn('[create-site] Deployment timeout after', maxWaitMs, 'ms');
+  return { ready: false, url: `https://${projectName}.vercel.app` };
+}
+
 /** Fetch raw file content from a GitHub repo. Tries each path in order, returns null if all fail. */
 async function fetchTemplateFile(
   owner: string,
@@ -376,20 +417,32 @@ export async function POST(
       console.log('[create-site] Step 7: Deployment triggered, project id:', vercelProject.id);
     }
 
-    // Step 8 — Update lead
+    // Step 8 — Wait for deployment to become READY (max 55s to stay within serverless timeout)
+    console.log('[create-site] Step 8: Waiting for deployment to become READY...');
+    const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
+    const deploymentResult = await waitForDeployment(repoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 55000);
+    console.log('[create-site] Step 8: Deployment result:', deploymentResult);
+
+    // Step 9 — Update lead
+    // ready=true  → siteStatus='created', use real deployment URL
+    // ready=false → siteStatus='creating' (timeout or build error), keep fallback URL so user knows it's still pending
+    const finalUrl = deploymentResult.url ?? vercelUrl;
+    const finalStatus = deploymentResult.ready ? 'created' : 'creating';
+    console.log('[create-site] Step 9: Saving lead with status:', finalStatus, 'url:', finalUrl);
+
     await db.lead.update({
       where: { id },
       data: {
         siteRepoUrl:   repoUrl,
         siteRepoName:  repoName,
-        siteVercelUrl: vercelUrl,
-        siteStatus:    'created',
+        siteVercelUrl: finalUrl,
+        siteStatus:    finalStatus,
         siteCreatedAt: new Date(),
-        siteError:     configWarning,
+        siteError:     configWarning ?? (!deploymentResult.ready ? 'Deployment still in progress' : null),
       },
     });
 
-    return NextResponse.json({ success: true, repoUrl, vercelUrl, configGenerated });
+    return NextResponse.json({ success: true, repoUrl, vercelUrl: finalUrl, configGenerated, deploymentReady: deploymentResult.ready });
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -100,26 +100,31 @@ function ensureServiceFields(code: string): string {
       ),
   );
 
-  // ── 3. ServiceItem: add missing 'description' before 'price' ──
-  // Target: objects with price: but without description: (ServiceItem shape)
+  // ── 3. ServiceItem: add missing 'description' before 'price' (SERVICE_CATEGORIES only) ──
   result = result.replace(
-    /(\{\s*id:\s*'[^']*',\s*name:\s*'(?:[^'\\]|\\.)*',\s*)(price:\s*')/g,
-    (match, prefix, price) => `${prefix}description: '', ${price}`,
+    /(export const SERVICE_CATEGORIES[\s\S]*?)(?=export const \w|$)/,
+    (block) => block.replace(
+      /(\{\s*id:\s*'[^']*',\s*name:\s*'(?:[^'\\]|\\.)*',\s*)(price:\s*')/g,
+      (_match, prefix, price) => `${prefix}description: '', ${price}`,
+    ),
   );
 
-  // ── 4. ServiceItem: add missing 'icon' after 'price' ──
+  // ── 4. ServiceItem: add missing 'icon' after 'price' (SERVICE_CATEGORIES only) ──
   result = result.replace(
-    /(description:\s*'(?:[^'\\]|\\.)*',\s*price:\s*'(?:[^'\\]|\\.)*',?\s*)(\})/g,
-    (match, content, closing) => {
-      if (match.includes('icon:')) return match;
-      return `${content.trimEnd()}, icon: '💼' ${closing}`;
-    },
+    /(export const SERVICE_CATEGORIES[\s\S]*?)(?=export const \w|$)/,
+    (block) => block.replace(
+      /(description:\s*'(?:[^'\\]|\\.)*',\s*price:\s*'(?:[^'\\]|\\.)*',?\s*)(\})/g,
+      (match, content, closing) => {
+        if (match.includes('icon:')) return match;
+        return `${content.trimEnd()}, icon: '💼' ${closing}`;
+      },
+    ),
   );
 
   // ── 5. Review: add missing 'initial' after 'name' ──
   result = result.replace(
     /(\{\s*\n?\s*id:\s*'([^']*)',\s*\n?\s*name:\s*'([^']*)',\s*\n?\s*)(text:|rating:)/g,
-    (match, prefix, _id, name, next) => {
+    (_match, prefix, _id, name, next) => {
       const initial = name.trim().charAt(0) || 'X';
       return `${prefix}initial: '${initial}',\n    ${next}`;
     },
@@ -209,9 +214,11 @@ ${photoList}
 ${isMenuType
   ? `- templateType is 'menu' → fill MENU_CATEGORIES from brief services. Keep SERVICE_CATEGORIES = []
 - MenuCategory → EXACTLY 3 fields: id, name, items
-- MenuItem → EXACTLY 4 fields: id, name, description, price (NO icon field)
+- MenuItem → EXACTLY 4 fields: id, name, description, price
+  ⚠️ MenuItem has EXACTLY 4 fields: id, name, description, price. NO 'icon' field! Adding icon = build error.
   CORRECT: { id: '1-1', name: 'Dish', description: 'Short desc', price: '10€' }
   WRONG:   { id: '1-1', name: 'Dish', price: '10€' }
+  WRONG:   { id: '1-1', name: 'Dish', description: 'Short desc', price: '10€', icon: '🍕' }
   → ALL 4 fields REQUIRED. NO 'icon' on MenuItem.`
   : `- templateType is 'services' → fill SERVICE_CATEGORIES from brief services; if none, generate 2-3 realistic categories for "${lead.businessType}". Keep MENU_CATEGORIES = []`
 }

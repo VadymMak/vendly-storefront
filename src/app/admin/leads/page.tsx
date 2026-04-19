@@ -51,6 +51,7 @@ interface Lead {
   siteError:       string | null;
   siteCreatedAt:   string | null;
   siteQaReport:    string | null;
+  heroImageIndex:  number | null;
   createdAt:       string;
   updatedAt:       string;
 }
@@ -606,6 +607,9 @@ function LeadCard({
   const [siteVercelUrl, setSiteVercelUrl] = useState<string | null>(lead.siteVercelUrl);
   const [qaRunning, setQaRunning]       = useState(false);
   const [siteQaReport, setSiteQaReport] = useState<string | null>(lead.siteQaReport);
+  const [photos, setPhotos]             = useState<string[]>(() => parsePhotos(lead.photoUrls));
+  const [heroIdx, setHeroIdx]           = useState<number>(lead.heroImageIndex ?? 0);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -680,6 +684,33 @@ function LeadCard({
     } finally {
       setSiteCreating(false);
     }
+  }
+
+  async function uploadAdminPhoto(file: File) {
+    setUploadingPhoto(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res  = await fetch(`/api/admin/leads/${lead.id}/upload-photo`, { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; photoUrls?: string; error?: string };
+      if (res.ok && data.photoUrls) {
+        const updated = parsePhotos(data.photoUrls);
+        setPhotos(updated);
+        onUpdate(lead.id, { photoUrls: data.photoUrls });
+      }
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function saveHeroIndex(idx: number) {
+    setHeroIdx(idx);
+    await fetch('/api/admin/leads', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: lead.id, heroImageIndex: idx }),
+    });
+    onUpdate(lead.id, { heroImageIndex: idx });
   }
 
   async function runQa() {
@@ -1155,6 +1186,66 @@ function LeadCard({
               </div>
             </div>
           </div>
+
+            {/* ── Изображения ── */}
+            <div className="sm:col-span-2">
+              <div className="rounded-xl border border-[#374151] bg-[#0B1120] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-orange-400">
+                    Изображения{photos.length > 0 ? ` (${photos.length})` : ''}
+                  </p>
+                  <label className={`cursor-pointer rounded-lg border border-[#374151] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors ${uploadingPhoto ? 'pointer-events-none opacity-50' : ''}`}>
+                    {uploadingPhoto ? '⏳ Загрузка...' : '+ Добавить изображение'}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void uploadAdminPhoto(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {photos.length === 0 ? (
+                  <p className="text-xs text-gray-600">Фотографии не загружены.</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                      {photos.map((url, i) => (
+                        <div key={i} className="space-y-1.5">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`block aspect-square overflow-hidden rounded-lg ${heroIdx === i ? 'ring-2 ring-orange-400' : 'bg-[#0F172A]'}`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt={`photo ${i + 1}`} className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                          </a>
+                          <label className="flex cursor-pointer items-center justify-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-200">
+                            <input
+                              type="radio"
+                              name={`hero-${lead.id}`}
+                              checked={heroIdx === i}
+                              onChange={() => void saveHeroIndex(i)}
+                              className="accent-orange-400"
+                            />
+                            Hero
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[10px] text-gray-600">
+                      Hero по умолчанию — первое фото (индекс 0). Текущий: #{heroIdx}.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* ── Site Automation ── */}
             <div className="sm:col-span-2">

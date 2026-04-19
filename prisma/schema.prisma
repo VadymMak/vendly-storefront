@@ -236,6 +236,7 @@ model Lead {
   siteError       String?
   siteCreatedAt   DateTime?
   siteQaReport    String?
+  heroImageIndex  Int?      // индекс hero-фото в массиве photoUrls (0-based)
 
   // Даты
   createdAt       DateTime  @default(now())

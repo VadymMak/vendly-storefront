@@ -18,7 +18,8 @@ export interface LeadConstantsInput {
   socialInstagram:   string | null;
   socialFacebook:    string | null;
   wishes:            string | null;
-  photoUrls:         string | null;  // JSON string: ["url1","url2"]
+  heroImagePath:     string | null;  // '/images/hero.webp' if photos committed, else null
+  galleryImagePaths: string[] | null; // ['/images/gallery-1.webp', ...] if any, else null
   briefServicesJson: string | null;  // JSON string: [{name,price,duration,note}]
 }
 
@@ -148,16 +149,7 @@ function ensureServiceFields(code: string): string {
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(lead: LeadConstantsInput, templateConstants: string): string {
   const isMenuType = lead.templateType === 'menu';
-  // Parse photoUrls safely
-  let photoList = '(none provided — use Unsplash placeholders)';
-  if (lead.photoUrls) {
-    try {
-      const urls = JSON.parse(lead.photoUrls) as unknown;
-      if (Array.isArray(urls) && urls.length > 0) {
-        photoList = (urls as string[]).filter(Boolean).map((u, i) => `  ${i + 1}. ${u}`).join('\n');
-      }
-    } catch { /* ignore */ }
-  }
+  const hasPhotos  = !!lead.heroImagePath;
 
   // Parse briefServicesJson safely
   let servicesList = '(none — generate 2-3 realistic service categories for this business type)';
@@ -201,15 +193,13 @@ wishes:        ${lead.wishes ?? ''}
 Services from brief:
 ${servicesList}
 
-Photo URLs for IMAGES.gallery:
-${photoList}
-
 === RULES ===
 - Output ONLY raw TypeScript — no markdown, no code fences, no explanations
 - Start with the import block exactly as in the template
 - ALL visible text (labels, descriptions, reviews, FAQ, chat) MUST be in language "${lead.language}"
-- IMAGES.hero and IMAGES.about: use a relevant Unsplash URL for "${lead.businessType}" (unless photos provided)
-- IMAGES.gallery: MUST use ALL provided photo URLs below as-is (copy each URL exactly). If zero photos provided, use 5 relevant Unsplash URLs for "${lead.businessType}"
+- IMAGES.hero = ${hasPhotos ? `'${lead.heroImagePath!}' — local path, use EXACTLY as-is, no changes` : `relevant Unsplash URL for "${lead.businessType}"`}
+- IMAGES.about: always use a relevant Unsplash URL for "${lead.businessType}"
+- IMAGES.gallery = ${hasPhotos && lead.galleryImagePaths?.length ? `${JSON.stringify(lead.galleryImagePaths)} — use EXACTLY these local paths, no changes` : `5 relevant Unsplash URLs for "${lead.businessType}"`}
 - HERO: generate \`export const HERO = { title: '...', subtitle: '...' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}"
 ${isMenuType
   ? `- templateType is 'menu' → fill MENU_CATEGORIES from brief services. Keep SERVICE_CATEGORIES = []

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { generateConfigTs, type LeadConfigInput } from '@/lib/generate-config';
 import { generateConstantsTs, type LeadConstantsInput } from '@/lib/generate-constants';
 import { commitFiles } from '@/lib/github-commit';
-import { runImagePipeline } from '@/lib/image-pipeline/decision-engine';
+import sharp from 'sharp';
 
 // ─── Local types ──────────────────────────────────────────────────────────────
 
@@ -191,49 +191,63 @@ export async function POST(
     }
     console.log('[create-site] Step 5: Template constants loaded, length:', templateConstantsTs.length);
 
-    // Step 6 — Optional image pipeline (feature-flagged, non-fatal)
-    let heroImageBase64: string | null = null;
+    // Step 6 — Process photos into public/images/ (hero crop + gallery passthrough)
+    console.log('[create-site] Step 6: Processing lead photos');
+    let heroImagePath:     string | null = null;
+    let galleryImagePaths: string[] | null = null;
+    const imageFiles: Array<{ path: string; content: string; encoding: 'base64' }> = [];
 
-    const imagePipelineEnabled =
-      process.env.IMAGE_QUALITY_GATE === 'true' ||
-      process.env.VISION_ANALYSIS_ENABLED === 'true';
-
-    if (imagePipelineEnabled && lead.photoUrls) {
-      console.log('[create-site] Step 6: Running image pipeline');
+    if (lead.photoUrls) {
       try {
-        const photoUrls: string[] = [];
-        const parsed = JSON.parse(lead.photoUrls) as unknown;
-        if (Array.isArray(parsed)) {
-          for (const u of parsed) {
-            if (typeof u === 'string' && u.trim()) photoUrls.push(u.trim());
+        const rawUrls: string[] = [];
+        const parsedUrls = JSON.parse(lead.photoUrls) as unknown;
+        if (Array.isArray(parsedUrls)) {
+          for (const u of parsedUrls) {
+            if (typeof u === 'string' && u.trim()) rawUrls.push(u.trim());
           }
         }
 
-        if (photoUrls.length > 0) {
-          const images = await Promise.all(
-            photoUrls.map(async (url, i) => {
+        if (rawUrls.length > 0) {
+          const heroIdx = Math.min(lead.heroImageIndex ?? 0, rawUrls.length - 1);
+
+          // Download all photos
+          const buffers = await Promise.all(
+            rawUrls.map(async (url, i) => {
               const res = await fetch(url);
-              if (!res.ok) throw new Error(`HTTP ${res.status} for photo ${i + 1}`);
-              const ab = await res.arrayBuffer();
-              return { buffer: Buffer.from(ab), name: `photo-${i + 1}.jpg` };
+              if (!res.ok) throw new Error(`HTTP ${res.status} fetching photo ${i + 1}`);
+              return Buffer.from(await res.arrayBuffer());
             }),
           );
 
-          const pipelineResult = await runImagePipeline(
-            images,
-            lead.businessName ?? '',
-            lead.businessType,
-          );
+          // Hero: crop to 1600×900
+          const heroBuffer = await sharp(buffers[heroIdx])
+            .resize(1600, 900, { fit: 'cover', position: 'center' })
+            .webp({ quality: 85 })
+            .toBuffer();
+          imageFiles.push({ path: 'public/images/hero.webp', content: heroBuffer.toString('base64'), encoding: 'base64' });
+          heroImagePath = '/images/hero.webp';
 
-          if (pipelineResult.heroImage?.buffer) {
-            heroImageBase64 = pipelineResult.heroImage.buffer.toString('base64');
-            console.log('[create-site] Step 6: Hero image generated');
+          // Gallery: remaining photos (already webp — pass through)
+          const paths: string[] = [];
+          let galleryIdx = 1;
+          for (let i = 0; i < buffers.length; i++) {
+            if (i === heroIdx) continue;
+            imageFiles.push({ path: `public/images/gallery-${galleryIdx}.webp`, content: buffers[i].toString('base64'), encoding: 'base64' });
+            paths.push(`/images/gallery-${galleryIdx}.webp`);
+            galleryIdx++;
           }
+          if (paths.length > 0) galleryImagePaths = paths;
+
+          console.log(`[create-site] Step 6: ${imageFiles.length} image(s) processed — hero at index ${heroIdx}, ${paths.length} gallery`);
         }
       } catch (imgErr) {
-        // Non-fatal — continue without hero image
-        console.warn('[create-site] Step 6: Image pipeline warning:', imgErr instanceof Error ? imgErr.message : imgErr);
+        console.warn('[create-site] Step 6: Image processing warning (non-fatal):', imgErr instanceof Error ? imgErr.message : imgErr);
+        heroImagePath = null;
+        galleryImagePaths = null;
+        imageFiles.length = 0;
       }
+    } else {
+      console.log('[create-site] Step 6: No photos — Claude will use Unsplash');
     }
 
     // Step 7 — Generate config.ts programmatically (instant, no AI)
@@ -265,7 +279,8 @@ export async function POST(
       socialInstagram:   lead.socialInstagram,
       socialFacebook:    lead.socialFacebook,
       wishes:            lead.wishes,
-      photoUrls:         lead.photoUrls,
+      heroImagePath,
+      galleryImagePaths,
       briefServicesJson: lead.briefServicesJson,
     };
 
@@ -338,9 +353,7 @@ export async function POST(
     const filesToCommit = [
       { path: 'lib/config.ts',    content: configTs },
       { path: 'lib/constants.ts', content: constantsTs },
-      ...(heroImageBase64
-        ? [{ path: 'public/images/hero.webp', content: heroImageBase64, encoding: 'base64' as const }]
-        : []),
+      ...imageFiles,
     ];
 
     await commitFiles(finalRepoName, filesToCommit);

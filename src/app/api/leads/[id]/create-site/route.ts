@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { generateConfigTs, type LeadConfigInput } from '@/lib/generate-config';
+import { generateConfigTs, getTemplateRepo, type LeadConfigInput } from '@/lib/generate-config';
 import { generateConstantsTs, type LeadConstantsInput } from '@/lib/generate-constants';
 import { commitFiles } from '@/lib/github-commit';
 import sharp from 'sharp';
@@ -128,19 +128,17 @@ export async function POST(
   const { id } = await params;
 
   // Validate required env vars
-  const GITHUB_TOKEN        = process.env.GITHUB_TOKEN;
-  const GITHUB_OWNER        = process.env.GITHUB_OWNER;
-  const GITHUB_TEMPLATE_REPO = process.env.GITHUB_TEMPLATE_REPO;
-  const VERCEL_TOKEN        = process.env.VERCEL_TOKEN;
-  const ANTHROPIC_API_KEY   = process.env.ANTHROPIC_API_KEY;
+  const GITHUB_TOKEN      = process.env.GITHUB_TOKEN;
+  const GITHUB_OWNER      = process.env.GITHUB_OWNER;
+  const VERCEL_TOKEN      = process.env.VERCEL_TOKEN;
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
   console.log('[create-site] ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY);
 
   const missingVars = [
-    !GITHUB_TOKEN         && 'GITHUB_TOKEN',
-    !GITHUB_OWNER         && 'GITHUB_OWNER',
-    !GITHUB_TEMPLATE_REPO && 'GITHUB_TEMPLATE_REPO',
-    !VERCEL_TOKEN         && 'VERCEL_TOKEN',
+    !GITHUB_TOKEN  && 'GITHUB_TOKEN',
+    !GITHUB_OWNER  && 'GITHUB_OWNER',
+    !VERCEL_TOKEN  && 'VERCEL_TOKEN',
   ].filter(Boolean);
 
   if (missingVars.length > 0) {
@@ -155,6 +153,9 @@ export async function POST(
   if (!lead) {
     return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
   }
+
+  const templateRepo = getTemplateRepo(lead.businessType ?? '');
+  console.log('[create-site] Template repo:', templateRepo, '(businessType:', lead.businessType, ')');
 
   // Step 2 — Guard: already in progress or done
   if (lead.siteStatus !== 'none' && lead.siteStatus !== 'error') {
@@ -180,14 +181,14 @@ export async function POST(
 
   try {
     // Step 5 — Read template constants.ts (used as structural reference for Claude)
-    console.log('[create-site] Step 5: Reading template constants from', GITHUB_TEMPLATE_REPO);
+    console.log('[create-site] Step 5: Reading template constants from', templateRepo);
     const templateConstantsTs = await fetchTemplateFile(
-      GITHUB_OWNER!, GITHUB_TOKEN!, GITHUB_TEMPLATE_REPO!,
+      GITHUB_OWNER!, GITHUB_TOKEN!, templateRepo,
       ['lib/constants.ts', 'src/lib/constants.ts', 'src/constants.ts'],
     );
 
     if (!templateConstantsTs) {
-      throw new Error(`Could not read lib/constants.ts from ${GITHUB_TEMPLATE_REPO}`);
+      throw new Error(`Could not read lib/constants.ts from ${templateRepo}`);
     }
     console.log('[create-site] Step 5: Template constants loaded, length:', templateConstantsTs.length);
 
@@ -300,7 +301,7 @@ export async function POST(
     let finalRepoName = repoName;
     console.log('[create-site] Step 9: Creating GitHub repo:', finalRepoName);
     const githubRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
+      `https://api.github.com/repos/${GITHUB_OWNER}/${templateRepo}/generate`,
       {
         method: 'POST',
         headers: {
@@ -317,7 +318,7 @@ export async function POST(
       finalRepoName = `${finalRepoName}-${randomSuffix()}`;
       console.log('[create-site] Step 9: Name collision, retrying with:', finalRepoName);
       const retryRes = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_TEMPLATE_REPO}/generate`,
+        `https://api.github.com/repos/${GITHUB_OWNER}/${templateRepo}/generate`,
         {
           method: 'POST',
           headers: {

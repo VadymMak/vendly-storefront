@@ -41,6 +41,28 @@ const BUSINESS_TYPE_PRESET: Record<string, Preset> = {
 
 const DEFAULT_PRESET: Preset = { palette: 'professional', headingFont: 'inter' };
 
+// ─── Template repo mapping ────────────────────────────────────────────────────
+const TEMPLATE_REPO_MAP: Record<string, string> = {
+  repair:        'vendshop-template-classic',
+  home_services: 'vendshop-template-classic',
+  physical:      'vendshop-template-classic',
+  ecommerce:     'vendshop-template-classic',
+  food:          'vendshop-template-warm',
+  restaurant:    'vendshop-template-warm',
+  beauty:        'vendshop-template-natural',
+  health:        'vendshop-template-natural',
+  digital:       'vendshop-template-bold',
+  education:     'vendshop-template-bold',
+  photography:   'vendshop-template-dark',
+  design:        'vendshop-template-dark',
+};
+
+const DEFAULT_TEMPLATE_REPO = 'vendshop-template-classic';
+
+export function getTemplateRepo(businessType: string): string {
+  return TEMPLATE_REPO_MAP[businessType] ?? DEFAULT_TEMPLATE_REPO;
+}
+
 // ─── Brief palette → PalettePreset mapping ────────────────────────────────────
 const PALETTE_MAP: Record<string, PalettePreset> = {
   dark:         'dark-premium',

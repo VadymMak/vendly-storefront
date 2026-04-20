@@ -251,6 +251,29 @@ export async function POST(
       console.log('[create-site] Step 6: No photos — Claude will use Unsplash');
     }
 
+    // Step 6b — Process logo (if provided)
+    let logoImagePath: string | null = null;
+    if (lead.logoUrl) {
+      try {
+        const logoRes = await fetch(lead.logoUrl);
+        if (logoRes.ok) {
+          const logoBuf = Buffer.from(await logoRes.arrayBuffer());
+          const logoWebp = await sharp(logoBuf)
+            .webp({ quality: 85, alphaQuality: 100 })
+            .toBuffer();
+          imageFiles.push({ path: 'public/images/logo.webp', content: logoWebp.toString('base64'), encoding: 'base64' });
+          logoImagePath = '/images/logo.webp';
+          console.log('[create-site] Step 6b: Logo processed →', logoImagePath);
+        } else {
+          console.warn('[create-site] Step 6b: Logo fetch failed —', logoRes.status);
+        }
+      } catch (logoErr) {
+        console.warn('[create-site] Step 6b: Logo processing warning (non-fatal):', logoErr instanceof Error ? logoErr.message : logoErr);
+      }
+    } else {
+      console.log('[create-site] Step 6b: No logoUrl — text fallback will be used');
+    }
+
     // Step 7 — Generate config.ts programmatically (instant, no AI)
     console.log('[create-site] Step 7: Generating config.ts programmatically');
     const configInput: LeadConfigInput = {
@@ -282,6 +305,7 @@ export async function POST(
       wishes:            lead.wishes,
       heroImagePath,
       galleryImagePaths,
+      logoImagePath,
       briefServicesJson: lead.briefServicesJson,
     };
 

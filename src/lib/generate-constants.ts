@@ -20,6 +20,7 @@ export interface LeadConstantsInput {
   wishes:            string | null;
   heroImagePath:     string | null;  // '/images/hero.webp' if photos committed, else null
   galleryImagePaths: string[] | null; // ['/images/gallery-1.webp', ...] if any, else null
+  logoImagePath:     string | null;  // '/images/logo.webp' if logo committed, else null
   briefServicesJson: string | null;  // JSON string: [{name,price,duration,note}]
 }
 
@@ -200,6 +201,7 @@ ${servicesList}
 - IMAGES.hero = ${hasPhotos ? `'${lead.heroImagePath!}' — local path, use EXACTLY as-is, no changes` : `relevant Unsplash URL for "${lead.businessType}"`}
 - IMAGES.about: always use a relevant Unsplash URL for "${lead.businessType}"
 - IMAGES.gallery = ${hasPhotos && lead.galleryImagePaths?.length ? `${JSON.stringify(lead.galleryImagePaths)} — use EXACTLY these local paths, no changes` : `5 relevant Unsplash URLs for "${lead.businessType}"`}
+- IMAGES.logo = ${lead.logoImagePath ? `'${lead.logoImagePath}' — local path, use EXACTLY as-is, no changes` : `''`} (empty string means no logo — text fallback will be used)
 - HERO: generate \`export const HERO = { title: '...', subtitle: '...' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}"
 ${isMenuType
   ? `- templateType is 'menu' → fill MENU_CATEGORIES from brief services. Keep SERVICE_CATEGORIES = []

@@ -604,6 +604,7 @@ function LeadCard({
   // Local optimistic overrides for site fields
   const [siteStatus, setSiteStatus]     = useState<string | null>(lead.siteStatus ?? 'none');
   const [siteRepoUrl, setSiteRepoUrl]   = useState<string | null>(lead.siteRepoUrl);
+  const [siteRepoName, setSiteRepoName] = useState<string | null>(lead.siteRepoName);
   const [siteVercelUrl, setSiteVercelUrl] = useState<string | null>(lead.siteVercelUrl);
   const [qaRunning, setQaRunning]       = useState(false);
   const [siteQaReport, setSiteQaReport] = useState<string | null>(lead.siteQaReport);
@@ -666,14 +667,17 @@ function LeadCard({
         setSiteError(msg);
         onUpdate(lead.id, { siteStatus: 'error', siteError: msg });
       } else {
+        const repoName = data.repoUrl ? (data.repoUrl.split('/').pop() ?? null) : null;
         setSiteStatus('created');
         setSiteRepoUrl(data.repoUrl ?? null);
+        setSiteRepoName(repoName);
         setSiteVercelUrl(data.vercelUrl ?? null);
         onUpdate(lead.id, {
-          siteStatus:   'created',
-          siteRepoUrl:  data.repoUrl ?? null,
+          siteStatus:    'created',
+          siteRepoUrl:   data.repoUrl ?? null,
+          siteRepoName:  repoName,
           siteVercelUrl: data.vercelUrl ?? null,
-          siteError:    null,
+          siteError:     null,
         });
       }
     } catch (err) {
@@ -1312,20 +1316,39 @@ function LeadCard({
                               <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
                             </a>
                           )}
-                          {siteVercelUrl && (
-                            <a href={siteVercelUrl} target="_blank" rel="noopener noreferrer"
+                          {siteRepoName && (
+                            <a
+                              href={`https://${siteRepoName}.vercel.app`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors">
                               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M24 22.525H0l12-21.05 12 21.05z"/>
                               </svg>
-                              Vercel Preview
+                              Открыть сайт
                               <svg className="h-3 w-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
                             </a>
                           )}
                         </div>
 
-                        {/* Run QA button — show when created or qa_failed */}
-                        {(siteStatus === 'created' || siteStatus === 'qa_failed') && (
+                        {/* Open site button — shown when site is created */}
+                        {siteStatus === 'created' && siteRepoName && (
+                          <a
+                            href={`https://${siteRepoName}.vercel.app`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-600"
+                          >
+                            <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                            </svg>
+                            Проверить сайт
+                          </a>
+                        )}
+
+                        {/* Re-run QA button — shown only after QA failed */}
+                        {siteStatus === 'qa_failed' && (
                           <button
                             onClick={() => void runQa()}
                             disabled={qaRunning}
@@ -1345,7 +1368,7 @@ function LeadCard({
                                   <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
                                   <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
                                 </svg>
-                                {siteStatus === 'qa_failed' ? 'Повторить QA' : 'Проверить сайт'}
+                                Повторить QA
                               </>
                             )}
                           </button>

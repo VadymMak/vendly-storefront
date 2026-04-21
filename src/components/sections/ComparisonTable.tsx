@@ -33,6 +33,14 @@ function CellValue({ value, highlight }: { value: string; highlight?: boolean })
 export default function ComparisonTable() {
   const t = useTranslations('competitor');
 
+  const tv = (val: string) => {
+    if (val === '✓' || val === '✗') return val;
+    if (val.startsWith('competitor.')) {
+      return t(val.replace('competitor.', '') as Parameters<typeof t>[0]);
+    }
+    return val;
+  };
+
   return (
     <section id="comparison" className="scroll-reveal py-20 sm:py-28 bg-[--color-bg]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -58,8 +66,8 @@ export default function ComparisonTable() {
                     VendShop
                   </span>
                 </th>
-                <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium min-w-[100px]">Wix</th>
-                <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium min-w-[120px]">Squarespace</th>
+                <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium min-w-[120px]">{t('durableCol')}</th>
+                <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium min-w-[140px]">{t('wixCol')}</th>
                 <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium min-w-[120px]">
                   {t('freelancerCol')}
                 </th>
@@ -77,16 +85,16 @@ export default function ComparisonTable() {
                   >
                     <td className="px-6 py-4 text-[--color-text-muted]">{t(featureKey)}</td>
                     <td className="px-6 py-4 text-center">
-                      <CellValue value={row.vendshop} highlight />
+                      <CellValue value={tv(row.vendshop)} highlight />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CellValue value={row.wix} />
+                      <CellValue value={tv(row.durable)} />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CellValue value={row.squarespace} />
+                      <CellValue value={tv(row.wixSquarespace)} />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CellValue value={row.freelancer} />
+                      <CellValue value={tv(row.freelancer)} />
                     </td>
                   </tr>
                 );

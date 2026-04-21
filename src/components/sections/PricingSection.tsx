@@ -150,22 +150,34 @@ export default function PricingSection() {
               <thead>
                 <tr className="border-b border-[--color-border]">
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-[--color-text-muted]">
-                    Funkcia
+                    {tc('featureCol')}
                   </th>
                   <th className="px-4 py-4 text-center">
                     <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
                       VendShop ✓
                     </span>
                   </th>
-                  <th className="px-4 py-4 text-center text-xs font-semibold text-neutral">Wix</th>
-                  <th className="px-4 py-4 text-center text-xs font-semibold text-neutral">Squarespace</th>
-                  <th className="px-4 py-4 text-center text-xs font-semibold text-neutral">Freelancer</th>
+                  <th className="px-4 py-4 text-center text-xs font-semibold text-neutral">{tc('durableCol')}</th>
+                  <th className="px-4 py-4 text-center text-xs font-semibold text-neutral">{tc('wixCol')}</th>
+                  <th className="px-4 py-4 text-center text-xs font-semibold text-neutral">{tc('freelancerCol')}</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPETITOR_TABLE.map((row, i) => {
-                  const featureKey = row.feature.replace('competitor.', '') as
-                    | 'creation' | 'monthly' | 'aichat' | 'delivery' | 'effort';
+                  const featureKey = row.feature.replace('competitor.', '') as Parameters<typeof tc>[0];
+                  const tv = (val: string) => {
+                    if (val === '✓' || val === '✗') return val;
+                    if (val.startsWith('competitor.')) {
+                      return tc(val.replace('competitor.', '') as Parameters<typeof tc>[0]);
+                    }
+                    return val;
+                  };
+                  const renderCell = (val: string, highlight?: boolean) => {
+                    const v = tv(val);
+                    if (v === '✓') return <span className="inline-flex justify-center"><YesIcon /></span>;
+                    if (v === '✗') return <span className="inline-flex justify-center"><NoIcon /></span>;
+                    return <span className={highlight ? 'font-semibold text-primary' : ''}>{v}</span>;
+                  };
                   return (
                     <tr
                       key={row.feature}
@@ -173,39 +185,11 @@ export default function PricingSection() {
                         i === COMPETITOR_TABLE.length - 1 ? 'border-none' : ''
                       }`}
                     >
-                      <td className="px-6 py-4 font-medium text-white">
-                        {tc(featureKey)}
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        {row.vendshop === '✓' ? (
-                          <span className="inline-flex justify-center"><YesIcon /></span>
-                        ) : row.vendshop === '✗' ? (
-                          <span className="inline-flex justify-center"><NoIcon /></span>
-                        ) : (
-                          <span className="font-semibold text-primary">{row.vendshop}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 text-center text-[--color-text-muted]">
-                        {row.wix === '✓' ? (
-                          <span className="inline-flex justify-center"><YesIcon /></span>
-                        ) : row.wix === '✗' ? (
-                          <span className="inline-flex justify-center"><NoIcon /></span>
-                        ) : row.wix}
-                      </td>
-                      <td className="px-4 py-4 text-center text-[--color-text-muted]">
-                        {row.squarespace === '✓' ? (
-                          <span className="inline-flex justify-center"><YesIcon /></span>
-                        ) : row.squarespace === '✗' ? (
-                          <span className="inline-flex justify-center"><NoIcon /></span>
-                        ) : row.squarespace}
-                      </td>
-                      <td className="px-4 py-4 text-center text-[--color-text-muted]">
-                        {row.freelancer === '✓' ? (
-                          <span className="inline-flex justify-center"><YesIcon /></span>
-                        ) : row.freelancer === '✗' ? (
-                          <span className="inline-flex justify-center"><NoIcon /></span>
-                        ) : row.freelancer}
-                      </td>
+                      <td className="px-6 py-4 font-medium text-white">{tc(featureKey)}</td>
+                      <td className="px-4 py-4 text-center">{renderCell(row.vendshop, true)}</td>
+                      <td className="px-4 py-4 text-center text-[--color-text-muted]">{renderCell(row.durable)}</td>
+                      <td className="px-4 py-4 text-center text-[--color-text-muted]">{renderCell(row.wixSquarespace)}</td>
+                      <td className="px-4 py-4 text-center text-[--color-text-muted]">{renderCell(row.freelancer)}</td>
                     </tr>
                   );
                 })}

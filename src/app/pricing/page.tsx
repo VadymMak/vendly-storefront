@@ -69,37 +69,34 @@ export default async function PricingPage() {
                   <tr className="border-b border-[--color-border] bg-[--color-card]">
                     <th className="px-6 py-4 text-left text-[--color-text-muted] font-medium">{tc('featureCol')}</th>
                     <th className="px-6 py-4 text-center text-[--color-primary] font-semibold">VendShop</th>
-                    <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium">Wix</th>
-                    <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium">Squarespace</th>
+                    <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium">{tc('durableCol')}</th>
+                    <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium">{tc('wixCol')}</th>
                     <th className="px-6 py-4 text-center text-[--color-text-muted] font-medium">{tc('freelancerCol')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {COMPETITOR_TABLE.map((row, i) => {
                     const featureKey = row.feature.replace('competitor.', '') as Parameters<typeof tc>[0];
+                    const tv = (val: string) => {
+                      if (val === '✓' || val === '✗') return val;
+                      if (val.startsWith('competitor.')) {
+                        return tc(val.replace('competitor.', '') as Parameters<typeof tc>[0]);
+                      }
+                      return val;
+                    };
+                    const renderCell = (val: string, highlight?: boolean) => {
+                      const v = tv(val);
+                      if (v === '✓') return <span className="flex justify-center"><CheckIcon /></span>;
+                      if (v === '✗') return <span className="flex justify-center"><NoIcon /></span>;
+                      return <span className={highlight ? 'font-semibold text-[--color-primary]' : 'text-[--color-text-dim]'}>{v}</span>;
+                    };
                     return (
                       <tr key={i} className={`border-b border-[--color-border] ${i % 2 === 0 ? 'bg-[--color-bg]' : 'bg-[--color-card]'}`}>
                         <td className="px-6 py-4 text-[--color-text-muted]">{tc(featureKey)}</td>
-                        <td className="px-6 py-4 text-center">
-                          {row.vendshop === '✓' ? <span className="flex justify-center"><CheckIcon /></span> :
-                           row.vendshop === '✗' ? <span className="flex justify-center"><NoIcon /></span> :
-                           <span className="font-semibold text-[--color-primary]">{row.vendshop}</span>}
-                        </td>
-                        <td className="px-6 py-4 text-center text-[--color-text-dim]">
-                          {row.wix === '✓' ? <span className="flex justify-center"><CheckIcon /></span> :
-                           row.wix === '✗' ? <span className="flex justify-center"><NoIcon /></span> :
-                           row.wix}
-                        </td>
-                        <td className="px-6 py-4 text-center text-[--color-text-dim]">
-                          {row.squarespace === '✓' ? <span className="flex justify-center"><CheckIcon /></span> :
-                           row.squarespace === '✗' ? <span className="flex justify-center"><NoIcon /></span> :
-                           row.squarespace}
-                        </td>
-                        <td className="px-6 py-4 text-center text-[--color-text-dim]">
-                          {row.freelancer === '✓' ? <span className="flex justify-center"><CheckIcon /></span> :
-                           row.freelancer === '✗' ? <span className="flex justify-center"><NoIcon /></span> :
-                           row.freelancer}
-                        </td>
+                        <td className="px-6 py-4 text-center">{renderCell(row.vendshop, true)}</td>
+                        <td className="px-6 py-4 text-center">{renderCell(row.durable)}</td>
+                        <td className="px-6 py-4 text-center">{renderCell(row.wixSquarespace)}</td>
+                        <td className="px-6 py-4 text-center">{renderCell(row.freelancer)}</td>
                       </tr>
                     );
                   })}

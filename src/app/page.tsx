@@ -1,6 +1,7 @@
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import HeroSection from '@/components/sections/HeroSection';
+import DachTrustBar from '@/components/sections/DachTrustBar';
 import PortfolioSection from '@/components/sections/PortfolioSection';
 import HowItWorks from '@/components/sections/HowItWorks';
 import FeaturesSection from '@/components/sections/FeaturesSection';
@@ -17,6 +18,7 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <HeroSection />
+        <DachTrustBar />
         <PortfolioSection />
         <HowItWorks />
         <FeaturesSection />

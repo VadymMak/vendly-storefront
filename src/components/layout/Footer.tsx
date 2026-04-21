@@ -86,7 +86,7 @@ export default function Footer() {
                 <rect width="32" height="32" rx="7" fill="#16a34a" />
                 <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fill="white">V.</text>
               </svg>
-              <h3 className="text-lg font-bold text-primary">Vendly</h3>
+              <h3 className="text-lg font-bold text-primary">VendShop</h3>
             </div>
             <p className="mt-2 text-sm text-[--color-text-muted]">
               {t('description')}

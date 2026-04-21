@@ -16,6 +16,7 @@ const NAV_KEYS = [
   { key: 'howItWorks' as const, href: '#how-it-works' },
   { key: 'features' as const, href: '#portfolio' },
   { key: 'pricing' as const, href: '#pricing' },
+  { key: 'blog' as const, href: '/blog' },
   { key: 'faq' as const, href: '#testimonials' },
   { key: 'contact' as const, href: '#contact' },
 ];
@@ -112,7 +113,7 @@ export default function Header() {
             <rect width="32" height="32" rx="7" fill="#16a34a" />
             <text x="6" y="23" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fill="white">V.</text>
           </svg>
-          <span className="text-xl font-bold text-primary">Vendly</span>
+          <span className="text-xl font-bold text-primary">VendShop</span>
         </a>
 
         {/* Desktop nav */}

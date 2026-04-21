@@ -903,5 +903,27 @@
     "bold": { "name": "Bold", "desc": "Strong and confident. Great for barbershops, beauty salons and repair shops." },
     "natural": { "name": "Natural", "desc": "Calm and earthy. Designed for yoga studios, wellness centers and eco brands." },
     "medical": { "name": "Medical", "desc": "Clean and trustworthy. Built for clinics, dental offices and healthcare services." }
+  },
+  "contactPage": {
+    "metaTitle": "Contact — VendShop",
+    "metaDesc": "Get in touch with VendShop. We build professional websites for small businesses in 48 hours.",
+    "badge": "Get in touch",
+    "title": "Contact us",
+    "subtitle": "Have a question or ready to start? Write to us — we reply within a few hours.",
+    "whatsappTitle": "WhatsApp",
+    "whatsappDesc": "Fastest way to start — write to us directly.",
+    "whatsappBtn": "Message on WhatsApp",
+    "emailTitle": "Email",
+    "emailDesc": "For detailed questions or if you prefer email.",
+    "formTitle": "Send a message",
+    "nameLabel": "Your name",
+    "namePlaceholder": "John Smith",
+    "emailLabel": "Your email",
+    "emailPlaceholder": "you@example.com",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Tell us about your project...",
+    "submit": "Send message",
+    "successTitle": "Message sent!",
+    "successDesc": "We'll get back to you within a few hours."
   }
 }

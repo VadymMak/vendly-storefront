@@ -15,10 +15,10 @@ const LOCALE_OPTIONS = [
 const NAV_KEYS = [
   { key: 'howItWorks' as const, href: '#how-it-works' },
   { key: 'features' as const, href: '#portfolio' },
-  { key: 'pricing' as const, href: '#pricing' },
+  { key: 'pricing' as const, href: '/pricing' },
   { key: 'blog' as const, href: '/blog' },
   { key: 'faq' as const, href: '#testimonials' },
-  { key: 'contact' as const, href: '#contact' },
+  { key: 'contact' as const, href: '/contact' },
 ];
 
 function BurgerIcon() {

@@ -903,5 +903,27 @@
     "bold": { "name": "Bold", "desc": "Silný a sebavedomý. Pre barbershopy, salóny krásy a opravovne." },
     "natural": { "name": "Natural", "desc": "Pokojný a prírodný. Pre joga štúdiá, wellness centrá a eko značky." },
     "medical": { "name": "Medical", "desc": "Čistý a dôveryhodný. Pre kliniky, zubné ordinácie a zdravotné služby." }
+  },
+  "contactPage": {
+    "metaTitle": "Kontakt — VendShop",
+    "metaDesc": "Kontaktujte VendShop. Vytvárame profesionálne weby pre malé firmy do 48 hodín.",
+    "badge": "Kontaktujte nás",
+    "title": "Kontakt",
+    "subtitle": "Máte otázku alebo ste pripravení začať? Napíšte nám — odpovieme do pár hodín.",
+    "whatsappTitle": "WhatsApp",
+    "whatsappDesc": "Najrýchlejší spôsob ako začať — napíšte nám priamo.",
+    "whatsappBtn": "Napísať na WhatsApp",
+    "emailTitle": "E-mail",
+    "emailDesc": "Pre detailné otázky alebo ak preferujete e-mail.",
+    "formTitle": "Poslať správu",
+    "nameLabel": "Vaše meno",
+    "namePlaceholder": "Ján Novák",
+    "emailLabel": "Váš e-mail",
+    "emailPlaceholder": "vy@priklad.sk",
+    "messageLabel": "Správa",
+    "messagePlaceholder": "Povedzte nám o vašom projekte...",
+    "submit": "Odoslať správu",
+    "successTitle": "Správa odoslaná!",
+    "successDesc": "Ozveme sa vám do pár hodín."
   }
 }

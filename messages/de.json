@@ -903,5 +903,27 @@
     "bold": { "name": "Bold", "desc": "Stark und selbstbewusst. Für Barbershops, Beauty-Salons und Reparaturwerkstätten." },
     "natural": { "name": "Natural", "desc": "Ruhig und natürlich. Für Yoga-Studios, Wellness-Center und Öko-Marken." },
     "medical": { "name": "Medical", "desc": "Sauber und vertrauenswürdig. Für Kliniken, Zahnarztpraxen und Gesundheitsdienste." }
+  },
+  "contactPage": {
+    "metaTitle": "Kontakt — VendShop",
+    "metaDesc": "Kontaktieren Sie VendShop. Professionelle Websites für kleine Unternehmen in 48 Stunden.",
+    "badge": "Kontakt",
+    "title": "Kontakt",
+    "subtitle": "Haben Sie eine Frage oder sind Sie bereit loszulegen? Schreiben Sie uns — wir antworten innerhalb weniger Stunden.",
+    "whatsappTitle": "WhatsApp",
+    "whatsappDesc": "Schnellster Weg zum Start — schreiben Sie uns direkt.",
+    "whatsappBtn": "WhatsApp schreiben",
+    "emailTitle": "E-Mail",
+    "emailDesc": "Für ausführliche Fragen oder wenn Sie E-Mail bevorzugen.",
+    "formTitle": "Nachricht senden",
+    "nameLabel": "Ihr Name",
+    "namePlaceholder": "Max Mustermann",
+    "emailLabel": "Ihre E-Mail",
+    "emailPlaceholder": "sie@beispiel.de",
+    "messageLabel": "Nachricht",
+    "messagePlaceholder": "Erzählen Sie uns von Ihrem Projekt...",
+    "submit": "Nachricht senden",
+    "successTitle": "Nachricht gesendet!",
+    "successDesc": "Wir melden uns innerhalb weniger Stunden."
   }
 }

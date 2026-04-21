@@ -32,10 +32,13 @@
     "statCountries": "krajiny",
     "statLanguages": "jazykov",
     "statUptime": "uptime",
-    "title": "Profesionálna webová stránka",
-    "titleHighlight": "za 48 hodín",
+    "title": "Vaša profesionálna webová stránka vo vašom jazyku",
+    "titleHighlight": "— za menej ako 2 minúty",
     "cta1": "Napísať na WhatsApp",
-    "cta2": "Pozrieť portfólio"
+    "cta2": "Pozrieť portfólio",
+    "trust1": "Žiadna záloha",
+    "trust2": "Hotové za 48 hodín",
+    "trust3": "Platíte len ak sa páči"
   },
   "socialProof": {
     "text": "Dôverujú nám stovky podnikateľov v SK, CZ, UA a DE",
@@ -807,6 +810,23 @@
     "delivery": "Dodanie",
     "rating": "Hodnotenie",
     "from": "Od"
+  },
+  "blog": {
+    "metaTitle": "Blog — VendShop",
+    "metaDesc": "Tipy, návody a postrehy pre majiteľov malých podnikov, ktorí chcú predávať online.",
+    "badge": "Blog",
+    "title": "Tipy pre malý biznis",
+    "subtitle": "Návody, prípadové štúdie a postrehy, ktoré vám pomôžu rásť online.",
+    "noPosts": "Zatiaľ žiadne príspevky. Skontrolujte neskôr.",
+    "readMore": "Čítať viac",
+    "minRead": "min čítania",
+    "backToBlog": "Späť na blog",
+    "by": "Autor",
+    "readTime": "min čítania",
+    "availableIn": "Dostupné aj v:",
+    "ctaTitle": "Pripravení spustiť váš web?",
+    "ctaDesc": "Získajte profesionálnu, viacjazyčnú webovú stránku pre váš podnik za 48 hodín.",
+    "ctaButton": "Napísať na WhatsApp"
   },
   "pricingPage": {
     "metaTitle": "Cenník — VendShop",

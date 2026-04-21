@@ -21,10 +21,10 @@
     "cta": "WhatsApp"
   },
   "hero": {
-    "badge": "New platform for small business",
+    "badge": "Done-for-you website service",
     "titleLine1": "Your online store.",
     "titleLine2": "Ready in 5 minutes.",
-    "subtitle": "No coding, no design skills. Our team creates a professional website for your business. From €249.",
+    "subtitle": "No coding, no design skills needed. We build a beautiful, multilingual website for your business in 48 hours. AI chatbot, WhatsApp, SEO included.",
     "cta": "Start for free",
     "demo": "View demo",
     "quickAnswer": "Free forever · 5 min setup · No credit card · AI-powered",
@@ -32,10 +32,13 @@
     "statCountries": "countries",
     "statLanguages": "languages",
     "statUptime": "uptime",
-    "title": "Professional website",
-    "titleHighlight": "in 48 hours",
+    "title": "Your Professional Website in Your Language",
+    "titleHighlight": "— in Under 2 Minutes",
     "cta1": "Message on WhatsApp",
-    "cta2": "View portfolio"
+    "cta2": "View portfolio",
+    "trust1": "No upfront payment",
+    "trust2": "Done in 48 hours",
+    "trust3": "Pay only if you love it"
   },
   "socialProof": {
     "text": "Trusted by hundreds of entrepreneurs in SK, CZ, UA and DE",
@@ -807,6 +810,23 @@
     "delivery": "Delivery",
     "rating": "Rating",
     "from": "From"
+  },
+  "blog": {
+    "metaTitle": "Blog — VendShop",
+    "metaDesc": "Tips, guides, and insights for small business owners who want to sell online.",
+    "badge": "Blog",
+    "title": "Tips for Small Businesses",
+    "subtitle": "Guides, case studies, and insights to help you grow online.",
+    "noPosts": "No posts yet. Check back soon.",
+    "readMore": "Read more",
+    "minRead": "min read",
+    "backToBlog": "Back to Blog",
+    "by": "By",
+    "readTime": "min read",
+    "availableIn": "Also available in:",
+    "ctaTitle": "Ready to launch your website?",
+    "ctaDesc": "Get a professional, multilingual website for your business in 48 hours.",
+    "ctaButton": "Message on WhatsApp"
   },
   "pricingPage": {
     "metaTitle": "Pricing — VendShop",

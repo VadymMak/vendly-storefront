@@ -21,10 +21,10 @@
     "cta": "WhatsApp"
   },
   "hero": {
-    "badge": "Neue Plattform für Kleinunternehmen",
+    "badge": "Website-Service für Sie",
     "titleLine1": "Ihr Online-Shop.",
     "titleLine2": "Fertig in 5 Minuten.",
-    "subtitle": "Ohne Programmierung, ohne Design-Kenntnisse. Erstellen Sie einen professionellen Shop, akzeptieren Sie Zahlungen über Stripe und verkaufen Sie in 5 Sprachen. Für immer kostenlos.",
+    "subtitle": "Kein Programmieren, keine Design-Kenntnisse nötig. Wir erstellen Ihre mehrsprachige Website in 48 Stunden. KI-Chatbot, WhatsApp, SEO inklusive.",
     "cta": "Kostenlos starten",
     "demo": "Demo ansehen",
     "quickAnswer": "Für immer kostenlos · 5 Min. · Keine Kreditkarte · KI-gestützt",
@@ -32,10 +32,13 @@
     "statCountries": "Länder",
     "statLanguages": "Sprachen",
     "statUptime": "Uptime",
-    "title": "Professionelle Webseite",
-    "titleHighlight": "in 48 Stunden",
+    "title": "Ihre professionelle Website in Ihrer Sprache",
+    "titleHighlight": "— in unter 2 Minuten",
     "cta1": "WhatsApp schreiben",
-    "cta2": "Portfolio ansehen"
+    "cta2": "Portfolio ansehen",
+    "trust1": "Keine Vorauszahlung",
+    "trust2": "Fertig in 48 Stunden",
+    "trust3": "Zahlen nur wenn Sie begeistert sind"
   },
   "socialProof": {
     "text": "Hunderte Unternehmer in SK, CZ, UA und DE vertrauen uns",
@@ -807,6 +810,23 @@
     "delivery": "Lieferung",
     "rating": "Bewertung",
     "from": "Ab"
+  },
+  "blog": {
+    "metaTitle": "Blog — VendShop",
+    "metaDesc": "Tipps, Anleitungen und Einblicke für Kleinunternehmer, die online verkaufen möchten.",
+    "badge": "Blog",
+    "title": "Tipps für Kleinunternehmen",
+    "subtitle": "Anleitungen, Fallstudien und Einblicke, die Ihnen helfen, online zu wachsen.",
+    "noPosts": "Noch keine Beiträge. Schauen Sie bald wieder vorbei.",
+    "readMore": "Weiterlesen",
+    "minRead": "Min. Lesezeit",
+    "backToBlog": "Zurück zum Blog",
+    "by": "Von",
+    "readTime": "Min. Lesezeit",
+    "availableIn": "Auch verfügbar in:",
+    "ctaTitle": "Bereit, Ihre Website zu starten?",
+    "ctaDesc": "Erhalten Sie eine professionelle, mehrsprachige Website für Ihr Unternehmen in 48 Stunden.",
+    "ctaButton": "WhatsApp schreiben"
   },
   "pricingPage": {
     "metaTitle": "Preise — VendShop",

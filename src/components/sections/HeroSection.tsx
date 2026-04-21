@@ -82,9 +82,9 @@ export default function HeroSection() {
 
             {/* Trust signals */}
             <div className="mt-8 flex flex-wrap gap-4 text-xs text-white/40">
-              <span>✓ Bez zálohy</span>
-              <span>✓ Hotové za 48h</span>
-              <span>✓ Platíte len ak sa páči</span>
+              <span>✓ {t('trust1')}</span>
+              <span>✓ {t('trust2')}</span>
+              <span>✓ {t('trust3')}</span>
             </div>
           </div>
 

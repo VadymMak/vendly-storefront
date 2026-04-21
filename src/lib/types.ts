@@ -389,8 +389,8 @@ export interface PortfolioItem {
 export interface CompetitorRow {
   feature: string;
   vendshop: string;
-  wix: string;
-  squarespace: string;
+  durable: string;
+  wixSquarespace: string;
   freelancer: string;
 }
 

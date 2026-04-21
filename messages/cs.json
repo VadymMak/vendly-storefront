@@ -792,6 +792,10 @@
   "competitor": {
     "label": "Srovnání",
     "title": "Proč VendShop",
+    "badge": "Proč VendShop",
+    "subtitle": "Porovnejte VendShop s DIY nástroji a freelancery.",
+    "featureCol": "Funkce",
+    "freelancerCol": "Freelancer",
     "creation": "Vytvoření webu",
     "monthly": "Měsíční poplatek",
     "aichat": "AI chatbot",
@@ -803,5 +807,43 @@
     "delivery": "Dodání",
     "rating": "Hodnocení",
     "from": "Od"
+  },
+  "pricingPage": {
+    "metaTitle": "Ceník — VendShop",
+    "metaDesc": "Jednoduché a transparentní ceny pro váš online obchod. Začněte zdarma.",
+    "badge": "Transparentní ceny",
+    "title": "Jednoduché ceny. Žádná překvapení.",
+    "subtitle": "Začněte zdarma. Růst s vaším podnikáním.",
+    "faqText": "Máte další otázky?",
+    "faqLink": "Podívejte se na FAQ"
+  },
+  "templatesPage": {
+    "badge": "6 šablon",
+    "title": "Vyberte si šablonu",
+    "subtitle": "Profesionální designy pro každý typ podnikání. Všechny šablony zahrnují AI chatbot, WhatsApp tlačítko a 5 jazyků.",
+    "preview": "Živá ukázka",
+    "viewDemo": "Zobrazit demo",
+    "noResults": "Žádné šablony pro tento filtr.",
+    "filter": {
+      "all": "Všechny",
+      "food": "Jídlo",
+      "restaurant": "Restaurace",
+      "beauty": "Krása",
+      "wellness": "Wellness",
+      "repair": "Opravna",
+      "medical": "Zdravotnictví",
+      "nightlife": "Noční život",
+      "photography": "Fotografie",
+      "fashion": "Móda",
+      "physical": "Obchod",
+      "digital": "Digitální",
+      "events": "Eventy"
+    },
+    "classic": { "name": "Classic", "desc": "Čistý a moderní. Pro produktové obchody, módu nebo digitální zboží." },
+    "warm": { "name": "Warm", "desc": "Útulný a chutný. Pro rozvoz jídla, pekárny a restaurace." },
+    "dark": { "name": "Dark", "desc": "Elegantní a atmosferický. Pro bary, noční život a fotostúdia." },
+    "bold": { "name": "Bold", "desc": "Silný a sebevědomý. Pro barbershopy, salóny krásy a opravny." },
+    "natural": { "name": "Natural", "desc": "Klidný a přírodní. Pro jóga studia, wellness centra a eko značky." },
+    "medical": { "name": "Medical", "desc": "Čistý a důvěryhodný. Pro kliniky, zubní ordinace a zdravotní služby." }
   }
 }

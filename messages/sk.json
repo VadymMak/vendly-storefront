@@ -792,6 +792,10 @@
   "competitor": {
     "label": "Porovnanie",
     "title": "Prečo VendShop",
+    "badge": "Prečo VendShop",
+    "subtitle": "Porovnajte VendShop s DIY nástrojmi a freelancermi.",
+    "featureCol": "Funkcia",
+    "freelancerCol": "Freelancer",
     "creation": "Vytvorenie webu",
     "monthly": "Mesačný poplatok",
     "aichat": "AI chatbot",
@@ -803,5 +807,43 @@
     "delivery": "Dodanie",
     "rating": "Hodnotenie",
     "from": "Od"
+  },
+  "pricingPage": {
+    "metaTitle": "Cenník — VendShop",
+    "metaDesc": "Jednoduché a transparentné ceny pre váš online obchod. Začnite zadarmo.",
+    "badge": "Transparentné ceny",
+    "title": "Jednoduché ceny. Žiadne prekvapenia.",
+    "subtitle": "Začnite zadarmo. Rastite spolu so svojím podnikaním.",
+    "faqText": "Máte ďalšie otázky?",
+    "faqLink": "Pozrite si FAQ"
+  },
+  "templatesPage": {
+    "badge": "6 šablón",
+    "title": "Vyberte si šablónu",
+    "subtitle": "Profesionálne dizajny pre každý typ biznisu. Všetky šablóny zahŕňajú AI chatbot, WhatsApp tlačidlo a 5 jazykov.",
+    "preview": "Živá ukážka",
+    "viewDemo": "Zobraziť demo",
+    "noResults": "Žiadne šablóny pre tento filter.",
+    "filter": {
+      "all": "Všetky",
+      "food": "Jedlo",
+      "restaurant": "Reštaurácia",
+      "beauty": "Krása",
+      "wellness": "Wellness",
+      "repair": "Opravovňa",
+      "medical": "Zdravotníctvo",
+      "nightlife": "Nočný život",
+      "photography": "Fotografia",
+      "fashion": "Móda",
+      "physical": "Obchod",
+      "digital": "Digitálne",
+      "events": "Eventy"
+    },
+    "classic": { "name": "Classic", "desc": "Čistý a moderný. Pre produktové obchody, módu alebo digitálny tovar." },
+    "warm": { "name": "Warm", "desc": "Útulný a chutný. Pre rozvoz jedla, pekárne a reštaurácie." },
+    "dark": { "name": "Dark", "desc": "Elegantný a atmosferický. Pre bary, nočný život a fotostúdiá." },
+    "bold": { "name": "Bold", "desc": "Silný a sebavedomý. Pre barbershopy, salóny krásy a opravovne." },
+    "natural": { "name": "Natural", "desc": "Pokojný a prírodný. Pre joga štúdiá, wellness centrá a eko značky." },
+    "medical": { "name": "Medical", "desc": "Čistý a dôveryhodný. Pre kliniky, zubné ordinácie a zdravotné služby." }
   }
 }

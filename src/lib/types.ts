@@ -6,6 +6,16 @@ export interface BusinessType {
   demo: string;
 }
 
+export interface TemplateItem {
+  id: string;
+  nameKey: string;
+  descKey: string;
+  palette: string;
+  businessTypes: string[];
+  previewUrl: string;
+  emoji: string;
+}
+
 // ===== Brief form =====
 
 export interface BriefService {

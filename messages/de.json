@@ -791,7 +791,11 @@
   },
   "competitor": {
     "label": "Vergleich",
-    "title": "Warum VendShop",
+    "badge": "Warum VendShop",
+    "title": "VendShop vs. Alternativen",
+    "subtitle": "So schneidet VendShop im Vergleich zu DIY-Baukästen und Freelancern ab.",
+    "featureCol": "Funktion",
+    "freelancerCol": "Freelancer",
     "creation": "Website-Erstellung",
     "monthly": "Monatliche Gebühr",
     "aichat": "KI-Chatbot",
@@ -803,5 +807,43 @@
     "delivery": "Lieferung",
     "rating": "Bewertung",
     "from": "Ab"
+  },
+  "pricingPage": {
+    "metaTitle": "Preise — VendShop",
+    "metaDesc": "Einfache, transparente Preise für Ihren Online-Shop. Kostenlos starten.",
+    "badge": "Transparente Preise",
+    "title": "Einfache Preise. Keine Überraschungen.",
+    "subtitle": "Kostenlos starten. Wachsen Sie mit Ihrem Business.",
+    "faqText": "Noch Fragen?",
+    "faqLink": "Zum FAQ"
+  },
+  "templatesPage": {
+    "badge": "6 Vorlagen",
+    "title": "Wählen Sie Ihre Vorlage",
+    "subtitle": "Professionelle Designs für jeden Geschäftstyp. Alle Vorlagen enthalten KI-Chatbot, WhatsApp-Button und 5 Sprachen.",
+    "preview": "Live-Vorschau",
+    "viewDemo": "Demo ansehen",
+    "noResults": "Keine Vorlagen für diesen Filter gefunden.",
+    "filter": {
+      "all": "Alle",
+      "food": "Essen",
+      "restaurant": "Restaurant",
+      "beauty": "Beauty",
+      "wellness": "Wellness",
+      "repair": "Reparatur",
+      "medical": "Medizin",
+      "nightlife": "Nachtleben",
+      "photography": "Fotografie",
+      "fashion": "Mode",
+      "physical": "Shop",
+      "digital": "Digital",
+      "events": "Events"
+    },
+    "classic": { "name": "Classic", "desc": "Klar und modern. Für Produktshops, Mode oder digitale Waren." },
+    "warm": { "name": "Warm", "desc": "Gemütlich und appetitlich. Perfekt für Lieferservice, Bäckereien und Restaurants." },
+    "dark": { "name": "Dark", "desc": "Elegant und atmosphärisch. Ideal für Bars, Nachtleben und Fotostudios." },
+    "bold": { "name": "Bold", "desc": "Stark und selbstbewusst. Für Barbershops, Beauty-Salons und Reparaturwerkstätten." },
+    "natural": { "name": "Natural", "desc": "Ruhig und natürlich. Für Yoga-Studios, Wellness-Center und Öko-Marken." },
+    "medical": { "name": "Medical", "desc": "Sauber und vertrauenswürdig. Für Kliniken, Zahnarztpraxen und Gesundheitsdienste." }
   }
 }

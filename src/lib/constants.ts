@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -152,7 +152,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 12,
+    price: 19,
     currency: '€',
     period: 'mesiac',
     description: 'Pre rastúce biznisy, ktoré potrebujú viac.',
@@ -170,7 +170,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 29,
+    price: 39,
     currency: '€',
     period: 'mesiac',
     description: 'Pre profesionálov, ktorí chcú maximum.',
@@ -551,6 +551,63 @@ export const STATS = [
   { value: '48h', labelKey: 'stats.delivery' },
   { value: '4.9★', labelKey: 'stats.rating' },
   { value: '€249', labelKey: 'stats.from' },
+];
+
+export const TEMPLATE_ITEMS: TemplateItem[] = [
+  {
+    id: 'classic',
+    nameKey: 'templates.classic.name',
+    descKey: 'templates.classic.desc',
+    palette: '#16a34a',
+    businessTypes: ['physical', 'fashion', 'digital'],
+    previewUrl: 'https://krokshop-trencin.vercel.app',
+    emoji: '🏪',
+  },
+  {
+    id: 'warm',
+    nameKey: 'templates.warm.name',
+    descKey: 'templates.warm.desc',
+    palette: '#d4641a',
+    businessTypes: ['food', 'restaurant'],
+    previewUrl: 'https://krajina-trencin.vercel.app',
+    emoji: '🍕',
+  },
+  {
+    id: 'dark',
+    nameKey: 'templates.dark.name',
+    descKey: 'templates.dark.desc',
+    palette: '#7C3AED',
+    businessTypes: ['nightlife', 'photography', 'events'],
+    previewUrl: 'https://ember-lounge.vercel.app',
+    emoji: '🪩',
+  },
+  {
+    id: 'bold',
+    nameKey: 'templates.bold.name',
+    descKey: 'templates.bold.desc',
+    palette: '#8B1A1A',
+    businessTypes: ['beauty', 'repair', 'wellness'],
+    previewUrl: 'https://barbershop-trencin.vercel.app',
+    emoji: '💈',
+  },
+  {
+    id: 'natural',
+    nameKey: 'templates.natural.name',
+    descKey: 'templates.natural.desc',
+    palette: '#7C9A82',
+    businessTypes: ['wellness', 'food', 'events'],
+    previewUrl: 'https://zenflow-ivory.vercel.app',
+    emoji: '🧘',
+  },
+  {
+    id: 'medical',
+    nameKey: 'templates.medical.name',
+    descKey: 'templates.medical.desc',
+    palette: '#2563EB',
+    businessTypes: ['medical', 'repair', 'digital'],
+    previewUrl: 'https://dentcare-trencin.vercel.app',
+    emoji: '🦷',
+  },
 ];
 
 // ===== Shop item category labels =====

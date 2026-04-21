@@ -791,7 +791,11 @@
   },
   "competitor": {
     "label": "Comparison",
-    "title": "Why VendShop",
+    "badge": "Why VendShop",
+    "title": "VendShop vs. alternatives",
+    "subtitle": "See how VendShop compares to DIY builders and freelancers.",
+    "featureCol": "Feature",
+    "freelancerCol": "Freelancer",
     "creation": "Website creation",
     "monthly": "Monthly fee",
     "aichat": "AI chatbot",
@@ -803,5 +807,43 @@
     "delivery": "Delivery",
     "rating": "Rating",
     "from": "From"
+  },
+  "pricingPage": {
+    "metaTitle": "Pricing — VendShop",
+    "metaDesc": "Simple, transparent pricing for your online store. Start for free.",
+    "badge": "Transparent pricing",
+    "title": "Simple pricing. No surprises.",
+    "subtitle": "Start for free. Scale as your business grows.",
+    "faqText": "Have more questions?",
+    "faqLink": "Check our FAQ"
+  },
+  "templatesPage": {
+    "badge": "6 templates",
+    "title": "Choose your template",
+    "subtitle": "Professional designs for every type of business. All templates include AI chatbot, WhatsApp button, and 5 languages.",
+    "preview": "Live preview",
+    "viewDemo": "View demo",
+    "noResults": "No templates match this filter.",
+    "filter": {
+      "all": "All",
+      "food": "Food",
+      "restaurant": "Restaurant",
+      "beauty": "Beauty",
+      "wellness": "Wellness",
+      "repair": "Repair",
+      "medical": "Medical",
+      "nightlife": "Nightlife",
+      "photography": "Photography",
+      "fashion": "Fashion",
+      "physical": "Shop",
+      "digital": "Digital",
+      "events": "Events"
+    },
+    "classic": { "name": "Classic", "desc": "Clean and modern. Works for any product store, fashion or digital goods." },
+    "warm": { "name": "Warm", "desc": "Cozy and appetizing. Perfect for food delivery, bakeries and restaurants." },
+    "dark": { "name": "Dark", "desc": "Sleek and atmospheric. Ideal for bars, nightlife and photography studios." },
+    "bold": { "name": "Bold", "desc": "Strong and confident. Great for barbershops, beauty salons and repair shops." },
+    "natural": { "name": "Natural", "desc": "Calm and earthy. Designed for yoga studios, wellness centers and eco brands." },
+    "medical": { "name": "Medical", "desc": "Clean and trustworthy. Built for clinics, dental offices and healthcare services." }
   }
 }

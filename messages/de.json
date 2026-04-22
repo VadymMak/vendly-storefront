@@ -1063,7 +1063,10 @@
       "contactSub": "Wir antworten auf jede Nachricht – meist noch am selben Tag.",
       "hoursLabel": "Öffnungszeiten",
       "madeWith": "Erstellt mit VendShop",
-      "galleryOf": "{n} von 6"
+      "galleryOf": "{n} von 6",
+      "testimonialsTitle": "Was unsere Kunden sagen",
+      "mapLabel": "Karte",
+      "openInMaps": "In Karte öffnen"
     },
     "deploy": {
       "title": "Ihre Website wird bereitgestellt…",

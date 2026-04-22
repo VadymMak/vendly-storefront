@@ -1063,7 +1063,10 @@
       "contactSub": "Odpovídáme na každou zprávu – obvykle ve stejný den.",
       "hoursLabel": "Otevírací doba",
       "madeWith": "Vytvořeno na VendShop",
-      "galleryOf": "{n} z 6"
+      "galleryOf": "{n} z 6",
+      "testimonialsTitle": "Co říkají klienti",
+      "mapLabel": "Mapa",
+      "openInMaps": "Otevřít v Mapách"
     },
     "deploy": {
       "title": "Nasazuji váš web…",

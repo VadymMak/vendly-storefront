@@ -1063,7 +1063,10 @@
       "contactSub": "We reply to every message — usually within the day.",
       "hoursLabel": "Hours",
       "madeWith": "Made with VendShop",
-      "galleryOf": "{n} of 6"
+      "galleryOf": "{n} of 6",
+      "testimonialsTitle": "What our clients say",
+      "mapLabel": "Map",
+      "openInMaps": "Open in Maps"
     },
     "deploy": {
       "title": "Deploying your site…",

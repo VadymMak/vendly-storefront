@@ -19,13 +19,14 @@
     "faq": "Recenze",
     "about": "O nás",
     "contact": "Kontakt",
-    "cta": "WhatsApp"
+    "cta": "WhatsApp",
+    "create": "Vytvořit web"
   },
   "hero": {
     "badge": "Nová platforma pro malý byznys",
     "titleLine1": "Váš online obchod.",
     "titleLine2": "Připravený za 5 minut.",
-    "subtitle": "Bez kódování, bez designérských znalostí. Vytvořte profesionální obchod, přijímejte platby přes Stripe a prodávejte v 5 jazycích. Navždy zdarma.",
+    "subtitle": "6 šablon navržených pro evropské firmy: holičství, restaurace, kosmetické salóny, autoservisy, zubní kliniky a další. Vícejazyčné od prvního dne. Bez nutnosti designu.",
     "cta": "Začít zdarma",
     "demo": "Zobrazit demo",
     "quickAnswer": "Navždy zdarma · 5 min setup · Bez kreditní karty · AI-powered",
@@ -35,7 +36,6 @@
     "statUptime": "uptime",
     "title": "Váš profesionální web ve vašem jazyce",
     "titleHighlight": "— za méně než 2 minuty",
-    "subtitle": "6 šablon navržených pro evropské firmy: holičství, restaurace, kosmetické salóny, autoservisy, zubní kliniky a další. Vícejazyčné od prvního dne. Bez nutnosti designu.",
     "cta1": "Ukažte mi mou šablonu",
     "cta2": "Jak to funguje (30 sek.)",
     "trust1": "Žádná záloha",
@@ -719,9 +719,19 @@
   "process": {
     "label": "Jak to funguje",
     "title": "3 jednoduché kroky",
-    "step1": { "title": "Napište nám", "desc": "Řekněte nám o vašem byznysu. Pošlete logo, fotky a texty přes WhatsApp nebo formulář.", "cta": "Napsat nám →" },
-    "step2": { "title": "Ukážeme hotový web", "desc": "Do 48 hodin vám pošleme odkaz na hotovou stránku. 2 kola úprav zdarma." },
-    "step3": { "title": "Platíte pokud se líbí", "desc": "Spokojeni? Zaplatíte €249. Ne? Stránku smažeme. Nulové riziko." }
+    "step1": {
+      "title": "Napište nám",
+      "desc": "Řekněte nám o vašem byznysu. Pošlete logo, fotky a texty přes WhatsApp nebo formulář.",
+      "cta": "Napsat nám →"
+    },
+    "step2": {
+      "title": "Ukážeme hotový web",
+      "desc": "Do 48 hodin vám pošleme odkaz na hotovou stránku. 2 kola úprav zdarma."
+    },
+    "step3": {
+      "title": "Platíte pokud se líbí",
+      "desc": "Spokojeni? Zaplatíte €249. Ne? Stránku smažeme. Nulové riziko."
+    }
   },
   "portfolio": {
     "label": "Naše práce",
@@ -787,12 +797,30 @@
   "included": {
     "label": "Co je v ceně",
     "title": "Vše co potřebujete",
-    "responsive": { "title": "Responzivní design", "desc": "Perfektní na mobilu i desktopu." },
-    "seo": { "title": "SEO optimalizace", "desc": "Najdou vás na Google od prvního dne." },
-    "ai": { "title": "AI chatbot", "desc": "Automatický asistent pro vaše zákazníky." },
-    "whatsapp": { "title": "WhatsApp tlačítko", "desc": "Zákazníci vám napíší jedním kliknutím." },
-    "multilang": { "title": "Vícejazyčnost", "desc": "SK, EN, DE, CS, UK — dle potřeby." },
-    "hosting": { "title": "Hosting a SSL", "desc": "Rychlý hosting a bezpečnostní certifikát v ceně." }
+    "responsive": {
+      "title": "Responzivní design",
+      "desc": "Perfektní na mobilu i desktopu."
+    },
+    "seo": {
+      "title": "SEO optimalizace",
+      "desc": "Najdou vás na Google od prvního dne."
+    },
+    "ai": {
+      "title": "AI chatbot",
+      "desc": "Automatický asistent pro vaše zákazníky."
+    },
+    "whatsapp": {
+      "title": "WhatsApp tlačítko",
+      "desc": "Zákazníci vám napíší jedním kliknutím."
+    },
+    "multilang": {
+      "title": "Vícejazyčnost",
+      "desc": "SK, EN, DE, CS, UK — dle potřeby."
+    },
+    "hosting": {
+      "title": "Hosting a SSL",
+      "desc": "Rychlý hosting a bezpečnostní certifikát v ceně."
+    }
   },
   "competitor": {
     "label": "Srovnání",
@@ -895,14 +923,36 @@
       "fashion": "Móda",
       "physical": "Obchod",
       "digital": "Digitální",
-      "events": "Eventy"
+      "events": "Eventy",
+      "home_services": "Domácí služby",
+      "ecommerce": "E-shop",
+      "health": "Zdraví"
     },
-    "classic": { "name": "Classic", "desc": "Čistý a moderní. Pro produktové obchody, módu nebo digitální zboží." },
-    "warm": { "name": "Warm", "desc": "Útulný a chutný. Pro rozvoz jídla, pekárny a restaurace." },
-    "dark": { "name": "Dark", "desc": "Elegantní a atmosferický. Pro bary, noční život a fotostúdia." },
-    "bold": { "name": "Bold", "desc": "Silný a sebevědomý. Pro barbershopy, salóny krásy a opravny." },
-    "natural": { "name": "Natural", "desc": "Klidný a přírodní. Pro jóga studia, wellness centra a eko značky." },
-    "medical": { "name": "Medical", "desc": "Čistý a důvěryhodný. Pro kliniky, zubní ordinace a zdravotní služby." }
+    "classic": {
+      "name": "Classic",
+      "desc": "Čistý a moderní. Pro produktové obchody, módu nebo digitální zboží."
+    },
+    "warm": {
+      "name": "Warm",
+      "desc": "Útulný a chutný. Pro rozvoz jídla, pekárny a restaurace."
+    },
+    "dark": {
+      "name": "Dark",
+      "desc": "Elegantní a atmosferický. Pro bary, noční život a fotostúdia."
+    },
+    "bold": {
+      "name": "Bold",
+      "desc": "Silný a sebevědomý. Pro barbershopy, salóny krásy a opravny."
+    },
+    "natural": {
+      "name": "Natural",
+      "desc": "Klidný a přírodní. Pro jóga studia, wellness centra a eko značky."
+    },
+    "medical": {
+      "name": "Medical",
+      "desc": "Čistý a důvěryhodný. Pro kliniky, zubní ordinace a zdravotní služby."
+    },
+    "useTemplate": "Použít šablonu"
   },
   "contactPage": {
     "metaTitle": "Kontakt — VendShop",
@@ -927,56 +977,171 @@
     "successDesc": "Ozveme se vám do pár hodin."
   },
   "create": {
-    "meta": { "title": "Vytvořit web — VendShop", "desc": "Profesionální web pro vaše podnikání za 2 minuty" },
-    "topbar": { "autoSaved": "Automaticky uloženo", "stepChoose": "Výběr", "stepDetails": "Detaily", "stepLaunch": "Spuštění" },
+    "meta": {
+      "title": "Vytvořit web — VendShop",
+      "desc": "Profesionální web pro vaše podnikání za 2 minuty"
+    },
+    "topbar": {
+      "autoSaved": "Automaticky uloženo",
+      "stepChoose": "Výběr",
+      "stepDetails": "Detaily",
+      "stepLaunch": "Spuštění"
+    },
     "steps": {
-      "1": { "kicker": "KROK 1 Z 3", "title": "Vyberte typ podnikání", "sub": "Vytvoříme šablonu přizpůsobenou právě vám." },
-      "2": { "kicker": "KROK 2 Z 3", "title": "Vaše údaje", "sub": "Každá změna okamžitě aktualizuje náhled vpravo." },
-      "3": { "kicker": "KROK 3 Z 3", "title": "Přehled a spuštění", "sub": "Vyberte plán, zkontrolujte shrnutí a spustíme vás." }
+      "1": {
+        "kicker": "KROK 1 Z 3",
+        "title": "Vyberte typ podnikání",
+        "sub": "Vytvoříme šablonu přizpůsobenou právě vám."
+      },
+      "2": {
+        "kicker": "KROK 2 Z 3",
+        "title": "Vaše údaje",
+        "sub": "Každá změna okamžitě aktualizuje náhled vpravo."
+      },
+      "3": {
+        "kicker": "KROK 3 Z 3",
+        "title": "Přehled a spuštění",
+        "sub": "Vyberte plán, zkontrolujte shrnutí a spustíme vás."
+      }
     },
     "step1": {
-      "paletteLabel": "Barevná paleta", "paletteTunedFor": "Přizpůsobena pro",
+      "paletteLabel": "Barevná paleta",
+      "paletteTunedFor": "Přizpůsobena pro",
       "tip": "Každá šablona obsahuje sekci služeb/menu, galerii, kontakty a rezervace – přizpůsobené vašemu odvětví."
     },
     "step2": {
-      "nameLabel": "Název firmy", "descLabel": "Popis", "aiBtn": "AI Generovat",
+      "nameLabel": "Název firmy",
+      "descLabel": "Popis",
+      "aiBtn": "AI Generovat",
       "descPlaceholder": "Krátký odstavec o tom, co děláte, váš styl, atmosféra…",
-      "phoneLabel": "Telefon", "emailLabel": "E-mail", "addressLabel": "Adresa", "hoursLabel": "Pracovní doba",
-      "photosLabel": "Fotografie", "heroImageLabel": "Hlavní fotografie", "heroImageHint": "Velký obrázek nahoře – ideálně 1600×1200",
-      "logoLabel": "Logo", "logoHint": "Průhledné PNG nebo čtvercové", "replaceImage": "Nahradit obrázek", "galleryLabel": "Galerie"
+      "phoneLabel": "Telefon",
+      "emailLabel": "E-mail",
+      "addressLabel": "Adresa",
+      "hoursLabel": "Pracovní doba",
+      "photosLabel": "Fotografie",
+      "heroImageLabel": "Hlavní fotografie",
+      "heroImageHint": "Velký obrázek nahoře – ideálně 1600×1200",
+      "logoLabel": "Logo",
+      "logoHint": "Průhledné PNG nebo čtvercové",
+      "replaceImage": "Nahradit obrázek",
+      "galleryLabel": "Galerie"
     },
     "step3": {
-      "planLabel": "Vyberte plán", "summaryLabel": "Shrnutí",
-      "sumTemplate": "Šablona", "sumPalette": "Paleta", "sumName": "Název", "sumContact": "Kontakt",
-      "sumPhotos": "Fotografie", "uploaded": "nahráno", "sumDomain": "Doména", "sumLangs": "Jazyky",
-      "unlimited": "Neomezeno", "phoneNotSet": "telefon nezadán",
-      "launchBtn": "Vytvořit můj web", "noCard": "Kreditní karta není vyžadována.", "freeTrial": "14denní zkušební verze. Zrušení kdykoliv.", "mostPopular": "Nejpopulárnější"
+      "planLabel": "Vyberte plán",
+      "summaryLabel": "Shrnutí",
+      "sumTemplate": "Šablona",
+      "sumPalette": "Paleta",
+      "sumName": "Název",
+      "sumContact": "Kontakt",
+      "sumPhotos": "Fotografie",
+      "uploaded": "nahráno",
+      "sumDomain": "Doména",
+      "sumLangs": "Jazyky",
+      "unlimited": "Neomezeno",
+      "phoneNotSet": "telefon nezadán",
+      "launchBtn": "Vytvořit můj web",
+      "noCard": "Kreditní karta není vyžadována.",
+      "freeTrial": "14denní zkušební verze. Zrušení kdykoliv.",
+      "mostPopular": "Nejpopulárnější"
     },
-    "nav": { "back": "Zpět", "continue": "Pokračovat", "stepOf": "Krok {step} / 3" },
-    "preview": { "live": "Živý náhled", "desktop": "Počítač", "tablet": "Tablet", "mobile": "Mobil" },
+    "nav": {
+      "back": "Zpět",
+      "continue": "Pokračovat",
+      "stepOf": "Krok {step} / 3"
+    },
+    "preview": {
+      "live": "Živý náhled",
+      "desktop": "Počítač",
+      "tablet": "Tablet",
+      "mobile": "Mobil"
+    },
     "deploy": {
-      "title": "Nasazuji váš web…", "secsLeft": "Zbývá {secs} sekund",
-      "d1": "Přiřazuji vaši subdoménu", "d2": "Překládám do 5 jazyků", "d3": "Optimalizuji obrázky a SEO", "d4": "Publikuji na globální CDN",
-      "doneTitle": "Jste live.", "doneSub": "Váš web je zveřejněn a připraven ke sdílení.", "visitBtn": "Navštívit můj web", "backBtn": "Zpět do editoru"
+      "title": "Nasazuji váš web…",
+      "secsLeft": "Zbývá {secs} sekund",
+      "d1": "Přiřazuji vaši subdoménu",
+      "d2": "Překládám do 5 jazyků",
+      "d3": "Optimalizuji obrázky a SEO",
+      "d4": "Publikuji na globální CDN",
+      "doneTitle": "Jste live.",
+      "doneSub": "Váš web je zveřejněn a připraven ke sdílení.",
+      "visitBtn": "Navštívit můj web",
+      "backBtn": "Zpět do editoru"
     },
     "plans": {
-      "free": { "name": "Free", "blurb": "Na vyzkoušení", "f1": "1 web", "f2": "Subdoména vendshop.shop", "f3": "5 jazyků", "f4": "Komunitní podpora" },
-      "starter": { "name": "Starter", "blurb": "Samostatní podnikatelé", "f1": "Vlastní doména", "f2": "Bez loga VendShop", "f3": "15 jazyků", "f4": "E-mailová podpora" },
-      "pro": { "name": "Pro", "blurb": "Rostoucí týmy", "f1": "Vše ze Starteru", "f2": "Neomezené jazyky", "f3": "Online rezervace a platby", "f4": "Prioritní podpora" }
+      "free": {
+        "name": "Free",
+        "blurb": "Na vyzkoušení",
+        "f1": "1 web",
+        "f2": "Subdoména vendshop.shop",
+        "f3": "5 jazyků",
+        "f4": "Komunitní podpora"
+      },
+      "starter": {
+        "name": "Starter",
+        "blurb": "Samostatní podnikatelé",
+        "f1": "Vlastní doména",
+        "f2": "Bez loga VendShop",
+        "f3": "15 jazyků",
+        "f4": "E-mailová podpora"
+      },
+      "pro": {
+        "name": "Pro",
+        "blurb": "Rostoucí týmy",
+        "f1": "Vše ze Starteru",
+        "f2": "Neomezené jazyky",
+        "f3": "Online rezervace a platby",
+        "f4": "Prioritní podpora"
+      }
     },
     "biz": {
-      "barbershop": { "label": "Barbershop", "tagline": "Stříhání a úprava" },
-      "restaurant": { "label": "Restaurace", "tagline": "Menu a rezervace" },
-      "beauty": { "label": "Kosmetický salón", "tagline": "Vlasy, nehty, pleť" },
-      "auto": { "label": "Autoservis", "tagline": "Opravy a servis" },
-      "dentist": { "label": "Zubní ordinace", "tagline": "Klinika a termíny" },
-      "water": { "label": "Rozvoz vody", "tagline": "Předplatné a objednávky" },
-      "electronics": { "label": "Opravna elektroniky", "tagline": "Telefony a notebooky" },
-      "yoga": { "label": "Jóga studio", "tagline": "Kurzy a členství" },
-      "photography": { "label": "Fotograf", "tagline": "Portfolio a rezervace" },
-      "agency": { "label": "Digitální agentura", "tagline": "Studie a služby" },
-      "education": { "label": "Vzdělávání", "tagline": "Kurzy a programy" },
-      "design": { "label": "Designové studio", "tagline": "Portfolio a služby" }
+      "barbershop": {
+        "label": "Barbershop",
+        "tagline": "Stříhání a úprava"
+      },
+      "restaurant": {
+        "label": "Restaurace",
+        "tagline": "Menu a rezervace"
+      },
+      "beauty": {
+        "label": "Kosmetický salón",
+        "tagline": "Vlasy, nehty, pleť"
+      },
+      "auto": {
+        "label": "Autoservis",
+        "tagline": "Opravy a servis"
+      },
+      "dentist": {
+        "label": "Zubní ordinace",
+        "tagline": "Klinika a termíny"
+      },
+      "water": {
+        "label": "Rozvoz vody",
+        "tagline": "Předplatné a objednávky"
+      },
+      "electronics": {
+        "label": "Opravna elektroniky",
+        "tagline": "Telefony a notebooky"
+      },
+      "yoga": {
+        "label": "Jóga studio",
+        "tagline": "Kurzy a členství"
+      },
+      "photography": {
+        "label": "Fotograf",
+        "tagline": "Portfolio a rezervace"
+      },
+      "agency": {
+        "label": "Digitální agentura",
+        "tagline": "Studie a služby"
+      },
+      "education": {
+        "label": "Vzdělávání",
+        "tagline": "Kurzy a programy"
+      },
+      "design": {
+        "label": "Designové studio",
+        "tagline": "Portfolio a služby"
+      }
     }
   }
 }

@@ -13,6 +13,9 @@ const FILTER_TYPES = [
   'beauty',
   'wellness',
   'repair',
+  'home_services',
+  'health',
+  'ecommerce',
   'medical',
   'nightlife',
   'photography',
@@ -21,6 +24,16 @@ const FILTER_TYPES = [
   'digital',
   'events',
 ] as const;
+
+// Maps template id → best-matching businessType id in /create
+const TEMPLATE_CREATE_TYPE: Record<string, string> = {
+  classic:  'auto',
+  warm:     'restaurant',
+  natural:  'beauty',
+  bold:     'agency',
+  dark:     'photography',
+  medical:  'dentist',
+};
 
 function ExternalIcon() {
   return (
@@ -139,15 +152,23 @@ export default function TemplatesPage() {
                           ))}
                         </div>
 
-                        {/* CTA */}
-                        <a
-                          href={tpl.previewUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[--color-primary]/40 py-2 text-sm font-medium text-[--color-primary] hover:bg-[--color-primary]/10 transition-colors"
-                        >
-                          {t('viewDemo')} <ExternalIcon />
-                        </a>
+                        {/* CTAs */}
+                        <div className="mt-4 flex flex-col gap-2">
+                          <a
+                            href={`/create?type=${TEMPLATE_CREATE_TYPE[tpl.id] ?? 'auto'}`}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[--color-primary] py-2 text-sm font-semibold text-white hover:bg-[--color-primary-dark] transition-colors"
+                          >
+                            {t('useTemplate')} →
+                          </a>
+                          <a
+                            href={tpl.previewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[--color-border] py-2 text-sm font-medium text-[--color-text-muted] hover:border-[--color-primary]/40 hover:text-white transition-colors"
+                          >
+                            {t('viewDemo')} <ExternalIcon />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   );

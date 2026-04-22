@@ -621,6 +621,12 @@ export default function CreatePageClient() {
 
   const [state, setState] = useState<CreateState>(() => {
     if (typeof window === 'undefined') return INITIAL_STATE;
+    // Allow ?type= URL param to pre-select business type (coming from /templates cards)
+    const urlType = new URLSearchParams(window.location.search).get('type') ?? '';
+    const matchedBiz = CREATE_BUSINESS_TYPES.find((b) => b.id === urlType);
+    if (matchedBiz) {
+      return { ...INITIAL_STATE, business: matchedBiz.id, palette: matchedBiz.palettes[0].id };
+    }
     try {
       const raw = localStorage.getItem(CREATE_STORE_KEY);
       if (raw) {

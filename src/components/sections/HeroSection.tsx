@@ -55,7 +55,7 @@ export default function HeroSection() {
             {/* CTAs */}
             <div className="mt-8 flex flex-wrap gap-4">
               <a
-                href="/templates"
+                href="/create"
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark sm:text-base"
               >
                 {t('cta1')}

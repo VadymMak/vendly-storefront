@@ -19,13 +19,14 @@
     "faq": "Reviews",
     "about": "About",
     "contact": "Contact",
-    "cta": "WhatsApp"
+    "cta": "WhatsApp",
+    "create": "Get Started"
   },
   "hero": {
     "badge": "Done-for-you website service",
     "titleLine1": "Your online store.",
     "titleLine2": "Ready in 5 minutes.",
-    "subtitle": "No coding, no design skills needed. We build a beautiful, multilingual website for your business in 48 hours. AI chatbot, WhatsApp, SEO included.",
+    "subtitle": "6 hand-crafted visual templates designed for real European businesses: Barbershops, Restaurants, Beauty Salons, Auto Services, Dentists & more. Multilingual from day one. No design skills required.",
     "cta": "Start for free",
     "demo": "View demo",
     "quickAnswer": "Free forever · 5 min setup · No credit card · AI-powered",
@@ -35,7 +36,6 @@
     "statUptime": "uptime",
     "title": "Your Professional Website in Your Language",
     "titleHighlight": "— in Under 2 Minutes",
-    "subtitle": "6 hand-crafted visual templates designed for real European businesses: Barbershops, Restaurants, Beauty Salons, Auto Services, Dentists & more. Multilingual from day one. No design skills required.",
     "cta1": "See Your Template",
     "cta2": "Watch how it works (30 sec)",
     "trust1": "No upfront payment",
@@ -719,9 +719,19 @@
   "process": {
     "label": "How it works",
     "title": "3 simple steps",
-    "step1": { "title": "Contact us", "desc": "Tell us about your business. Send logo, photos and content via WhatsApp or form.", "cta": "Start here →" },
-    "step2": { "title": "We show the finished site", "desc": "Within 48 hours we send you a link to the ready website. 2 revision rounds free." },
-    "step3": { "title": "Pay if you like it", "desc": "Happy? Pay €249. Not happy? We delete the site. Zero risk." }
+    "step1": {
+      "title": "Contact us",
+      "desc": "Tell us about your business. Send logo, photos and content via WhatsApp or form.",
+      "cta": "Start here →"
+    },
+    "step2": {
+      "title": "We show the finished site",
+      "desc": "Within 48 hours we send you a link to the ready website. 2 revision rounds free."
+    },
+    "step3": {
+      "title": "Pay if you like it",
+      "desc": "Happy? Pay €249. Not happy? We delete the site. Zero risk."
+    }
   },
   "portfolio": {
     "label": "Our work",
@@ -787,12 +797,30 @@
   "included": {
     "label": "What's included",
     "title": "Everything you need",
-    "responsive": { "title": "Responsive design", "desc": "Perfect on mobile and desktop." },
-    "seo": { "title": "SEO optimization", "desc": "Found on Google from day one." },
-    "ai": { "title": "AI chatbot", "desc": "Automatic assistant for your customers." },
-    "whatsapp": { "title": "WhatsApp button", "desc": "Customers write to you with one click." },
-    "multilang": { "title": "Multilingual", "desc": "SK, EN, DE, CS, UK — as needed." },
-    "hosting": { "title": "Hosting & SSL", "desc": "Fast hosting and security certificate included." }
+    "responsive": {
+      "title": "Responsive design",
+      "desc": "Perfect on mobile and desktop."
+    },
+    "seo": {
+      "title": "SEO optimization",
+      "desc": "Found on Google from day one."
+    },
+    "ai": {
+      "title": "AI chatbot",
+      "desc": "Automatic assistant for your customers."
+    },
+    "whatsapp": {
+      "title": "WhatsApp button",
+      "desc": "Customers write to you with one click."
+    },
+    "multilang": {
+      "title": "Multilingual",
+      "desc": "SK, EN, DE, CS, UK — as needed."
+    },
+    "hosting": {
+      "title": "Hosting & SSL",
+      "desc": "Fast hosting and security certificate included."
+    }
   },
   "competitor": {
     "label": "Comparison",
@@ -895,14 +923,36 @@
       "fashion": "Fashion",
       "physical": "Shop",
       "digital": "Digital",
-      "events": "Events"
+      "events": "Events",
+      "home_services": "Home services",
+      "ecommerce": "E-commerce",
+      "health": "Health"
     },
-    "classic": { "name": "Classic", "desc": "Clean and modern. Works for any product store, fashion or digital goods." },
-    "warm": { "name": "Warm", "desc": "Cozy and appetizing. Perfect for food delivery, bakeries and restaurants." },
-    "dark": { "name": "Dark", "desc": "Sleek and atmospheric. Ideal for bars, nightlife and photography studios." },
-    "bold": { "name": "Bold", "desc": "Strong and confident. Great for barbershops, beauty salons and repair shops." },
-    "natural": { "name": "Natural", "desc": "Calm and earthy. Designed for yoga studios, wellness centers and eco brands." },
-    "medical": { "name": "Medical", "desc": "Clean and trustworthy. Built for clinics, dental offices and healthcare services." }
+    "classic": {
+      "name": "Classic",
+      "desc": "Clean and modern. Works for any product store, fashion or digital goods."
+    },
+    "warm": {
+      "name": "Warm",
+      "desc": "Cozy and appetizing. Perfect for food delivery, bakeries and restaurants."
+    },
+    "dark": {
+      "name": "Dark",
+      "desc": "Sleek and atmospheric. Ideal for bars, nightlife and photography studios."
+    },
+    "bold": {
+      "name": "Bold",
+      "desc": "Strong and confident. Great for barbershops, beauty salons and repair shops."
+    },
+    "natural": {
+      "name": "Natural",
+      "desc": "Calm and earthy. Designed for yoga studios, wellness centers and eco brands."
+    },
+    "medical": {
+      "name": "Medical",
+      "desc": "Clean and trustworthy. Built for clinics, dental offices and healthcare services."
+    },
+    "useTemplate": "Use this template"
   },
   "contactPage": {
     "metaTitle": "Contact — VendShop",
@@ -927,56 +977,171 @@
     "successDesc": "We'll get back to you within a few hours."
   },
   "create": {
-    "meta": { "title": "Create your site — VendShop", "desc": "Professional website for your business in 2 minutes" },
-    "topbar": { "autoSaved": "Auto-saved", "stepChoose": "Choose", "stepDetails": "Details", "stepLaunch": "Launch" },
+    "meta": {
+      "title": "Create your site — VendShop",
+      "desc": "Professional website for your business in 2 minutes"
+    },
+    "topbar": {
+      "autoSaved": "Auto-saved",
+      "stepChoose": "Choose",
+      "stepDetails": "Details",
+      "stepLaunch": "Launch"
+    },
     "steps": {
-      "1": { "kicker": "STEP 1 OF 3", "title": "Choose your business", "sub": "We'll pre-build a template tailored for it." },
-      "2": { "kicker": "STEP 2 OF 3", "title": "Your details", "sub": "Each change updates the preview on the right." },
-      "3": { "kicker": "STEP 3 OF 3", "title": "Review & launch", "sub": "Pick a plan, check the summary, and we'll deploy." }
+      "1": {
+        "kicker": "STEP 1 OF 3",
+        "title": "Choose your business",
+        "sub": "We'll pre-build a template tailored for it."
+      },
+      "2": {
+        "kicker": "STEP 2 OF 3",
+        "title": "Your details",
+        "sub": "Each change updates the preview on the right."
+      },
+      "3": {
+        "kicker": "STEP 3 OF 3",
+        "title": "Review & launch",
+        "sub": "Pick a plan, check the summary, and we'll deploy."
+      }
     },
     "step1": {
-      "paletteLabel": "Color palette", "paletteTunedFor": "Pre-tuned for",
+      "paletteLabel": "Color palette",
+      "paletteTunedFor": "Pre-tuned for",
       "tip": "Each template includes services/menu, gallery, contact and booking layout — tuned for your industry. Rearrange sections after launch."
     },
     "step2": {
-      "nameLabel": "Business name", "descLabel": "Description", "aiBtn": "AI Generate",
+      "nameLabel": "Business name",
+      "descLabel": "Description",
+      "aiBtn": "AI Generate",
       "descPlaceholder": "A short paragraph about what you do, your style, your vibe…",
-      "phoneLabel": "Phone", "emailLabel": "Email", "addressLabel": "Address", "hoursLabel": "Working hours",
-      "photosLabel": "Photos", "heroImageLabel": "Hero image", "heroImageHint": "The big one up top — 1600×1200 ideal",
-      "logoLabel": "Logo", "logoHint": "Transparent PNG or square", "replaceImage": "Replace image", "galleryLabel": "Gallery"
+      "phoneLabel": "Phone",
+      "emailLabel": "Email",
+      "addressLabel": "Address",
+      "hoursLabel": "Working hours",
+      "photosLabel": "Photos",
+      "heroImageLabel": "Hero image",
+      "heroImageHint": "The big one up top — 1600×1200 ideal",
+      "logoLabel": "Logo",
+      "logoHint": "Transparent PNG or square",
+      "replaceImage": "Replace image",
+      "galleryLabel": "Gallery"
     },
     "step3": {
-      "planLabel": "Choose your plan", "summaryLabel": "Summary",
-      "sumTemplate": "Template", "sumPalette": "Palette", "sumName": "Name", "sumContact": "Contact",
-      "sumPhotos": "Photos", "uploaded": "uploaded", "sumDomain": "Domain", "sumLangs": "Languages",
-      "unlimited": "Unlimited", "phoneNotSet": "phone not set",
-      "launchBtn": "Create My Website", "noCard": "No credit card required.", "freeTrial": "14-day free trial. Cancel anytime.", "mostPopular": "Most popular"
+      "planLabel": "Choose your plan",
+      "summaryLabel": "Summary",
+      "sumTemplate": "Template",
+      "sumPalette": "Palette",
+      "sumName": "Name",
+      "sumContact": "Contact",
+      "sumPhotos": "Photos",
+      "uploaded": "uploaded",
+      "sumDomain": "Domain",
+      "sumLangs": "Languages",
+      "unlimited": "Unlimited",
+      "phoneNotSet": "phone not set",
+      "launchBtn": "Create My Website",
+      "noCard": "No credit card required.",
+      "freeTrial": "14-day free trial. Cancel anytime.",
+      "mostPopular": "Most popular"
     },
-    "nav": { "back": "Back", "continue": "Continue", "stepOf": "Step {step} / 3" },
-    "preview": { "live": "Live preview", "desktop": "Desktop", "tablet": "Tablet", "mobile": "Mobile" },
+    "nav": {
+      "back": "Back",
+      "continue": "Continue",
+      "stepOf": "Step {step} / 3"
+    },
+    "preview": {
+      "live": "Live preview",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile"
+    },
     "deploy": {
-      "title": "Deploying your site…", "secsLeft": "{secs} seconds remaining",
-      "d1": "Provisioning your subdomain", "d2": "Translating into 5 languages", "d3": "Optimizing images & SEO", "d4": "Publishing to global CDN",
-      "doneTitle": "You're live.", "doneSub": "Your site is published and ready to share.", "visitBtn": "Visit my site", "backBtn": "Back to editor"
+      "title": "Deploying your site…",
+      "secsLeft": "{secs} seconds remaining",
+      "d1": "Provisioning your subdomain",
+      "d2": "Translating into 5 languages",
+      "d3": "Optimizing images & SEO",
+      "d4": "Publishing to global CDN",
+      "doneTitle": "You're live.",
+      "doneSub": "Your site is published and ready to share.",
+      "visitBtn": "Visit my site",
+      "backBtn": "Back to editor"
     },
     "plans": {
-      "free": { "name": "Free", "blurb": "For trying things out", "f1": "1 site", "f2": "vendshop.shop subdomain", "f3": "5 languages", "f4": "Community support" },
-      "starter": { "name": "Starter", "blurb": "Solo businesses", "f1": "Custom domain", "f2": "Remove VendShop badge", "f3": "15 languages", "f4": "Email support" },
-      "pro": { "name": "Pro", "blurb": "Growing teams", "f1": "Everything in Starter", "f2": "Unlimited languages", "f3": "Online bookings + payments", "f4": "Priority support" }
+      "free": {
+        "name": "Free",
+        "blurb": "For trying things out",
+        "f1": "1 site",
+        "f2": "vendshop.shop subdomain",
+        "f3": "5 languages",
+        "f4": "Community support"
+      },
+      "starter": {
+        "name": "Starter",
+        "blurb": "Solo businesses",
+        "f1": "Custom domain",
+        "f2": "Remove VendShop badge",
+        "f3": "15 languages",
+        "f4": "Email support"
+      },
+      "pro": {
+        "name": "Pro",
+        "blurb": "Growing teams",
+        "f1": "Everything in Starter",
+        "f2": "Unlimited languages",
+        "f3": "Online bookings + payments",
+        "f4": "Priority support"
+      }
     },
     "biz": {
-      "barbershop": { "label": "Barbershop", "tagline": "Cuts & grooming" },
-      "restaurant": { "label": "Restaurant", "tagline": "Menu & reservations" },
-      "beauty": { "label": "Beauty Salon", "tagline": "Hair, nails, skin" },
-      "auto": { "label": "Auto Service", "tagline": "Repair & maintenance" },
-      "dentist": { "label": "Dentist", "tagline": "Clinic & appointments" },
-      "water": { "label": "Water Delivery", "tagline": "Subscriptions & orders" },
-      "electronics": { "label": "Electronics Repair", "tagline": "Phones & laptops" },
-      "yoga": { "label": "Yoga Studio", "tagline": "Classes & memberships" },
-      "photography": { "label": "Photography", "tagline": "Portfolio & booking" },
-      "agency": { "label": "Digital Agency", "tagline": "Case studies & services" },
-      "education": { "label": "Education", "tagline": "Courses & programs" },
-      "design": { "label": "Design Studio", "tagline": "Portfolio & services" }
+      "barbershop": {
+        "label": "Barbershop",
+        "tagline": "Cuts & grooming"
+      },
+      "restaurant": {
+        "label": "Restaurant",
+        "tagline": "Menu & reservations"
+      },
+      "beauty": {
+        "label": "Beauty Salon",
+        "tagline": "Hair, nails, skin"
+      },
+      "auto": {
+        "label": "Auto Service",
+        "tagline": "Repair & maintenance"
+      },
+      "dentist": {
+        "label": "Dentist",
+        "tagline": "Clinic & appointments"
+      },
+      "water": {
+        "label": "Water Delivery",
+        "tagline": "Subscriptions & orders"
+      },
+      "electronics": {
+        "label": "Electronics Repair",
+        "tagline": "Phones & laptops"
+      },
+      "yoga": {
+        "label": "Yoga Studio",
+        "tagline": "Classes & memberships"
+      },
+      "photography": {
+        "label": "Photography",
+        "tagline": "Portfolio & booking"
+      },
+      "agency": {
+        "label": "Digital Agency",
+        "tagline": "Case studies & services"
+      },
+      "education": {
+        "label": "Education",
+        "tagline": "Courses & programs"
+      },
+      "design": {
+        "label": "Design Studio",
+        "tagline": "Portfolio & services"
+      }
     }
   }
 }

@@ -161,6 +161,13 @@ export default function Header() {
           </div>
 
           <a
+            href="/create"
+            className="inline-flex items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+          >
+            {t('create')}
+          </a>
+
+          <a
             href="https://wa.me/421901234567"
             target="_blank"
             rel="noopener noreferrer"
@@ -214,7 +221,14 @@ export default function Header() {
             ))}
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-2">
+            <a
+              href="/create"
+              onClick={() => setMenuOpen(false)}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+            >
+              {t('create')}
+            </a>
             <a
               href="https://wa.me/421901234567"
               target="_blank"

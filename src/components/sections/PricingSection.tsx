@@ -4,6 +4,12 @@ import { useTranslations } from 'next-intl';
 import Badge from '@/components/ui/Badge';
 import { PACKAGES, COMPETITOR_TABLE } from '@/lib/constants';
 
+const PACKAGE_PLAN_MAP: Record<string, string> = {
+  landing: 'free',
+  premium: 'starter',
+  individual: 'pro',
+};
+
 function CheckIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -119,9 +125,7 @@ export default function PricingSection() {
                 {/* CTA */}
                 <div className="mt-8">
                   <a
-                    href="https://wa.me/421901234567"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/create?plan=${PACKAGE_PLAN_MAP[pkg.id] ?? 'starter'}`}
                     className={`inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold transition-colors ${
                       pkg.highlighted
                         ? 'bg-white text-primary hover:bg-white/90'

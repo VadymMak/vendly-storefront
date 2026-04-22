@@ -621,11 +621,19 @@ export default function CreatePageClient() {
 
   const [state, setState] = useState<CreateState>(() => {
     if (typeof window === 'undefined') return INITIAL_STATE;
-    // Allow ?type= URL param to pre-select business type (coming from /templates cards)
-    const urlType = new URLSearchParams(window.location.search).get('type') ?? '';
+    const params = new URLSearchParams(window.location.search);
+    const urlType = params.get('type') ?? '';
+    const urlPlan = params.get('plan') as CreatePlan | null;
+    // ?type= pre-selects business type (from /templates cards)
     const matchedBiz = CREATE_BUSINESS_TYPES.find((b) => b.id === urlType);
     if (matchedBiz) {
-      return { ...INITIAL_STATE, business: matchedBiz.id, palette: matchedBiz.palettes[0].id };
+      const planOverride = urlPlan && ['free', 'starter', 'pro'].includes(urlPlan) ? urlPlan : INITIAL_STATE.plan;
+      const step = urlPlan ? 3 : 1;
+      return { ...INITIAL_STATE, business: matchedBiz.id, palette: matchedBiz.palettes[0].id, plan: planOverride, step };
+    }
+    // ?plan= pre-selects plan and jumps to step 3
+    if (urlPlan && (['free', 'starter', 'pro'] as string[]).includes(urlPlan)) {
+      return { ...INITIAL_STATE, plan: urlPlan, step: 3 };
     }
     try {
       const raw = localStorage.getItem(CREATE_STORE_KEY);

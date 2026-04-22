@@ -10,14 +10,6 @@ function WhatsAppIcon() {
   );
 }
 
-function MailIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <rect x="2" y="4" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M2 7l7 5 7-5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export default function CtaSection() {
   const t = useTranslations('cta');
@@ -42,20 +34,19 @@ export default function CtaSection() {
         {/* Buttons */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
+            href="/create"
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3.5 font-semibold text-primary shadow-lg transition-colors hover:bg-white/90"
+          >
+            {t('create')}
+          </a>
+          <a
             href="https://wa.me/421901234567"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 rounded-lg bg-white px-7 py-3.5 font-semibold text-primary shadow-lg transition-colors hover:bg-white/90"
+            className="inline-flex items-center gap-2.5 rounded-lg border-2 border-white/30 bg-white/10 px-7 py-3.5 font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 hover:border-white/50"
           >
             <WhatsAppIcon />
             {t('whatsapp')}
-          </a>
-          <a
-            href="mailto:info@vendshop.shop"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-white/30 bg-white/10 px-7 py-3.5 font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 hover:border-white/50"
-          >
-            <MailIcon />
-            {t('form')}
           </a>
         </div>
 

@@ -228,6 +228,12 @@ model Lead {
   // Заметки
   notes           String?
 
+  // /create wizard fields
+  description      String?
+  plan             String?   // free | starter | pro
+  heroPhotoUrl     String?
+  galleryUrls      String[]
+
   // Site Automation
   siteRepoUrl     String?
   siteRepoName    String?

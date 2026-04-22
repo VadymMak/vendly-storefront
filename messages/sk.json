@@ -1044,6 +1044,7 @@
       "launchBtn": "Vytvoriť môj web",
       "noCard": "Nevyžaduje sa kreditná karta.",
       "freeTrial": "14-dňová bezplatná skúška. Zrušenie kedykoľvek.",
+      "launchError": "Niečo sa pokazilo. Skúste to znova.",
       "mostPopular": "Najpopulárnejší"
     },
     "nav": {

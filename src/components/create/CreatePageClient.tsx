@@ -431,10 +431,12 @@ function Step3({
   state,
   setState,
   onLaunch,
+  launchError,
 }: {
   state: CreateState;
   setState: React.Dispatch<React.SetStateAction<CreateState>>;
   onLaunch: () => void;
+  launchError: string | null;
 }) {
   const t = useTranslations('create.step3');
   const tp = useTranslations('create.plans');
@@ -545,6 +547,9 @@ function Step3({
       <p className="text-center text-[12px] text-[#64748b] m-0">
         {state.plan === 'free' ? t('noCard') : t('freeTrial')}
       </p>
+      {launchError && (
+        <p className="text-center text-[12px] text-[#f87171] m-0 mt-1">{launchError}</p>
+      )}
     </div>
   );
 }
@@ -697,6 +702,9 @@ export default function CreatePageClient() {
   const [deploying, setDeploying] = useState(false);
   const [deployProgress, setDeployProgress] = useState(0);
   const [deployed, setDeployed] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const animDoneRef = useRef(false);
+  const apiDoneRef  = useRef(false);
 
   // Persist (skip photos — data URLs are too large for localStorage)
   useEffect(() => {
@@ -709,19 +717,88 @@ export default function CreatePageClient() {
   const goto = (n: number) =>
     setState((s) => ({ ...s, step: Math.max(1, Math.min(3, n)) as 1 | 2 | 3 }));
 
-  const launch = () => {
+  // Upload a base64 data-URL photo to Vercel Blob via unauthenticated endpoint
+  const uploadPhoto = useCallback(async (dataUrl: string): Promise<string | null> => {
+    try {
+      const fetchRes = await fetch(dataUrl);
+      const blob     = await fetchRes.blob();
+      const form     = new FormData();
+      form.append('file', blob, 'photo.webp');
+      const r = await fetch('/api/upload-lead-photo', { method: 'POST', body: form });
+      if (!r.ok) return null;
+      const json = await r.json() as { url?: string };
+      return json.url ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const launch = useCallback(async () => {
     setDeploying(true);
     setDeployProgress(0);
+    setDeployed(false);
+    setLaunchError(null);
+    animDoneRef.current = false;
+    apiDoneRef.current  = false;
+
+    // Animation: 30 s to 100 %; shows done only when both animation + API are done
     const start = Date.now();
-    const dur = 30000;
-    const tick = () => {
+    const dur   = 30_000;
+    const tick  = () => {
       const p = Math.min(1, (Date.now() - start) / dur);
       setDeployProgress(p);
-      if (p < 1) requestAnimationFrame(tick);
-      else setTimeout(() => setDeployed(true), 400);
+      if (p < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        animDoneRef.current = true;
+        if (apiDoneRef.current) setTimeout(() => setDeployed(true), 400);
+      }
     };
     requestAnimationFrame(tick);
-  };
+
+    try {
+      // Upload photos in parallel
+      const uploads = await Promise.all([
+        state.heroPhoto  ? uploadPhoto(state.heroPhoto)  : Promise.resolve(null),
+        state.logoPhoto  ? uploadPhoto(state.logoPhoto)  : Promise.resolve(null),
+        ...state.gallery.map((g) => uploadPhoto(g)),
+      ]);
+      const [heroPhotoUrl, logoUrl, ...galleryUploads] = uploads;
+      const galleryUrls = galleryUploads.filter((u): u is string => u !== null);
+
+      const res = await fetch('/api/submit-lead', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessType:  state.business,
+          businessName:  state.businessName  || null,
+          description:   state.description   || null,
+          plan:          state.plan,
+          phone:         state.phone         || null,
+          email:         state.email         || null,
+          contact:       state.phone || state.email || '',
+          address:       state.address       || null,
+          language:      typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'sk',
+          workingHours:  JSON.stringify(state.hoursSchedule),
+          palette:       state.palette,
+          heroPhotoUrl:  heroPhotoUrl ?? null,
+          logoUrl:       logoUrl      ?? null,
+          galleryUrls,
+        }),
+      });
+
+      if (!res.ok) throw new Error('submit-failed');
+
+      apiDoneRef.current = true;
+      // If animation already finished (edge case), trigger done immediately
+      if (animDoneRef.current) setTimeout(() => setDeployed(true), 400);
+
+    } catch {
+      setDeploying(false);
+      setDeployProgress(0);
+      setLaunchError(t('step3.launchError'));
+    }
+  }, [state, uploadPhoto, t]);
 
   const biz = CREATE_BUSINESS_TYPES.find((b) => b.id === state.business) ?? CREATE_BUSINESS_TYPES[0];
   const palette = biz.palettes.find((p) => p.id === state.palette) ?? biz.palettes[0];
@@ -835,7 +912,7 @@ export default function CreatePageClient() {
           <div className="px-5 py-4 overflow-y-auto flex-1">
             {state.step === 1 && <Step1 state={state} setState={setState} />}
             {state.step === 2 && <Step2 state={state} setState={setState} />}
-            {state.step === 3 && <Step3 state={state} setState={setState} onLaunch={launch} />}
+            {state.step === 3 && <Step3 state={state} setState={setState} onLaunch={launch} launchError={launchError} />}
           </div>
 
           {/* Step footer */}

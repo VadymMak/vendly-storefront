@@ -1044,6 +1044,7 @@
       "launchBtn": "Vytvořit můj web",
       "noCard": "Kreditní karta není vyžadována.",
       "freeTrial": "14denní zkušební verze. Zrušení kdykoliv.",
+      "launchError": "Něco se pokazilo. Zkuste to znovu.",
       "mostPopular": "Nejpopulárnější"
     },
     "nav": {

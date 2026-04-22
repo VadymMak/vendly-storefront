@@ -1044,6 +1044,7 @@
       "launchBtn": "Meine Website erstellen",
       "noCard": "Keine Kreditkarte erforderlich.",
       "freeTrial": "14-tägige kostenlose Testversion. Jederzeit kündbar.",
+      "launchError": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
       "mostPopular": "Am beliebtesten"
     },
     "nav": {

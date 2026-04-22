@@ -2,18 +2,33 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
-  const data = await request.json() as Record<string, string>;
+  const data = await request.json() as Record<string, unknown>;
 
   // ── Save to DB ─────────────────────────────────────────────────────────────
   let lead: { id: string } | undefined;
   try {
     lead = await db.lead.create({
       data: {
-        businessType: data.businessType || '',
-        services:     data.services     || '',
-        contact:      data.contact      || '',
-        language:     data.language     || '',
-        demoUrl:      data.demoUrl      || null,
+        // Backward-compat fields (OnboardingChat)
+        businessType: String(data.businessType || ''),
+        services:     String(data.services     || data.description || ''),
+        contact:      String(data.contact      || data.phone       || data.email || ''),
+        language:     String(data.language     || ''),
+        demoUrl:      data.demoUrl             ? String(data.demoUrl)      : null,
+
+        // /create wizard fields
+        businessName:    data.businessName    ? String(data.businessName)    : null,
+        description:     data.description     ? String(data.description)     : null,
+        plan:            data.plan            ? String(data.plan)            : null,
+        email:           data.email           ? String(data.email)           : null,
+        address:         data.address         ? String(data.address)         : null,
+        workingHours:    data.workingHours     ? String(data.workingHours)    : null,
+        selectedPalette: data.palette         ? String(data.palette)         : null,
+        logoUrl:         data.logoUrl         ? String(data.logoUrl)         : null,
+        heroPhotoUrl:    data.heroPhotoUrl     ? String(data.heroPhotoUrl)    : null,
+        galleryUrls:     Array.isArray(data.galleryUrls)
+                           ? (data.galleryUrls as unknown[]).filter((u): u is string => typeof u === 'string')
+                           : [],
       },
     });
     console.log('Lead saved:', lead.id);
@@ -26,18 +41,26 @@ export async function POST(request: Request) {
   const telegramChatId   = process.env.TELEGRAM_CHAT_ID;
 
   if (telegramBotToken && telegramChatId) {
+    const desc = data.description ? String(data.description).slice(0, 120) + '…' : '-';
+    const galleryCount = Array.isArray(data.galleryUrls) ? (data.galleryUrls as unknown[]).length : 0;
+
     const message = [
       '🆕 Новый лид VendShop!',
       '',
-      'Тип: '    + (data.businessType || '-'),
-      'Услуги: ' + (data.services     || '-'),
-      'Контакт: '+ (data.contact      || '-'),
-      'Язык: '   + (data.language     || '-'),
-      'Демо: '   + (data.demoUrl      || '-'),
-      'ID: '     + (lead?.id           || '-'),
-      'Время: '  + new Date().toLocaleString('sk-SK'),
+      `Бизнес: ${data.businessType || '-'} — ${data.businessName || '-'}`,
+      `Тариф: ${data.plan || '-'}`,
+      `Описание: ${desc}`,
       '',
-      'Бриф: '   + (lead?.id ? `vendshop.shop/brief/${lead.id}` : '-'),
+      `Контакт: ${data.contact || data.phone || '-'}`,
+      `Email: ${data.email   || '-'}`,
+      `Адрес: ${data.address || '-'}`,
+      `Язык: ${data.language || '-'}`,
+      '',
+      `Фото: hero=${data.heroPhotoUrl ? '✅' : '—'} · logo=${data.logoUrl ? '✅' : '—'} · gallery=${galleryCount}`,
+      `ID: ${lead?.id    || '-'}`,
+      `Время: ${new Date().toLocaleString('sk-SK')}`,
+      '',
+      `Бриф: ${lead?.id ? `vendshop.shop/brief/${lead.id}` : '-'}`,
     ].join('\n');
 
     try {

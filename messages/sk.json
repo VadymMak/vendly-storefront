@@ -925,5 +925,59 @@
     "submit": "Odoslať správu",
     "successTitle": "Správa odoslaná!",
     "successDesc": "Ozveme sa vám do pár hodín."
+  },
+  "create": {
+    "meta": { "title": "Vytvoriť web — VendShop", "desc": "Profesionálny web pre váš biznis za 2 minúty" },
+    "topbar": { "autoSaved": "Automaticky uložené", "stepChoose": "Výber", "stepDetails": "Detaily", "stepLaunch": "Spustenie" },
+    "steps": {
+      "1": { "kicker": "KROK 1 Z 3", "title": "Vyberte typ podnikania", "sub": "Vytvoríme šablónu prispôsobenú práve pre vás." },
+      "2": { "kicker": "KROK 2 Z 3", "title": "Vaše údaje", "sub": "Každá zmena okamžite aktualizuje náhľad vpravo." },
+      "3": { "kicker": "KROK 3 Z 3", "title": "Prehľad a spustenie", "sub": "Vyberte plán, skontrolujte súhrn a spustíme vás." }
+    },
+    "step1": {
+      "paletteLabel": "Farebná paleta",
+      "paletteTunedFor": "Prispôsobená pre",
+      "tip": "Každá šablóna obsahuje sekciu služieb/menu, galériu, kontakty a rezervácie – prispôsobené vášmu odvetviu. Sekcie môžete po spustení zmeniť."
+    },
+    "step2": {
+      "nameLabel": "Názov firmy", "descLabel": "Popis", "aiBtn": "AI Generovať",
+      "descPlaceholder": "Krátky odstavec o tom, čo robíte, váš štýl, atmosféra…",
+      "phoneLabel": "Telefón", "emailLabel": "E-mail", "addressLabel": "Adresa", "hoursLabel": "Pracovná doba",
+      "photosLabel": "Fotografie", "heroImageLabel": "Hlavná fotografia", "heroImageHint": "Veľký obrázok hore – ideálne 1600×1200",
+      "logoLabel": "Logo", "logoHint": "Priehľadné PNG alebo štvorcové", "replaceImage": "Nahradiť obrázok", "galleryLabel": "Galéria"
+    },
+    "step3": {
+      "planLabel": "Vyberte plán", "summaryLabel": "Súhrn",
+      "sumTemplate": "Šablóna", "sumPalette": "Paleta", "sumName": "Názov", "sumContact": "Kontakt",
+      "sumPhotos": "Fotografie", "uploaded": "nahraných", "sumDomain": "Doména", "sumLangs": "Jazyky",
+      "unlimited": "Neobmedzene", "phoneNotSet": "telefón nezadaný",
+      "launchBtn": "Vytvoriť môj web", "noCard": "Nevyžaduje sa kreditná karta.", "freeTrial": "14-dňová bezplatná skúška. Zrušenie kedykoľvek.", "mostPopular": "Najpopulárnejší"
+    },
+    "nav": { "back": "Späť", "continue": "Pokračovať", "stepOf": "Krok {step} / 3" },
+    "preview": { "live": "Živý náhľad", "desktop": "Počítač", "tablet": "Tablet", "mobile": "Mobil" },
+    "deploy": {
+      "title": "Nasadzujem váš web…", "secsLeft": "Zostáva {secs} sekúnd",
+      "d1": "Priraďujem vašu subdoménu", "d2": "Prekladám do 5 jazykov", "d3": "Optimalizujem obrázky a SEO", "d4": "Publikujem na globálne CDN",
+      "doneTitle": "Ste live.", "doneSub": "Váš web je publikovaný a pripravený na zdieľanie.", "visitBtn": "Navštíviť môj web", "backBtn": "Späť do editora"
+    },
+    "plans": {
+      "free": { "name": "Free", "blurb": "Na vyskúšanie", "f1": "1 web", "f2": "Subdoména vendshop.shop", "f3": "5 jazykov", "f4": "Komunitná podpora" },
+      "starter": { "name": "Starter", "blurb": "Samostatní podnikatelia", "f1": "Vlastná doména", "f2": "Bez VendShop loga", "f3": "15 jazykov", "f4": "E-mailová podpora" },
+      "pro": { "name": "Pro", "blurb": "Rastúce tímy", "f1": "Všetko zo Starter", "f2": "Neobmedzené jazyky", "f3": "Online rezervácie a platby", "f4": "Prioritná podpora" }
+    },
+    "biz": {
+      "barbershop": { "label": "Barbershop", "tagline": "Strihanie a úprava" },
+      "restaurant": { "label": "Reštaurácia", "tagline": "Menu a rezervácie" },
+      "beauty": { "label": "Kozmetický salón", "tagline": "Vlasy, nechty, pleť" },
+      "auto": { "label": "Autoservis", "tagline": "Opravy a servis" },
+      "dentist": { "label": "Zubná ambulancia", "tagline": "Klinika a termíny" },
+      "water": { "label": "Dodávka vody", "tagline": "Predplatné a objednávky" },
+      "electronics": { "label": "Opravovňa elektroniky", "tagline": "Telefóny a notebooky" },
+      "yoga": { "label": "Joga štúdio", "tagline": "Kurzy a členstvá" },
+      "photography": { "label": "Fotograf", "tagline": "Portfólio a rezervácie" },
+      "agency": { "label": "Digitálna agentúra", "tagline": "Štúdie a služby" },
+      "education": { "label": "Vzdelávanie", "tagline": "Kurzy a programy" },
+      "design": { "label": "Dizajnové štúdio", "tagline": "Portfólio a služby" }
+    }
   }
 }

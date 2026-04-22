@@ -925,5 +925,58 @@
     "submit": "Odeslat zprávu",
     "successTitle": "Zpráva odeslána!",
     "successDesc": "Ozveme se vám do pár hodin."
+  },
+  "create": {
+    "meta": { "title": "Vytvořit web — VendShop", "desc": "Profesionální web pro vaše podnikání za 2 minuty" },
+    "topbar": { "autoSaved": "Automaticky uloženo", "stepChoose": "Výběr", "stepDetails": "Detaily", "stepLaunch": "Spuštění" },
+    "steps": {
+      "1": { "kicker": "KROK 1 Z 3", "title": "Vyberte typ podnikání", "sub": "Vytvoříme šablonu přizpůsobenou právě vám." },
+      "2": { "kicker": "KROK 2 Z 3", "title": "Vaše údaje", "sub": "Každá změna okamžitě aktualizuje náhled vpravo." },
+      "3": { "kicker": "KROK 3 Z 3", "title": "Přehled a spuštění", "sub": "Vyberte plán, zkontrolujte shrnutí a spustíme vás." }
+    },
+    "step1": {
+      "paletteLabel": "Barevná paleta", "paletteTunedFor": "Přizpůsobena pro",
+      "tip": "Každá šablona obsahuje sekci služeb/menu, galerii, kontakty a rezervace – přizpůsobené vašemu odvětví."
+    },
+    "step2": {
+      "nameLabel": "Název firmy", "descLabel": "Popis", "aiBtn": "AI Generovat",
+      "descPlaceholder": "Krátký odstavec o tom, co děláte, váš styl, atmosféra…",
+      "phoneLabel": "Telefon", "emailLabel": "E-mail", "addressLabel": "Adresa", "hoursLabel": "Pracovní doba",
+      "photosLabel": "Fotografie", "heroImageLabel": "Hlavní fotografie", "heroImageHint": "Velký obrázek nahoře – ideálně 1600×1200",
+      "logoLabel": "Logo", "logoHint": "Průhledné PNG nebo čtvercové", "replaceImage": "Nahradit obrázek", "galleryLabel": "Galerie"
+    },
+    "step3": {
+      "planLabel": "Vyberte plán", "summaryLabel": "Shrnutí",
+      "sumTemplate": "Šablona", "sumPalette": "Paleta", "sumName": "Název", "sumContact": "Kontakt",
+      "sumPhotos": "Fotografie", "uploaded": "nahráno", "sumDomain": "Doména", "sumLangs": "Jazyky",
+      "unlimited": "Neomezeno", "phoneNotSet": "telefon nezadán",
+      "launchBtn": "Vytvořit můj web", "noCard": "Kreditní karta není vyžadována.", "freeTrial": "14denní zkušební verze. Zrušení kdykoliv.", "mostPopular": "Nejpopulárnější"
+    },
+    "nav": { "back": "Zpět", "continue": "Pokračovat", "stepOf": "Krok {step} / 3" },
+    "preview": { "live": "Živý náhled", "desktop": "Počítač", "tablet": "Tablet", "mobile": "Mobil" },
+    "deploy": {
+      "title": "Nasazuji váš web…", "secsLeft": "Zbývá {secs} sekund",
+      "d1": "Přiřazuji vaši subdoménu", "d2": "Překládám do 5 jazyků", "d3": "Optimalizuji obrázky a SEO", "d4": "Publikuji na globální CDN",
+      "doneTitle": "Jste live.", "doneSub": "Váš web je zveřejněn a připraven ke sdílení.", "visitBtn": "Navštívit můj web", "backBtn": "Zpět do editoru"
+    },
+    "plans": {
+      "free": { "name": "Free", "blurb": "Na vyzkoušení", "f1": "1 web", "f2": "Subdoména vendshop.shop", "f3": "5 jazyků", "f4": "Komunitní podpora" },
+      "starter": { "name": "Starter", "blurb": "Samostatní podnikatelé", "f1": "Vlastní doména", "f2": "Bez loga VendShop", "f3": "15 jazyků", "f4": "E-mailová podpora" },
+      "pro": { "name": "Pro", "blurb": "Rostoucí týmy", "f1": "Vše ze Starteru", "f2": "Neomezené jazyky", "f3": "Online rezervace a platby", "f4": "Prioritní podpora" }
+    },
+    "biz": {
+      "barbershop": { "label": "Barbershop", "tagline": "Stříhání a úprava" },
+      "restaurant": { "label": "Restaurace", "tagline": "Menu a rezervace" },
+      "beauty": { "label": "Kosmetický salón", "tagline": "Vlasy, nehty, pleť" },
+      "auto": { "label": "Autoservis", "tagline": "Opravy a servis" },
+      "dentist": { "label": "Zubní ordinace", "tagline": "Klinika a termíny" },
+      "water": { "label": "Rozvoz vody", "tagline": "Předplatné a objednávky" },
+      "electronics": { "label": "Opravna elektroniky", "tagline": "Telefony a notebooky" },
+      "yoga": { "label": "Jóga studio", "tagline": "Kurzy a členství" },
+      "photography": { "label": "Fotograf", "tagline": "Portfolio a rezervace" },
+      "agency": { "label": "Digitální agentura", "tagline": "Studie a služby" },
+      "education": { "label": "Vzdělávání", "tagline": "Kurzy a programy" },
+      "design": { "label": "Designové studio", "tagline": "Portfolio a služby" }
+    }
   }
 }

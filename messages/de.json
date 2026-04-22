@@ -925,5 +925,58 @@
     "submit": "Nachricht senden",
     "successTitle": "Nachricht gesendet!",
     "successDesc": "Wir melden uns innerhalb weniger Stunden."
+  },
+  "create": {
+    "meta": { "title": "Website erstellen — VendShop", "desc": "Professionelle Website für Ihr Unternehmen in 2 Minuten" },
+    "topbar": { "autoSaved": "Automatisch gespeichert", "stepChoose": "Auswahl", "stepDetails": "Details", "stepLaunch": "Start" },
+    "steps": {
+      "1": { "kicker": "SCHRITT 1 VON 3", "title": "Wählen Sie Ihr Unternehmen", "sub": "Wir erstellen eine maßgeschneiderte Vorlage für Sie." },
+      "2": { "kicker": "SCHRITT 2 VON 3", "title": "Ihre Angaben", "sub": "Jede Änderung aktualisiert die Vorschau rechts sofort." },
+      "3": { "kicker": "SCHRITT 3 VON 3", "title": "Übersicht & Start", "sub": "Wählen Sie einen Plan, prüfen Sie die Zusammenfassung und wir deployen." }
+    },
+    "step1": {
+      "paletteLabel": "Farbpalette", "paletteTunedFor": "Abgestimmt für",
+      "tip": "Jede Vorlage enthält Dienste/Menü, Galerie, Kontakt und Buchungs-Layout – für Ihre Branche optimiert."
+    },
+    "step2": {
+      "nameLabel": "Unternehmensname", "descLabel": "Beschreibung", "aiBtn": "KI Generieren",
+      "descPlaceholder": "Ein kurzer Absatz über das, was Sie tun, Ihren Stil, Ihre Atmosphäre…",
+      "phoneLabel": "Telefon", "emailLabel": "E-Mail", "addressLabel": "Adresse", "hoursLabel": "Öffnungszeiten",
+      "photosLabel": "Fotos", "heroImageLabel": "Hauptbild", "heroImageHint": "Das große Bild oben – ideal 1600×1200",
+      "logoLabel": "Logo", "logoHint": "Transparentes PNG oder quadratisch", "replaceImage": "Bild ersetzen", "galleryLabel": "Galerie"
+    },
+    "step3": {
+      "planLabel": "Plan wählen", "summaryLabel": "Zusammenfassung",
+      "sumTemplate": "Vorlage", "sumPalette": "Palette", "sumName": "Name", "sumContact": "Kontakt",
+      "sumPhotos": "Fotos", "uploaded": "hochgeladen", "sumDomain": "Domain", "sumLangs": "Sprachen",
+      "unlimited": "Unbegrenzt", "phoneNotSet": "Telefon nicht angegeben",
+      "launchBtn": "Meine Website erstellen", "noCard": "Keine Kreditkarte erforderlich.", "freeTrial": "14-tägige kostenlose Testversion. Jederzeit kündbar.", "mostPopular": "Am beliebtesten"
+    },
+    "nav": { "back": "Zurück", "continue": "Weiter", "stepOf": "Schritt {step} / 3" },
+    "preview": { "live": "Live-Vorschau", "desktop": "Desktop", "tablet": "Tablet", "mobile": "Mobil" },
+    "deploy": {
+      "title": "Ihre Website wird bereitgestellt…", "secsLeft": "Noch {secs} Sekunden",
+      "d1": "Subdomain wird zugewiesen", "d2": "Übersetzung in 5 Sprachen", "d3": "Bilder & SEO optimieren", "d4": "Auf globalem CDN veröffentlichen",
+      "doneTitle": "Sie sind live.", "doneSub": "Ihre Website ist veröffentlicht und bereit zum Teilen.", "visitBtn": "Meine Website besuchen", "backBtn": "Zurück zum Editor"
+    },
+    "plans": {
+      "free": { "name": "Free", "blurb": "Zum Ausprobieren", "f1": "1 Website", "f2": "vendshop.shop Subdomain", "f3": "5 Sprachen", "f4": "Community-Support" },
+      "starter": { "name": "Starter", "blurb": "Einzelunternehmer", "f1": "Eigene Domain", "f2": "VendShop-Badge entfernen", "f3": "15 Sprachen", "f4": "E-Mail-Support" },
+      "pro": { "name": "Pro", "blurb": "Wachsende Teams", "f1": "Alles aus Starter", "f2": "Unbegrenzte Sprachen", "f3": "Online-Buchungen + Zahlungen", "f4": "Prioritäts-Support" }
+    },
+    "biz": {
+      "barbershop": { "label": "Barbershop", "tagline": "Schnitte & Pflege" },
+      "restaurant": { "label": "Restaurant", "tagline": "Menü & Reservierungen" },
+      "beauty": { "label": "Beautysalon", "tagline": "Haare, Nägel, Haut" },
+      "auto": { "label": "Autowerkstatt", "tagline": "Reparatur & Wartung" },
+      "dentist": { "label": "Zahnarzt", "tagline": "Klinik & Termine" },
+      "water": { "label": "Wasserlieferung", "tagline": "Abonnements & Bestellungen" },
+      "electronics": { "label": "Elektronik-Reparatur", "tagline": "Handys & Laptops" },
+      "yoga": { "label": "Yoga-Studio", "tagline": "Kurse & Mitgliedschaften" },
+      "photography": { "label": "Fotograf", "tagline": "Portfolio & Buchung" },
+      "agency": { "label": "Digitalagentur", "tagline": "Fallstudien & Dienste" },
+      "education": { "label": "Bildung", "tagline": "Kurse & Programme" },
+      "design": { "label": "Designstudio", "tagline": "Portfolio & Dienste" }
+    }
   }
 }

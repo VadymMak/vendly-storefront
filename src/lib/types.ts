@@ -428,3 +428,60 @@ export interface ColorSchemeTokens {
   /** Optional heading font class — serif for warm/elegant, default sans for others */
   headingFont?: string;
 }
+
+// ===== /create page types =====
+
+export interface CreateTemplateSection {
+  title: string;
+  meta: string;
+  body: string;
+}
+
+export interface CreateTemplate {
+  heroKicker: string;
+  heroTitle: string;
+  heroSub: string;
+  ctaPrimary: string;
+  ctaSecondary: string;
+  sectionsTitle: string;
+  sections: CreateTemplateSection[];
+  galleryLabel: string;
+}
+
+export interface CreatePalette {
+  id: string;
+  name: string;
+  primary: string;
+  bg: string;
+  fg: string;
+  muted: string;
+  card: string;
+}
+
+export type CreateTemplateStyle = 'classic' | 'warm' | 'natural' | 'bold' | 'dark' | 'medical';
+
+export interface CreateBusinessType {
+  id: string;
+  icon: string;
+  style: CreateTemplateStyle;
+  template: CreateTemplate;
+  palettes: CreatePalette[];
+}
+
+export type CreatePlan = 'free' | 'starter' | 'pro';
+
+export interface CreateState {
+  step: 1 | 2 | 3;
+  business: string;
+  palette: string;
+  businessName: string;
+  description: string;
+  phone: string;
+  email: string;
+  address: string;
+  hours: string;
+  heroPhoto: string | null;
+  logoPhoto: string | null;
+  gallery: string[];
+  plan: CreatePlan;
+}

@@ -1165,5 +1165,10 @@
       "sun": "Ne",
       "closed": "Zavřeno"
     }
+  },
+  "cookie": {
+    "text": "Používáme výhradně funkční cookies pro provoz webu. Více se dozvíte v",
+    "link": "Zásadách ochrany osobních údajů",
+    "btn": "Rozumím"
   }
 }

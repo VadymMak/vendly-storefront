@@ -1165,5 +1165,10 @@
       "sun": "Sun",
       "closed": "Closed"
     }
+  },
+  "cookie": {
+    "text": "We use only functional cookies to operate the website. Learn more in our",
+    "link": "Privacy Policy",
+    "btn": "Got it"
   }
 }

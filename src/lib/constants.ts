@@ -905,3 +905,5 @@ export const CREATE_DEFAULT_SCHEDULE: CreateHoursSchedule = {
 };
 
 export const CREATE_STORE_KEY = 'vendshop_create_state_v1';
+
+export const COOKIE_ACCEPTED_KEY = 'vendshop_cookie_accepted';

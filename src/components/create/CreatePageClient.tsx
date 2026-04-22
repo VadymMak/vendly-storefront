@@ -6,12 +6,21 @@ import PreviewPanel from './PreviewPanel';
 import {
   CREATE_BUSINESS_TYPES,
   CREATE_PLANS,
-  CREATE_DEFAULT_HOURS,
+  CREATE_DEFAULT_SCHEDULE,
   CREATE_STORE_KEY,
 } from '@/lib/constants';
-import type { CreateState, CreatePlan } from '@/lib/types';
+import type { CreateState, CreatePlan, CreateHoursSchedule } from '@/lib/types';
 
 type Viewport = 'desktop' | 'tablet' | 'mobile';
+
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+type DayKey = (typeof DAYS)[number];
+
+const TIME_SLOTS: string[] = [];
+for (let h = 7; h <= 22; h++) {
+  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
+  if (h < 22) TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
+}
 
 const INITIAL_STATE: CreateState = {
   step: 1,
@@ -22,7 +31,7 @@ const INITIAL_STATE: CreateState = {
   phone: '',
   email: '',
   address: '',
-  hours: '',
+  hoursSchedule: CREATE_DEFAULT_SCHEDULE,
   heroPhoto: null,
   logoPhoto: null,
   gallery: [],
@@ -262,6 +271,47 @@ function Step1({ state, setState }: { state: CreateState; setState: React.Dispat
   );
 }
 
+// ── Working hours picker ──────────────────────────────────────────────────────
+
+function HoursScheduler({ value, onChange }: { value: CreateHoursSchedule; onChange: (v: CreateHoursSchedule) => void }) {
+  const td = useTranslations('create.days');
+  const selectCls = 'bg-[#0f1a2e] border border-[#253349] text-[#e2e8f0] rounded-[8px] px-2 py-1 text-[12px] outline-none focus:border-[#16a34a] cursor-pointer';
+
+  return (
+    <div className="grid gap-1">
+      {DAYS.map((day: DayKey) => {
+        const s = value[day];
+        return (
+          <div key={day} className="flex items-center gap-2.5 h-8">
+            <span className="w-6 text-[11px] font-semibold text-[#64748b] uppercase tracking-wide">{td(day)}</span>
+            <button
+              type="button"
+              aria-label={s.open ? 'close day' : 'open day'}
+              onClick={() => onChange({ ...value, [day]: { ...s, open: !s.open } })}
+              className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 ${s.open ? 'bg-[#16a34a]' : 'bg-[#253349]'}`}
+            >
+              <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${s.open ? 'left-[18px]' : 'left-[2px]'}`} />
+            </button>
+            {s.open ? (
+              <div className="flex items-center gap-1.5">
+                <select value={s.from} onChange={(e) => onChange({ ...value, [day]: { ...s, from: e.target.value } })} className={selectCls}>
+                  {TIME_SLOTS.map((ts) => <option key={ts} value={ts}>{ts}</option>)}
+                </select>
+                <span className="text-[#64748b] text-[11px]">–</span>
+                <select value={s.to} onChange={(e) => onChange({ ...value, [day]: { ...s, to: e.target.value } })} className={selectCls}>
+                  {TIME_SLOTS.map((ts) => <option key={ts} value={ts}>{ts}</option>)}
+                </select>
+              </div>
+            ) : (
+              <span className="text-[12px] text-[#475569] italic">{td('closed')}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Step 2: Details + photos ───────────────────────────────────────────────────
 
 const AI_DESCRIPTIONS: Record<string, string> = {
@@ -337,13 +387,10 @@ function Step2({ state, setState }: { state: CreateState; setState: React.Dispat
       </div>
 
       <div>
-        <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">{t('hoursLabel')}</label>
-        <textarea
-          className={`${inputCls} resize-y min-h-[76px] leading-relaxed`}
-          rows={3}
-          placeholder={CREATE_DEFAULT_HOURS}
-          value={state.hours}
-          onChange={up('hours')}
+        <label className="block text-[12px] font-semibold text-[#94a3b8] mb-2 tracking-[0.01em]">{t('hoursLabel')}</label>
+        <HoursScheduler
+          value={state.hoursSchedule}
+          onChange={(v) => setState((s) => ({ ...s, hoursSchedule: v }))}
         />
       </div>
 
@@ -443,7 +490,7 @@ function Step3({
                 </div>
                 <div className="text-right">
                   <span className="text-[18px] font-bold text-[#e2e8f0] tracking-tight">€{p.price}</span>
-                  <span className="text-[12px] text-[#94a3b8] font-medium">{p.price === 0 ? ' forever' : ' / mo'}</span>
+                  <span className="text-[12px] text-[#94a3b8] font-medium"> {p.price === 0 ? tp('forever') : tp('perMonth')}</span>
                 </div>
                 <div className="col-span-2 flex flex-wrap gap-x-3.5 gap-y-1.5 mt-0.5">
                   {planFeats(p.id as CreatePlan).map((f) => (

@@ -1054,7 +1054,16 @@
       "live": "Live-Vorschau",
       "desktop": "Desktop",
       "tablet": "Tablet",
-      "mobile": "Mobil"
+      "mobile": "Mobil",
+      "navAbout": "Über uns",
+      "navGallery": "Galerie",
+      "navContact": "Kontakt",
+      "viewAll": "Alle anzeigen →",
+      "contactTitle": "Kommen Sie vorbei, rufen Sie an oder schreiben Sie.",
+      "contactSub": "Wir antworten auf jede Nachricht – meist noch am selben Tag.",
+      "hoursLabel": "Öffnungszeiten",
+      "madeWith": "Erstellt mit VendShop",
+      "galleryOf": "{n} von 6"
     },
     "deploy": {
       "title": "Ihre Website wird bereitgestellt…",
@@ -1092,7 +1101,9 @@
         "f2": "Unbegrenzte Sprachen",
         "f3": "Online-Buchungen + Zahlungen",
         "f4": "Prioritäts-Support"
-      }
+      },
+      "forever": "für immer",
+      "perMonth": "/ Mo."
     },
     "biz": {
       "barbershop": {
@@ -1143,6 +1154,16 @@
         "label": "Designstudio",
         "tagline": "Portfolio & Dienste"
       }
+    },
+    "days": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So",
+      "closed": "Geschlossen"
     }
   }
 }

@@ -1054,7 +1054,16 @@
       "live": "Živý náhled",
       "desktop": "Počítač",
       "tablet": "Tablet",
-      "mobile": "Mobil"
+      "mobile": "Mobil",
+      "navAbout": "O nás",
+      "navGallery": "Galerie",
+      "navContact": "Kontakt",
+      "viewAll": "Zobrazit vše →",
+      "contactTitle": "Přijďte, zavolejte nebo napište.",
+      "contactSub": "Odpovídáme na každou zprávu – obvykle ve stejný den.",
+      "hoursLabel": "Otevírací doba",
+      "madeWith": "Vytvořeno na VendShop",
+      "galleryOf": "{n} z 6"
     },
     "deploy": {
       "title": "Nasazuji váš web…",
@@ -1092,7 +1101,9 @@
         "f2": "Neomezené jazyky",
         "f3": "Online rezervace a platby",
         "f4": "Prioritní podpora"
-      }
+      },
+      "forever": "navždy",
+      "perMonth": "/ měs."
     },
     "biz": {
       "barbershop": {
@@ -1143,6 +1154,16 @@
         "label": "Designové studio",
         "tagline": "Portfolio a služby"
       }
+    },
+    "days": {
+      "mon": "Po",
+      "tue": "Út",
+      "wed": "St",
+      "thu": "Čt",
+      "fri": "Pá",
+      "sat": "So",
+      "sun": "Ne",
+      "closed": "Zavřeno"
     }
   }
 }

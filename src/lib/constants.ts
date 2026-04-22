@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -894,6 +894,14 @@ export const CREATE_PLANS = [
   { id: 'pro' as const, price: 39, popular: true },
 ];
 
-export const CREATE_DEFAULT_HOURS = 'Mon–Fri · 9:00 – 18:00\nSat · 10:00 – 15:00\nSun · closed';
+export const CREATE_DEFAULT_SCHEDULE: CreateHoursSchedule = {
+  mon: { open: true, from: '09:00', to: '18:00' },
+  tue: { open: true, from: '09:00', to: '18:00' },
+  wed: { open: true, from: '09:00', to: '18:00' },
+  thu: { open: true, from: '09:00', to: '18:00' },
+  fri: { open: true, from: '09:00', to: '18:00' },
+  sat: { open: false, from: '09:00', to: '13:00' },
+  sun: { open: false, from: '09:00', to: '13:00' },
+};
 
 export const CREATE_STORE_KEY = 'vendshop_create_state_v1';

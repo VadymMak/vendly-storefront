@@ -3,6 +3,9 @@
 import { useTranslations } from 'next-intl';
 import type { CreateBusinessType, CreatePalette, CreateState } from '@/lib/types';
 
+const DAYS_PREVIEW = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+type DayKey = (typeof DAYS_PREVIEW)[number];
+
 type Viewport = 'desktop' | 'tablet' | 'mobile';
 
 interface PreviewPanelProps {
@@ -207,6 +210,8 @@ function SitePreview({
   palette: CreatePalette;
   viewport: Viewport;
 }) {
+  const t = useTranslations('create.preview');
+  const td = useTranslations('create.days');
   const c = buildColors(palette);
   const isDark = hexLuminance(palette.bg) < 0.4;
   const tpl = biz.template;
@@ -216,7 +221,6 @@ function SitePreview({
   const phone = state.phone || '+421 900 000 000';
   const email = state.email || `hello@${toSlug(name) || 'yoursite'}.com`;
   const address = state.address || 'Hlavná 12, Bratislava';
-  const hours = state.hours || 'Po–Pi · 9:00 – 18:00\nSo · 10:00 – 15:00\nNe · zatvorené';
   const description = state.description || tpl.heroSub;
 
   const displayFonts: Record<string, string> = {
@@ -292,7 +296,7 @@ function SitePreview({
 
         {!mobile && (
           <nav style={{ display: 'flex', gap: 20 }}>
-            {[tpl.sectionsTitle, 'About', 'Gallery', 'Contact'].map((item) => (
+            {[tpl.sectionsTitle, t('navAbout'), t('navGallery'), t('navContact')].map((item) => (
               <span key={item} style={{ fontSize: 13, fontWeight: 500, color: c.fg, opacity: 0.8, cursor: 'pointer' }}>
                 {item}
               </span>
@@ -440,7 +444,7 @@ function SitePreview({
           >
             {tpl.sectionsTitle}
           </h2>
-          <span style={{ color: c.muted, fontSize: 12 }}>View all →</span>
+          <span style={{ color: c.muted, fontSize: 12 }}>{t('viewAll')}</span>
         </div>
         <div
           style={{
@@ -476,7 +480,7 @@ function SitePreview({
           <h2 style={{ fontFamily: displayFont, fontSize: mobile ? 18 : 22, fontWeight: 700, margin: 0 }}>
             {tpl.galleryLabel}
           </h2>
-          <span style={{ color: c.muted, fontSize: 11 }}>{state.gallery.length} of 6</span>
+          <span style={{ color: c.muted, fontSize: 11 }}>{t('galleryOf', { n: state.gallery.length })}</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: mobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)', gap: 7 }}>
           {Array.from({ length: 6 }).map((_, i) => {
@@ -534,10 +538,10 @@ function SitePreview({
                 margin: '0 0 10px',
               }}
             >
-              Come by, call, or write.
+              {t('contactTitle')}
             </h2>
             <p style={{ color: c.muted, fontSize: 13.5, lineHeight: 1.55, margin: '0 0 18px' }}>
-              We reply to every message — usually within the day.
+              {t('contactSub')}
             </p>
             <div style={{ display: 'grid', gap: 9 }}>
               <InfoRow icon={<MapPinIcon />} text={address} c={c} />
@@ -556,20 +560,19 @@ function SitePreview({
                 marginBottom: 10,
               }}
             >
-              Hours
+              {t('hoursLabel')}
             </div>
-            <pre
-              style={{
-                margin: 0,
-                fontFamily: 'inherit',
-                fontSize: 13.5,
-                lineHeight: 1.75,
-                color: c.fg,
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              {hours}
-            </pre>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', alignItems: 'center' }}>
+              {DAYS_PREVIEW.map((day: DayKey) => {
+                const s = state.hoursSchedule[day];
+                return [
+                  <span key={`${day}-d`} style={{ fontSize: 11, fontWeight: 600, color: c.muted }}>{td(day)}</span>,
+                  <span key={`${day}-t`} style={{ fontSize: 12, color: c.fg }}>
+                    {s.open ? `${s.from}–${s.to}` : td('closed')}
+                  </span>,
+                ];
+              })}
+            </div>
           </div>
         </div>
       </section>
@@ -587,7 +590,7 @@ function SitePreview({
         }}
       >
         <div>© 2026 {name}</div>
-        <div>Made with VendShop</div>
+        <div>{t('madeWith')}</div>
       </footer>
     </div>
   );
@@ -663,7 +666,7 @@ export default function PreviewPanel({ state, biz, palette, viewport, onViewport
             {t('live')}
           </span>
           <span style={{ fontSize: 12, color: '#64748b' }}>
-            {isDark ? '◉' : '○'} {biz.style} template
+            {isDark ? '◉' : '○'} {biz.style}
           </span>
         </div>
 

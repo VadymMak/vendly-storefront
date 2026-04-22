@@ -470,6 +470,22 @@ export interface CreateBusinessType {
 
 export type CreatePlan = 'free' | 'starter' | 'pro';
 
+export interface CreateDaySchedule {
+  open: boolean;
+  from: string; // "09:00"
+  to: string;   // "18:00"
+}
+
+export interface CreateHoursSchedule {
+  mon: CreateDaySchedule;
+  tue: CreateDaySchedule;
+  wed: CreateDaySchedule;
+  thu: CreateDaySchedule;
+  fri: CreateDaySchedule;
+  sat: CreateDaySchedule;
+  sun: CreateDaySchedule;
+}
+
 export interface CreateState {
   step: 1 | 2 | 3;
   business: string;
@@ -479,7 +495,7 @@ export interface CreateState {
   phone: string;
   email: string;
   address: string;
-  hours: string;
+  hoursSchedule: CreateHoursSchedule;
   heroPhoto: string | null;
   logoPhoto: string | null;
   gallery: string[];

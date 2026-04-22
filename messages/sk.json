@@ -1074,7 +1074,8 @@
       "title": "Odosielame vašu žiadosť…",
       "doneTitle": "Žiadosť odoslaná!",
       "doneSub": "Vytvoríme váš web a ozveme sa vám do 24 hodín.",
-      "backBtn": "Späť do editora"
+      "backBtn": "Späť do editora",
+      "newProjectBtn": "Vytvoriť ďalší web"
     },
     "plans": {
       "free": {

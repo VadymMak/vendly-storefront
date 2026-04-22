@@ -1074,7 +1074,8 @@
       "title": "Sending your request…",
       "doneTitle": "Request submitted!",
       "doneSub": "We'll create your site and contact you within 24 hours.",
-      "backBtn": "Back to editor"
+      "backBtn": "Back to editor",
+      "newProjectBtn": "Create another site"
     },
     "plans": {
       "free": {

@@ -559,9 +559,11 @@ function Step3({
 function DeployOverlay({
   done,
   onClose,
+  onNewProject,
 }: {
   done: boolean;
   onClose: () => void;
+  onNewProject: () => void;
 }) {
   const t = useTranslations('create.deploy');
 
@@ -589,9 +591,6 @@ function DeployOverlay({
               </svg>
             </div>
             <h3 className="text-[20px] font-bold tracking-tight text-[#e2e8f0] m-0">{t('title')}</h3>
-            <p className="text-[13px] text-[#64748b] mt-2">
-              {/* uploading photos + saving — typically 3-8 s */}
-            </p>
           </>
         ) : (
           <>
@@ -600,12 +599,20 @@ function DeployOverlay({
             </div>
             <h3 className="text-[22px] font-bold tracking-tight text-[#e2e8f0] m-0">{t('doneTitle')}</h3>
             <p className="text-[15px] text-[#94a3b8] mt-2 leading-relaxed">{t('doneSub')}</p>
-            <button
-              onClick={onClose}
-              className="mt-6 px-6 py-2.5 rounded-[10px] text-[13px] font-semibold text-[#e2e8f0] border border-[#334155] bg-transparent hover:bg-[#243449] cursor-pointer transition-colors"
-            >
-              {t('backBtn')}
-            </button>
+            <div className="flex flex-col gap-2.5 mt-6">
+              <button
+                onClick={onNewProject}
+                className="w-full py-2.5 rounded-[10px] text-[13px] font-bold text-[#052e13] bg-[#16a34a] border border-[#16a34a] hover:bg-[#22c55e] cursor-pointer transition-colors"
+              >
+                {t('newProjectBtn')}
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full py-2.5 rounded-[10px] text-[13px] font-semibold text-[#94a3b8] border border-[#334155] bg-transparent hover:bg-[#243449] cursor-pointer transition-colors"
+              >
+                {t('backBtn')}
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -660,6 +667,14 @@ export default function CreatePageClient() {
 
   const goto = (n: number) =>
     setState((s) => ({ ...s, step: Math.max(1, Math.min(3, n)) as 1 | 2 | 3 }));
+
+  const handleNewProject = useCallback(() => {
+    try { localStorage.removeItem(CREATE_STORE_KEY); } catch {}
+    setState(INITIAL_STATE);
+    setDeploying(false);
+    setDeployed(false);
+    setLaunchError(null);
+  }, []);
 
   // Upload a base64 data-URL photo to Vercel Blob via unauthenticated endpoint
   const uploadPhoto = useCallback(async (dataUrl: string): Promise<string | null> => {
@@ -727,6 +742,10 @@ export default function CreatePageClient() {
 
       const json = await res.json() as { ok: boolean; leadId?: string };
       console.log('[launch] Lead saved, id:', json.leadId);
+
+      // Clear wizard autosave so returning user sees a fresh form
+      try { localStorage.removeItem(CREATE_STORE_KEY); } catch {}
+
       setDeployed(true);
 
     } catch (err) {
@@ -902,6 +921,7 @@ export default function CreatePageClient() {
         <DeployOverlay
           done={deployed}
           onClose={() => { setDeploying(false); setDeployed(false); }}
+          onNewProject={handleNewProject}
         />
       )}
     </>

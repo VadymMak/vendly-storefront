@@ -1074,7 +1074,8 @@
       "title": "Anfrage wird gesendet…",
       "doneTitle": "Anfrage eingegangen!",
       "doneSub": "Wir erstellen Ihre Website und melden uns innerhalb von 24 Stunden.",
-      "backBtn": "Zurück zum Editor"
+      "backBtn": "Zurück zum Editor",
+      "newProjectBtn": "Weitere Website erstellen"
     },
     "plans": {
       "free": {

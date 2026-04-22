@@ -669,11 +669,9 @@ export default function CreatePageClient() {
     setState((s) => ({ ...s, step: Math.max(1, Math.min(3, n)) as 1 | 2 | 3 }));
 
   const handleNewProject = useCallback(() => {
-    try { localStorage.removeItem(CREATE_STORE_KEY); } catch {}
-    setState(INITIAL_STATE);
+    // State already reset in launch() — just close the overlay
     setDeploying(false);
     setDeployed(false);
-    setLaunchError(null);
   }, []);
 
   // Upload a base64 data-URL photo to Vercel Blob via unauthenticated endpoint
@@ -743,8 +741,9 @@ export default function CreatePageClient() {
       const json = await res.json() as { ok: boolean; leadId?: string };
       console.log('[launch] Lead saved, id:', json.leadId);
 
-      // Clear wizard autosave so returning user sees a fresh form
+      // Reset form immediately — by the time user closes the overlay it's already clean
       try { localStorage.removeItem(CREATE_STORE_KEY); } catch {}
+      setState(INITIAL_STATE);
 
       setDeployed(true);
 

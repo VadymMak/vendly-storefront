@@ -43,6 +43,11 @@ interface Lead {
   briefSubmitted:    boolean;
   briefSubmittedAt: string | null;
   notes:           string | null;
+  // /create wizard fields
+  description:   string | null;
+  plan:          string | null;
+  heroPhotoUrl:  string | null;
+  galleryUrls:   string[];
   // Site Automation
   siteRepoUrl:     string | null;
   siteRepoName:    string | null;
@@ -608,7 +613,16 @@ function LeadCard({
   const [siteVercelUrl, setSiteVercelUrl] = useState<string | null>(lead.siteVercelUrl);
   const [qaRunning, setQaRunning]       = useState(false);
   const [siteQaReport, setSiteQaReport] = useState<string | null>(lead.siteQaReport);
-  const [photos, setPhotos]             = useState<string[]>(() => parsePhotos(lead.photoUrls));
+  const [photos, setPhotos]             = useState<string[]>(() => {
+    const briefPhotos  = parsePhotos(lead.photoUrls);
+    const wizardPhotos = [
+      ...(lead.heroPhotoUrl ? [lead.heroPhotoUrl] : []),
+      ...(lead.logoUrl      ? [lead.logoUrl]      : []),
+      ...(Array.isArray(lead.galleryUrls) ? lead.galleryUrls : []),
+    ];
+    const all = [...briefPhotos, ...wizardPhotos];
+    return all.filter((url, i) => all.indexOf(url) === i); // deduplicate
+  });
   const [heroIdx, setHeroIdx]           = useState<number>(lead.heroImageIndex ?? 0);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
@@ -763,9 +777,9 @@ function LeadCard({
             <span className="rounded bg-[#334155] px-1.5 py-0.5 text-xs text-gray-300">
               {lead.businessType}
             </span>
-            {lead.package && (
+            {(lead.package || lead.plan) && (
               <span className="rounded bg-indigo-900/60 px-1.5 py-0.5 text-xs text-indigo-300 capitalize">
-                {lead.package}
+                {lead.package || lead.plan}
               </span>
             )}
             <span className="text-xs text-gray-500">{lead.language.toUpperCase()}</span>
@@ -848,8 +862,10 @@ function LeadCard({
                 <p className="text-sm text-gray-400">{lead.language.toUpperCase()}</p>
               </Field>
 
-              <Field label="Услуги">
-                <p className="text-sm text-gray-300 leading-relaxed">{lead.services}</p>
+              <Field label={lead.description ? 'Описание' : 'Услуги'}>
+                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                  {lead.description || lead.services || '—'}
+                </p>
               </Field>
 
               {lead.demoUrl && (
@@ -922,6 +938,14 @@ function LeadCard({
                   placeholder="mycafe.sk"
                   onChange={(e) => set('customDomain', e.target.value)} />
               </Field>
+
+              {lead.plan && (
+                <Field label="Тариф /create">
+                  <p className="rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2 text-sm text-indigo-300 font-medium">
+                    {lead.plan}
+                  </p>
+                </Field>
+              )}
 
               <Field label="Пакет">
                 <select
@@ -1028,8 +1052,24 @@ function LeadCard({
                   </div>
                 </div>
 
-                {lead.briefSubmitted ? (
+                {(lead.briefSubmitted || lead.description || lead.selectedPalette || lead.heroPhotoUrl || lead.galleryUrls?.length) ? (
                   <div className="space-y-3">
+                    {/* /create wizard data */}
+                    {lead.description && (
+                      <div>
+                        <p className="mb-1 text-xs text-gray-500">Описание бизнеса:</p>
+                        <p className="rounded-lg bg-[#0F172A] px-3 py-2 text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {lead.description}
+                        </p>
+                      </div>
+                    )}
+                    {lead.plan && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Тариф wizard:</span>
+                        <span className="rounded bg-indigo-900/60 px-2 py-0.5 text-xs text-indigo-300 font-medium">{lead.plan}</span>
+                      </div>
+                    )}
+
                     {/* Style badges */}
                     <div className="flex flex-wrap gap-2">
                       {lead.selectedPalette && (
@@ -1125,26 +1165,28 @@ function LeadCard({
                       </div>
                     )}
 
-                    {/* Photos */}
-                    {lead.photoUrls && (() => {
-                      try {
-                        const urls = JSON.parse(lead.photoUrls) as string[];
-                        if (!urls.length) return null;
-                        return (
-                          <div>
-                            <p className="mb-1.5 text-xs text-gray-500">Фото ({urls.length}):</p>
-                            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
-                              {urls.map((url, i) => (
-                                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                                  className="aspect-square overflow-hidden rounded-lg bg-[#0F172A]">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={url} alt={`photo ${i+1}`} className="h-full w-full object-cover hover:scale-105 transition-transform" />
-                                </a>
-                              ))}
-                            </div>
+                    {/* Photos — brief form (photoUrls) + wizard (heroPhotoUrl / galleryUrls) */}
+                    {(() => {
+                      const briefUrls = parsePhotos(lead.photoUrls);
+                      const heroUrl   = lead.heroPhotoUrl;
+                      const galleryUrls = Array.isArray(lead.galleryUrls) ? lead.galleryUrls : [];
+                      const all = [...briefUrls, ...(heroUrl ? [heroUrl] : []), ...galleryUrls]
+                        .filter((u, i, a) => a.indexOf(u) === i);
+                      if (!all.length) return null;
+                      return (
+                        <div>
+                          <p className="mb-1.5 text-xs text-gray-500">Фото ({all.length}):</p>
+                          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                            {all.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                                className="aspect-square overflow-hidden rounded-lg bg-[#0F172A]">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt={`photo ${i+1}`} className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                              </a>
+                            ))}
                           </div>
-                        );
-                      } catch { return null; }
+                        </div>
+                      );
                     })()}
                   </div>
                 ) : (

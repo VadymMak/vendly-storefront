@@ -1071,15 +1071,9 @@
       "openInMaps": "Open in Maps"
     },
     "deploy": {
-      "title": "Deploying your site…",
-      "secsLeft": "{secs} seconds remaining",
-      "d1": "Provisioning your subdomain",
-      "d2": "Translating into 5 languages",
-      "d3": "Optimizing images & SEO",
-      "d4": "Publishing to global CDN",
-      "doneTitle": "You're live.",
-      "doneSub": "Your site is published and ready to share.",
-      "visitBtn": "Visit my site",
+      "title": "Sending your request…",
+      "doneTitle": "Request submitted!",
+      "doneSub": "We'll create your site and contact you within 24 hours.",
       "backBtn": "Back to editor"
     },
     "plans": {

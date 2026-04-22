@@ -554,34 +554,16 @@ function Step3({
   );
 }
 
-// ── Deploy overlay ─────────────────────────────────────────────────────────────
+// ── Submit overlay ─────────────────────────────────────────────────────────────
 
 function DeployOverlay({
-  progress,
   done,
-  state,
   onClose,
 }: {
-  progress: number;
   done: boolean;
-  state: CreateState;
   onClose: () => void;
 }) {
   const t = useTranslations('create.deploy');
-  const tb = useTranslations('create.biz');
-  const pct = Math.round(progress * 100);
-  const secsLeft = Math.max(0, Math.ceil(30 * (1 - progress)));
-  const domain = `${toSlug(state.businessName) || 'yoursite'}.vendshop.shop`;
-  const circumference = 2 * Math.PI * 26;
-
-  const steps = [
-    { label: t('d1'), done: progress > 0.15 },
-    { label: t('d2'), done: progress > 0.45 },
-    { label: t('d3'), done: progress > 0.75 },
-    { label: t('d4'), done: progress >= 1 },
-  ];
-
-  const firstPending = steps.findIndex((s) => !s.done);
 
   return (
     <div
@@ -589,76 +571,41 @@ function DeployOverlay({
       style={{ background: 'rgba(11,18,32,0.85)', backdropFilter: 'blur(12px)' }}
     >
       <div
-        className="w-full max-w-[480px] border border-[#253349] rounded-[18px] p-7 text-center"
+        className="w-full max-w-[440px] border border-[#253349] rounded-[18px] p-8 text-center"
         style={{ background: '#1e293b' }}
       >
         {!done ? (
           <>
-            <svg className="w-16 h-16 mx-auto mb-4" viewBox="0 0 64 64">
-              <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(148,163,184,0.18)" strokeWidth="4" />
-              <circle
-                cx="32" cy="32" r="26" fill="none" stroke="#22c55e" strokeWidth="4"
-                strokeDasharray={circumference}
-                strokeDashoffset={circumference * (1 - progress)}
-                strokeLinecap="round"
-                transform="rotate(-90 32 32)"
-                style={{ transition: 'stroke-dashoffset 0.1s linear' }}
-              />
-              <text x="32" y="37" textAnchor="middle" fontSize="14" fontWeight="700" fill="#e2e8f0">{pct}%</text>
-            </svg>
-            <h3 className="text-[20px] font-bold tracking-tight text-[#e2e8f0] m-0">{t('title')}</h3>
-            <p className="text-[14px] text-[#94a3b8] mt-1.5">
-              {t('secsLeft', { secs: secsLeft })}
-            </p>
-            <div className="grid gap-2 mt-5 text-left">
-              {steps.map((s, i) => (
-                <div key={i} className={`flex items-center gap-2.5 text-[13.5px] ${s.done ? 'text-[#e2e8f0]' : 'text-[#94a3b8]'}`}>
-                  <span
-                    className="w-[18px] h-[18px] rounded-full grid place-items-center flex-shrink-0"
-                    style={{
-                      background: s.done ? '#16a34a' : 'rgba(148,163,184,0.12)',
-                      color: s.done ? '#052e13' : '#64748b',
-                    }}
-                  >
-                    {s.done ? (
-                      <IcoCheck size={11} />
-                    ) : i === firstPending ? (
-                      <span
-                        className="w-2.5 h-2.5 rounded-full border-2 border-current border-t-transparent"
-                        style={{ animation: 'spin 1s linear infinite' }}
-                      />
-                    ) : null}
-                  </span>
-                  {s.label}
-                </div>
-              ))}
+            {/* Spinner */}
+            <div className="w-16 h-16 mx-auto mb-5 grid place-items-center">
+              <svg className="w-16 h-16" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="4" />
+                <circle
+                  cx="32" cy="32" r="26" fill="none" stroke="#22c55e" strokeWidth="4"
+                  strokeDasharray="50 114" strokeLinecap="round"
+                  transform="rotate(-90 32 32)"
+                  style={{ animation: 'spin 1.1s linear infinite' }}
+                />
+              </svg>
             </div>
+            <h3 className="text-[20px] font-bold tracking-tight text-[#e2e8f0] m-0">{t('title')}</h3>
+            <p className="text-[13px] text-[#64748b] mt-2">
+              {/* uploading photos + saving — typically 3-8 s */}
+            </p>
           </>
         ) : (
           <>
-            <div className="w-16 h-16 rounded-full bg-[#16a34a] mx-auto mb-4 grid place-items-center text-[#052e13]">
+            <div className="w-16 h-16 rounded-full bg-[#16a34a] mx-auto mb-5 grid place-items-center text-[#052e13]">
               <IcoCheck size={30} />
             </div>
             <h3 className="text-[22px] font-bold tracking-tight text-[#e2e8f0] m-0">{t('doneTitle')}</h3>
-            <p className="text-[14px] text-[#94a3b8] mt-1.5">{t('doneSub')}</p>
-            <div className="mt-5 p-3 bg-[#0f1a2e] border border-[#253349] rounded-[10px] font-mono text-[14px] text-[#86efac]">
-              https://{domain}
-            </div>
-            <div className="flex gap-2.5 mt-5 justify-center">
-              <a
-                href={`https://${domain}`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-[13px] font-semibold text-[#052e13] border border-[#16a34a] cursor-pointer"
-                style={{ background: '#16a34a' }}
-              >
-                {t('visitBtn')} <IcoArrowRight />
-              </a>
-              <button
-                onClick={onClose}
-                className="px-4 py-2.5 rounded-[10px] text-[13px] font-semibold text-[#e2e8f0] border border-[#253349] bg-transparent hover:bg-[#243449] cursor-pointer"
-              >
-                {t('backBtn')}
-              </button>
-            </div>
+            <p className="text-[15px] text-[#94a3b8] mt-2 leading-relaxed">{t('doneSub')}</p>
+            <button
+              onClick={onClose}
+              className="mt-6 px-6 py-2.5 rounded-[10px] text-[13px] font-semibold text-[#e2e8f0] border border-[#334155] bg-transparent hover:bg-[#243449] cursor-pointer transition-colors"
+            >
+              {t('backBtn')}
+            </button>
           </>
         )}
       </div>
@@ -700,11 +647,8 @@ export default function CreatePageClient() {
 
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [deploying, setDeploying] = useState(false);
-  const [deployProgress, setDeployProgress] = useState(0);
   const [deployed, setDeployed] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
-  const animDoneRef = useRef(false);
-  const apiDoneRef  = useRef(false);
 
   // Persist (skip photos — data URLs are too large for localStorage)
   useEffect(() => {
@@ -735,29 +679,13 @@ export default function CreatePageClient() {
 
   const launch = useCallback(async () => {
     setDeploying(true);
-    setDeployProgress(0);
     setDeployed(false);
     setLaunchError(null);
-    animDoneRef.current = false;
-    apiDoneRef.current  = false;
-
-    // Animation: 30 s to 100 %; shows done only when both animation + API are done
-    const start = Date.now();
-    const dur   = 30_000;
-    const tick  = () => {
-      const p = Math.min(1, (Date.now() - start) / dur);
-      setDeployProgress(p);
-      if (p < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        animDoneRef.current = true;
-        if (apiDoneRef.current) setTimeout(() => setDeployed(true), 400);
-      }
-    };
-    requestAnimationFrame(tick);
+    console.log('[launch] Starting submission, plan:', state.plan, 'business:', state.business);
 
     try {
-      // Upload photos in parallel
+      // Upload photos in parallel (failures return null — non-blocking)
+      console.log('[launch] Uploading photos…');
       const uploads = await Promise.all([
         state.heroPhoto  ? uploadPhoto(state.heroPhoto)  : Promise.resolve(null),
         state.logoPhoto  ? uploadPhoto(state.logoPhoto)  : Promise.resolve(null),
@@ -765,37 +693,45 @@ export default function CreatePageClient() {
       ]);
       const [heroPhotoUrl, logoUrl, ...galleryUploads] = uploads;
       const galleryUrls = galleryUploads.filter((u): u is string => u !== null);
+      console.log('[launch] Photos uploaded — hero:', heroPhotoUrl, 'logo:', logoUrl, 'gallery:', galleryUrls.length);
+
+      const payload = {
+        businessType:  state.business,
+        businessName:  state.businessName  || null,
+        description:   state.description   || null,
+        plan:          state.plan,
+        phone:         state.phone         || null,
+        email:         state.email         || null,
+        contact:       state.phone || state.email || '',
+        address:       state.address       || null,
+        language:      typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'sk',
+        workingHours:  JSON.stringify(state.hoursSchedule),
+        palette:       state.palette,
+        heroPhotoUrl:  heroPhotoUrl ?? null,
+        logoUrl:       logoUrl      ?? null,
+        galleryUrls,
+      };
+      console.log('[launch] Submitting lead payload:', JSON.stringify(payload).slice(0, 300));
 
       const res = await fetch('/api/submit-lead', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessType:  state.business,
-          businessName:  state.businessName  || null,
-          description:   state.description   || null,
-          plan:          state.plan,
-          phone:         state.phone         || null,
-          email:         state.email         || null,
-          contact:       state.phone || state.email || '',
-          address:       state.address       || null,
-          language:      typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'sk',
-          workingHours:  JSON.stringify(state.hoursSchedule),
-          palette:       state.palette,
-          heroPhotoUrl:  heroPhotoUrl ?? null,
-          logoUrl:       logoUrl      ?? null,
-          galleryUrls,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('submit-failed');
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        console.error('[launch] submit-lead failed:', res.status, errBody);
+        throw new Error(`HTTP ${res.status}`);
+      }
 
-      apiDoneRef.current = true;
-      // If animation already finished (edge case), trigger done immediately
-      if (animDoneRef.current) setTimeout(() => setDeployed(true), 400);
+      const json = await res.json() as { ok: boolean; leadId?: string };
+      console.log('[launch] Lead saved, id:', json.leadId);
+      setDeployed(true);
 
-    } catch {
+    } catch (err) {
+      console.error('[launch] Error:', err);
       setDeploying(false);
-      setDeployProgress(0);
       setLaunchError(t('step3.launchError'));
     }
   }, [state, uploadPhoto, t]);
@@ -961,12 +897,10 @@ export default function CreatePageClient() {
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
-      {/* Deploy overlay */}
+      {/* Submit overlay */}
       {deploying && (
         <DeployOverlay
-          progress={deployProgress}
           done={deployed}
-          state={state}
           onClose={() => { setDeploying(false); setDeployed(false); }}
         />
       )}

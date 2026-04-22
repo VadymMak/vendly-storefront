@@ -1071,15 +1071,9 @@
       "openInMaps": "In Karte öffnen"
     },
     "deploy": {
-      "title": "Ihre Website wird bereitgestellt…",
-      "secsLeft": "Noch {secs} Sekunden",
-      "d1": "Subdomain wird zugewiesen",
-      "d2": "Übersetzung in 5 Sprachen",
-      "d3": "Bilder & SEO optimieren",
-      "d4": "Auf globalem CDN veröffentlichen",
-      "doneTitle": "Sie sind live.",
-      "doneSub": "Ihre Website ist veröffentlicht und bereit zum Teilen.",
-      "visitBtn": "Meine Website besuchen",
+      "title": "Anfrage wird gesendet…",
+      "doneTitle": "Anfrage eingegangen!",
+      "doneSub": "Wir erstellen Ihre Website und melden uns innerhalb von 24 Stunden.",
       "backBtn": "Zurück zum Editor"
     },
     "plans": {

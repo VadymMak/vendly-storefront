@@ -1071,15 +1071,9 @@
       "openInMaps": "Otvoriť v Mapách"
     },
     "deploy": {
-      "title": "Nasadzujem váš web…",
-      "secsLeft": "Zostáva {secs} sekúnd",
-      "d1": "Priraďujem vašu subdoménu",
-      "d2": "Prekladám do 5 jazykov",
-      "d3": "Optimalizujem obrázky a SEO",
-      "d4": "Publikujem na globálne CDN",
-      "doneTitle": "Ste live.",
-      "doneSub": "Váš web je publikovaný a pripravený na zdieľanie.",
-      "visitBtn": "Navštíviť môj web",
+      "title": "Odosielame vašu žiadosť…",
+      "doneTitle": "Žiadosť odoslaná!",
+      "doneSub": "Vytvoríme váš web a ozveme sa vám do 24 hodín.",
       "backBtn": "Späť do editora"
     },
     "plans": {

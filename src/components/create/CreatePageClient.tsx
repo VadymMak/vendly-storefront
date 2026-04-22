@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import PreviewPanel from './PreviewPanel';
 import {
@@ -746,8 +747,8 @@ export default function CreatePageClient() {
         style={{ background: 'rgba(11,18,32,0.85)', backdropFilter: 'blur(10px)' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5 font-extrabold tracking-tight text-[16px] text-[#e2e8f0]">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2.5 font-extrabold tracking-tight text-[16px] text-[#e2e8f0] hover:opacity-80 transition-opacity">
             <span
               className="w-[26px] h-[26px] rounded-[7px] grid place-items-center text-[#052e13] font-black text-[14px]"
               style={{
@@ -758,10 +759,15 @@ export default function CreatePageClient() {
               V
             </span>
             VendShop
-          </div>
+          </Link>
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] px-2 py-1 rounded-full bg-[rgba(148,163,184,0.08)] text-[#94a3b8] border border-[#253349]">
             beta
           </span>
+          {state.step === 1 && (
+            <Link href="/" className="hidden md:inline-flex items-center gap-1 text-[12px] text-[#64748b] hover:text-[#94a3b8] transition-colors ml-1">
+              <IcoArrowLeft /> {t('topbar.backHome')}
+            </Link>
+          )}
         </div>
 
         {/* Step indicators */}

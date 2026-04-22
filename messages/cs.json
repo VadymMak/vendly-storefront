@@ -986,7 +986,8 @@
       "autoSaved": "Automaticky uloženo",
       "stepChoose": "Výběr",
       "stepDetails": "Detaily",
-      "stepLaunch": "Spuštění"
+      "stepLaunch": "Spuštění",
+      "backHome": "Zpět na hlavní stránku"
     },
     "steps": {
       "1": {

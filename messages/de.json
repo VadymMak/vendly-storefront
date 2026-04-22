@@ -986,7 +986,8 @@
       "autoSaved": "Automatisch gespeichert",
       "stepChoose": "Auswahl",
       "stepDetails": "Details",
-      "stepLaunch": "Start"
+      "stepLaunch": "Start",
+      "backHome": "Zur Startseite"
     },
     "steps": {
       "1": {

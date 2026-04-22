@@ -986,7 +986,8 @@
       "autoSaved": "Auto-saved",
       "stepChoose": "Choose",
       "stepDetails": "Details",
-      "stepLaunch": "Launch"
+      "stepLaunch": "Launch",
+      "backHome": "Back to homepage"
     },
     "steps": {
       "1": {

@@ -986,7 +986,8 @@
       "autoSaved": "Автоматично збережено",
       "stepChoose": "Вибір",
       "stepDetails": "Деталі",
-      "stepLaunch": "Запуск"
+      "stepLaunch": "Запуск",
+      "backHome": "На головну сторінку"
     },
     "steps": {
       "1": {

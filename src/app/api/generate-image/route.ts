@@ -62,6 +62,7 @@ export async function POST(request: Request) {
   const output_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
     ? (body.output_format as 'webp' | 'png' | 'jpeg')
     : 'webp';
+  console.log('API received:', { width, height, output_format });
 
   // ── Run Flux Schnell ──────────────────────────────────────────────────────────
   const replicate = new Replicate({ auth: token });

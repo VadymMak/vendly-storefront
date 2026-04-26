@@ -112,6 +112,11 @@ export default function TestImagePage() {
   async function handleGenerate() {
     const finalPrompt = (enhancedPrompt ?? prompt).trim();
     if (!finalPrompt || generating) return;
+
+    const w = Math.min(Math.max(Math.round(width  / 64) * 64, 256), 1440);
+    const h = Math.min(Math.max(Math.round(height / 64) * 64, 256), 1440);
+    console.log('Generating with:', { w, h, format, prompt: finalPrompt.slice(0, 50) });
+
     setGenerating(true);
     setError(null);
     setImageUrl(null);
@@ -120,7 +125,7 @@ export default function TestImagePage() {
       const res = await fetch('/api/generate-image', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, width, height, output_format: format }),
+        body: JSON.stringify({ prompt: finalPrompt, width: w, height: h, output_format: format }),
       });
 
       if (!res.ok) {
@@ -140,7 +145,7 @@ export default function TestImagePage() {
 
       setImageUrl(url);
       setImageMeta({
-        w: width, h: height, fmt: format,
+        w, h, fmt: format,
         label: activePreset !== null ? PRESETS[activePreset].label : undefined,
       });
     } catch (e) {

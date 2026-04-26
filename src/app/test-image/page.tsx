@@ -117,14 +117,28 @@ export default function TestImagePage() {
     setImageUrl(null);
     setImageMeta(null);
     try {
-      const res  = await fetch('/api/generate-image', {
+      const res = await fetch('/api/generate-image', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: finalPrompt, width, height, output_format: format }),
       });
-      const data = await res.json() as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? 'Generation failed');
-      setImageUrl(data.url);
+
+      if (!res.ok) {
+        const errData = await res.json() as { error?: string };
+        throw new Error(errData.error ?? 'Generation failed');
+      }
+
+      let url: string;
+      if (format === 'jpeg') {
+        const blob = await res.blob();
+        url = URL.createObjectURL(blob);
+      } else {
+        const data = await res.json() as { url?: string };
+        if (!data.url) throw new Error('No image URL in response');
+        url = data.url;
+      }
+
+      setImageUrl(url);
       setImageMeta({
         w: width, h: height, fmt: format,
         label: activePreset !== null ? PRESETS[activePreset].label : undefined,
@@ -133,6 +147,23 @@ export default function TestImagePage() {
       setError(e instanceof Error ? e.message : 'Generation failed');
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleDownload(url: string, meta: ImageMeta) {
+    try {
+      const res    = await fetch(url);
+      const blob   = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href     = blobUrl;
+      a.download = `flux-image-${Date.now()}.${meta.fmt}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // silent — image is still visible in the preview
     }
   }
 
@@ -393,12 +424,10 @@ export default function TestImagePage() {
                     </>
                   )}
                 </div>
-                <a
-                  href={imageUrl}
-                  download={`flux-${(imageMeta.label ?? 'image').toLowerCase().replace(/[\s/]+/g, '-')}-${imageMeta.w}x${imageMeta.h}.${imageMeta.fmt}`}
-                  className={styles.downloadLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  className={styles.downloadBtn}
+                  onClick={() => handleDownload(imageUrl, imageMeta)}
+                  type="button"
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                     <path
@@ -409,8 +438,8 @@ export default function TestImagePage() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  Download
-                </a>
+                  Download {imageMeta.fmt.toUpperCase()}
+                </button>
               </div>
             </div>
           )}

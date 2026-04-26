@@ -653,3 +653,24 @@
   background: var(--is-purple-dim);
   border-color: rgba(124, 58, 237, 0.55);
 }
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--is-purple);
+  background: none;
+  padding: 5px 12px;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: var(--is-radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--is-t), border-color var(--is-t);
+}
+
+.downloadBtn:hover {
+  background: var(--is-purple-dim);
+  border-color: rgba(124, 58, 237, 0.55);
+}

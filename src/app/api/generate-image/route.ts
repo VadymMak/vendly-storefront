@@ -1,5 +1,6 @@
 import Replicate from 'replicate';
 import { NextResponse } from 'next/server';
+import sharp from 'sharp';
 
 const MAX_W = 1440;
 const MAX_H = 1440;
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
           height,
           num_outputs:         1,
           num_inference_steps: 4,
-          output_format,
+          output_format: output_format === 'jpeg' ? 'png' : output_format,
           output_quality:      90,
         },
       },
@@ -99,6 +100,18 @@ export async function POST(request: Request) {
     if (!imageUrl) {
       console.error('Unexpected Replicate output:', JSON.stringify(output));
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
+    }
+
+    if (output_format === 'jpeg') {
+      const pngRes = await fetch(imageUrl);
+      const pngBuffer = Buffer.from(await pngRes.arrayBuffer());
+      const jpegBuffer = await sharp(pngBuffer).jpeg({ quality: 90 }).toBuffer();
+      return new Response(new Uint8Array(jpegBuffer), {
+        headers: {
+          'Content-Type':        'image/jpeg',
+          'Content-Disposition': `attachment; filename="flux-${Date.now()}.jpg"`,
+        },
+      });
     }
 
     return NextResponse.json({ url: imageUrl });

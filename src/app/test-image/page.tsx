@@ -6,12 +6,12 @@ import styles from './TestImagePage.module.css';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PRESET_MAP = {
-  og:      { label: 'OG Image',     display: '1200 × 630',  aspect_ratio: '16:9', megapixels: '1'    },
-  cover:   { label: 'Cover / Hero', display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1'    },
-  product: { label: 'Product',      display: '800 × 800',   aspect_ratio: '1:1',  megapixels: '1'    },
-  story:   { label: 'Story / Reel', display: '630 × 1120',  aspect_ratio: '9:16', megapixels: '1'    },
-  blog:    { label: 'Blog Header',  display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1'    },
-  thumb:   { label: 'Thumbnail',    display: '400 × 300',   aspect_ratio: '4:3',  megapixels: '0.25' },
+  og:      { label: 'OG Image',     display: '1200 × 630',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1200, target_height: 630  },
+  cover:   { label: 'Cover / Hero', display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1440, target_height: 810  },
+  product: { label: 'Product',      display: '800 × 800',   aspect_ratio: '1:1',  megapixels: '1',    target_width: 800,  target_height: 800  },
+  story:   { label: 'Story / Reel', display: '630 × 1120',  aspect_ratio: '9:16', megapixels: '1',    target_width: 630,  target_height: 1120 },
+  blog:    { label: 'Blog Header',  display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1440, target_height: 810  },
+  thumb:   { label: 'Thumbnail',    display: '400 × 300',   aspect_ratio: '4:3',  megapixels: '0.25', target_width: 400,  target_height: 300  },
 } as const;
 
 type PresetKey = keyof typeof PRESET_MAP;
@@ -120,10 +120,12 @@ export default function TestImagePage() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt:        finalPrompt,
-          aspect_ratio:  preset.aspect_ratio,
-          megapixels:    preset.megapixels,
-          output_format: outputFormat,
+          prompt:         finalPrompt,
+          aspect_ratio:   preset.aspect_ratio,
+          megapixels:     preset.megapixels,
+          target_width:   preset.target_width,
+          target_height:  preset.target_height,
+          output_format:  outputFormat,
         }),
       });
 
@@ -132,15 +134,9 @@ export default function TestImagePage() {
         throw new Error(errData.error ?? 'Generation failed');
       }
 
-      let url: string;
-      if (outputFormat === 'jpeg') {
-        const blob = await res.blob();
-        url = URL.createObjectURL(blob);
-      } else {
-        const data = await res.json() as { url?: string };
-        if (!data.url) throw new Error('No image URL in response');
-        url = data.url;
-      }
+      // API always returns binary — blob URL works for all formats
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
 
       setImageUrl(url);
       setImageMeta({

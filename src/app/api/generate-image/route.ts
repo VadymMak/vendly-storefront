@@ -18,9 +18,11 @@ function checkRate(ip: string): boolean {
 }
 
 interface GenerateBody {
-  prompt:        string;
-  aspect_ratio?: string;
-  megapixels?:   string;
+  prompt:         string;
+  aspect_ratio?:  string;
+  megapixels?:    string;
+  target_width?:  number;
+  target_height?: number;
   output_format?: 'webp' | 'png' | 'jpeg';
 }
 
@@ -54,14 +56,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
   }
 
-  const aspect_ratio      = body.aspect_ratio ?? '1:1';
-  const megapixels        = body.megapixels   ?? '1';
-  const requested_format  = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
+  const aspect_ratio     = body.aspect_ratio ?? '1:1';
+  const megapixels       = body.megapixels   ?? '1';
+  const targetW          = body.target_width;
+  const targetH          = body.target_height;
+  const requested_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
     ? (body.output_format as 'webp' | 'png' | 'jpeg')
     : 'webp';
-  const replicate_format  = requested_format === 'jpeg' ? 'png' : requested_format;
+  // Flux Schnell doesn't support jpeg output — generate png, convert via Sharp
+  const replicate_format = requested_format === 'jpeg' ? 'png' : requested_format;
 
-  console.log('API received:', { aspect_ratio, megapixels, requested_format });
+  console.log('API received:', { aspect_ratio, megapixels, targetW, targetH, requested_format });
 
   // ── Run Flux Schnell ──────────────────────────────────────────────────────────
   const replicate = new Replicate({ auth: token });
@@ -103,19 +108,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
     }
 
-    if (requested_format === 'jpeg') {
-      const pngRes    = await fetch(imageUrl);
-      const pngBuffer = Buffer.from(await pngRes.arrayBuffer());
-      const jpegBuffer = await sharp(pngBuffer).jpeg({ quality: 90 }).toBuffer();
-      return new Response(new Uint8Array(jpegBuffer), {
-        headers: {
-          'Content-Type':        'image/jpeg',
-          'Content-Disposition': `attachment; filename="flux-${Date.now()}.jpg"`,
-        },
-      });
+    // ── Fetch Flux output + Sharp resize to exact target dimensions ───────────
+    const fluxRes    = await fetch(imageUrl);
+    const inputBuf   = Buffer.from(await fluxRes.arrayBuffer());
+    const pipeline   = sharp(inputBuf);
+
+    if (targetW && targetH) {
+      pipeline.resize(targetW, targetH, { fit: 'fill' });
     }
 
-    return NextResponse.json({ url: imageUrl });
+    let resized: Buffer;
+    let contentType: string;
+    let ext: string;
+
+    if (requested_format === 'jpeg') {
+      resized      = await pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+      contentType  = 'image/jpeg';
+      ext          = 'jpg';
+    } else if (requested_format === 'png') {
+      resized      = await pipeline.png({ compressionLevel: 8 }).toBuffer();
+      contentType  = 'image/png';
+      ext          = 'png';
+    } else {
+      resized      = await pipeline.webp({ quality: 90 }).toBuffer();
+      contentType  = 'image/webp';
+      ext          = 'webp';
+    }
+
+    const name = targetW && targetH
+      ? `flux-${targetW}x${targetH}-${Date.now()}.${ext}`
+      : `flux-${Date.now()}.${ext}`;
+
+    return new Response(new Uint8Array(resized), {
+      headers: {
+        'Content-Type':        contentType,
+        'Content-Disposition': `inline; filename="${name}"`,
+        'Cache-Control':       'no-store',
+      },
+    });
   } catch (err) {
     console.error('Replicate error:', err);
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 });

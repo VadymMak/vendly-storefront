@@ -5,6 +5,18 @@ import sharp from 'sharp';
 const MAX_W = 1440;
 const MAX_H = 1440;
 
+function toAspectRatio(w: number, h: number): string {
+  const ratio = w / h;
+  if (ratio >= 2.1)                   return '21:9';
+  if (ratio >= 1.7)                   return '16:9';
+  if (ratio >= 1.4)                   return '4:3';
+  if (ratio >= 0.95 && ratio <= 1.05) return '1:1';
+  if (ratio <= 0.48)                  return '9:21';
+  if (ratio <= 0.6)                   return '9:16';
+  if (ratio <= 0.77)                  return '3:4';
+  return '1:1';
+}
+
 // ── In-memory rate limiter (per IP, 5 req/min) ────────────────────────────────
 const rl = new Map<string, { count: number; reset: number }>();
 
@@ -62,7 +74,9 @@ export async function POST(request: Request) {
   const output_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
     ? (body.output_format as 'webp' | 'png' | 'jpeg')
     : 'webp';
-  console.log('API received:', { width, height, output_format });
+  const replicate_format = output_format === 'jpeg' ? 'png' : output_format;
+  const aspect_ratio     = toAspectRatio(width, height);
+  console.log('API received:', { width, height, aspect_ratio, output_format });
 
   // ── Run Flux Schnell ──────────────────────────────────────────────────────────
   const replicate = new Replicate({ auth: token });
@@ -73,11 +87,10 @@ export async function POST(request: Request) {
       {
         input: {
           prompt,
-          width,
-          height,
+          aspect_ratio,
           num_outputs:         1,
           num_inference_steps: 4,
-          output_format: output_format === 'jpeg' ? 'png' : output_format,
+          output_format:       replicate_format,
           output_quality:      90,
         },
       },

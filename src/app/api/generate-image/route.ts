@@ -20,9 +20,10 @@ function checkRate(ip: string): boolean {
 }
 
 interface GenerateBody {
-  prompt: string;
-  width?:  number;
-  height?: number;
+  prompt:         string;
+  width?:         number;
+  height?:        number;
+  output_format?: string;
 }
 
 export async function POST(request: Request) {
@@ -57,6 +58,9 @@ export async function POST(request: Request) {
 
   const width  = Math.min(Math.max(Number(body.width  ?? 1024), 256), MAX_W);
   const height = Math.min(Math.max(Number(body.height ?? 768),  256), MAX_H);
+  const output_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
+    ? (body.output_format as 'webp' | 'png' | 'jpeg')
+    : 'webp';
 
   // ── Run Flux Schnell ──────────────────────────────────────────────────────────
   const replicate = new Replicate({ auth: token });
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
           height,
           num_outputs:         1,
           num_inference_steps: 4,
-          output_format:       'webp',
+          output_format,
           output_quality:      90,
         },
       },

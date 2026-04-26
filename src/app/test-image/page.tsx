@@ -5,14 +5,16 @@ import styles from './TestImagePage.module.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PRESETS = [
-  { label: 'OG Image',     width: 1200, height: 630,  mode: 'og' },
-  { label: 'Cover / Hero', width: 1440, height: 810,  mode: 'hero' },
-  { label: 'Product',      width: 800,  height: 800,  mode: 'product' },
-  { label: 'Story / Reel', width: 630,  height: 1120, mode: 'product' },
-  { label: 'Blog Header',  width: 1440, height: 810,  mode: 'hero' },
-  { label: 'Thumbnail',    width: 400,  height: 300,  mode: 'product' },
-] as const;
+const PRESET_MAP = {
+  og:      { label: 'OG Image',     display: '1200 × 630',  aspect_ratio: '16:9', megapixels: '1'    },
+  cover:   { label: 'Cover / Hero', display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1'    },
+  product: { label: 'Product',      display: '800 × 800',   aspect_ratio: '1:1',  megapixels: '1'    },
+  story:   { label: 'Story / Reel', display: '630 × 1120',  aspect_ratio: '9:16', megapixels: '1'    },
+  blog:    { label: 'Blog Header',  display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1'    },
+  thumb:   { label: 'Thumbnail',    display: '400 × 300',   aspect_ratio: '4:3',  megapixels: '0.25' },
+} as const;
+
+type PresetKey = keyof typeof PRESET_MAP;
 
 const STYLE_TAGS = [
   'photorealistic', 'cinematic', 'studio lighting', 'soft natural light',
@@ -38,46 +40,39 @@ function cx(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-function getPreviewDims(w: number, h: number, maxW = 44, maxH = 30) {
-  const ratio = w / h;
-  if (ratio > maxW / maxH) {
-    return { width: maxW, height: Math.round(maxW / ratio) };
-  }
-  return { width: Math.round(maxH * ratio), height: maxH };
+function aspectToPreviewDims(ratio: string, maxW = 44, maxH = 30) {
+  const [a, b] = ratio.split(':').map(Number);
+  const r = a / b;
+  if (r > maxW / maxH) return { width: maxW, height: Math.round(maxW / r) };
+  return { width: Math.round(maxH * r), height: maxH };
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ImageMeta {
-  w:      number;
-  h:      number;
-  fmt:    OutputFormat;
-  label?: string;
+  display: string;
+  ratio:   string;
+  fmt:     OutputFormat;
+  label:   string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TestImagePage() {
-  const [prompt,          setPrompt]          = useState('');
-  const [enhancedPrompt,  setEnhancedPrompt]  = useState<string | null>(null);
-  const [activePreset,    setActivePreset]    = useState<number | null>(0);
-  const [width,           setWidth]           = useState(1200);
-  const [height,          setHeight]          = useState(630);
-  const [format,          setFormat]          = useState<OutputFormat>('webp');
-  const [activeTags,      setActiveTags]      = useState<Set<string>>(new Set());
-  const [enhanceMode,     setEnhanceMode]     = useState('og');
-  const [enhancing,       setEnhancing]       = useState(false);
-  const [generating,      setGenerating]      = useState(false);
-  const [imageUrl,        setImageUrl]        = useState<string | null>(null);
-  const [imageMeta,       setImageMeta]       = useState<ImageMeta | null>(null);
-  const [error,           setError]           = useState<string | null>(null);
+  const [prompt,         setPrompt]         = useState('');
+  const [enhancedPrompt, setEnhancedPrompt] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey>('og');
+  const [outputFormat,   setOutputFormat]   = useState<OutputFormat>('webp');
+  const [activeTags,     setActiveTags]     = useState<Set<string>>(new Set());
+  const [enhanceMode,    setEnhanceMode]    = useState('og');
+  const [enhancing,      setEnhancing]      = useState(false);
+  const [generating,     setGenerating]     = useState(false);
+  const [imageUrl,       setImageUrl]       = useState<string | null>(null);
+  const [imageMeta,      setImageMeta]      = useState<ImageMeta | null>(null);
+  const [error,          setError]          = useState<string | null>(null);
 
-  function selectPreset(i: number) {
-    const p = PRESETS[i];
-    setActivePreset(i);
-    setWidth(p.width);
-    setHeight(p.height);
-    setEnhanceMode(p.mode);
+  function selectPreset(key: PresetKey) {
+    setSelectedPreset(key);
     setEnhancedPrompt(null);
   }
 
@@ -97,7 +92,7 @@ export default function TestImagePage() {
       const res  = await fetch('/api/enhance-prompt', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, enhanceMode, styleTags: [...activeTags], width, height }),
+        body: JSON.stringify({ prompt, enhanceMode, styleTags: [...activeTags] }),
       });
       const data = await res.json() as { enhanced?: string; error?: string };
       if (!res.ok || !data.enhanced) throw new Error(data.error ?? 'Enhancement failed');
@@ -113,9 +108,8 @@ export default function TestImagePage() {
     const finalPrompt = (enhancedPrompt ?? prompt).trim();
     if (!finalPrompt || generating) return;
 
-    const w = Math.min(Math.max(Math.round(width  / 64) * 64, 256), 1440);
-    const h = Math.min(Math.max(Math.round(height / 64) * 64, 256), 1440);
-    console.log('Generating with:', { w, h, format, prompt: finalPrompt.slice(0, 50) });
+    const preset = PRESET_MAP[selectedPreset];
+    console.log('Generating with:', { preset: selectedPreset, ...preset, format: outputFormat });
 
     setGenerating(true);
     setError(null);
@@ -125,7 +119,12 @@ export default function TestImagePage() {
       const res = await fetch('/api/generate-image', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, width: w, height: h, output_format: format }),
+        body: JSON.stringify({
+          prompt:        finalPrompt,
+          aspect_ratio:  preset.aspect_ratio,
+          megapixels:    preset.megapixels,
+          output_format: outputFormat,
+        }),
       });
 
       if (!res.ok) {
@@ -134,7 +133,7 @@ export default function TestImagePage() {
       }
 
       let url: string;
-      if (format === 'jpeg') {
+      if (outputFormat === 'jpeg') {
         const blob = await res.blob();
         url = URL.createObjectURL(blob);
       } else {
@@ -145,8 +144,10 @@ export default function TestImagePage() {
 
       setImageUrl(url);
       setImageMeta({
-        w, h, fmt: format,
-        label: activePreset !== null ? PRESETS[activePreset].label : undefined,
+        display: preset.display,
+        ratio:   preset.aspect_ratio,
+        fmt:     outputFormat,
+        label:   preset.label,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed');
@@ -157,8 +158,8 @@ export default function TestImagePage() {
 
   async function handleDownload(url: string, meta: ImageMeta) {
     try {
-      const res    = await fetch(url);
-      const blob   = await res.blob();
+      const res     = await fetch(url);
+      const blob    = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href     = blobUrl;
@@ -173,6 +174,7 @@ export default function TestImagePage() {
   }
 
   const canGenerate = !generating && !!(enhancedPrompt?.trim() ?? prompt.trim());
+  const activePresetData = PRESET_MAP[selectedPreset];
 
   return (
     <div className={styles.page}>
@@ -206,13 +208,13 @@ export default function TestImagePage() {
           <section className={styles.section}>
             <div className={styles.sectionLabel}>Image Type</div>
             <div className={styles.presets}>
-              {PRESETS.map((p, i) => {
-                const dims = getPreviewDims(p.width, p.height);
+              {(Object.entries(PRESET_MAP) as [PresetKey, typeof PRESET_MAP[PresetKey]][]).map(([key, p]) => {
+                const dims = aspectToPreviewDims(p.aspect_ratio);
                 return (
                   <button
-                    key={p.label}
-                    className={cx(styles.presetBtn, activePreset === i && styles.presetActive)}
-                    onClick={() => selectPreset(i)}
+                    key={key}
+                    className={cx(styles.presetBtn, selectedPreset === key && styles.presetActive)}
+                    onClick={() => selectPreset(key)}
                     type="button"
                   >
                     <div className={styles.previewBox}>
@@ -222,7 +224,8 @@ export default function TestImagePage() {
                       />
                     </div>
                     <span className={styles.presetLabel}>{p.label}</span>
-                    <span className={styles.presetDims}>{p.width}×{p.height}</span>
+                    <span className={styles.presetDims}>{p.display}</span>
+                    <span className={styles.presetDims}>{p.aspect_ratio} · {p.megapixels}MP</span>
                   </button>
                 );
               })}
@@ -304,44 +307,13 @@ export default function TestImagePage() {
               {OUTPUT_FORMATS.map(f => (
                 <button
                   key={f}
-                  className={cx(styles.formatBtn, format === f && styles.formatActive)}
-                  onClick={() => setFormat(f)}
+                  className={cx(styles.formatBtn, outputFormat === f && styles.formatActive)}
+                  onClick={() => setOutputFormat(f)}
                   type="button"
                 >
                   {f}
                 </button>
               ))}
-            </div>
-          </section>
-
-          {/* Size */}
-          <section className={styles.section}>
-            <div className={styles.sectionLabel}>Size</div>
-            <div className={styles.sizeRow}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Width</label>
-                <input
-                  type="number"
-                  className={styles.input}
-                  value={width}
-                  min={256}
-                  max={1440}
-                  step={64}
-                  onChange={e => { setWidth(Number(e.target.value)); setActivePreset(null); }}
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Height</label>
-                <input
-                  type="number"
-                  className={styles.input}
-                  value={height}
-                  min={256}
-                  max={1440}
-                  step={64}
-                  onChange={e => { setHeight(Number(e.target.value)); setActivePreset(null); }}
-                />
-              </div>
             </div>
           </section>
 
@@ -381,7 +353,7 @@ export default function TestImagePage() {
           {generating && (
             <div className={styles.loadingArea}>
               <div className={styles.loadingSpinner} />
-              <span>Generating {width}×{height} · {format}…</span>
+              <span>Generating {activePresetData.display} · {activePresetData.aspect_ratio} · {outputFormat}…</span>
             </div>
           )}
 
@@ -417,17 +389,15 @@ export default function TestImagePage() {
               />
               <div className={styles.resultMeta}>
                 <div className={styles.metaInfo}>
-                  <span className={styles.metaTag}>{imageMeta.w}×{imageMeta.h}</span>
+                  <span className={styles.metaTag}>{imageMeta.display}</span>
+                  <span className={styles.metaDot}>·</span>
+                  <span className={styles.metaTag}>{imageMeta.ratio}</span>
                   <span className={styles.metaDot}>·</span>
                   <span className={styles.metaTag}>{imageMeta.fmt}</span>
-                  {imageMeta.label && (
-                    <>
-                      <span className={styles.metaDot}>·</span>
-                      <span className={styles.metaTag}>
-                        {imageMeta.label.toLowerCase().replace(/[\s/]+/g, '-')}
-                      </span>
-                    </>
-                  )}
+                  <span className={styles.metaDot}>·</span>
+                  <span className={styles.metaTag}>
+                    {imageMeta.label.toLowerCase().replace(/[\s/]+/g, '-')}
+                  </span>
                 </div>
                 <button
                   className={styles.downloadBtn}

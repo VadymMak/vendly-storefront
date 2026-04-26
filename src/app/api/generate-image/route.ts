@@ -2,21 +2,6 @@ import Replicate from 'replicate';
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 
-const MAX_W = 1440;
-const MAX_H = 1440;
-
-function toAspectRatio(w: number, h: number): string {
-  const ratio = w / h;
-  if (ratio >= 2.1)                   return '21:9';
-  if (ratio >= 1.7)                   return '16:9';
-  if (ratio >= 1.4)                   return '4:3';
-  if (ratio >= 0.95 && ratio <= 1.05) return '1:1';
-  if (ratio <= 0.48)                  return '9:21';
-  if (ratio <= 0.6)                   return '9:16';
-  if (ratio <= 0.77)                  return '3:4';
-  return '1:1';
-}
-
 // ── In-memory rate limiter (per IP, 5 req/min) ────────────────────────────────
 const rl = new Map<string, { count: number; reset: number }>();
 
@@ -33,10 +18,10 @@ function checkRate(ip: string): boolean {
 }
 
 interface GenerateBody {
-  prompt:         string;
-  width?:         number;
-  height?:        number;
-  output_format?: string;
+  prompt:        string;
+  aspect_ratio?: string;
+  megapixels?:   string;
+  output_format?: 'webp' | 'png' | 'jpeg';
 }
 
 export async function POST(request: Request) {
@@ -69,14 +54,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
   }
 
-  const width  = Math.min(Math.max(Number(body.width  ?? 1024), 256), MAX_W);
-  const height = Math.min(Math.max(Number(body.height ?? 768),  256), MAX_H);
-  const output_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
+  const aspect_ratio      = body.aspect_ratio ?? '1:1';
+  const megapixels        = body.megapixels   ?? '1';
+  const requested_format  = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
     ? (body.output_format as 'webp' | 'png' | 'jpeg')
     : 'webp';
-  const replicate_format = output_format === 'jpeg' ? 'png' : output_format;
-  const aspect_ratio     = toAspectRatio(width, height);
-  console.log('API received:', { width, height, aspect_ratio, output_format });
+  const replicate_format  = requested_format === 'jpeg' ? 'png' : requested_format;
+
+  console.log('API received:', { aspect_ratio, megapixels, requested_format });
 
   // ── Run Flux Schnell ──────────────────────────────────────────────────────────
   const replicate = new Replicate({ auth: token });
@@ -88,10 +73,12 @@ export async function POST(request: Request) {
         input: {
           prompt,
           aspect_ratio,
+          megapixels,
           num_outputs:         1,
           num_inference_steps: 4,
           output_format:       replicate_format,
           output_quality:      90,
+          go_fast:             true,
         },
       },
     );
@@ -116,8 +103,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
     }
 
-    if (output_format === 'jpeg') {
-      const pngRes = await fetch(imageUrl);
+    if (requested_format === 'jpeg') {
+      const pngRes    = await fetch(imageUrl);
       const pngBuffer = Buffer.from(await pngRes.arrayBuffer());
       const jpegBuffer = await sharp(pngBuffer).jpeg({ quality: 90 }).toBuffer();
       return new Response(new Uint8Array(jpegBuffer), {

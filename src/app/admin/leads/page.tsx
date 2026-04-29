@@ -591,10 +591,12 @@ function LeadCard({
   lead,
   onUpdate,
   onDelete,
+  onPurged,
 }: {
   lead: Lead;
   onUpdate: (id: string, patch: Partial<Lead>) => void;
   onDelete: (id: string) => void;
+  onPurged: (id: string) => void;
 }) {
   const [open, setOpen]       = useState(false);
   const [draft, setDraft]     = useState<Partial<Lead>>({});
@@ -666,6 +668,58 @@ function LeadCard({
       body:    JSON.stringify({ id: lead.id }),
     });
     onDelete(lead.id);
+  }
+
+  // Hard purge: DB row + GitHub repo + Vercel project + Blob photos.
+  // Used for repeatable testing of the site-generation pipeline.
+  const [purging, setPurging]         = useState(false);
+  const [purgeResult, setPurgeResult] = useState<string | null>(null);
+
+  async function purge() {
+    const ok = window.confirm(
+      'Это полностью удалит:\n' +
+      '• запись лида из БД\n' +
+      '• GitHub репозиторий\n' +
+      '• Vercel проект и все деплои\n' +
+      '• Загруженные фото из Vercel Blob\n\n' +
+      'Действие необратимо. Продолжить?',
+    );
+    if (!ok) return;
+
+    setPurging(true);
+    setPurgeResult(null);
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/purge`, { method: 'DELETE' });
+      const data = await res.json() as {
+        success?: boolean;
+        deleted?: {
+          github: string;
+          vercel: string;
+          blobs:  { total: number; deleted: number; errors: string[] };
+          lead:   string;
+        };
+        error?: string;
+      };
+
+      if (!res.ok || !data.success || !data.deleted) {
+        setPurgeResult(`Ошибка: ${data.error ?? `HTTP ${res.status}`}`);
+        return;
+      }
+
+      const { github, vercel, blobs } = data.deleted;
+      setPurgeResult(
+        `GitHub: ${github} · Vercel: ${vercel} · ` +
+        `Blob: ${blobs.deleted}/${blobs.total}` +
+        (blobs.errors.length ? ` (${blobs.errors.length} errors)` : ''),
+      );
+      // Remove the card from the list after a short delay so Vadym can read the result
+      setTimeout(() => onPurged(lead.id), 2500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setPurgeResult(`Ошибка: ${msg}`);
+    } finally {
+      setPurging(false);
+    }
   }
 
   async function createSite() {
@@ -1580,6 +1634,20 @@ function LeadCard({
                   🗑️ Удалить
                 </button>
               )}
+
+              {/* Purge: hard-delete DB + GitHub + Vercel + Blob */}
+              <button
+                onClick={() => void purge()}
+                disabled={purging}
+                title="Полное удаление: БД + GitHub + Vercel + Blob"
+                className="rounded-lg bg-red-700 px-3 py-2 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
+              >
+                {purging ? '…' : '🗑️ Purge completely'}
+              </button>
+
+              {purgeResult && (
+                <span className="text-xs text-gray-300 font-mono">{purgeResult}</span>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -1632,6 +1700,15 @@ export default function LeadsPage() {
 
   function handleDelete(id: string) {
     setLeads((prev) => prev.map((l) => l.id === id ? { ...l, status: 'deleted' } : l));
+  }
+
+  function handlePurged(id: string) {
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    setEditMap((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   }
 
   // Counts per status (excluding deleted from visible counts)
@@ -1704,6 +1781,7 @@ export default function LeadsPage() {
               lead={lead}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
+              onPurged={handlePurged}
             />
           ))}
         </div>

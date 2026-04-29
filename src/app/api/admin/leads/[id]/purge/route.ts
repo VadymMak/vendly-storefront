@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
-import { auth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 
 // ─── Response shape ───────────────────────────────────────────────────────────
@@ -68,11 +68,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<PurgeResult | { error: string }>> {
   // ── Auth: admin only ───────────────────────────────────────────────────────
-  const session = await auth();
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-  if (!session?.user?.email || !ADMIN_EMAIL || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const guard = await requireAdmin();
+  if (guard instanceof NextResponse) return guard;
 
   const { id } = await params;
 

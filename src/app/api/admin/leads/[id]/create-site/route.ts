@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 import { generateConfigTs, getTemplateRepo, type LeadConfigInput } from '@/lib/generate-config';
 import { generateConstantsTs, type LeadConstantsInput } from '@/lib/generate-constants';
@@ -125,6 +126,9 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const guard = await requireAdmin();
+  if (guard instanceof NextResponse) return guard;
+
   const { id } = await params;
 
   // Validate required env vars

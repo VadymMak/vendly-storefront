@@ -727,7 +727,7 @@ function LeadCard({
     setSiteError(null);
     setSiteStatus('creating');
     try {
-      const res = await fetch(`/api/leads/${lead.id}/create-site`, { method: 'POST' });
+      const res = await fetch(`/api/admin/leads/${lead.id}/create-site`, { method: 'POST' });
       const data = await res.json() as { success?: boolean; repoUrl?: string; vercelUrl?: string; error?: string };
       if (!res.ok) {
         const msg = data.error ?? `HTTP ${res.status}`;

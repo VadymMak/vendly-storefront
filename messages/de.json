@@ -218,7 +218,9 @@
     "noAccount": "Kein Konto?",
     "hasAccount": "Bereits ein Konto?",
     "errorInvalid": "Ungültige E-Mail oder Passwort.",
-    "errorGeneric": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut."
+    "errorGeneric": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen"
   },
   "dashboard": {
     "welcome": "Willkommen",

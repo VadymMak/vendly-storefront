@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { serializeLeadPhotos } from '@/lib/lead-photos';
 
 export async function POST(request: Request) {
   const data = await request.json() as Record<string, unknown>;
@@ -7,6 +8,11 @@ export async function POST(request: Request) {
   // ── Save to DB ─────────────────────────────────────────────────────────────
   let lead: { id: string } | undefined;
   try {
+    const heroPhotoUrl = data.heroPhotoUrl ? String(data.heroPhotoUrl) : null;
+    const galleryUrls  = Array.isArray(data.galleryUrls)
+      ? (data.galleryUrls as unknown[]).filter((u): u is string => typeof u === 'string')
+      : [];
+
     lead = await db.lead.create({
       data: {
         // Backward-compat fields (OnboardingChat)
@@ -25,10 +31,12 @@ export async function POST(request: Request) {
         workingHours:    data.workingHours     ? String(data.workingHours)    : null,
         selectedPalette: data.palette         ? String(data.palette)         : null,
         logoUrl:         data.logoUrl         ? String(data.logoUrl)         : null,
-        heroPhotoUrl:    data.heroPhotoUrl     ? String(data.heroPhotoUrl)    : null,
-        galleryUrls:     Array.isArray(data.galleryUrls)
-                           ? (data.galleryUrls as unknown[]).filter((u): u is string => typeof u === 'string')
-                           : [],
+
+        // Dual-write photos: legacy fields (heroPhotoUrl, galleryUrls) AND new
+        // unified field (photos). Old readers still work; create-site reads new.
+        heroPhotoUrl,
+        galleryUrls,
+        photos: serializeLeadPhotos({ hero: heroPhotoUrl, gallery: galleryUrls }),
       },
     });
     console.log('Lead saved:', lead.id);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getLeadPhotos, serializeLeadPhotos } from '@/lib/lead-photos';
 
 // ── Rate limiter (per IP) ─────────────────────────────────────────────────────
 const rl = new Map<string, { count: number; reset: number }>();
@@ -99,6 +100,25 @@ export async function PATCH(
   setIfDefined('selectedHero',      selectedHero);
   setIfDefined('selectedMood',      selectedMood);
   setIfDefined('briefServicesJson', briefServicesJson);
+
+  // Dual-write photos: when the brief submits a new photoUrls JSON string,
+  // also write the unified `photos` field. Brief has no separate hero pick
+  // (create-site resolves it later via heroImageIndex), so hero stays null
+  // and the parsed URLs go into gallery. We preserve any pre-existing hero
+  // already in lead.photos so an admin-uploaded hero is not blown away.
+  if (photoUrls !== undefined) {
+    let parsedGallery: string[] = [];
+    if (photoUrls) {
+      try {
+        const arr: unknown = JSON.parse(photoUrls);
+        if (Array.isArray(arr)) {
+          parsedGallery = arr.filter((u): u is string => typeof u === 'string' && u.trim() !== '');
+        }
+      } catch { /* malformed — keep gallery empty */ }
+    }
+    const existing = getLeadPhotos(lead);
+    data.photos = serializeLeadPhotos({ hero: existing.hero, gallery: parsedGallery });
+  }
 
   // Append additional services to existing services string
   if (additionalServices?.trim()) {

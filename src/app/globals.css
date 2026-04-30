@@ -74,29 +74,6 @@ body {
   color: var(--color-text);
 }
 
-/* ── Form input default text color ──
- * The body default is light (--color-text = #F1F5F9) for the dark UI shell.
- * Without an override, every <input> on a light/white form card inherits that
- * near-white color — invisible while typing. This default targets light forms;
- * dark-themed inputs (admin / wizard / contact) already set their own text-*
- * Tailwind utility, which has higher specificity than these element selectors
- * and therefore still wins. */
-:root {
-  --color-input-text:        #111827;
-  --color-input-placeholder: #94a3b8;
-}
-
-input,
-textarea,
-select {
-  color: var(--color-input-text);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--color-input-placeholder);
-}
-
 /* Hide scrollbar for horizontal category strip */
 .scrollbar-hide {
   -ms-overflow-style: none;

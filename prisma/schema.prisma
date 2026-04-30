@@ -234,6 +234,11 @@ model Lead {
   heroPhotoUrl     String?
   galleryUrls      String[]
 
+  // Unified photo storage (replaces heroPhotoUrl/galleryUrls/photoUrls).
+  // Shape: { hero: string | null, gallery: string[] }.
+  // Old fields kept for backward compat during transition; can be dropped later.
+  photos           Json?
+
   // Site Automation
   siteRepoUrl     String?
   siteRepoName    String?

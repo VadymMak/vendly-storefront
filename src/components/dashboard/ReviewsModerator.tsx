@@ -162,7 +162,7 @@ export default function ReviewsModerator({ initialReviews }: Props) {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder={t('replyPlaceholder')}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <div className="flex gap-2">
                     <button

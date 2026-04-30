@@ -28,11 +28,11 @@ export default function WeekScheduleEditor({ value, onChange, labels, variant = 
 
   const timeInputCls = isDark
     ? 'rounded border border-[#374151] bg-[#0F172A] px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-green-500'
-    : 'rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary';
+    : 'rounded border border-gray-200 px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary';
 
   const breakTimeCls = isDark
     ? 'rounded border border-amber-700 bg-amber-900/30 px-2 py-1 text-xs text-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-500'
-    : 'rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400';
+    : 'rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-900 focus:outline-none focus:ring-1 focus:ring-amber-400';
 
   const closedTextCls = isDark ? 'text-xs text-gray-500' : 'text-xs text-gray-400';
 

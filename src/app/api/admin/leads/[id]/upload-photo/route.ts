@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
+import { getLeadPhotos, serializeLeadPhotos } from '@/lib/lead-photos';
 import sharp from 'sharp';
 
 const MAX_SIZE    = 10 * 1024 * 1024;
@@ -16,7 +17,10 @@ export async function POST(
 
   const { id } = await params;
 
-  const lead = await db.lead.findUnique({ where: { id }, select: { id: true, photoUrls: true } });
+  const lead = await db.lead.findUnique({
+    where:  { id },
+    select: { id: true, photoUrls: true, heroPhotoUrl: true, galleryUrls: true, photos: true },
+  });
   if (!lead) {
     return NextResponse.json({ error: 'Лид не найден' }, { status: 404 });
   }
@@ -55,7 +59,16 @@ export async function POST(
     existing.push(blob.url);
     const newPhotoUrls = JSON.stringify(existing);
 
-    await db.lead.update({ where: { id }, data: { photoUrls: newPhotoUrls } });
+    // Dual-write: legacy photoUrls AND unified photos. Preserve any existing
+    // hero/gallery already on the lead and append the newly uploaded URL to
+    // the gallery.
+    const current = getLeadPhotos(lead);
+    const photos = serializeLeadPhotos({
+      hero:    current.hero,
+      gallery: [...current.gallery, blob.url],
+    });
+
+    await db.lead.update({ where: { id }, data: { photoUrls: newPhotoUrls, photos } });
 
     console.log(`[admin upload-photo] Загружено для лида ${id}: ${blob.url}`);
     return NextResponse.json({ url: blob.url, photoUrls: newPhotoUrls });

@@ -71,7 +71,7 @@ export default function RegisterPage() {
               <input
                 id="name" type="text" value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Ján Novák"
               />
             </div>
@@ -82,7 +82,7 @@ export default function RegisterPage() {
               <input
                 id="email" type="email" required value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="vas@email.sk"
               />
             </div>
@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 <input
                   id="password" type={showPassword ? 'text' : 'password'} required minLength={8} value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-11 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Min. 8 znakov"
                 />
                 <button

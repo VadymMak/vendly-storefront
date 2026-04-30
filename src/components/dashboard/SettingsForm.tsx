@@ -106,7 +106,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
+const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary';
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SettingsForm({ userId, store, initialTab = 'general', userPlan = 'FREE' }: SettingsFormProps) {
@@ -701,7 +701,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 </div>
 
                 <Field label={t('currency')}>
-                  <select value={form.currency} onChange={(e) => set('currency', e.target.value)} className="w-48 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <select value={form.currency} onChange={(e) => set('currency', e.target.value)} className="w-48 rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary">
                     {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </Field>
@@ -833,11 +833,11 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                       <span className="text-sm text-gray-600">{t('orderFrom')}</span>
                       <input type="time" value={form.orderAcceptance.from}
                         onChange={(e) => set('orderAcceptance', { ...form.orderAcceptance, from: e.target.value })}
-                        className="rounded border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        className="rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary" />
                       <span className="text-sm text-gray-600">{t('orderTo')}</span>
                       <input type="time" value={form.orderAcceptance.to}
                         onChange={(e) => set('orderAcceptance', { ...form.orderAcceptance, to: e.target.value })}
-                        className="rounded border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        className="rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                   )}
                 </div>
@@ -1378,7 +1378,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
                 onChange={(e) => setDeleteConfirm(e.target.value)}
                 placeholder={store.name}
                 autoFocus
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400"
               />
             </div>
 

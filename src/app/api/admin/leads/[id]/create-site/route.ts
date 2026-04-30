@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { generateConfigTs, getTemplateRepo, type LeadConfigInput } from '@/lib/generate-config';
 import { generateConstantsTs, type LeadConstantsInput } from '@/lib/generate-constants';
 import { commitFiles } from '@/lib/github-commit';
+import { getLeadPhotos } from '@/lib/lead-photos';
 import sharp from 'sharp';
 
 // ─── Local types ──────────────────────────────────────────────────────────────
@@ -202,49 +203,57 @@ export async function POST(
     let galleryImagePaths: string[] | null = null;
     const imageFiles: Array<{ path: string; content: string; encoding: 'base64' }> = [];
 
-    if (lead.photoUrls) {
+    // Read photos via the unified helper. Wizard writes hero + gallery
+    // explicitly; brief writes only gallery (hero stays null), in which case
+    // we fall back to the legacy heroImageIndex pick.
+    const leadPhotos = getLeadPhotos(lead);
+    let heroUrl:        string | null = leadPhotos.hero;
+    let galleryUrlList: string[]      = leadPhotos.gallery;
+    if (!heroUrl && galleryUrlList.length > 0) {
+      const idx = Math.min(Math.max(lead.heroImageIndex ?? 0, 0), galleryUrlList.length - 1);
+      heroUrl        = galleryUrlList[idx];
+      galleryUrlList = galleryUrlList.filter((_, i) => i !== idx);
+    }
+
+    if (heroUrl || galleryUrlList.length > 0) {
       try {
-        const rawUrls: string[] = [];
-        const parsedUrls = JSON.parse(lead.photoUrls) as unknown;
-        if (Array.isArray(parsedUrls)) {
-          for (const u of parsedUrls) {
-            if (typeof u === 'string' && u.trim()) rawUrls.push(u.trim());
-          }
+        // Download hero (if any) and all gallery photos
+        const downloads: Promise<Buffer>[] = [];
+        if (heroUrl) {
+          downloads.push((async () => {
+            const res = await fetch(heroUrl!);
+            if (!res.ok) throw new Error(`HTTP ${res.status} fetching hero photo`);
+            return Buffer.from(await res.arrayBuffer());
+          })());
         }
+        downloads.push(...galleryUrlList.map(async (url, i) => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status} fetching gallery photo ${i + 1}`);
+          return Buffer.from(await res.arrayBuffer());
+        }));
+        const buffers = await Promise.all(downloads);
 
-        if (rawUrls.length > 0) {
-          const heroIdx = Math.min(lead.heroImageIndex ?? 0, rawUrls.length - 1);
-
-          // Download all photos
-          const buffers = await Promise.all(
-            rawUrls.map(async (url, i) => {
-              const res = await fetch(url);
-              if (!res.ok) throw new Error(`HTTP ${res.status} fetching photo ${i + 1}`);
-              return Buffer.from(await res.arrayBuffer());
-            }),
-          );
-
-          // Hero: crop to 1600×900
-          const heroBuffer = await sharp(buffers[heroIdx])
+        // Hero: crop to 1600×900
+        if (heroUrl) {
+          const heroBuffer = await sharp(buffers[0])
             .resize(1600, 900, { fit: 'cover', position: 'center' })
             .webp({ quality: 85 })
             .toBuffer();
           imageFiles.push({ path: 'public/images/hero.webp', content: heroBuffer.toString('base64'), encoding: 'base64' });
           heroImagePath = '/images/hero.webp';
-
-          // Gallery: remaining photos (already webp — pass through)
-          const paths: string[] = [];
-          let galleryIdx = 1;
-          for (let i = 0; i < buffers.length; i++) {
-            if (i === heroIdx) continue;
-            imageFiles.push({ path: `public/images/gallery-${galleryIdx}.webp`, content: buffers[i].toString('base64'), encoding: 'base64' });
-            paths.push(`/images/gallery-${galleryIdx}.webp`);
-            galleryIdx++;
-          }
-          if (paths.length > 0) galleryImagePaths = paths;
-
-          console.log(`[create-site] Step 6: ${imageFiles.length} image(s) processed — hero at index ${heroIdx}, ${paths.length} gallery`);
         }
+
+        // Gallery: remaining photos (already webp — pass through)
+        const paths: string[] = [];
+        const galleryStart = heroUrl ? 1 : 0;
+        for (let i = galleryStart; i < buffers.length; i++) {
+          const galleryIdx = i - galleryStart + 1;
+          imageFiles.push({ path: `public/images/gallery-${galleryIdx}.webp`, content: buffers[i].toString('base64'), encoding: 'base64' });
+          paths.push(`/images/gallery-${galleryIdx}.webp`);
+        }
+        if (paths.length > 0) galleryImagePaths = paths;
+
+        console.log(`[create-site] Step 6: ${imageFiles.length} image(s) processed — hero=${heroImagePath ? 'yes' : 'no'}, ${paths.length} gallery`);
       } catch (imgErr) {
         console.warn('[create-site] Step 6: Image processing warning (non-fatal):', imgErr instanceof Error ? imgErr.message : imgErr);
         heroImagePath = null;

@@ -105,7 +105,7 @@ export default function CheckoutForm({ slug, scheme, t }: CheckoutFormProps) {
                 required
                 value={form.customerName}
                 onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                className={`w-full rounded-lg border ${scheme.border} px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary`}
+                className={`w-full rounded-lg border ${scheme.border} ${scheme.text} px-4 py-3 text-sm placeholder:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary`}
                 placeholder={t.fullNamePlaceholder}
               />
             </div>
@@ -120,7 +120,7 @@ export default function CheckoutForm({ slug, scheme, t }: CheckoutFormProps) {
                 required
                 value={form.customerEmail}
                 onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
-                className={`w-full rounded-lg border ${scheme.border} px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary`}
+                className={`w-full rounded-lg border ${scheme.border} ${scheme.text} px-4 py-3 text-sm placeholder:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary`}
                 placeholder={t.emailPlaceholder}
               />
             </div>
@@ -134,7 +134,7 @@ export default function CheckoutForm({ slug, scheme, t }: CheckoutFormProps) {
                 type="tel"
                 value={form.customerPhone}
                 onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
-                className={`w-full rounded-lg border ${scheme.border} px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary`}
+                className={`w-full rounded-lg border ${scheme.border} ${scheme.text} px-4 py-3 text-sm placeholder:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary`}
                 placeholder={t.phonePlaceholder}
               />
             </div>
@@ -148,7 +148,7 @@ export default function CheckoutForm({ slug, scheme, t }: CheckoutFormProps) {
                 rows={3}
                 value={form.note || ''}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
-                className={`w-full rounded-lg border ${scheme.border} px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary`}
+                className={`w-full rounded-lg border ${scheme.border} ${scheme.text} px-4 py-3 text-sm placeholder:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary`}
                 placeholder={t.orderNotePlaceholder}
               />
             </div>

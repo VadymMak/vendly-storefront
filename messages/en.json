@@ -218,7 +218,9 @@
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "errorInvalid": "Invalid email or password.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "dashboard": {
     "welcome": "Welcome",

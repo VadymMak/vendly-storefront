@@ -218,7 +218,9 @@
     "noAccount": "Nemáte účet?",
     "hasAccount": "Už máte účet?",
     "errorInvalid": "Nesprávny email alebo heslo.",
-    "errorGeneric": "Nastala chyba. Skúste to znova."
+    "errorGeneric": "Nastala chyba. Skúste to znova.",
+    "showPassword": "Zobraziť heslo",
+    "hidePassword": "Skryť heslo"
   },
   "dashboard": {
     "welcome": "Vitajte",

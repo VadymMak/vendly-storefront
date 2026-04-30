@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 const schema = z.object({
   userId: z.string().min(1),
@@ -11,10 +9,8 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const guard = await requireAdmin();
+  if (guard instanceof NextResponse) return guard;
 
   try {
     const body = await request.json();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 import sharp from 'sharp';
 
@@ -10,6 +11,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const guard = await requireAdmin();
+  if (guard instanceof NextResponse) return guard;
+
   const { id } = await params;
 
   const lead = await db.lead.findUnique({ where: { id }, select: { id: true, photoUrls: true } });

@@ -218,7 +218,9 @@
     "noAccount": "Немає акаунту?",
     "hasAccount": "Вже маєте акаунт?",
     "errorInvalid": "Невірний email або пароль.",
-    "errorGeneric": "Щось пішло не так. Спробуйте ще раз."
+    "errorGeneric": "Щось пішло не так. Спробуйте ще раз.",
+    "showPassword": "Показати пароль",
+    "hidePassword": "Сховати пароль"
   },
   "dashboard": {
     "welcome": "Ласкаво просимо",

@@ -3,6 +3,13 @@ import type { NextRequest } from 'next/server';
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'vendshop.shop';
 
+// NextAuth v5 session cookie names (HTTP / HTTPS).
+const SESSION_COOKIES = ['authjs.session-token', '__Secure-authjs.session-token'];
+
+function hasSessionCookie(request: NextRequest): boolean {
+  return SESSION_COOKIES.some((name) => Boolean(request.cookies.get(name)?.value));
+}
+
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const url = request.nextUrl.clone();
@@ -18,6 +25,17 @@ export function middleware(request: NextRequest) {
     currentHost.endsWith('.vercel.app');
 
   if (isMainDomain) {
+    // Defense-layer-1 gate for /admin/*: require a NextAuth session cookie.
+    // The exact email match against ADMIN_EMAIL is enforced server-side in
+    // src/app/admin/layout.tsx (defense-layer-2). Cookie-presence in middleware
+    // is edge-runtime safe and avoids decoding JWTs here.
+    if (url.pathname.startsWith('/admin') && !hasSessionCookie(request)) {
+      const loginUrl = url.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.search = `?callbackUrl=${encodeURIComponent(url.pathname + url.search)}`;
+      return NextResponse.redirect(loginUrl);
+    }
+
     // Redirect /shop/[slug] path to subdomain in production
     const shopPathMatch = url.pathname.match(/^\/shop\/([^/]+)(\/.*)?$/);
     if (shopPathMatch && currentHost !== 'localhost' && !currentHost.endsWith('.vercel.app')) {

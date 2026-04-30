@@ -261,7 +261,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
                 type="text"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={t('businessNamePlaceholder')}
               />
             </div>
@@ -275,7 +275,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
                 rows={2}
                 value={businessDesc}
                 onChange={(e) => setBusinessDesc(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={t('businessDescPlaceholder')}
               />
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-primary">
@@ -347,7 +347,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
                   onChange={(e) =>
                     setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))
                   }
-                  className="flex-1 bg-transparent py-2.5 pl-1 pr-4 text-sm focus:outline-none"
+                  className="flex-1 bg-transparent py-2.5 pl-1 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                   placeholder="smak-shop"
                 />
               </label>
@@ -468,7 +468,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
               type="text"
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -479,7 +479,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
               rows={3}
               value={editedDesc}
               onChange={(e) => setEditedDesc(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -536,7 +536,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
                         min="0"
                         step="0.01"
                         onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value) || 0)}
-                        className="w-20 rounded border border-gray-200 bg-white px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="w-20 rounded border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       <span className="text-xs text-gray-400">{item.currency}</span>
                       {item.category && (

@@ -17,7 +17,7 @@ interface ProductFormProps {
 
 const CURRENCIES = ['EUR', 'CZK', 'UAH', 'USD'];
 
-const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary';
+const INPUT_CLS = 'w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary';
 
 export default function ProductForm({ storeId, shopLanguage, itemId, defaultValues, existingCategories = [] }: ProductFormProps) {
   const router = useRouter();

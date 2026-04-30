@@ -132,7 +132,7 @@ export default function ReviewForm({ storeId, scheme, t }: ReviewFormProps) {
                       type="text"
                       value={author}
                       onChange={(e) => setAuthor(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                       maxLength={100}
                     />
                   </div>
@@ -144,7 +144,7 @@ export default function ReviewForm({ storeId, scheme, t }: ReviewFormProps) {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
 
@@ -155,7 +155,7 @@ export default function ReviewForm({ storeId, scheme, t }: ReviewFormProps) {
                       rows={3}
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                       maxLength={2000}
                     />
                   </div>

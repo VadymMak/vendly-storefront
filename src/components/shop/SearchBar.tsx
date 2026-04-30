@@ -76,7 +76,7 @@ export default function SearchBar({ scheme, t }: SearchBarProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={t.searchPlaceholder}
-        className={`w-full rounded-full border ${scheme.border} ${scheme.bgCard} py-3 pl-11 pr-10 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-current/20 focus:shadow-md placeholder:${scheme.textMuted}`}
+        className={`w-full rounded-full border ${scheme.border} ${scheme.bgCard} ${scheme.text} py-3 pl-11 pr-10 text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-current/20 focus:shadow-md placeholder:${scheme.textMuted}`}
       />
 
       {/* Clear button */}

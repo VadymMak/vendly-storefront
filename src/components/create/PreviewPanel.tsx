@@ -583,10 +583,10 @@ export default function PreviewPanel({ state, biz, palette, viewport, onViewport
           <span style={{ fontSize: 12, color: '#64748b' }}>{isDark ? '◉' : '○'} {biz.style}</span>
           {/* Hero layout toggle — lets the user override the auto pick from biz.style */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 4 }}>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Hero</span>
+            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{t('hero')}</span>
             <div style={{ display: 'flex', gap: 3, padding: 3, background: '#0f1a2e', border: '1px solid #253349', borderRadius: 8 }}>
               {(['auto', 'split', 'full'] as const).map((opt) => {
-                const labels: Record<CreateHeroLayout, string> = { auto: 'Auto', split: 'Split', full: 'Plný' };
+                const labels: Record<CreateHeroLayout, string> = { auto: t('auto'), split: t('split'), full: t('full') };
                 const active = state.heroLayout === opt;
                 return (
                   <button

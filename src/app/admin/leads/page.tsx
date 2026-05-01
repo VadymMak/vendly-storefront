@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { BUSINESS_TYPES, normalizeBusinessType } from '@/lib/business-types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,10 +114,12 @@ const PACKAGE_OPTIONS = [
   { value: 'individual', label: 'Individual (€799)' },
 ];
 
-const BUSINESS_TYPE_OPTIONS = [
-  'food', 'restaurant', 'beauty', 'repair', 'services',
-  'home_services', 'digital', 'education', 'health', 'physical', 'ecommerce',
-];
+// Business types come from the canonical taxonomy in src/lib/business-types.ts.
+// Old admin list (food/repair/services/home_services/digital/health/physical/
+// ecommerce/bar/fitness/medical) was out of sync with the wizard, which caused
+// any wizard slug not in the legacy list to silently fall back to the first
+// option ("food") on save. normalizeBusinessType maps legacy DB values onto
+// canonical slugs at render time so the dropdown shows the right entry.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -880,11 +883,11 @@ function LeadCard({
               <Field label="Тип бизнеса">
                 <select
                   className={inputCls}
-                  value={val('businessType') as string}
+                  value={normalizeBusinessType(val('businessType') as string) ?? BUSINESS_TYPES[0].slug}
                   onChange={(e) => set('businessType', e.target.value)}
                 >
-                  {BUSINESS_TYPE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  {BUSINESS_TYPES.map(({ slug, label }) => (
+                    <option key={slug} value={slug}>{label}</option>
                   ))}
                 </select>
               </Field>

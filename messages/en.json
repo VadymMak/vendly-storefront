@@ -1055,7 +1055,11 @@
       "stepOf": "Step {step} / 3"
     },
     "preview": {
-      "live": "Live preview",
+      "live": "Live",
+      "hero": "Hero",
+      "auto": "Auto",
+      "split": "Split",
+      "full": "Full",
       "desktop": "Desktop",
       "tablet": "Tablet",
       "mobile": "Mobile",

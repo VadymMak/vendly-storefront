@@ -13,6 +13,13 @@ export async function POST(request: Request) {
       ? (data.galleryUrls as unknown[]).filter((u): u is string => typeof u === 'string')
       : [];
 
+    // Validate heroLayout (defaults to null for legacy / invalid input)
+    const heroLayoutInput = data.heroLayout;
+    const heroLayout =
+      heroLayoutInput === 'auto' || heroLayoutInput === 'split' || heroLayoutInput === 'full'
+        ? heroLayoutInput
+        : null;
+
     lead = await db.lead.create({
       data: {
         // Backward-compat fields (OnboardingChat)
@@ -37,6 +44,7 @@ export async function POST(request: Request) {
         heroPhotoUrl,
         galleryUrls,
         photos: serializeLeadPhotos({ hero: heroPhotoUrl, gallery: galleryUrls }),
+        heroLayout,
       },
     });
     console.log('Lead saved:', lead.id);

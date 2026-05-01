@@ -65,3 +65,34 @@ export function getBusinessType(slug: string | null | undefined) {
 export function getTemplateRepo(slug: string | null | undefined): string {
   return getBusinessType(slug)?.templateRepo ?? DEFAULT_TEMPLATE_REPO;
 }
+
+/**
+ * Resolved hero layout used by the live site pipeline. Mirrors the wizard
+ * preview's auto-resolution rule: classic / bold / dark templates render
+ * full-bleed; warm / natural / medical render split-half.
+ */
+const FULL_BLEED_TEMPLATE_REPOS: ReadonlySet<string> = new Set([
+  'vendshop-template-classic',
+  'vendshop-template-bold',
+  'vendshop-template-dark',
+]);
+
+export type ResolvedHeroLayout = 'split' | 'full';
+
+export function getDefaultHeroLayout(slug: string | null | undefined): ResolvedHeroLayout {
+  return FULL_BLEED_TEMPLATE_REPOS.has(getTemplateRepo(slug)) ? 'full' : 'split';
+}
+
+/**
+ * Resolve the wizard's heroLayout preference into a definitive 'split' | 'full'
+ * value to pass to the template generator. Anything other than 'split' or
+ * 'full' (including 'auto', null, undefined, legacy values) falls back to the
+ * per-business-type default.
+ */
+export function resolveHeroLayout(
+  preference: string | null | undefined,
+  slug: string | null | undefined,
+): ResolvedHeroLayout {
+  if (preference === 'split' || preference === 'full') return preference;
+  return getDefaultHeroLayout(slug);
+}

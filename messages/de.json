@@ -1056,6 +1056,10 @@
     },
     "preview": {
       "live": "Live-Vorschau",
+      "hero": "Hero",
+      "auto": "Auto",
+      "split": "Geteilt",
+      "full": "Vollbild",
       "desktop": "Desktop",
       "tablet": "Tablet",
       "mobile": "Mobil",

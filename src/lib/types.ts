@@ -486,6 +486,14 @@ export interface CreateHoursSchedule {
   sun: CreateDaySchedule;
 }
 
+/**
+ * Hero layout preference set by the wizard:
+ *   - 'auto'  → use biz.style default (classic/bold/dark → full, others → split)
+ *   - 'split' → force split-half (image left, text right)
+ *   - 'full'  → force full-bleed (image fills, text overlays)
+ */
+export type CreateHeroLayout = 'auto' | 'split' | 'full';
+
 export interface CreateState {
   step: 1 | 2 | 3;
   business: string;
@@ -500,4 +508,5 @@ export interface CreateState {
   logoPhoto: string | null;
   gallery: string[];
   plan: CreatePlan;
+  heroLayout: CreateHeroLayout;
 }

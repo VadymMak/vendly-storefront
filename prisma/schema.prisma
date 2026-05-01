@@ -233,6 +233,7 @@ model Lead {
   plan             String?   // free | starter | pro
   heroPhotoUrl     String?
   galleryUrls      String[]
+  heroLayout       String?   // 'auto' | 'split' | 'full' — null for legacy leads
 
   // Unified photo storage (replaces heroPhotoUrl/galleryUrls/photoUrls).
   // Shape: { hero: string | null, gallery: string[] }.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { CreateBusinessType, CreatePalette, CreateState } from '@/lib/types';
+import type { CreateBusinessType, CreatePalette, CreateState, CreateTemplateStyle } from '@/lib/types';
 
 const DAYS_PREVIEW = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 type DayKey = (typeof DAYS_PREVIEW)[number];
@@ -274,28 +274,142 @@ function SitePreview({ state, biz, palette, viewport }: { state: CreateState; bi
       </header>
 
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: sPad, display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.1fr 1fr', gap: mobile ? 18 : 32, alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: c.primary, fontWeight: 600, marginBottom: 12 }}>{tpl.heroKicker}</div>
-          <h1 style={{ fontFamily: displayFont, fontSize: mobile ? 30 : 52, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 14px', whiteSpace: 'pre-line' }}>{tpl.heroTitle}</h1>
-          <p style={{ color: c.muted, fontSize: mobile ? 14 : 16, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 500 }}>{description}</p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button style={{ background: c.primary, color: c.btnFg, border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {tpl.ctaPrimary} <IconArrowRight size={14} />
-            </button>
-            <button style={{ background: 'transparent', color: c.fg, border: `1px solid ${c.line}`, borderRadius: 9, padding: '10px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-              {tpl.ctaSecondary}
-            </button>
-          </div>
-        </div>
-        <div style={{ aspectRatio: mobile ? '16 / 11' : '5 / 6', borderRadius: 14, overflow: 'hidden', border: `1px solid ${c.line}`, background: c.card }}>
-          {state.heroPhoto ? (
-            <div style={{ width: '100%', height: '100%', backgroundImage: `url(${state.heroPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-          ) : (
-            <PhImg label={`HERO · ${biz.id.toUpperCase()}`} isDark={isDark} />
-          )}
-        </div>
-      </section>
+      {(() => {
+        // Live templates use two hero shapes: full-bleed image + overlay
+        // (classic/bold/dark) and split-half image+text (warm/natural/medical).
+        // Match the live shape so the wizard preview reflects what the customer
+        // actually gets after deploy.
+        const FULL_BLEED_STYLES: ReadonlyArray<CreateTemplateStyle> = ['classic', 'bold', 'dark'];
+        const isFullBleed = FULL_BLEED_STYLES.includes(biz.style);
+
+        if (!isFullBleed) {
+          // Split-half (warm / natural / medical) — preserved as-is
+          return (
+            <section style={{ padding: sPad, display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1.1fr 1fr', gap: mobile ? 18 : 32, alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: c.primary, fontWeight: 600, marginBottom: 12 }}>{tpl.heroKicker}</div>
+                <h1 style={{ fontFamily: displayFont, fontSize: mobile ? 30 : 52, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 14px', whiteSpace: 'pre-line' }}>{tpl.heroTitle}</h1>
+                <p style={{ color: c.muted, fontSize: mobile ? 14 : 16, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 500 }}>{description}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button style={{ background: c.primary, color: c.btnFg, border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {tpl.ctaPrimary} <IconArrowRight size={14} />
+                  </button>
+                  <button style={{ background: 'transparent', color: c.fg, border: `1px solid ${c.line}`, borderRadius: 9, padding: '10px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                    {tpl.ctaSecondary}
+                  </button>
+                </div>
+              </div>
+              <div style={{ aspectRatio: mobile ? '16 / 11' : '5 / 6', borderRadius: 14, overflow: 'hidden', border: `1px solid ${c.line}`, background: c.card }}>
+                {state.heroPhoto ? (
+                  <div style={{ width: '100%', height: '100%', backgroundImage: `url(${state.heroPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                ) : (
+                  <PhImg label={`HERO · ${biz.id.toUpperCase()}`} isDark={isDark} />
+                )}
+              </div>
+            </section>
+          );
+        }
+
+        // ── Full-bleed variants (classic / bold / dark) ─────────────────────
+        const heroMinH = mobile ? 360 : 520;
+
+        // classic = bottom-up gradient (text card sits over a brighter top);
+        // bold/dark = flat overlay so the headline reads directly over image.
+        const overlay =
+          biz.style === 'classic'
+            ? 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.40) 60%, rgba(0,0,0,0.15) 100%)'
+            : biz.style === 'bold'
+              ? 'rgba(0,0,0,0.50)'
+              : 'rgba(0,0,0,0.55)';
+
+        // Lighten primary for eyebrow so dark palette accents stay visible
+        // over the dimming overlay. color-mix is already used elsewhere in
+        // this file (testimonials section).
+        const eyebrowColor = `color-mix(in srgb, ${c.primary} 60%, #ffffff)`;
+
+        const titleSize =
+          biz.style === 'bold' ? (mobile ? 36 : 64) :
+          biz.style === 'dark' ? (mobile ? 32 : 56) :
+          (mobile ? 30 : 52);
+
+        const titleShadow =
+          biz.style === 'bold' ? '0 2px 24px rgba(0,0,0,0.45)' :
+          biz.style === 'dark' ? '0 2px 20px rgba(0,0,0,0.4)' :
+          '0 1px 12px rgba(0,0,0,0.35)';
+
+        const PrimaryCta = (
+          <button style={{ background: c.primary, color: c.btnFg, border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {tpl.ctaPrimary} <IconArrowRight size={14} />
+          </button>
+        );
+        const OutlineCta = (
+          <button style={{ background: 'transparent', color: '#ffffff', border: '1px solid rgba(255,255,255,0.45)', borderRadius: 9, padding: '10px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            {tpl.ctaSecondary}
+          </button>
+        );
+
+        const eyebrowEl = (
+          <div style={{ fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: eyebrowColor, fontWeight: 600, marginBottom: 12 }}>{tpl.heroKicker}</div>
+        );
+
+        const headlineEl = (
+          <h1 style={{ fontFamily: displayFont, fontSize: titleSize, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 14px', whiteSpace: 'pre-line', color: '#ffffff', textShadow: titleShadow }}>{tpl.heroTitle}</h1>
+        );
+
+        const subEl = (
+          <p style={{ color: 'rgba(255,255,255,0.92)', fontSize: mobile ? 14 : 16, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 520 }}>{description}</p>
+        );
+
+        // dark = centered content; classic/bold = left-aligned
+        const isCentered = biz.style === 'dark';
+        const contentJustify: 'flex-start' | 'center' = isCentered ? 'center' : 'flex-start';
+        const innerTextAlign: 'left' | 'center' = isCentered ? 'center' : 'left';
+
+        // classic wraps content in a glass card; bold/dark put text directly
+        // on the image with text-shadow for legibility.
+        const innerStyle: React.CSSProperties =
+          biz.style === 'classic'
+            ? {
+                maxWidth: 680,
+                padding: mobile ? 20 : 28,
+                background: 'rgba(15,23,42,0.55)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 16,
+                textAlign: 'left' as const,
+              }
+            : isCentered
+              ? { maxWidth: 800, textAlign: 'center' as const, margin: '0 auto' }
+              : { maxWidth: 760, textAlign: 'left' as const };
+
+        return (
+          <section style={{ position: 'relative', minHeight: heroMinH, overflow: 'hidden' }}>
+            {/* Background image */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+              {state.heroPhoto ? (
+                <div style={{ width: '100%', height: '100%', backgroundImage: `url(${state.heroPhoto})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              ) : (
+                <PhImg label={`HERO · ${biz.id.toUpperCase()}`} isDark={isDark} />
+              )}
+            </div>
+            {/* Overlay */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: overlay }} />
+            {/* Content */}
+            <div style={{ position: 'relative', zIndex: 2, padding: sPad, minHeight: heroMinH, display: 'flex', alignItems: 'center', justifyContent: contentJustify }}>
+              <div style={innerStyle}>
+                {eyebrowEl}
+                {headlineEl}
+                {subEl}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: innerTextAlign === 'center' ? 'center' : 'flex-start' }}>
+                  {PrimaryCta}
+                  {OutlineCta}
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── Services / Menu ──────────────────────────────────────────────────── */}
       <section style={{ padding: secPad }}>

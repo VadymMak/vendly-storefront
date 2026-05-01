@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { CreateBusinessType, CreatePalette, CreateState, CreateTemplateStyle } from '@/lib/types';
+import type { CreateBusinessType, CreateHeroLayout, CreatePalette, CreateState, CreateTemplateStyle } from '@/lib/types';
 
 const DAYS_PREVIEW = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 type DayKey = (typeof DAYS_PREVIEW)[number];
@@ -14,6 +14,7 @@ interface PreviewPanelProps {
   palette: CreatePalette;
   viewport: Viewport;
   onViewportChange: (v: Viewport) => void;
+  onHeroLayoutChange: (layout: CreateHeroLayout) => void;
 }
 
 // ── Fake testimonials per business style ──────────────────────────────────────
@@ -277,10 +278,14 @@ function SitePreview({ state, biz, palette, viewport }: { state: CreateState; bi
       {(() => {
         // Live templates use two hero shapes: full-bleed image + overlay
         // (classic/bold/dark) and split-half image+text (warm/natural/medical).
-        // Match the live shape so the wizard preview reflects what the customer
-        // actually gets after deploy.
+        // Default ('auto') tracks biz.style; user can force 'split' or 'full'
+        // via the toolbar toggle, in which case we render that shape regardless.
         const FULL_BLEED_STYLES: ReadonlyArray<CreateTemplateStyle> = ['classic', 'bold', 'dark'];
-        const isFullBleed = FULL_BLEED_STYLES.includes(biz.style);
+        const autoIsFullBleed = FULL_BLEED_STYLES.includes(biz.style);
+        const isFullBleed =
+            state.heroLayout === 'full'  ? true
+          : state.heroLayout === 'split' ? false
+          :                                 autoIsFullBleed;
 
         if (!isFullBleed) {
           // Split-half (warm / natural / medical) — preserved as-is
@@ -313,12 +318,21 @@ function SitePreview({ state, biz, palette, viewport }: { state: CreateState; bi
         // ── Full-bleed variants (classic / bold / dark) ─────────────────────
         const heroMinH = mobile ? 360 : 520;
 
+        // When the user forced 'full' on a non-fullbleed biz.style (warm /
+        // natural / medical), fall back to the 'bold' sub-variant — it's the
+        // most universal full-bleed treatment (bare text on overlay).
+        type FullBleedSubStyle = 'classic' | 'bold' | 'dark';
+        const subStyle: FullBleedSubStyle =
+          (FULL_BLEED_STYLES as ReadonlyArray<string>).includes(biz.style)
+            ? (biz.style as FullBleedSubStyle)
+            : 'bold';
+
         // classic = bottom-up gradient (text card sits over a brighter top);
         // bold/dark = flat overlay so the headline reads directly over image.
         const overlay =
-          biz.style === 'classic'
+          subStyle === 'classic'
             ? 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.40) 60%, rgba(0,0,0,0.15) 100%)'
-            : biz.style === 'bold'
+            : subStyle === 'bold'
               ? 'rgba(0,0,0,0.50)'
               : 'rgba(0,0,0,0.55)';
 
@@ -328,13 +342,13 @@ function SitePreview({ state, biz, palette, viewport }: { state: CreateState; bi
         const eyebrowColor = `color-mix(in srgb, ${c.primary} 60%, #ffffff)`;
 
         const titleSize =
-          biz.style === 'bold' ? (mobile ? 36 : 64) :
-          biz.style === 'dark' ? (mobile ? 32 : 56) :
+          subStyle === 'bold' ? (mobile ? 36 : 64) :
+          subStyle === 'dark' ? (mobile ? 32 : 56) :
           (mobile ? 30 : 52);
 
         const titleShadow =
-          biz.style === 'bold' ? '0 2px 24px rgba(0,0,0,0.45)' :
-          biz.style === 'dark' ? '0 2px 20px rgba(0,0,0,0.4)' :
+          subStyle === 'bold' ? '0 2px 24px rgba(0,0,0,0.45)' :
+          subStyle === 'dark' ? '0 2px 20px rgba(0,0,0,0.4)' :
           '0 1px 12px rgba(0,0,0,0.35)';
 
         const PrimaryCta = (
@@ -361,14 +375,14 @@ function SitePreview({ state, biz, palette, viewport }: { state: CreateState; bi
         );
 
         // dark = centered content; classic/bold = left-aligned
-        const isCentered = biz.style === 'dark';
+        const isCentered = subStyle === 'dark';
         const contentJustify: 'flex-start' | 'center' = isCentered ? 'center' : 'flex-start';
         const innerTextAlign: 'left' | 'center' = isCentered ? 'center' : 'left';
 
         // classic wraps content in a glass card; bold/dark put text directly
         // on the image with text-shadow for legibility.
         const innerStyle: React.CSSProperties =
-          biz.style === 'classic'
+          subStyle === 'classic'
             ? {
                 maxWidth: 680,
                 padding: mobile ? 20 : 28,
@@ -549,7 +563,7 @@ function SitePreview({ state, biz, palette, viewport }: { state: CreateState; bi
 
 // ── Panel toolbar wrapper ─────────────────────────────────────────────────────
 
-export default function PreviewPanel({ state, biz, palette, viewport, onViewportChange }: PreviewPanelProps) {
+export default function PreviewPanel({ state, biz, palette, viewport, onViewportChange, onHeroLayoutChange }: PreviewPanelProps) {
   const t = useTranslations('create.preview');
   const isDark = hexLuminance(palette.bg) < 0.4;
   const domain = `${toSlug(state.businessName) || 'yoursite'}.vendshop.shop`;
@@ -567,6 +581,26 @@ export default function PreviewPanel({ state, biz, palette, viewport, onViewport
             {t('live')}
           </span>
           <span style={{ fontSize: 12, color: '#64748b' }}>{isDark ? '◉' : '○'} {biz.style}</span>
+          {/* Hero layout toggle — lets the user override the auto pick from biz.style */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 4 }}>
+            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Hero</span>
+            <div style={{ display: 'flex', gap: 3, padding: 3, background: '#0f1a2e', border: '1px solid #253349', borderRadius: 8 }}>
+              {(['auto', 'split', 'full'] as const).map((opt) => {
+                const labels: Record<CreateHeroLayout, string> = { auto: 'Auto', split: 'Split', full: 'Plný' };
+                const active = state.heroLayout === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => onHeroLayoutChange(opt)}
+                    style={{ background: active ? '#243449' : 'transparent', border: 'none', color: active ? '#e2e8f0' : '#94a3b8', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}
+                  >
+                    {labels[opt]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
         {/* URL pill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px', background: '#0f1a2e', border: '1px solid #253349', borderRadius: 999, fontSize: 11.5, color: '#94a3b8', fontFamily: 'monospace' }}>

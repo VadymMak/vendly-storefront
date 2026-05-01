@@ -37,6 +37,7 @@ const INITIAL_STATE: CreateState = {
   logoPhoto: null,
   gallery: [],
   plan: 'starter',
+  heroLayout: 'auto',
 };
 
 function toSlug(s: string): string {
@@ -723,6 +724,7 @@ export default function CreatePageClient() {
         heroPhotoUrl:  heroPhotoUrl ?? null,
         logoUrl:       logoUrl      ?? null,
         galleryUrls,
+        heroLayout:    state.heroLayout,
       };
       console.log('[launch] Submitting lead payload:', JSON.stringify(payload).slice(0, 300));
 
@@ -903,6 +905,7 @@ export default function CreatePageClient() {
           palette={palette}
           viewport={viewport}
           onViewportChange={setViewport}
+          onHeroLayoutChange={(layout) => setState((s) => ({ ...s, heroLayout: layout }))}
         />
       </div>
 

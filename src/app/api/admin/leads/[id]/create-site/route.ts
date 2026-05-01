@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
+import { resolveHeroLayout } from '@/lib/business-types';
 import { generateConfigTs, getTemplateRepo, type LeadConfigInput } from '@/lib/generate-config';
 import { generateConstantsTs, type LeadConstantsInput } from '@/lib/generate-constants';
 import { commitFiles } from '@/lib/github-commit';
@@ -304,6 +305,10 @@ export async function POST(
 
     // Step 8 — Generate constants.ts with Claude (FATAL if fails — don't create repo)
     console.log('[create-site] Step 8: Generating constants.ts with Claude (ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY, ')');
+    // Resolve 'auto'/null/legacy heroLayout into a definitive 'split' | 'full'
+    // before handing off to Sonnet — the template needs a concrete value.
+    const resolvedHeroLayout = resolveHeroLayout(lead.heroLayout, lead.businessType);
+
     const constantsInput: LeadConstantsInput = {
       businessName:      lead.businessName,
       businessType:      lead.businessType,
@@ -320,6 +325,7 @@ export async function POST(
       galleryImagePaths,
       logoImagePath,
       briefServicesJson: lead.briefServicesJson,
+      heroLayout:        resolvedHeroLayout,
     };
 
     const constantsTs = await generateConstantsTs(constantsInput, templateConstantsTs);

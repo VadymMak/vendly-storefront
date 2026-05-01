@@ -203,7 +203,7 @@ ${servicesList}
 - IMAGES.about: always use a relevant Unsplash URL for "${lead.businessType}"
 - IMAGES.gallery = ${hasPhotos && lead.galleryImagePaths?.length ? `${JSON.stringify(lead.galleryImagePaths)} — use EXACTLY these local paths, no changes` : `5 relevant Unsplash URLs for "${lead.businessType}"`}
 - IMAGES.logo = ${lead.logoImagePath ? `'${lead.logoImagePath}' — local path, use EXACTLY as-is, no changes` : `''`} (empty string means no logo — text fallback will be used)
-- HERO: generate \`export const HERO: HeroContent & { layout: 'split' | 'full' } = { title: '...', subtitle: '...', layout: '${lead.heroLayout}' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}". The \`layout\` field MUST be the literal string '${lead.heroLayout}' — do not change it. Use the intersection type annotation exactly as shown so the constants file compiles even if the template's HeroContent type doesn't yet include 'layout'.
+- HERO: generate \`export const HERO: HeroContent = { title: '...', subtitle: '...', layout: '${lead.heroLayout}' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}". The \`layout\` field MUST be the literal string '${lead.heroLayout}' — do not change it.
 ${isMenuType
   ? `- templateType is 'menu' → fill MENU_CATEGORIES from brief services. Keep SERVICE_CATEGORIES = []
 - MenuCategory → EXACTLY 3 fields: id, name, items
@@ -249,7 +249,7 @@ import type {
 
 export const USE_LOCAL_IMAGES = false;
 
-export const HERO: HeroContent & { layout: 'split' | 'full' } = {
+export const HERO: HeroContent = {
   title: 'Смачна Кухня',
   subtitle: 'Найкращі страви з натуральних інгредієнтів. Затишна атмосфера та швидке обслуговування.',
   layout: 'split',

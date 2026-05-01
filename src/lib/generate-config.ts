@@ -5,6 +5,11 @@
  * Types mirror vendshop-template/lib/types.ts (kept inline to avoid cross-repo import).
  */
 
+import { normalizeBusinessType } from './business-types';
+
+// Re-export so existing importers (create-site/route.ts) keep working.
+export { getTemplateRepo } from './business-types';
+
 // ─── Mirror types from vendshop-template/lib/types.ts ────────────────────────
 type PalettePreset = 'dark-premium' | 'clean-light' | 'warm-cozy' | 'professional' | 'natural' | 'medical';
 type TemplateType  = 'services' | 'schedule' | 'menu' | 'portfolio';
@@ -21,47 +26,27 @@ export interface LeadConfigInput {
   selectedPalette: string | null;    // brief values: dark | light | warm | professional | natural | custom
 }
 
-// ─── Presets by business type ─────────────────────────────────────────────────
+// ─── Presets by canonical business slug ───────────────────────────────────────
+// Keyed by the canonical wizard slugs (see src/lib/business-types.ts). Legacy
+// DB values are normalized via normalizeBusinessType before lookup.
 type Preset = { palette: PalettePreset; headingFont: HeadingFont };
 
 const BUSINESS_TYPE_PRESET: Record<string, Preset> = {
-  repair:        { palette: 'professional', headingFont: 'oswald'    },
-  home_services: { palette: 'clean-light',  headingFont: 'inter'     },
-  physical:      { palette: 'clean-light',  headingFont: 'inter'     },
-  ecommerce:     { palette: 'professional', headingFont: 'inter'     },
-  food:          { palette: 'warm-cozy',    headingFont: 'playfair'  },
-  restaurant:    { palette: 'warm-cozy',    headingFont: 'cormorant' },
-  beauty:        { palette: 'natural',      headingFont: 'playfair'  },
-  health:        { palette: 'medical',      headingFont: 'playfair'  },
-  digital:       { palette: 'professional', headingFont: 'inter'     },
-  education:     { palette: 'clean-light',  headingFont: 'inter'     },
-  photography:   { palette: 'dark-premium', headingFont: 'playfair'  },
-  design:        { palette: 'dark-premium', headingFont: 'playfair'  },
+  barbershop:  { palette: 'professional', headingFont: 'oswald'    },
+  restaurant:  { palette: 'warm-cozy',    headingFont: 'cormorant' },
+  beauty:      { palette: 'natural',      headingFont: 'playfair'  },
+  auto:        { palette: 'professional', headingFont: 'oswald'    },
+  dentist:     { palette: 'medical',      headingFont: 'playfair'  },
+  water:       { palette: 'clean-light',  headingFont: 'inter'     },
+  electronics: { palette: 'professional', headingFont: 'oswald'    },
+  yoga:        { palette: 'natural',      headingFont: 'playfair'  },
+  photography: { palette: 'dark-premium', headingFont: 'playfair'  },
+  agency:      { palette: 'professional', headingFont: 'inter'     },
+  education:   { palette: 'clean-light',  headingFont: 'inter'     },
+  design:      { palette: 'dark-premium', headingFont: 'playfair'  },
 };
 
 const DEFAULT_PRESET: Preset = { palette: 'professional', headingFont: 'inter' };
-
-// ─── Template repo mapping ────────────────────────────────────────────────────
-const TEMPLATE_REPO_MAP: Record<string, string> = {
-  repair:        'vendshop-template-classic',
-  home_services: 'vendshop-template-classic',
-  physical:      'vendshop-template-classic',
-  ecommerce:     'vendshop-template-classic',
-  food:          'vendshop-template-warm',
-  restaurant:    'vendshop-template-warm',
-  beauty:        'vendshop-template-natural',
-  health:        'vendshop-template-natural',
-  digital:       'vendshop-template-bold',
-  education:     'vendshop-template-bold',
-  photography:   'vendshop-template-dark',
-  design:        'vendshop-template-dark',
-};
-
-const DEFAULT_TEMPLATE_REPO = 'vendshop-template-classic';
-
-export function getTemplateRepo(businessType: string): string {
-  return TEMPLATE_REPO_MAP[businessType] ?? DEFAULT_TEMPLATE_REPO;
-}
 
 // ─── Brief palette → PalettePreset mapping ────────────────────────────────────
 const PALETTE_MAP: Record<string, PalettePreset> = {
@@ -78,7 +63,8 @@ const VALID_LANGS: SiteLanguage[] = ['sk', 'en', 'de', 'cs', 'uk', 'ru'];
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function generateConfigTs(lead: LeadConfigInput): string {
-  const preset  = BUSINESS_TYPE_PRESET[lead.businessType] ?? DEFAULT_PRESET;
+  const canonical = normalizeBusinessType(lead.businessType) ?? lead.businessType;
+  const preset    = BUSINESS_TYPE_PRESET[canonical] ?? DEFAULT_PRESET;
   // Empty string is falsy in intent but truthy in JS — trim + explicit check
   const mappedPalette = lead.selectedPalette?.trim()
     ? PALETTE_MAP[lead.selectedPalette.trim()]
@@ -87,8 +73,7 @@ export function generateConfigTs(lead: LeadConfigInput): string {
   const palette: PalettePreset = mappedPalette ?? preset.palette;
   const headingFont: HeadingFont = preset.headingFont;
 
-  const templateType: TemplateType =
-    ['restaurant', 'food'].includes(lead.businessType) ? 'menu' : 'services';
+  const templateType: TemplateType = canonical === 'restaurant' ? 'menu' : 'services';
 
   const language: SiteLanguage = VALID_LANGS.includes(lead.language as SiteLanguage)
     ? (lead.language as SiteLanguage)

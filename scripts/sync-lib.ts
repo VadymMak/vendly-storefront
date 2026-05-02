@@ -1,6 +1,10 @@
 /**
- * Syncs lib/ directory from vendshop-template-classic to all other template repos.
+ * Syncs shared directories from vendshop-template-classic to all other template repos.
  * Run: npx ts-node scripts/sync-lib.ts
+ *
+ * SYNC_DIRS lists every directory whose contents must stay byte-identical across
+ * the 6 template repos. HeroSection.tsx is the deliberate exception (3 visual variants),
+ * but everything else in components/sections/ and components/widgets/ is shared infra.
  */
 
 import * as dotenv from 'dotenv';
@@ -18,6 +22,18 @@ const TARGETS = [
   'vendshop-template-natural',
   'vendshop-template-medical',
 ];
+
+const SYNC_DIRS = [
+  'lib',
+  'components/sections',
+  'components/widgets',
+];
+
+// Files we must NOT overwrite — visual variants per template.
+const SKIP_PATHS = new Set<string>([
+  'components/sections/HeroSection.tsx',
+  'components/sections/HeroSection.module.css',
+]);
 
 if (!TOKEN || !OWNER) {
   console.error('❌ GITHUB_TOKEN and GITHUB_OWNER must be set in .env.local');
@@ -74,9 +90,9 @@ interface GhNewCommit {
   sha: string;
 }
 
-async function getLibFiles(repo: string): Promise<GhFile[]> {
-  const items = await ghJson<GhFile[]>(`/repos/${OWNER}/${repo}/contents/lib`);
-  return items.filter(f => f.type === 'file');
+async function getDirFiles(repo: string, dir: string): Promise<GhFile[]> {
+  const items = await ghJson<GhFile[]>(`/repos/${OWNER}/${repo}/contents/${dir}`);
+  return items.filter(f => f.type === 'file' && !SKIP_PATHS.has(f.path));
 }
 
 async function getFileContent(file: GhFile): Promise<string> {
@@ -127,7 +143,7 @@ async function syncToRepo(
   const newCommit = await ghJson<GhNewCommit>(`/repos/${OWNER}/${repo}/git/commits`, {
     method: 'POST',
     body: JSON.stringify({
-      message: 'sync: update lib/ from classic',
+      message: `sync: update ${SYNC_DIRS.join(', ')} from classic`,
       tree: tree.sha,
       parents: [headSha],
     }),
@@ -143,13 +159,18 @@ async function syncToRepo(
 }
 
 async function main() {
-  console.log(`\nReading lib/ from ${SOURCE}...\n`);
+  console.log(`\nReading ${SYNC_DIRS.join(', ')} from ${SOURCE}...\n`);
 
-  const libFiles = await getLibFiles(SOURCE);
-  console.log(`Found ${libFiles.length} files: ${libFiles.map(f => f.name).join(', ')}\n`);
+  const allFiles: GhFile[] = [];
+  for (const dir of SYNC_DIRS) {
+    const files = await getDirFiles(SOURCE, dir);
+    console.log(`  ${dir}: ${files.length} file(s) — ${files.map(f => f.name).join(', ')}`);
+    allFiles.push(...files);
+  }
+  console.log(`\nTotal: ${allFiles.length} files to sync\n`);
 
   const fileContents = await Promise.all(
-    libFiles.map(async f => ({
+    allFiles.map(async f => ({
       path: f.path,
       content: await getFileContent(f),
     }))

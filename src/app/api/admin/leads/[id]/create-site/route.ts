@@ -316,6 +316,7 @@ export async function POST(
       contact:           lead.contact,
       email:             lead.email,
       language:          lead.language,
+      description:       lead.description,
       address:           lead.address,
       workingHours:      lead.workingHours,
       socialInstagram:   lead.socialInstagram,

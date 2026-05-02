@@ -13,6 +13,7 @@ export interface LeadConstantsInput {
   contact:           string;
   email:             string | null;
   language:          string;
+  description:       string | null;  // customer's own description — used verbatim as hero subtitle
   address:           string | null;
   workingHours:      string | null;
   socialInstagram:   string | null;
@@ -148,10 +149,29 @@ function ensureServiceFields(code: string): string {
   return result;
 }
 
+// ─── Language code → human-readable name (used in prompt instructions) ──────
+const LANGUAGE_NAMES: Record<string, string> = {
+  sk: 'Slovak (slovenčina)',
+  en: 'English',
+  uk: 'Ukrainian (українська)',
+  cs: 'Czech (čeština)',
+  de: 'German (Deutsch)',
+};
+
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(lead: LeadConstantsInput, templateConstants: string): string {
   const isMenuType = lead.templateType === 'menu';
   const hasPhotos  = !!lead.heroImagePath;
+
+  // Resolve language: empty/null → 'sk' (primary market). Lookup full name for prompt.
+  const langCode = (lead.language || 'sk').trim().toLowerCase();
+  const langName = LANGUAGE_NAMES[langCode] ?? LANGUAGE_NAMES.sk;
+
+  // Hero subtitle: prefer customer's own description; otherwise let Sonnet write one.
+  const trimmedDesc = lead.description?.trim() ?? '';
+  const heroSubtitleRule = trimmedDesc
+    ? `use EXACTLY this customer description, translated into ${langName} if needed and lightly edited for grammar only — do NOT rewrite or embellish:\n    '${trimmedDesc.replace(/\s+/g, ' ').replace(/'/g, "\\'")}'`
+    : `generate a suitable 1-2 sentence subtitle in ${langName}`;
 
   // Parse briefServicesJson safely
   let servicesList = '(none — generate 2-3 realistic service categories for this business type)';
@@ -177,13 +197,19 @@ function buildPrompt(lead: LeadConstantsInput, templateConstants: string): strin
 
   return `You are generating a TypeScript constants file (constants.ts) for a business website.
 
+=== LANGUAGE — NON-NEGOTIABLE ===
+ALL user-facing text (title, subtitle, services, reviews, FAQ, CTAs, section
+headings, labels, chat replies) MUST be written in ${langName} (locale code: ${langCode}).
+This is non-negotiable. Do not use English unless the language is English.
+Translate every visible string into ${langName}, including any text copied from the template.
+
 === TEMPLATE STRUCTURE (follow this exact shape and all exports) ===
 ${templateConstants}
 
 === BUSINESS DATA ===
 name:          ${lead.businessName ?? '(not set)'}
 type:          ${lead.businessType}
-language:      ${lead.language}
+language:      ${langCode} (${langName})
 phone:         ${lead.contact}
 email:         ${lead.email ?? ''}
 address:       ${lead.address ?? ''}
@@ -198,12 +224,17 @@ ${servicesList}
 === RULES ===
 - Output ONLY raw TypeScript — no markdown, no code fences, no explanations
 - Start with the import block exactly as in the template
-- ALL visible text (labels, descriptions, reviews, FAQ, chat) MUST be in language "${lead.language}"
+- ALL visible text (labels, descriptions, reviews, FAQ, chat) MUST be in ${langName}
 - IMAGES.hero = ${hasPhotos ? `'${lead.heroImagePath!}' — local path, use EXACTLY as-is, no changes` : `relevant Unsplash URL for "${lead.businessType}"`}
 - IMAGES.about: always use a relevant Unsplash URL for "${lead.businessType}"
 - IMAGES.gallery = ${hasPhotos && lead.galleryImagePaths?.length ? `${JSON.stringify(lead.galleryImagePaths)} — use EXACTLY these local paths, no changes` : `5 relevant Unsplash URLs for "${lead.businessType}"`}
 - IMAGES.logo = ${lead.logoImagePath ? `'${lead.logoImagePath}' — local path, use EXACTLY as-is, no changes` : `''`} (empty string means no logo — text fallback will be used)
-- HERO: generate \`export const HERO: HeroContent = { title: '...', subtitle: '...', layout: '${lead.heroLayout}' }\` — title = business name or catchy tagline, subtitle = 1-2 sentence description of the business. ALL text in language "${lead.language}". The \`layout\` field MUST be the literal string '${lead.heroLayout}' — do not change it.
+- HERO: generate \`export const HERO: HeroContent = { title: '...', subtitle: '...', layout: '${lead.heroLayout}' }\`
+    title = business name or short catchy tagline in ${langName}
+    subtitle: ${heroSubtitleRule}
+    The \`layout\` field MUST be the literal string '${lead.heroLayout}' — do not change it.
+- ABOUT section (if present in template): use the same customer description as the basis. Do NOT invent biographical or historical details that were not provided.
+- TRUST/STATS — Do NOT generate any stats, numbers or trust-badges (years of experience, number of clients, ratings, guarantees, awards). This data does not exist for a new business and must not be fabricated. If the template exports STATS, emit: \`export const STATS: StatItem[] = [];\`
 ${isMenuType
   ? `- templateType is 'menu' → fill MENU_CATEGORIES from brief services. Keep SERVICE_CATEGORIES = []
 - MenuCategory → EXACTLY 3 fields: id, name, items
@@ -216,9 +247,9 @@ ${isMenuType
   : `- templateType is 'services' → fill SERVICE_CATEGORIES from brief services; if none, generate 2-3 realistic categories for "${lead.businessType}". Keep MENU_CATEGORIES = []`
 }
 - CONTACT_ITEMS: use real address/phone/email/hours from business data; leave lines empty ('') if not provided
-- REVIEWS: 4 realistic placeholder reviews in language "${lead.language}"
-- FAQ_ITEMS: 5 relevant questions for "${lead.businessType}" in language "${lead.language}"
-- CHAT_CONFIG: greeting + 4 quick replies in language "${lead.language}"
+- REVIEWS: must come from real customers. Do NOT invent review names, quotes, ratings, or "happy client" details. Emit exactly: \`export const REVIEWS: Review[] = [];\`
+- FAQ_ITEMS: 5 relevant questions for "${lead.businessType}" in ${langName}
+- CHAT_CONFIG: greeting + 4 quick replies in ${langName}
 - Keep USE_LOCAL_IMAGES = false
 - Keep SCHEDULE and MENU_CATEGORIES present in file (they are used depending on templateType)
 - APOSTROPHES: any apostrophe inside a single-quoted string MUST be escaped as \\' — e.g. об\\'єму, зв\\'язок
@@ -294,16 +325,11 @@ export const MENU_CATEGORIES: MenuCategory[] = [
   },
 ];
 
-export const REVIEWS: Review[] = [
-  {
-    id: '1',
-    name: 'Олена Мельник',
-    initial: 'О',
-    text: 'Смачна їжа, швидке обслуговування. Рекомендую!',
-    rating: 5,
-    detail: 'Постійний клієнт',
-  },
-];
+// REVIEWS must be empty for a new business — do not invent customer feedback.
+export const REVIEWS: Review[] = [];
+
+// STATS must be empty — do not fabricate years/clients/ratings for a new business.
+export const STATS: StatItem[] = [];
 
 === END OF EXAMPLE ===
 

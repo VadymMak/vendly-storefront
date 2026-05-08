@@ -7,6 +7,9 @@ No exceptions. Even for simple questions.
 - project_id: 22
 - project_name: vendly-storefront
 
+## Session start (ONCE per session):
+- Call `brain get_skill "vendly-dev"` — loads coding rules and standards
+
 ## Required workflow for EVERY response:
 1. FIRST: Call `brain build_context_for_query query="<question>" project_id=22`
 2. THEN: Use returned context to answer

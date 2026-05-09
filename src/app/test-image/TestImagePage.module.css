@@ -674,3 +674,278 @@
   background: var(--is-purple-dim);
   border-color: rgba(124, 58, 237, 0.55);
 }
+
+/* ─── Tab switcher ───────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--is-surface);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-radius);
+  padding: 3px;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--is-text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--is-t), color var(--is-t);
+  letter-spacing: 0.01em;
+}
+
+.tabBtn:hover:not(.tabActive) {
+  color: var(--is-text-dim);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tabActive {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(6, 182, 212, 0.15));
+  color: #c4b5fd !important;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+/* ─── File upload ────────────────────────────────────────────────────────── */
+.fileInput {
+  display: none;
+}
+
+.fileLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: var(--is-radius);
+  cursor: pointer;
+  color: var(--is-text-muted);
+  font-size: 12px;
+  text-align: center;
+  transition: border-color var(--is-t), background var(--is-t);
+  background: var(--is-surface);
+}
+
+.fileLabel:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  background: var(--is-cyan-dim);
+  color: var(--is-text-dim);
+}
+
+.fileLabelIcon {
+  opacity: 0.6;
+}
+
+.fileLabelSubtext {
+  font-size: 10px;
+  opacity: 0.45;
+  letter-spacing: 0.04em;
+}
+
+.filePreviewWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.filePreview {
+  max-width: 300px;
+  max-height: 200px;
+  border-radius: var(--is-radius);
+  border: 1px solid var(--is-border);
+  display: block;
+}
+
+.filePreviewName {
+  font-size: 11px;
+  color: var(--is-text-muted);
+  font-family: 'Menlo', 'Consolas', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 340px;
+}
+
+.changeFileBtn {
+  font-size: 11px;
+  color: var(--is-cyan);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity var(--is-t);
+}
+
+.changeFileBtn:hover {
+  opacity: 0.75;
+}
+
+/* ─── Enhance type radio group ───────────────────────────────────────────── */
+.enhanceTypes {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.enhanceTypeItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--is-surface);
+  border: 1px solid var(--is-border);
+  border-radius: var(--is-radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color var(--is-t), background var(--is-t);
+}
+
+.enhanceTypeItem:hover {
+  border-color: var(--is-border-hover);
+  background: var(--is-purple-dim);
+}
+
+.enhanceTypeItemActive {
+  border-color: rgba(6, 182, 212, 0.5) !important;
+  background: var(--is-cyan-dim) !important;
+}
+
+.enhanceTypeRadio {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--is-t);
+}
+
+.enhanceTypeRadioActive {
+  border-color: var(--is-cyan) !important;
+}
+
+.enhanceTypeRadioInner {
+  width: 6px;
+  height: 6px;
+  background: var(--is-cyan);
+  border-radius: 50%;
+}
+
+.enhanceTypeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.enhanceTypeName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--is-text);
+}
+
+.enhanceTypeDesc {
+  font-size: 10px;
+  color: var(--is-text-muted);
+}
+
+/* ─── Enhance photo button ───────────────────────────────────────────────── */
+.enhancePhotoBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(124, 58, 237, 0.18));
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  border-radius: var(--is-radius);
+  color: #a5f3fc;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity var(--is-t), transform var(--is-t), box-shadow var(--is-t);
+  letter-spacing: 0.02em;
+}
+
+.enhancePhotoBtn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(6, 182, 212, 0.25);
+}
+
+.enhancePhotoBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.enhancePhotoBtn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+/* ─── Spinner (cyan, for enhance photo button) ───────────────────────────── */
+.spinnerCyan {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(165, 243, 252, 0.3);
+  border-top-color: #a5f3fc;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ─── Side-by-side comparison ────────────────────────────────────────────── */
+.compareWrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 1000px;
+}
+
+@media (max-width: 640px) {
+  .compareWrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+.comparePane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compareLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--is-text-muted);
+  text-align: center;
+}
+
+.compareImg {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid var(--is-border);
+}
+
+.compareMeta {
+  display: flex;
+  justify-content: center;
+}

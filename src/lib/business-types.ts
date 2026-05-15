@@ -23,6 +23,7 @@ export const BUSINESS_TYPES = [
   { slug: 'agency',      label: 'Agency',             templateRepo: 'vendshop-template-bold'    },
   { slug: 'education',   label: 'Education',          templateRepo: 'vendshop-template-bold'    },
   { slug: 'design',      label: 'Design Studio',      templateRepo: 'vendshop-template-dark'    },
+  { slug: 'medical',     label: 'Medical Clinic',     templateRepo: 'vendshop-template-medical' },
 ] as const;
 
 export type BusinessTypeSlug = typeof BUSINESS_TYPES[number]['slug'];
@@ -43,7 +44,6 @@ const LEGACY_TYPE_MAP: Record<string, BusinessTypeSlug> = {
   digital:       'agency',
   ecommerce:     'agency',
   health:        'dentist',
-  medical:       'dentist',
   fitness:       'yoga',
   physical:      'barbershop',
 };

@@ -10,7 +10,7 @@ import {
   CREATE_DEFAULT_SCHEDULE,
   CREATE_STORE_KEY,
 } from '@/lib/constants';
-import type { CreateState, CreatePlan, CreateHoursSchedule } from '@/lib/types';
+import type { CreateState, CreatePlan, CreateHoursSchedule, CreateSiteLanguage } from '@/lib/types';
 
 type Viewport = 'desktop' | 'tablet' | 'mobile';
 
@@ -22,6 +22,9 @@ for (let h = 7; h <= 22; h++) {
   TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
   if (h < 22) TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
 }
+
+const SITE_LANGS: ReadonlyArray<CreateSiteLanguage> = ['sk', 'en', 'uk', 'cs', 'de'];
+const SITE_LANG_FLAGS: Record<CreateSiteLanguage, string> = { sk: '🇸🇰', en: '🇬🇧', uk: '🇺🇦', cs: '🇨🇿', de: '🇩🇪' };
 
 const INITIAL_STATE: CreateState = {
   step: 1,
@@ -38,6 +41,7 @@ const INITIAL_STATE: CreateState = {
   gallery: [],
   plan: 'starter',
   heroLayout: 'auto',
+  language: 'sk',
 };
 
 function toSlug(s: string): string {
@@ -347,6 +351,28 @@ function Step2({ state, setState }: { state: CreateState; setState: React.Dispat
 
   return (
     <div className="grid gap-4 animate-[fadeUp_0.25s_ease-out]">
+      <div>
+        <label className="block text-[12px] font-semibold text-[#94a3b8] mb-2 tracking-[0.01em]">{t('langLabel')}</label>
+        <div className="flex gap-1.5 p-1 bg-[#0f1a2e] border border-[#253349] rounded-[10px] w-fit">
+          {SITE_LANGS.map((code) => {
+            const active = state.language === code;
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setState((s) => ({ ...s, language: code }))}
+                className={`flex items-center gap-1.5 px-3 py-1.75 rounded-[7px] text-[13px] font-semibold cursor-pointer transition-all border-0 ${
+                  active ? 'bg-[#243449] text-[#e2e8f0]' : 'bg-transparent text-[#94a3b8] hover:text-[#cbd5e1]'
+                }`}
+              >
+                <span>{SITE_LANG_FLAGS[code]}</span>
+                <span className="uppercase">{code}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div>
         <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">{t('nameLabel')}</label>
         <input className={inputCls} placeholder="Barbershop Co." value={state.businessName} onChange={up('businessName')} />
@@ -718,7 +744,7 @@ export default function CreatePageClient() {
         email:         state.email         || null,
         contact:       state.phone || state.email || '',
         address:       state.address       || null,
-        language:      typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'sk',
+        language:      state.language,
         workingHours:  JSON.stringify(state.hoursSchedule),
         palette:       state.palette,
         heroPhotoUrl:  heroPhotoUrl ?? null,

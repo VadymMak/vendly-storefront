@@ -1014,6 +1014,7 @@
       "tip": "Each template includes services/menu, gallery, contact and booking layout — tuned for your industry. Rearrange sections after launch."
     },
     "step2": {
+      "langLabel": "Site language",
       "nameLabel": "Business name",
       "descLabel": "Description",
       "aiBtn": "AI Generate",

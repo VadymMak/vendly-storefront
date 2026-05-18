@@ -1014,6 +1014,7 @@
       "tip": "Každá šablona obsahuje sekci služeb/menu, galerii, kontakty a rezervace – přizpůsobené vašemu odvětví."
     },
     "step2": {
+      "langLabel": "Jazyk stránky",
       "nameLabel": "Název firmy",
       "descLabel": "Popis",
       "aiBtn": "AI Generovat",

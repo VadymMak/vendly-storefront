@@ -1014,6 +1014,7 @@
       "tip": "Jede Vorlage enthält Dienste/Menü, Galerie, Kontakt und Buchungs-Layout – für Ihre Branche optimiert."
     },
     "step2": {
+      "langLabel": "Seitensprache",
       "nameLabel": "Unternehmensname",
       "descLabel": "Beschreibung",
       "aiBtn": "KI Generieren",

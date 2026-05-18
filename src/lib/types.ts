@@ -494,6 +494,8 @@ export interface CreateHoursSchedule {
  */
 export type CreateHeroLayout = 'auto' | 'split' | 'full';
 
+export type CreateSiteLanguage = 'sk' | 'en' | 'uk' | 'cs' | 'de';
+
 export interface CreateState {
   step: 1 | 2 | 3;
   business: string;
@@ -509,4 +511,5 @@ export interface CreateState {
   gallery: string[];
   plan: CreatePlan;
   heroLayout: CreateHeroLayout;
+  language: CreateSiteLanguage;
 }

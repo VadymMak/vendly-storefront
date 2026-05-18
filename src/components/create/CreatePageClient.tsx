@@ -687,7 +687,7 @@ export default function CreatePageClient() {
   // Persist (skip photos — data URLs are too large for localStorage)
   useEffect(() => {
     try {
-      const { heroPhoto, logoPhoto, gallery, ...rest } = state;
+      const { heroPhoto, logoPhoto, gallery, language, ...rest } = state;
       localStorage.setItem(CREATE_STORE_KEY, JSON.stringify(rest));
     } catch {}
   }, [state]);

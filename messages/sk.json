@@ -1014,6 +1014,7 @@
       "tip": "Každá šablóna obsahuje sekciu služieb/menu, galériu, kontakty a rezervácie – prispôsobené vášmu odvetviu. Sekcie môžete po spustení zmeniť."
     },
     "step2": {
+      "langLabel": "Jazyk stránky",
       "nameLabel": "Názov firmy",
       "descLabel": "Popis",
       "aiBtn": "AI Generovať",

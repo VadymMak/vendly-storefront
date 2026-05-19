@@ -512,4 +512,9 @@ export interface CreateState {
   plan: CreatePlan;
   heroLayout: CreateHeroLayout;
   language: CreateSiteLanguage;
+  ownerFullName:        string;
+  companyLegalForm:     string;
+  vatId:                string;
+  registrationNumber:   string;
+  impressumEmail:       string;
 }

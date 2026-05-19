@@ -42,6 +42,11 @@ const INITIAL_STATE: CreateState = {
   plan: 'starter',
   heroLayout: 'auto',
   language: 'sk',
+  ownerFullName:        '',
+  companyLegalForm:     'Einzelunternehmer',
+  vatId:                '',
+  registrationNumber:   '',
+  impressumEmail:       '',
 };
 
 function toSlug(s: string): string {
@@ -372,6 +377,41 @@ function Step2({ state, setState }: { state: CreateState; setState: React.Dispat
           })}
         </div>
       </div>
+
+      {state.language === 'de' && (
+        <div className="grid gap-3 p-3.5 bg-[rgba(59,130,246,0.06)] border border-[rgba(59,130,246,0.18)] rounded-xl">
+          <p className="text-[12px] text-[#93c5fd] leading-relaxed m-0">🇩🇪 Für deutsche Websites ist ein Impressum gesetzlich vorgeschrieben (DDG § 5).</p>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">Vollständiger Name / Firmenname</label>
+            <input className={inputCls} placeholder="Max Mustermann" value={state.ownerFullName} onChange={up('ownerFullName')} />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">Rechtsform</label>
+            <select
+              className={inputCls}
+              value={state.companyLegalForm}
+              onChange={(e) => setState((s) => ({ ...s, companyLegalForm: e.target.value }))}
+            >
+              <option value="Einzelunternehmer">Einzelunternehmer</option>
+              <option value="GmbH">GmbH</option>
+              <option value="UG (haftungsbeschränkt)">UG (haftungsbeschränkt)</option>
+              <option value="GbR">GbR</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">USt-ID (optional)</label>
+            <input className={inputCls} placeholder="DE123456789" value={state.vatId} onChange={up('vatId')} />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">Handelsregisternummer (optional)</label>
+            <input className={inputCls} placeholder="HRB 12345" value={state.registrationNumber} onChange={up('registrationNumber')} />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">Impressum E-Mail (falls abweichend)</label>
+            <input className={inputCls} placeholder="impressum@example.de" value={state.impressumEmail} onChange={up('impressumEmail')} />
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="block text-[12px] font-semibold text-[#94a3b8] mb-1.5 tracking-[0.01em]">{t('nameLabel')}</label>
@@ -751,6 +791,11 @@ export default function CreatePageClient() {
         logoUrl:       logoUrl      ?? null,
         galleryUrls,
         heroLayout:    state.heroLayout,
+        ownerFullName:        state.ownerFullName        || null,
+        companyLegalForm:     state.companyLegalForm     || null,
+        vatId:                state.vatId                || null,
+        registrationNumber:   state.registrationNumber   || null,
+        impressumEmail:       state.impressumEmail       || null,
       };
       console.log('[launch] Submitting lead payload:', JSON.stringify(payload).slice(0, 300));
 

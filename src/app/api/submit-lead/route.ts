@@ -27,6 +27,11 @@ export async function POST(request: Request) {
         services:     String(data.services     || data.description || ''),
         contact:      String(data.contact      || data.phone       || data.email || ''),
         language:     String(data.language     || ''),
+        ownerFullName:      data.ownerFullName      ? String(data.ownerFullName)      : null,
+        companyLegalForm:   data.companyLegalForm   ? String(data.companyLegalForm)   : null,
+        vatId:              data.vatId              ? String(data.vatId)              : null,
+        registrationNumber: data.registrationNumber ? String(data.registrationNumber) : null,
+        impressumEmail:     data.impressumEmail     ? String(data.impressumEmail)     : null,
         demoUrl:      data.demoUrl             ? String(data.demoUrl)      : null,
 
         // /create wizard fields

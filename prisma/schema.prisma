@@ -185,6 +185,11 @@ model Lead {
   contact         String
   email           String?
   language        String
+  ownerFullName      String?
+  companyLegalForm   String?
+  vatId              String?
+  registrationNumber String?
+  impressumEmail     String?
 
   // Сайт
   services        String

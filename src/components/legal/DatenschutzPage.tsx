@@ -8,7 +8,7 @@ type ImprintData = {
 } | null;
 
 interface Props {
-  imprint: ImprintData;
+  imprint?: ImprintData | Record<string, string> | null;
 }
 
 export default function DatenschutzPage({ imprint }: Props) {

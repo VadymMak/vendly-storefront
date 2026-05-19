@@ -10,7 +10,7 @@ type ImprintData = {
 };
 
 interface Props {
-  imprint: ImprintData;
+  imprint: ImprintData | Record<string, string>;
 }
 
 export default function ImpressumPage({ imprint }: Props) {

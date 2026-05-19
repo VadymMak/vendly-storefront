@@ -24,6 +24,11 @@ export interface LeadConstantsInput {
   logoImagePath:     string | null;  // '/images/logo.webp' if logo committed, else null
   briefServicesJson: string | null;  // JSON string: [{name,price,duration,note}]
   heroLayout:        'split' | 'full'; // resolved by caller (never 'auto' here)
+  ownerFullName:      string | null;
+  companyLegalForm:   string | null;
+  vatId:              string | null;
+  registrationNumber: string | null;
+  impressumEmail:     string | null;
 }
 
 // ─── Required import block (always prepended if Claude omits it) ─────────────
@@ -253,6 +258,19 @@ ${isMenuType
 - Keep USE_LOCAL_IMAGES = false
 - Keep SCHEDULE and MENU_CATEGORIES present in file (they are used depending on templateType)
 - APOSTROPHES: any apostrophe inside a single-quoted string MUST be escaped as \\' — e.g. об\\'єму, зв\\'язок
+${lead.language === 'de' ? `
+=== GERMAN LEGAL (IMPRINT) — REQUIRED ===
+Export IMPRINT as a const object with this exact shape:
+export const IMPRINT = {
+  ownerFullName:      '${lead.ownerFullName ?? ''}',
+  companyLegalForm:   '${lead.companyLegalForm ?? 'Einzelunternehmer'}',
+  vatId:              '${lead.vatId ?? ''}',
+  registrationNumber: '${lead.registrationNumber ?? ''}',
+  impressumEmail:     '${lead.impressumEmail ?? lead.email ?? ''}',
+  address:            '${lead.address ?? ''}',
+  phone:              '${lead.contact ?? ''}',
+  businessName:       '${lead.businessName ?? ''}',
+} as const;` : `- For non-German sites export: export const IMPRINT = null;`}
 
 ⚠️ CRITICAL — EXACT FIELD NAMES (wrong fields = TypeScript build error):
 

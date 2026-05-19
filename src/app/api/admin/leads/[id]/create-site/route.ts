@@ -326,6 +326,11 @@ export async function POST(
       logoImagePath,
       briefServicesJson: lead.briefServicesJson,
       heroLayout:        resolvedHeroLayout,
+      ownerFullName:      lead.ownerFullName,
+      companyLegalForm:   lead.companyLegalForm,
+      vatId:              lead.vatId,
+      registrationNumber: lead.registrationNumber,
+      impressumEmail:     lead.impressumEmail,
     };
 
     const constantsTs = await generateConstantsTs(constantsInput, templateConstantsTs);

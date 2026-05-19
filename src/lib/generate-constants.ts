@@ -166,7 +166,6 @@ function buildPrompt(lead: LeadConstantsInput, templateConstants: string): strin
   // Resolve language: empty/null → 'sk' (primary market). Lookup full name for prompt.
   const langCode = (lead.language || 'sk').trim().toLowerCase();
   const langName = LANGUAGE_NAMES[langCode] ?? LANGUAGE_NAMES.sk;
-  console.log('[DEBUG] langCode =', langCode, 'langName =', langName);
 
   // Hero subtitle: prefer customer's own description; otherwise let Sonnet write one.
   const trimmedDesc = lead.description?.trim() ?? '';

@@ -159,8 +159,6 @@ export async function POST(
   if (!lead) {
     return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
   }
-  console.log('[DEBUG] lead.language =', lead.language);
-
   const templateRepo = getTemplateRepo(lead.businessType ?? '');
   console.log('[create-site] Template repo:', templateRepo, '(businessType:', lead.businessType, ')');
 
@@ -329,7 +327,6 @@ export async function POST(
       briefServicesJson: lead.briefServicesJson,
       heroLayout:        resolvedHeroLayout,
     };
-    console.log('[DEBUG] constantsInput.language =', constantsInput.language);
 
     const constantsTs = await generateConstantsTs(constantsInput, templateConstantsTs);
 

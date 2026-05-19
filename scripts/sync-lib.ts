@@ -27,6 +27,8 @@ const SYNC_DIRS = [
   'lib',
   'components/sections',
   'components/widgets',
+  'components/legal',
+  'components/ui',
 ];
 
 // Files we must NOT overwrite — visual variants per template.

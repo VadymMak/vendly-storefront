@@ -200,6 +200,10 @@ function buildPrompt(lead: LeadConstantsInput, templateConstants: string): strin
     } catch { /* ignore */ }
   }
 
+  // Escape backslashes then single quotes so values are safe inside '...' string literals.
+  const esc = (v: string | null) =>
+    (v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
   return `You are generating a TypeScript constants file (constants.ts) for a business website.
 
 === LANGUAGE — NON-NEGOTIABLE ===
@@ -262,14 +266,14 @@ ${lead.language === 'de' ? `
 === GERMAN LEGAL (IMPRINT) — REQUIRED ===
 Export IMPRINT as a const object with this exact shape:
 export const IMPRINT = {
-  ownerFullName:      '${lead.ownerFullName ?? ''}',
-  companyLegalForm:   '${lead.companyLegalForm ?? 'Einzelunternehmer'}',
-  vatId:              '${lead.vatId ?? ''}',
-  registrationNumber: '${lead.registrationNumber ?? ''}',
-  impressumEmail:     '${lead.impressumEmail ?? lead.email ?? ''}',
-  address:            '${lead.address ?? ''}',
-  phone:              '${lead.contact ?? ''}',
-  businessName:       '${lead.businessName ?? ''}',
+  ownerFullName:      '${esc(lead.ownerFullName)}',
+  companyLegalForm:   '${esc(lead.companyLegalForm) || 'Einzelunternehmer'}',
+  vatId:              '${esc(lead.vatId)}',
+  registrationNumber: '${esc(lead.registrationNumber)}',
+  impressumEmail:     '${esc(lead.impressumEmail ?? lead.email)}',
+  address:            '${esc(lead.address)}',
+  phone:              '${esc(lead.contact)}',
+  businessName:       '${esc(lead.businessName)}',
 } as const;` : `- For non-German sites export: export const IMPRINT = null;`}
 
 ⚠️ CRITICAL — EXACT FIELD NAMES (wrong fields = TypeScript build error):

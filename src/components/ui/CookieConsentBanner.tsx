@@ -62,7 +62,7 @@ export default function CookieConsentBanner() {
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <p className="text-[13px] leading-relaxed text-[--color-text-muted]">
           Diese Website verwendet Cookies und Google Maps. Mit Klick auf{' '}
-          <strong className="text-[--color-text]">„Alle akzeptieren"</strong> stimmen Sie zu.{' '}
+          <strong className="text-[--color-text]">{'„Alle akzeptieren"'}</strong> stimmen Sie zu.{' '}
         </p>
         <div className="flex shrink-0 gap-2">
           <button

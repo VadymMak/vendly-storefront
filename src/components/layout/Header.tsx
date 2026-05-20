@@ -127,6 +127,13 @@ export default function Header() {
               {t(item.key)}
             </a>
           ))}
+          <a
+            href="/studio"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[--color-text-muted] transition-colors hover:text-white"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            AI Studio
+          </a>
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -202,6 +209,14 @@ export default function Header() {
                 {t(item.key)}
               </a>
             ))}
+            <a
+              href="/studio"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-[--color-text-muted] transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              AI Studio
+            </a>
           </nav>
 
           {/* Mobile language pills */}

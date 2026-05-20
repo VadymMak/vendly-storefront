@@ -181,7 +181,10 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     resizeStartFgX: 0,
     resizeStartFgY: 0,
     resizeStartScale: 1,
+    flipped: false,
   });
+  const [composeFgScalePct, setComposeFgScalePct] = useState(50);
+  const composeRafIdRef = useRef<number | null>(null);
 
   // ── Video tab ─────────────────────────────────────────────────────────────
   const [videoMode,        setVideoMode]        = useState<VideoMode>('text');
@@ -217,6 +220,19 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }, [helpOpen, helpSection]);
 
+  // Compose canvas — init empty state when entering compose mode
+  useEffect(() => {
+    if (!composeMode) return;
+    const canvas = composeCanvasRef.current;
+    if (!canvas) return;
+    if (!composeBg && !composeFg) {
+      canvas.width  = 800;
+      canvas.height = 450;
+      drawCompose();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composeMode]);
+
   // Compose canvas — reload bg image
   useEffect(() => {
     if (!composeBg || !composeMode) { composeBgImgRef.current = null; return; }
@@ -247,11 +263,17 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
       if (composeBgImgRef.current) {
         initFgPlacement(composeBgImgRef.current.naturalWidth, composeBgImgRef.current.naturalHeight, img.naturalWidth, img.naturalHeight);
       } else {
+        const canvas = composeCanvasRef.current;
+        if (canvas) { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; }
         fgState.current.origW = img.naturalWidth;
         fgState.current.origH = img.naturalHeight;
-        fgState.current.scale = 1;
-        fgState.current.x = 50;
-        fgState.current.y = 50;
+        fgState.current.bgW  = img.naturalWidth;
+        fgState.current.bgH  = img.naturalHeight;
+        const sc = Math.min(1, Math.min((img.naturalWidth * 0.6) / img.naturalWidth, (img.naturalHeight * 0.6) / img.naturalHeight));
+        fgState.current.scale = sc;
+        fgState.current.x = (img.naturalWidth  - img.naturalWidth  * sc) / 2;
+        fgState.current.y = (img.naturalHeight - img.naturalHeight * sc) / 2;
+        setComposeFgScalePct(Math.round(sc * 100));
       }
       drawCompose();
     };
@@ -541,61 +563,111 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
 
   // ── Compose mode ─────────────────────────────────────────────────────────
   function initFgPlacement(bgW: number, bgH: number, fgW: number, fgH: number) {
-    const maxScale = Math.min((bgW * 0.5) / fgW, (bgH * 0.5) / fgH, 1);
-    fgState.current.scale  = Math.max(0.05, maxScale);
-    fgState.current.origW  = fgW;
-    fgState.current.origH  = fgH;
-    fgState.current.bgW    = bgW;
-    fgState.current.bgH    = bgH;
-    const w = fgW * fgState.current.scale;
-    const h = fgH * fgState.current.scale;
-    fgState.current.x = (bgW - w) / 2;
-    fgState.current.y = (bgH - h) / 2;
+    const scale = Math.max(0.1, Math.min(3, Math.min((bgW * 0.5) / fgW, (bgH * 0.5) / fgH, 1)));
+    fgState.current.scale = scale;
+    fgState.current.origW = fgW;
+    fgState.current.origH = fgH;
+    fgState.current.bgW   = bgW;
+    fgState.current.bgH   = bgH;
+    fgState.current.x = (bgW - fgW * scale) / 2;
+    fgState.current.y = (bgH - fgH * scale) / 2;
+    setComposeFgScalePct(Math.round(scale * 100));
   }
 
   function composeHandles(x: number, y: number, w: number, h: number): Array<[string, number, number]> {
     return [['tl', x, y], ['tr', x + w, y], ['bl', x, y + h], ['br', x + w, y + h]];
   }
 
+  function scheduleComposeDraw() {
+    if (composeRafIdRef.current) cancelAnimationFrame(composeRafIdRef.current);
+    composeRafIdRef.current = requestAnimationFrame(drawCompose);
+  }
+
   function drawCompose() {
     const canvas = composeCanvasRef.current;
-    const bg = composeBgImgRef.current;
-    if (!canvas || !bg) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+    const bg = composeBgImgRef.current;
     const fg = composeFgImgRef.current;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (bg) {
+      ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+    } else if (fg) {
+      // Checkerboard for transparent FG without BG
+      const cs = Math.max(20, Math.floor(canvas.width / 40));
+      for (let row = 0; row < canvas.height; row += cs) {
+        for (let col = 0; col < canvas.width; col += cs) {
+          ctx.fillStyle = ((Math.floor(col / cs) + Math.floor(row / cs)) % 2 === 0) ? '#d4d4d4' : '#a0a0a0';
+          ctx.fillRect(col, row, Math.min(cs, canvas.width - col), Math.min(cs, canvas.height - row));
+        }
+      }
+    } else {
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = `bold ${Math.max(14, Math.floor(canvas.width / 36))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Drop background image here', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    if (bg && !fg) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.38)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.font = `bold ${Math.max(14, Math.floor(canvas.width / 36))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Now add foreground PNG →', canvas.width / 2, canvas.height / 2);
+      ctx.restore();
+      return;
+    }
+
     if (!fg) return;
+
     const s = fgState.current;
     const w = s.origW * s.scale;
     const h = s.origH * s.scale;
-    ctx.drawImage(fg, s.x, s.y, w, h);
-    // Selection outline
+
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = Math.max(2, canvas.width / 400);
+    if (s.flipped) {
+      ctx.translate(s.x + w, s.y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(fg, 0, 0, w, h);
+    } else {
+      ctx.drawImage(fg, s.x, s.y, w, h);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = Math.max(2, canvas.width / 500);
     ctx.setLineDash([8, 5]);
     ctx.strokeRect(s.x, s.y, w, h);
     ctx.setLineDash([]);
     ctx.restore();
-    // Corner handles
-    const hs = Math.max(10, canvas.width / 80);
+
+    const hs = Math.max(12, canvas.width / 70);
     for (const [, hx, hy] of composeHandles(s.x, s.y, w, h)) {
-      ctx.fillStyle = '#fff';
-      ctx.strokeStyle = '#444';
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#333333';
       ctx.lineWidth = 1.5;
       ctx.fillRect(hx - hs / 2, hy - hs / 2, hs, hs);
       ctx.strokeRect(hx - hs / 2, hy - hs / 2, hs, hs);
     }
   }
 
-  function composeCanvasCoords(e: React.MouseEvent<HTMLCanvasElement>): [number, number] {
+  function composeClientCoords(clientX: number, clientY: number): [number, number] {
     const canvas = composeCanvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     return [
-      (e.clientX - rect.left) * (canvas.width  / rect.width),
-      (e.clientY - rect.top)  * (canvas.height / rect.height),
+      (clientX - rect.left) * (canvas.width  / rect.width),
+      (clientY - rect.top)  * (canvas.height / rect.height),
     ];
   }
 
@@ -604,7 +676,7 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     const s = fgState.current;
     const w = s.origW * s.scale;
     const h = s.origH * s.scale;
-    const hs = Math.max(14, (composeCanvasRef.current?.width ?? 0) / 60);
+    const hs = Math.max(16, (composeCanvasRef.current?.width ?? 0) / 55);
     for (const [name, hx, hy] of composeHandles(s.x, s.y, w, h)) {
       if (Math.abs(mx - hx) < hs && Math.abs(my - hy) < hs) return name;
     }
@@ -613,22 +685,19 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
 
   function composeHitFg(mx: number, my: number): boolean {
     if (!composeFgImgRef.current) return false;
-    const s = fgState.current;
-    const w = s.origW * s.scale;
-    const h = s.origH * s.scale;
-    return mx >= s.x && mx <= s.x + w && my >= s.y && my <= s.y + h;
+    const { x, y, origW, origH, scale } = fgState.current;
+    return mx >= x && mx <= x + origW * scale && my >= y && my <= y + origH * scale;
   }
 
-  function handleComposeMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
-    const [mx, my] = composeCanvasCoords(e);
+  function composeStartInteraction(mx: number, my: number) {
     const s = fgState.current;
     const corner = composeHitHandle(mx, my);
     if (corner) {
       s.resizing = true;
       s.resizeCorner = corner as typeof s.resizeCorner;
-      s.resizeStartFgX    = s.x;
-      s.resizeStartFgY    = s.y;
-      s.resizeStartScale  = s.scale;
+      s.resizeStartFgX   = s.x;
+      s.resizeStartFgY   = s.y;
+      s.resizeStartScale = s.scale;
       return;
     }
     if (composeHitFg(mx, my)) {
@@ -638,19 +707,12 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     }
   }
 
-  function handleComposeMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    const canvas = composeCanvasRef.current;
-    if (!canvas) return;
-    const [mx, my] = composeCanvasCoords(e);
+  function composeMoveInteraction(mx: number, my: number) {
     const s = fgState.current;
-    // Cursor
-    const corner = composeHitHandle(mx, my);
-    const cursorMap: Record<string, string> = { tl: 'nw-resize', tr: 'ne-resize', bl: 'sw-resize', br: 'se-resize' };
-    canvas.style.cursor = corner ? (cursorMap[corner] ?? 'default') : composeHitFg(mx, my) ? 'move' : 'default';
     if (s.dragging) {
       s.x = mx - s.dragOffX;
       s.y = my - s.dragOffY;
-      drawCompose();
+      scheduleComposeDraw();
     } else if (s.resizing) {
       const startW = s.origW * s.resizeStartScale;
       const startH = s.origH * s.resizeStartScale;
@@ -659,23 +721,94 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
       if      (s.resizeCorner === 'tl') { anchorX += startW; anchorY += startH; }
       else if (s.resizeCorner === 'tr') {                     anchorY += startH; }
       else if (s.resizeCorner === 'bl') { anchorX += startW;                    }
-      // br: anchor stays at top-left (resizeStartFgX, resizeStartFgY)
       const origDist = Math.hypot(startW, startH);
       const newDist  = Math.hypot(mx - anchorX, my - anchorY);
-      if (origDist > 0) s.scale = Math.max(0.05, Math.min(5, s.resizeStartScale * newDist / origDist));
+      if (origDist > 0) s.scale = Math.max(0.1, Math.min(3, s.resizeStartScale * newDist / origDist));
       const nw = s.origW * s.scale;
       const nh = s.origH * s.scale;
       if      (s.resizeCorner === 'br') { s.x = anchorX;      s.y = anchorY;      }
       else if (s.resizeCorner === 'bl') { s.x = anchorX - nw; s.y = anchorY;      }
       else if (s.resizeCorner === 'tr') { s.x = anchorX;      s.y = anchorY - nh; }
       else                              { s.x = anchorX - nw; s.y = anchorY - nh; }
-      drawCompose();
+      setComposeFgScalePct(Math.round(s.scale * 100));
+      scheduleComposeDraw();
     }
+  }
+
+  function handleComposeMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    const [mx, my] = composeClientCoords(e.clientX, e.clientY);
+    composeStartInteraction(mx, my);
+  }
+
+  function handleComposeMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = composeCanvasRef.current;
+    if (!canvas) return;
+    const [mx, my] = composeClientCoords(e.clientX, e.clientY);
+    const s = fgState.current;
+    if (!s.dragging && !s.resizing) {
+      const corner = composeHitHandle(mx, my);
+      const cursorMap: Record<string, string> = { tl: 'nw-resize', tr: 'ne-resize', bl: 'sw-resize', br: 'se-resize' };
+      canvas.style.cursor = corner ? (cursorMap[corner] ?? 'default') : composeHitFg(mx, my) ? 'move' : 'default';
+    }
+    composeMoveInteraction(mx, my);
   }
 
   function handleComposeMouseUp() {
     fgState.current.dragging = false;
     fgState.current.resizing = false;
+  }
+
+  function handleComposeTouchStart(e: React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    const t = e.touches[0];
+    if (!t) return;
+    const [mx, my] = composeClientCoords(t.clientX, t.clientY);
+    composeStartInteraction(mx, my);
+  }
+
+  function handleComposeTouchMove(e: React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    const t = e.touches[0];
+    if (!t) return;
+    const [mx, my] = composeClientCoords(t.clientX, t.clientY);
+    composeMoveInteraction(mx, my);
+  }
+
+  function handleComposeTouchEnd() {
+    fgState.current.dragging = false;
+    fgState.current.resizing = false;
+  }
+
+  function composeFlipFg() {
+    fgState.current.flipped = !fgState.current.flipped;
+    scheduleComposeDraw();
+  }
+
+  function composeResetFg() {
+    const fg = composeFgImgRef.current;
+    if (!fg) return;
+    const bgW = composeBgImgRef.current?.naturalWidth  ?? fg.naturalWidth;
+    const bgH = composeBgImgRef.current?.naturalHeight ?? fg.naturalHeight;
+    initFgPlacement(bgW, bgH, fg.naturalWidth, fg.naturalHeight);
+    fgState.current.flipped = false;
+    scheduleComposeDraw();
+  }
+
+  function composeSetScaleFromSlider(pct: number) {
+    const scale = Math.max(0.1, Math.min(3, pct / 100));
+    const s = fgState.current;
+    const oldW = s.origW * s.scale;
+    const oldH = s.origH * s.scale;
+    s.x += (oldW - s.origW * scale) / 2;
+    s.y += (oldH - s.origH * scale) / 2;
+    s.scale = scale;
+    setComposeFgScalePct(pct);
+    scheduleComposeDraw();
+  }
+
+  function composeSwapLayers() {
+    setComposeBg(composeFg);
+    setComposeFg(composeBg);
   }
 
   async function composeGenerateBg() {
@@ -698,15 +831,26 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     const canvas = composeCanvasRef.current;
     if (!canvas || !composeBgImgRef.current) return;
     setComposeMerging(true);
-    const ctx = canvas.getContext('2d')!;
-    // Clean render — no selection handles
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(composeBgImgRef.current, 0, 0, canvas.width, canvas.height);
+    const off = document.createElement('canvas');
+    off.width  = canvas.width;
+    off.height = canvas.height;
+    const ctx = off.getContext('2d')!;
+    ctx.drawImage(composeBgImgRef.current, 0, 0, off.width, off.height);
     if (composeFgImgRef.current) {
       const s = fgState.current;
-      ctx.drawImage(composeFgImgRef.current, s.x, s.y, s.origW * s.scale, s.origH * s.scale);
+      const w = s.origW * s.scale;
+      const h = s.origH * s.scale;
+      if (s.flipped) {
+        ctx.save();
+        ctx.translate(s.x + w, s.y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(composeFgImgRef.current, 0, 0, w, h);
+        ctx.restore();
+      } else {
+        ctx.drawImage(composeFgImgRef.current, s.x, s.y, w, h);
+      }
     }
-    canvas.toBlob((blob) => {
+    off.toBlob((blob) => {
       if (!blob) { setComposeMerging(false); return; }
       const url = URL.createObjectURL(blob);
       const file = new File([blob], `composed-${Date.now()}.png`, { type: 'image/png' });
@@ -715,11 +859,7 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
       setEditAiResult(null);
       setEditAiError(null);
       setEditFilter('original');
-      setEditBrightness(100);
-      setEditContrast(100);
-      setEditSaturation(100);
-      setEditTemperature(0);
-      setEditSharpness(0);
+      setEditBrightness(100); setEditContrast(100); setEditSaturation(100); setEditTemperature(0); setEditSharpness(0);
       setEditAdjustOpen(false);
       setEditIsTransparent(false);
       setEditSaveFormat('webp');
@@ -1208,94 +1348,96 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                         {composeMode ? (
                           /* ── Compose Mode Controls ── */
                           <div className="space-y-4">
+                            {/* Header */}
                             <div className="flex items-center justify-between">
                               <h3 className="text-sm font-bold text-white">Compose Mode</h3>
                               <button
                                 onClick={() => { setComposeMode(false); setComposeBg(null); setComposeFg(null); setComposeBgPrompt(''); setComposeBgError(null); }}
                                 className="cursor-pointer rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs text-[var(--color-text-muted)] hover:text-white"
-                              >
-                                ✕ Cancel
-                              </button>
+                              >✕ Cancel</button>
                             </div>
 
-                            {/* Background layer */}
-                            <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-                              <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Background Layer</h4>
-                              {composeBg ? (
-                                <div className="relative">
+                            {/* Background Layer */}
+                            <section className="space-y-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Background Layer</h4>
+                                {composeBg && (
+                                  <button onClick={() => setComposeBg(null)} className="cursor-pointer text-xs text-[var(--color-text-muted)] hover:text-white">✕ Clear</button>
+                                )}
+                              </div>
+                              {composeBg && (
+                                <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={composeBg} alt="Background" className="w-full rounded-lg border border-[var(--color-border)]" style={{ maxHeight: 80, objectFit: 'cover' }} />
-                                  <button
-                                    onClick={() => setComposeBg(null)}
-                                    className="absolute right-1 top-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
-                                  >✕</button>
+                                  <img src={composeBg} alt="BG preview" style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
                                 </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <input
-                                    id="compose-bg-input"
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      if (f) setComposeBg(URL.createObjectURL(f));
-                                      e.target.value = '';
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor="compose-bg-input"
-                                    className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white"
-                                  >
-                                    Upload background image
-                                  </label>
-                                  <div className="flex gap-2">
-                                    <input
-                                      value={composeBgPrompt}
-                                      onChange={(e) => setComposeBgPrompt(e.target.value)}
-                                      placeholder="sunny beach, forest…"
-                                      className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-xs placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-primary)] focus:outline-none"
-                                    />
-                                    <button
-                                      onClick={composeGenerateBg}
-                                      disabled={composeGenerating || !composeBgPrompt.trim() || !keyFor('replicate')}
-                                      className="cursor-pointer rounded-lg bg-[var(--color-primary)] px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                                    >
-                                      {composeGenerating ? '…' : 'AI'}
-                                    </button>
-                                  </div>
-                                  {composeBgError && <p className="text-xs text-red-400">{composeBgError}</p>}
+                              )}
+                              <input id="compose-bg-input" type="file" accept="image/*" className="hidden"
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) setComposeBg(URL.createObjectURL(f)); e.target.value = ''; }} />
+                              <label htmlFor="compose-bg-input" className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white">
+                                Upload background
+                              </label>
+                              <div className="flex gap-1.5">
+                                <input
+                                  value={composeBgPrompt}
+                                  onChange={(e) => setComposeBgPrompt(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && composeGenerateBg()}
+                                  placeholder="Describe background…"
+                                  className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-xs placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-primary)] focus:outline-none"
+                                />
+                                <button
+                                  onClick={composeGenerateBg}
+                                  disabled={composeGenerating || !composeBgPrompt.trim() || !keyFor('replicate')}
+                                  className="cursor-pointer rounded-lg bg-[var(--color-primary)] px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                                >{composeGenerating ? '…' : 'AI'}</button>
+                              </div>
+                              {composeBgError && <p className="text-xs text-red-400">{composeBgError}</p>}
+                            </section>
+
+                            {/* Swap */}
+                            {composeBg && composeFg && (
+                              <button
+                                onClick={composeSwapLayers}
+                                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white"
+                              >↕ Swap layers</button>
+                            )}
+
+                            {/* Foreground Layer */}
+                            <section className="space-y-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+                              <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Foreground Layer</h4>
+                              {composeFg && (
+                                <div className="overflow-hidden rounded-lg border border-[var(--color-border)]"
+                                  style={{ background: 'repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 0 0 / 10px 10px' }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={composeFg} alt="FG preview" style={{ width: '100%', height: 80, objectFit: 'contain', display: 'block' }} />
                                 </div>
+                              )}
+                              <input id="compose-fg-input" type="file" accept="image/*" className="hidden"
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) setComposeFg(URL.createObjectURL(f)); e.target.value = ''; }} />
+                              <label htmlFor="compose-fg-input" className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] py-2 text-xs text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white">
+                                {composeFg ? 'Change foreground' : 'Upload foreground'}
+                              </label>
+                              {editAiResult && !composeFg && (
+                                <button
+                                  onClick={() => setComposeFg(editAiResult)}
+                                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 py-2 text-xs font-semibold text-cyan-400 transition-colors hover:bg-cyan-500/20"
+                                >Use current (Remove BG result)</button>
                               )}
                             </section>
 
-                            {/* Foreground layer */}
-                            <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-                              <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Foreground Layer (PNG)</h4>
-                              {composeFg && (
-                                <div className="relative overflow-hidden rounded-lg border border-[var(--color-border)]" style={{ background: 'repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 0 0 / 10px 10px' }}>
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={composeFg} alt="Foreground" className="w-full" style={{ maxHeight: 80, objectFit: 'contain' }} />
+                            {/* Scale slider */}
+                            {composeFg && (
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                                  <span>Scale</span>
+                                  <span className="font-mono">{composeFgScalePct}%</span>
                                 </div>
-                              )}
-                              <input
-                                id="compose-fg-input"
-                                type="file"
-                                accept="image/png"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) setComposeFg(URL.createObjectURL(f));
-                                  e.target.value = '';
-                                }}
-                              />
-                              <label
-                                htmlFor="compose-fg-input"
-                                className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white"
-                              >
-                                {composeFg ? 'Change foreground PNG' : 'Upload foreground PNG'}
-                              </label>
-                            </section>
+                                <input
+                                  type="range" min={10} max={300} value={composeFgScalePct}
+                                  onChange={(e) => composeSetScaleFromSlider(Number(e.target.value))}
+                                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[var(--color-border)] accent-[var(--color-primary)]"
+                                />
+                              </div>
+                            )}
 
                             {/* Merge */}
                             <button
@@ -1307,7 +1449,6 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                                 ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Merging…</>
                                 : 'Merge & Apply'}
                             </button>
-                            <p className="text-center text-xs text-[var(--color-text-dim)]">Drag &amp; resize foreground on canvas →</p>
                           </div>
                         ) : (<>
                         {/* Level 1: Quick Filters */}
@@ -1504,23 +1645,42 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                         <span className="text-sm text-[var(--color-text-dim)]">Upload a photo to start editing</span>
                       </div>
                     ) : composeMode ? (
-                      <div className="space-y-4">
-                        {composeBg ? (
-                          <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)]">
-                            <canvas
-                              ref={composeCanvasRef}
-                              style={{ width: '100%', height: 'auto', display: 'block' }}
-                              onMouseDown={handleComposeMouseDown}
-                              onMouseMove={handleComposeMouseMove}
-                              onMouseUp={handleComposeMouseUp}
-                              onMouseLeave={handleComposeMouseUp}
-                              className="rounded-xl"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--color-border)] p-16 text-center">
-                            <span className="text-5xl opacity-20">🖼️</span>
-                            <span className="text-sm text-[var(--color-text-dim)]">Upload or generate a background to start composing</span>
+                      <div className="space-y-3">
+                        {/* Canvas — always rendered once in compose mode */}
+                        <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)]">
+                          <canvas
+                            ref={composeCanvasRef}
+                            style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none' }}
+                            onMouseDown={handleComposeMouseDown}
+                            onMouseMove={handleComposeMouseMove}
+                            onMouseUp={handleComposeMouseUp}
+                            onMouseLeave={handleComposeMouseUp}
+                            onTouchStart={handleComposeTouchStart}
+                            onTouchMove={handleComposeTouchMove}
+                            onTouchEnd={handleComposeTouchEnd}
+                            className="rounded-xl"
+                          />
+                        </div>
+                        {/* Under-canvas controls */}
+                        {composeFg && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={composeFlipFg}
+                              className="cursor-pointer rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:text-white"
+                            >Flip ↔</button>
+                            <button
+                              onClick={composeResetFg}
+                              className="cursor-pointer rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:text-white"
+                            >Reset</button>
+                            <button
+                              onClick={handleComposeMerge}
+                              disabled={!composeBg || composeMerging}
+                              className="ml-auto flex cursor-pointer items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40"
+                            >
+                              {composeMerging
+                                ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Merging…</>
+                                : 'Merge & Apply'}
+                            </button>
                           </div>
                         )}
                       </div>

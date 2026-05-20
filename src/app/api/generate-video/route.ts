@@ -49,7 +49,9 @@ export async function POST(request: Request) {
 
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
-  // kwaivgi/kling-v2.1 is an image-to-video model; `image` is the start frame input
+  console.log('Kling input:', { prompt: body.prompt, start_image: body.startImage, duration: body.duration, aspect_ratio: body.aspectRatio });
+
+  // kwaivgi/kling-v2.1 is an image-to-video model; `start_image` is the start frame input
   const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions', {
     method: 'POST',
     headers: {
@@ -59,8 +61,8 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       input: {
-        prompt:       body.prompt,
-        image:        body.startImage,
+        prompt:      body.prompt,
+        start_image: body.startImage,
         aspect_ratio: body.aspectRatio,
         duration:     body.duration,
       },

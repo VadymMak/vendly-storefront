@@ -34,8 +34,8 @@ export async function POST(request: Request) {
 
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
-  // Create prediction
-  const createRes = await fetch('https://api.replicate.com/v1/models/kling-ai/kling-v2.0-master/predictions', {
+  // Create prediction — kwaivgi is the correct Replicate namespace for Kling models
+  const createRes = await fetch('https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${replicateKey}`,
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
 
   if (!createRes.ok) {
     const err = await createRes.json().catch(() => ({})) as Record<string, unknown>;
-    return NextResponse.json({ error: (err.detail as string) ?? 'Failed to start generation' }, { status: 502 });
+    const detail = (err.detail as string) ?? JSON.stringify(err);
+    return NextResponse.json({ error: `Replicate error: ${detail}` }, { status: 502 });
   }
 
   let prediction = await createRes.json() as ReplicatePrediction;

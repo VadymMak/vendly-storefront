@@ -26,7 +26,7 @@ function cx(...classes: (string | false | undefined | null)[]) {
 type Provider      = 'replicate' | 'anthropic';
 type HelpSection   = 'replicate' | 'anthropic' | 'tips';
 type Mode          = 'text' | 'image';
-type GenStep       = 'generating-frame' | 'animating' | null;
+type GenStep       = 'generating-frame' | 'rate-limiting' | 'animating' | null;
 
 interface Props { userId: string; }
 
@@ -200,6 +200,11 @@ export default function TestVideoClient({ userId: _userId }: Props) {
       if (!frameRes.ok) { setError(frameData.error ?? 'Frame generation failed'); setGenStep(null); return; }
 
       setStartImageUrl(frameData.url ?? null);
+
+      // 10s cooldown so Replicate burst limit (burst=1) resets before Kling call
+      setGenStep('rate-limiting');
+      await new Promise((r) => setTimeout(r, 10000));
+
       setGenStep('animating');
 
       // Step 2: Kling → video
@@ -505,7 +510,7 @@ export default function TestVideoClient({ userId: _userId }: Props) {
                 className="rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40 cursor-pointer"
               >
                 {isGenerating
-                  ? <span className="flex items-center gap-2"><span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />{genStep === 'generating-frame' ? 'Generating frame…' : 'Animating…'}</span>
+                  ? <span className="flex items-center gap-2"><span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />{genStep === 'generating-frame' ? 'Generating frame…' : genStep === 'rate-limiting' ? 'Rate limit pause…' : 'Animating…'}</span>
                   : mode === 'text' ? 'Generate Video' : 'Animate'}
               </button>
             </div>
@@ -538,6 +543,22 @@ export default function TestVideoClient({ userId: _userId }: Props) {
                   <img src={startImageUrl} alt="Start frame" className="h-14 w-14 rounded-lg object-cover border border-[var(--color-border)]" />
                 )}
               </div>
+              {/* Step 1.5: rate-limit cooldown (text mode only) */}
+              {mode === 'text' && (
+                <div className={cx('flex items-center gap-4 border-b border-[var(--color-border)] px-5 py-3 transition-opacity', genStep === 'rate-limiting' ? 'opacity-100' : 'opacity-30')}>
+                  <div className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs', genStep === 'rate-limiting' ? 'border-amber-400 text-amber-400' : genStep === 'animating' ? 'border-[var(--color-primary)] bg-[var(--color-primary)]' : 'border-[var(--color-border)]')}>
+                    {genStep === 'rate-limiting'
+                      ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      : genStep === 'animating'
+                        ? <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        : <span className="font-bold text-[var(--color-text-dim)]">·</span>}
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-amber-300/80">Waiting for rate limit reset</div>
+                    <div className="text-xs text-[var(--color-text-dim)]">Replicate burst=1 · 10s cooldown between Flux and Kling</div>
+                  </div>
+                </div>
+              )}
               {/* Step 2: animating */}
               <div className={cx('flex items-center gap-4 p-5', genStep === 'animating' ? 'opacity-100' : 'opacity-40')}>
                 <div className={cx('flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2', genStep === 'animating' ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-[var(--color-border)]')}>

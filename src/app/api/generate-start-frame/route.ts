@@ -11,6 +11,20 @@ const schema = z.object({
 
 const POLL_INTERVAL_MS = 2000;
 const TIMEOUT_MS = 2 * 60 * 1000;
+const MAX_RETRIES = 3;
+
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  let attempt = 0;
+  while (true) {
+    const res = await fetch(url, options);
+    if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const detail = (body.detail as string) ?? '';
+    const m = detail.match(/(\d+(?:\.\d+)?)\s*second/i);
+    await new Promise((r) => setTimeout(r, m ? Math.ceil(parseFloat(m[1])) * 1000 : 8000));
+    attempt++;
+  }
+}
 
 interface ReplicatePrediction {
   id: string;
@@ -33,7 +47,7 @@ export async function POST(request: Request) {
 
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
-  const createRes = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+  const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${replicateKey}`,

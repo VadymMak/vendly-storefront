@@ -151,11 +151,13 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
   const [editSaturation,  setEditSaturation]  = useState(100);
   const [editTemperature, setEditTemperature] = useState(0);
   const [editSharpness,   setEditSharpness]   = useState(0);
-  const [editAiTool,      setEditAiTool]      = useState<AiEditTool>(null);
-  const [editAiResult,    setEditAiResult]    = useState<string | null>(null);
-  const [editAiError,     setEditAiError]     = useState<string | null>(null);
-  const [editSaving,      setEditSaving]      = useState(false);
-  const [editAnimating,   setEditAnimating]   = useState(false);
+  const [editAiTool,       setEditAiTool]       = useState<AiEditTool>(null);
+  const [editAiResult,     setEditAiResult]     = useState<string | null>(null);
+  const [editAiError,      setEditAiError]      = useState<string | null>(null);
+  const [editSaving,       setEditSaving]       = useState(false);
+  const [editAnimating,    setEditAnimating]    = useState(false);
+  const [editSaveFormat,   setEditSaveFormat]   = useState<'png' | 'jpeg' | 'webp'>('webp');
+  const [editIsTransparent,setEditIsTransparent]= useState(false);
 
   // ── Video tab ─────────────────────────────────────────────────────────────
   const [videoMode,        setVideoMode]        = useState<VideoMode>('text');
@@ -315,6 +317,8 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
       setEditTemperature(0);
       setEditSharpness(0);
       setEditAdjustOpen(false);
+      setEditSaveFormat('webp');
+      setEditIsTransparent(false);
       setImageSubTab('edit');
     } catch { /* silent */ }
   }
@@ -357,6 +361,8 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     setEditTemperature(0);
     setEditSharpness(0);
     setEditAdjustOpen(false);
+    setEditSaveFormat('webp');
+    setEditIsTransparent(false);
   }
 
   function editResetAdjust() {
@@ -391,12 +397,15 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
         const data = await res.json() as { url?: string; error?: string };
         if (!res.ok) throw new Error(data.error ?? 'Remove background failed');
         url = data.url!;
+        setEditIsTransparent(true);
+        setEditSaveFormat('png');
       } else {
         fd.append('type', tool === 'upscale' ? 'upscale' : 'portrait');
         const res = await fetch('/api/enhance-image', { method: 'POST', body: fd });
         const data = await res.json() as { url?: string; error?: string };
         if (!res.ok) throw new Error(data.error ?? 'AI enhancement failed');
         url = data.url!;
+        setEditIsTransparent(false);
       }
       setEditAiResult(url);
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI tool failed'); }
@@ -428,14 +437,15 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
       const blob = await editRenderCanvas(source);
       const fd = new FormData();
       fd.append('image', blob, 'edited.png');
+      fd.append('format', editSaveFormat);
       const resp = await fetch('/api/export-image', { method: 'POST', body: fd });
       if (!resp.ok) {
         const d = await resp.json().catch(() => ({ error: 'Export failed' })) as { error?: string };
         throw new Error(d.error ?? 'Export failed');
       }
-      const webpBlob = await resp.blob();
-      const url = URL.createObjectURL(webpBlob);
-      const a = Object.assign(document.createElement('a'), { href: url, download: `edited-${Date.now()}.webp` });
+      const outBlob = await resp.blob();
+      const url = URL.createObjectURL(outBlob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `edited-${Date.now()}.${editSaveFormat}` });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'Export failed'); }
@@ -1056,6 +1066,37 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
 
                         {editAiError && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{editAiError}</div>}
 
+                        {/* Format selector */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-[var(--color-text-muted)]">Export format</p>
+                          <div className="flex overflow-hidden rounded-lg border border-[var(--color-border)]">
+                            {(['png', 'jpeg', 'webp'] as const).map((fmt) => {
+                              const locked = editIsTransparent && fmt !== 'png';
+                              return (
+                                <button
+                                  key={fmt}
+                                  onClick={() => !locked && setEditSaveFormat(fmt)}
+                                  disabled={locked}
+                                  title={locked ? 'Transparency requires PNG' : undefined}
+                                  className={cx(
+                                    'flex-1 border-r border-[var(--color-border)] py-2 text-xs font-bold uppercase tracking-wider transition-colors last:border-r-0',
+                                    editSaveFormat === fmt && !locked
+                                      ? 'bg-green-500/15 text-green-400'
+                                      : locked
+                                      ? 'cursor-not-allowed text-[var(--color-text-dim)] opacity-35'
+                                      : 'cursor-pointer text-[var(--color-text-muted)] hover:text-white',
+                                  )}
+                                >
+                                  {fmt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {editIsTransparent && (
+                            <p className="text-[10px] text-amber-400/80">Remove BG active — PNG preserves transparency</p>
+                          )}
+                        </div>
+
                         <button
                           onClick={editSaveAndDownload}
                           disabled={editSaving}
@@ -1063,7 +1104,7 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                         >
                           {editSaving
                             ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Exporting…</>
-                            : 'Save & Download WebP'}
+                            : `Save & Download`}
                         </button>
                         <p className="text-center text-xs text-[var(--color-text-dim)]">AI tools ~$0.02–0.10 via Replicate</p>
                       </>

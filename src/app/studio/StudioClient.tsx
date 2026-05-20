@@ -42,24 +42,30 @@ const ENHANCE_MODES = [
 
 const OUTPUT_FORMATS = ['webp', 'png', 'jpeg'] as const;
 
-const ENHANCE_PHOTO_TYPES = [
-  { value: 'sharpen',  label: 'Sharpen & Denoise', desc: 'Remove noise, sharpen edges' },
-  { value: 'brighten', label: 'Brighten',          desc: 'Increase exposure'           },
-  { value: 'upscale',  label: 'Upscale 4×',        desc: 'Upscale 4×'                  },
-  { value: 'portrait', label: 'Portrait',          desc: 'Portrait enhance'            },
+const QUICK_FILTERS = [
+  { id: 'original', label: 'Original', filter: 'none' },
+  { id: 'vivid',    label: 'Vivid',    filter: 'saturate(1.4) contrast(1.1)' },
+  { id: 'warm',     label: 'Warm',     filter: 'sepia(0.2) saturate(1.2) brightness(1.05)' },
+  { id: 'cool',     label: 'Cool',     filter: 'saturate(0.9) hue-rotate(15deg) brightness(1.05)' },
+  { id: 'bw',       label: 'B&W',      filter: 'grayscale(1)' },
+  { id: 'sepia',    label: 'Sepia',    filter: 'sepia(0.8)' },
+  { id: 'vintage',  label: 'Vintage',  filter: 'sepia(0.3) contrast(0.9) brightness(0.95) saturate(0.8)' },
+  { id: 'dramatic', label: 'Dramatic', filter: 'contrast(1.4) brightness(0.9) saturate(1.2)' },
+  { id: 'soft',     label: 'Soft',     filter: 'brightness(1.1) contrast(0.9) blur(0.5px)' },
+  { id: 'fade',     label: 'Fade',     filter: 'brightness(1.1) saturate(0.7) contrast(0.9)' },
 ] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type StudioTab      = 'image' | 'video';
-type ImageSubTab    = 'generate' | 'enhance';
+type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
+type AiEditTool     = 'upscale' | 'face' | 'removebg' | null;
 type Provider       = 'replicate' | 'anthropic';
 type HelpSection    = 'replicate' | 'anthropic' | 'tips';
 type PresetKey      = keyof typeof PRESET_MAP;
 type OutputFormat   = typeof OUTPUT_FORMATS[number];
-type EnhancePhotoType = typeof ENHANCE_PHOTO_TYPES[number]['value'];
 
 interface ImageMeta { display: string; ratio: string; fmt: OutputFormat; label: string; }
 interface Props { userId: string; studioPaid: boolean; }
@@ -75,6 +81,24 @@ function aspectToPreviewDims(ratio: string, maxW = 44, maxH = 30) {
   const r = a / b;
   if (r > maxW / maxH) return { width: maxW, height: Math.round(maxW / r) };
   return { width: Math.round(maxH * r), height: maxH };
+}
+
+function buildEditFilter(filterId: string, brightness: number, contrast: number, saturation: number, temperature: number): string {
+  const base = QUICK_FILTERS.find((f) => f.id === filterId)?.filter ?? 'none';
+  const adj: string[] = [];
+  if (brightness !== 100) adj.push(`brightness(${brightness / 100})`);
+  if (contrast   !== 100) adj.push(`contrast(${contrast / 100})`);
+  if (saturation !== 100) adj.push(`saturate(${saturation / 100})`);
+  if (temperature !== 0) {
+    if (temperature > 0) {
+      adj.push(`sepia(${(temperature / 50) * 0.25})`);
+      adj.push(`hue-rotate(${-temperature * 0.3}deg)`);
+    } else {
+      adj.push(`hue-rotate(${Math.abs(temperature) * 0.4}deg)`);
+    }
+  }
+  const parts = [...(base !== 'none' ? [base] : []), ...adj];
+  return parts.length > 0 ? parts.join(' ') : 'none';
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -117,13 +141,23 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
   const [imgMeta,           setImgMeta]           = useState<ImageMeta | null>(null);
   const [imgError,          setImgError]          = useState<string | null>(null);
   const [imgAnimating,      setImgAnimating]      = useState(false);
-  // Enhance photo sub-tab
-  const [enhanceFile,    setEnhanceFile]    = useState<File | null>(null);
-  const [enhancePreview, setEnhancePreview] = useState<string | null>(null);
-  const [enhanceType,    setEnhanceType]    = useState<EnhancePhotoType>('sharpen');
-  const [enhanceResult,  setEnhanceResult]  = useState<string | null>(null);
-  const [enhanceLoading, setEnhanceLoading] = useState(false);
-  const [enhanceError,   setEnhanceError]   = useState<string | null>(null);
+  // Edit photo sub-tab
+  const [editFile,        setEditFile]        = useState<File | null>(null);
+  const [editPreview,     setEditPreview]     = useState<string | null>(null);
+  const [editFilter,      setEditFilter]      = useState('original');
+  const [editAdjustOpen,  setEditAdjustOpen]  = useState(false);
+  const [editBrightness,  setEditBrightness]  = useState(100);
+  const [editContrast,    setEditContrast]    = useState(100);
+  const [editSaturation,  setEditSaturation]  = useState(100);
+  const [editTemperature, setEditTemperature] = useState(0);
+  const [editSharpness,   setEditSharpness]   = useState(0);
+  const [editAiTool,       setEditAiTool]       = useState<AiEditTool>(null);
+  const [editAiResult,     setEditAiResult]     = useState<string | null>(null);
+  const [editAiError,      setEditAiError]      = useState<string | null>(null);
+  const [editSaving,       setEditSaving]       = useState(false);
+  const [editAnimating,    setEditAnimating]    = useState(false);
+  const [editSaveFormat,   setEditSaveFormat]   = useState<'png' | 'jpeg' | 'webp'>('webp');
+  const [editIsTransparent,setEditIsTransparent]= useState(false);
 
   // ── Video tab ─────────────────────────────────────────────────────────────
   const [videoMode,        setVideoMode]        = useState<VideoMode>('text');
@@ -268,6 +302,27 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     } catch { /* silent */ }
   }
 
+  async function imgLoadIntoEditor(url: string) {
+    try {
+      const blob = await (await fetch(url)).blob();
+      const file = new File([blob], `generated-${Date.now()}.webp`, { type: blob.type || 'image/webp' });
+      setEditFile(file);
+      setEditPreview(URL.createObjectURL(blob));
+      setEditAiResult(null);
+      setEditAiError(null);
+      setEditFilter('original');
+      setEditBrightness(100);
+      setEditContrast(100);
+      setEditSaturation(100);
+      setEditTemperature(0);
+      setEditSharpness(0);
+      setEditAdjustOpen(false);
+      setEditSaveFormat('webp');
+      setEditIsTransparent(false);
+      setImageSubTab('edit');
+    } catch { /* silent */ }
+  }
+
   // "Animate this →" — upload blob → switch to video Image→Video mode
   async function animateImage(sourceUrl: string) {
     setImgAnimating(true);
@@ -292,38 +347,130 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     finally { setImgAnimating(false); }
   }
 
-  // ── Image tab: enhance photo ──────────────────────────────────────────────
-  function imgHandleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  // ── Image tab: edit photo ─────────────────────────────────────────────────
+  function editHandleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
-    setEnhanceFile(file);
-    setEnhanceResult(null);
-    setEnhanceError(null);
-    setEnhancePreview(file ? URL.createObjectURL(file) : null);
+    setEditFile(file);
+    setEditPreview(file ? URL.createObjectURL(file) : null);
+    setEditAiResult(null);
+    setEditAiError(null);
+    setEditFilter('original');
+    setEditBrightness(100);
+    setEditContrast(100);
+    setEditSaturation(100);
+    setEditTemperature(0);
+    setEditSharpness(0);
+    setEditAdjustOpen(false);
+    setEditSaveFormat('webp');
+    setEditIsTransparent(false);
   }
 
-  async function imgHandleEnhancePhoto() {
-    if (!enhanceFile || enhanceLoading) return;
-    setEnhanceLoading(true);
-    setEnhanceError(null);
-    setEnhanceResult(null);
+  function editResetAdjust() {
+    setEditBrightness(100);
+    setEditContrast(100);
+    setEditSaturation(100);
+    setEditTemperature(0);
+    setEditSharpness(0);
+  }
+
+  async function editGetSourceFile(): Promise<File> {
+    if (editAiResult) {
+      const res = await fetch(editAiResult);
+      const blob = await res.blob();
+      return new File([blob], 'edited.png', { type: blob.type || 'image/png' });
+    }
+    if (!editFile) throw new Error('No image loaded');
+    return editFile;
+  }
+
+  async function editRunAiTool(tool: 'upscale' | 'face' | 'removebg') {
+    if (editAiTool) return;
+    setEditAiTool(tool);
+    setEditAiError(null);
     try {
+      const sourceFile = await editGetSourceFile();
       const fd = new FormData();
-      fd.append('image', enhanceFile);
-      fd.append('type', enhanceType);
-      const res = await fetch('/api/enhance-image', { method: 'POST', body: fd });
-      const data = await res.json() as { url?: string; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Failed');
-      if (!data.url) throw new Error('No URL returned');
-      setEnhanceResult(data.url);
-    } catch (e) { setEnhanceError(e instanceof Error ? e.message : 'Error'); }
-    finally { setEnhanceLoading(false); }
+      fd.append('image', sourceFile);
+      let url: string;
+      if (tool === 'removebg') {
+        const res = await fetch('/api/remove-bg', { method: 'POST', body: fd });
+        const data = await res.json() as { url?: string; error?: string };
+        if (!res.ok) throw new Error(data.error ?? 'Remove background failed');
+        url = data.url!;
+        setEditIsTransparent(true);
+        setEditSaveFormat('png');
+      } else {
+        fd.append('type', tool === 'upscale' ? 'upscale' : 'portrait');
+        const res = await fetch('/api/enhance-image', { method: 'POST', body: fd });
+        const data = await res.json() as { url?: string; error?: string };
+        if (!res.ok) throw new Error(data.error ?? 'AI enhancement failed');
+        url = data.url!;
+        setEditIsTransparent(false);
+      }
+      setEditAiResult(url);
+    } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI tool failed'); }
+    finally { setEditAiTool(null); }
   }
 
-  async function imgDownloadEnhanced(url: string) {
+  async function editRenderCanvas(source: string): Promise<Blob> {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = source; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d')!;
+    const f = buildEditFilter(editFilter, editBrightness, editContrast, editSaturation, editTemperature);
+    if (f !== 'none') ctx.filter = f;
+    ctx.drawImage(img, 0, 0);
+    return new Promise<Blob>((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error('canvas.toBlob failed'))), 'image/png')
+    );
+  }
+
+  async function editSaveAndDownload() {
+    const source = editAiResult ?? editPreview;
+    if (!source || editSaving) return;
+    setEditSaving(true);
+    setEditAiError(null);
     try {
-      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(await (await fetch(url)).blob()), download: `enhanced-${Date.now()}.png` });
+      const blob = await editRenderCanvas(source);
+      const fd = new FormData();
+      fd.append('image', blob, 'edited.png');
+      fd.append('format', editSaveFormat);
+      const resp = await fetch('/api/export-image', { method: 'POST', body: fd });
+      if (!resp.ok) {
+        const d = await resp.json().catch(() => ({ error: 'Export failed' })) as { error?: string };
+        throw new Error(d.error ?? 'Export failed');
+      }
+      const outBlob = await resp.blob();
+      const url = URL.createObjectURL(outBlob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `edited-${Date.now()}.${editSaveFormat}` });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    } catch { /* silent */ }
+      URL.revokeObjectURL(url);
+    } catch (e) { setEditAiError(e instanceof Error ? e.message : 'Export failed'); }
+    finally { setEditSaving(false); }
+  }
+
+  async function editAnimate() {
+    const source = editAiResult ?? editPreview;
+    if (!source || editAnimating) return;
+    setEditAnimating(true);
+    setEditAiError(null);
+    try {
+      const blob = await editRenderCanvas(source);
+      const file = new File([blob], `edit-${Date.now()}.png`, { type: 'image/png' });
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      setVidUploadedUrl(data.url!);
+      setVideoMode('image');
+      setStudioTab('video');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) { setEditAiError(e instanceof Error ? e.message : 'Failed to prepare for animation'); }
+    finally { setEditAnimating(false); }
   }
 
   // ── Video tab ─────────────────────────────────────────────────────────────
@@ -635,7 +782,7 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
               <div className="flex gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
                 {([
                   { id: 'generate' as ImageSubTab, label: 'Generate Image' },
-                  { id: 'enhance'  as ImageSubTab, label: 'Enhance Photo' },
+                  { id: 'edit'     as ImageSubTab, label: 'Edit Photo' },
                 ] as const).map(({ id, label }) => (
                   <button key={id} onClick={() => setImageSubTab(id)} className={cx('flex-1 cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors', imageSubTab === id ? 'bg-[var(--color-card)] text-white' : 'text-[var(--color-text-muted)] hover:text-white')}>
                     {label}
@@ -763,6 +910,9 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                               <svg width={12} height={12} viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v7M3 5.5l3 3 3-3M1 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               Download {imgMeta.fmt.toUpperCase()}
                             </button>
+                            <button onClick={() => imgLoadIntoEditor(imgUrl)} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white">
+                              ✏️ Edit Photo
+                            </button>
                             <button onClick={() => animateImage(imgUrl)} disabled={imgAnimating} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
                               {imgAnimating ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Preparing…</> : <>Animate this →</>}
                             </button>
@@ -774,89 +924,229 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                 </div>
               )}
 
-              {/* ── Enhance Photo ── */}
-              {imageSubTab === 'enhance' && (
+              {/* ── Edit Photo ── */}
+              {imageSubTab === 'edit' && (
                 <div className="flex gap-6">
-                  <aside className="w-80 shrink-0 space-y-5">
+                  <aside className="w-80 shrink-0 space-y-4">
 
+                    {/* Upload */}
                     <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-5">
                       <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Upload Photo</h3>
-                      <input id="enhance-file-input" type="file" accept="image/*" className="hidden" onChange={imgHandleFileChange} />
-                      {!enhancePreview ? (
-                        <label htmlFor="enhance-file-input" className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40">
+                      <input id="edit-file-input" type="file" accept="image/*" className="hidden" onChange={editHandleFileChange} />
+                      {!editPreview ? (
+                        <label htmlFor="edit-file-input" className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40">
                           <svg width={28} height={28} viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M14 3v16M9 8l5-5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 20v4h20v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          <span>Choose a photo to enhance</span>
+                          <span>Choose a photo to edit</span>
                           <span className="text-xs opacity-50">JPEG · PNG · WEBP</span>
                         </label>
                       ) : (
-                        <div className="space-y-2">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={enhancePreview} alt="Preview" className="max-h-48 w-full rounded-lg border border-[var(--color-border)] object-contain" />
-                          <label htmlFor="enhance-file-input" className="cursor-pointer text-xs text-[var(--color-primary)] underline underline-offset-2 hover:opacity-75">Change photo</label>
-                        </div>
+                        <label htmlFor="edit-file-input" className="cursor-pointer text-xs text-[var(--color-primary)] underline underline-offset-2 hover:opacity-75">Change photo</label>
                       )}
                     </section>
 
-                    <section className="space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-5">
-                      <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Enhancement Type</h3>
-                      {ENHANCE_PHOTO_TYPES.map((t) => (
-                        <button key={t.value} onClick={() => setEnhanceType(t.value)} className={cx('flex w-full cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors', enhanceType === t.value ? 'border-[var(--color-primary)]/50 bg-[var(--color-primary)]/10' : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/40')}>
-                          <div className={cx('flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2', enhanceType === t.value ? 'border-[var(--color-primary)]' : 'border-[var(--color-border)]')}>
-                            {enhanceType === t.value && <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />}
+                    {editPreview && (
+                      <>
+                        {/* Level 1: Quick Filters */}
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+                          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Quick Filters</h3>
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {QUICK_FILTERS.map((f) => (
+                              <button
+                                key={f.id}
+                                onClick={() => setEditFilter(f.id)}
+                                className={cx(
+                                  'flex shrink-0 cursor-pointer flex-col items-center gap-1 rounded-lg p-1 transition-all',
+                                  editFilter === f.id
+                                    ? 'ring-2 ring-green-400'
+                                    : 'ring-1 ring-transparent hover:ring-[var(--color-border)]',
+                                )}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={editPreview}
+                                  alt={f.label}
+                                  style={{ filter: f.filter, width: 60, height: 60, objectFit: 'cover', borderRadius: 6, display: 'block' }}
+                                />
+                                <span className="text-[10px] text-[var(--color-text-muted)]">{f.label}</span>
+                              </button>
+                            ))}
                           </div>
-                          <div>
-                            <div className="text-sm font-semibold text-white">{t.label}</div>
-                            <div className="text-xs text-[var(--color-text-muted)]">{t.desc}</div>
+                        </section>
+
+                        {/* Level 2: Adjust */}
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+                          <button
+                            onClick={() => setEditAdjustOpen((v) => !v)}
+                            className="flex w-full cursor-pointer items-center justify-between text-sm font-semibold text-white"
+                          >
+                            <span>Adjust</span>
+                            <span className="text-xs text-[var(--color-text-muted)]">{editAdjustOpen ? '▲' : '▾'}</span>
+                          </button>
+                          {editAdjustOpen && (
+                            <div className="mt-4 space-y-3">
+                              {(([
+                                { label: 'Brightness',   value: editBrightness,   setter: (v: number) => setEditBrightness(v),   min: 50,  max: 150 },
+                                { label: 'Contrast',     value: editContrast,     setter: (v: number) => setEditContrast(v),     min: 50,  max: 150 },
+                                { label: 'Saturation',   value: editSaturation,   setter: (v: number) => setEditSaturation(v),   min: 0,   max: 200 },
+                                { label: 'Temperature',  value: editTemperature,  setter: (v: number) => setEditTemperature(v),  min: -50, max: 50  },
+                              ]) as Array<{ label: string; value: number; setter: (v: number) => void; min: number; max: number }>).map(({ label, value, setter, min, max }) => (
+                                <div key={label}>
+                                  <div className="mb-1 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                                    <span>{label}</span>
+                                    <span className="font-mono">{value}</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min={min}
+                                    max={max}
+                                    value={value}
+                                    onChange={(e) => setter(Number(e.target.value))}
+                                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[var(--color-border)] accent-[var(--color-primary)]"
+                                  />
+                                </div>
+                              ))}
+                              <div>
+                                <div className="mb-1 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                                  <span>Sharpness</span>
+                                  <span className="font-mono text-[var(--color-text-dim)]">{editSharpness} <span className="opacity-50">(server)</span></span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  value={editSharpness}
+                                  onChange={(e) => setEditSharpness(Number(e.target.value))}
+                                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[var(--color-border)] opacity-40 accent-[var(--color-primary)]"
+                                />
+                              </div>
+                              <button
+                                onClick={editResetAdjust}
+                                className="cursor-pointer rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:text-white"
+                              >
+                                Reset
+                              </button>
+                            </div>
+                          )}
+                        </section>
+
+                        {/* Level 3: AI Tools */}
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+                          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">AI Tools</h3>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([
+                              { tool: 'upscale'   as const, icon: '🔍', label: 'Upscale 4×',  price: '~$0.10' },
+                              { tool: 'face'      as const, icon: '👤', label: 'Face Enhance', price: '~$0.10' },
+                              { tool: 'removebg'  as const, icon: '✂️', label: 'Remove BG',    price: '~$0.02' },
+                            ]).map(({ tool, icon, label, price }) => (
+                              <button
+                                key={tool}
+                                onClick={() => editRunAiTool(tool)}
+                                disabled={!!editAiTool || !keyFor('replicate')}
+                                className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-[var(--color-border)] p-3 text-center transition-colors hover:border-[var(--color-primary)]/40 disabled:opacity-40"
+                              >
+                                {editAiTool === tool
+                                  ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
+                                  : <span className="text-lg leading-none">{icon}</span>
+                                }
+                                <span className="mt-1 text-xs font-semibold text-white">{label}</span>
+                                <span className="text-[10px] text-[var(--color-text-dim)]">{price}</span>
+                              </button>
+                            ))}
+                            <button
+                              disabled
+                              className="flex flex-col items-center gap-1 rounded-lg border border-[var(--color-border)] p-3 text-center opacity-35"
+                            >
+                              <span className="text-lg leading-none">🎨</span>
+                              <span className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">Style Transfer</span>
+                              <span className="text-[10px] text-[var(--color-text-dim)]">Coming soon</span>
+                            </button>
                           </div>
+                          {!keyFor('replicate') && <p className="mt-2 text-xs text-[var(--color-text-dim)]">Add Replicate key to use AI tools</p>}
+                        </section>
+
+                        {editAiError && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{editAiError}</div>}
+
+                        {/* Format selector */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-[var(--color-text-muted)]">Export format</p>
+                          <div className="flex overflow-hidden rounded-lg border border-[var(--color-border)]">
+                            {(['png', 'jpeg', 'webp'] as const).map((fmt) => {
+                              const locked = editIsTransparent && fmt !== 'png';
+                              return (
+                                <button
+                                  key={fmt}
+                                  onClick={() => !locked && setEditSaveFormat(fmt)}
+                                  disabled={locked}
+                                  title={locked ? 'Transparency requires PNG' : undefined}
+                                  className={cx(
+                                    'flex-1 border-r border-[var(--color-border)] py-2 text-xs font-bold uppercase tracking-wider transition-colors last:border-r-0',
+                                    editSaveFormat === fmt && !locked
+                                      ? 'bg-green-500/15 text-green-400'
+                                      : locked
+                                      ? 'cursor-not-allowed text-[var(--color-text-dim)] opacity-35'
+                                      : 'cursor-pointer text-[var(--color-text-muted)] hover:text-white',
+                                  )}
+                                >
+                                  {fmt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {editIsTransparent && (
+                            <p className="text-[10px] text-amber-400/80">Remove BG active — PNG preserves transparency</p>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={editSaveAndDownload}
+                          disabled={editSaving}
+                          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40"
+                        >
+                          {editSaving
+                            ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Exporting…</>
+                            : `Save & Download`}
                         </button>
-                      ))}
-                    </section>
-
-                    {enhanceError && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{enhanceError}</div>}
-
-                    <button onClick={imgHandleEnhancePhoto} disabled={!enhanceFile || enhanceLoading} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
-                      {enhanceLoading ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Processing…</> : 'Enhance Photo'}
-                    </button>
-                    <p className="text-center text-xs text-[var(--color-text-dim)]">~$0.10–0.50 per enhancement via Replicate</p>
+                        <p className="text-center text-xs text-[var(--color-text-dim)]">AI tools ~$0.02–0.10 via Replicate</p>
+                      </>
+                    )}
                   </aside>
 
                   <main className="flex flex-1 flex-col gap-4">
-                    {enhanceLoading && (
-                      <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-[var(--color-border)] p-16 text-[var(--color-text-muted)]">
-                        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
-                        <span className="text-sm">Processing image…</span>
-                      </div>
-                    )}
-                    {!enhanceLoading && !enhanceResult && (
+                    {!editPreview ? (
                       <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--color-border)] p-16 text-center">
                         <svg width={52} height={52} viewBox="0 0 52 52" fill="none" aria-hidden="true" className="opacity-20">
                           <rect x="6" y="11" width="40" height="30" rx="4" stroke="currentColor" strokeWidth="2" />
-                          <path d="M18 26l6 6 10-12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <circle cx="17" cy="21" r="4.5" stroke="currentColor" strokeWidth="2" />
+                          <path d="M6 35l11-9 8 8 6-6 9 7 6-4" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-sm text-[var(--color-text-dim)]">Result will appear here</span>
+                        <span className="text-sm text-[var(--color-text-dim)]">Upload a photo to start editing</span>
                       </div>
-                    )}
-                    {!enhanceLoading && enhanceResult && enhancePreview && (
+                    ) : (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <p className="text-center text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Original</p>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={enhancePreview} alt="Original" className="w-full rounded-xl border border-[var(--color-border)]" />
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-center text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Result</p>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={enhanceResult} alt="Enhanced" className="w-full rounded-xl border border-[var(--color-border)]" />
-                          </div>
+                        <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={editAiResult ?? editPreview}
+                            alt="Edit preview"
+                            style={{ filter: buildEditFilter(editFilter, editBrightness, editContrast, editSaturation, editTemperature) }}
+                            className="w-full"
+                          />
+                          {editAiResult && (
+                            <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-xs font-semibold text-green-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                              AI Result
+                            </div>
+                          )}
                         </div>
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => imgDownloadEnhanced(enhanceResult)} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white">
-                            <svg width={12} height={12} viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v7M3 5.5l3 3 3-3M1 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            Download PNG
-                          </button>
-                          <button onClick={() => animateImage(enhanceResult)} disabled={imgAnimating} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
-                            {imgAnimating ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Preparing…</> : <>Animate this →</>}
+                        <div className="flex justify-end">
+                          <button
+                            onClick={editAnimate}
+                            disabled={editAnimating}
+                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
+                          >
+                            {editAnimating
+                              ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Preparing…</>
+                              : <>Animate this →</>}
                           </button>
                         </div>
                       </div>

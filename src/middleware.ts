@@ -25,11 +25,16 @@ export function middleware(request: NextRequest) {
     currentHost.endsWith('.vercel.app');
 
   if (isMainDomain) {
-    // Defense-layer-1 gate for /admin/*: require a NextAuth session cookie.
-    // The exact email match against ADMIN_EMAIL is enforced server-side in
-    // src/app/admin/layout.tsx (defense-layer-2). Cookie-presence in middleware
-    // is edge-runtime safe and avoids decoding JWTs here.
-    if (url.pathname.startsWith('/admin') && !hasSessionCookie(request)) {
+    // Defense-layer-1 gate for protected routes: require a NextAuth session cookie.
+    const PROTECTED_PATHS = ['/admin', '/test-video', '/dashboard'];
+    const PROTECTED_API_PATHS = ['/api/user/'];
+    const isProtectedPage = PROTECTED_PATHS.some((p) => url.pathname.startsWith(p));
+    const isProtectedApi = PROTECTED_API_PATHS.some((p) => url.pathname.startsWith(p));
+
+    if ((isProtectedPage || isProtectedApi) && !hasSessionCookie(request)) {
+      if (isProtectedApi) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
       const loginUrl = url.clone();
       loginUrl.pathname = '/login';
       loginUrl.search = `?callbackUrl=${encodeURIComponent(url.pathname + url.search)}`;

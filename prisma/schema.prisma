@@ -23,7 +23,21 @@ model User {
   aiAdvisorMonth  String?
   aiAdvisorLastUsed DateTime?
   stores          Store[]
+  apiKeys         UserApiKey[]
   createdAt       DateTime @default(now())
+}
+
+model UserApiKey {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String   // "replicate" | "anthropic"
+  encryptedKey String
+  keyHint      String   // last 4 chars: "••••ab3f"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, provider])
 }
 
 // Магазин (один пользователь может иметь несколько)

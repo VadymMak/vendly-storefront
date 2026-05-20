@@ -1,3 +1,22 @@
+// ===== Video Generator =====
+
+export interface VideoSkill {
+  id: string;
+  label: string;
+  aspectRatio: '9:16' | '1:1' | '16:9';
+  duration: 5 | 10;
+  systemPrompt: string;
+}
+
+export interface ApiKeyInfo {
+  id: string;
+  provider: 'replicate' | 'anthropic';
+  keyHint: string;
+  createdAt: string;
+}
+
+// ===== Business types =====
+
 export interface BusinessType {
   id: string;
   icon: string;

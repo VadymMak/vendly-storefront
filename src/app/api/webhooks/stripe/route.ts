@@ -37,6 +37,16 @@ export async function POST(request: Request) {
         break;
       }
 
+      // ── Studio access payment ──────────────────────────────────────────
+      if (session.metadata?.type === 'studio_access') {
+        const userId = session.metadata?.userId;
+        if (userId) {
+          await db.user.update({ where: { id: userId }, data: { studioPaid: true } });
+          console.log(`✅ Studio access granted: userId=${userId}`);
+        }
+        break;
+      }
+
       const orderId = session.metadata?.orderId;
       if (!orderId) break;
 

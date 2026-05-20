@@ -62,7 +62,7 @@ type OutputFormat   = typeof OUTPUT_FORMATS[number];
 type EnhancePhotoType = typeof ENHANCE_PHOTO_TYPES[number]['value'];
 
 interface ImageMeta { display: string; ratio: string; fmt: OutputFormat; label: string; }
-interface Props { userId: string; }
+interface Props { userId: string; studioPaid: boolean; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ function aspectToPreviewDims(ratio: string, maxW = 44, maxH = 30) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function StudioClient({ userId: _userId }: Props) {
+export default function StudioClient({ userId: _userId, studioPaid }: Props) {
   const searchParams = useSearchParams();
   const [studioTab, setStudioTab] = useState<StudioTab>(() =>
     searchParams.get('tab') === 'video' ? 'video' : 'image',
@@ -146,7 +146,7 @@ export default function StudioClient({ userId: _userId }: Props) {
       if (res.ok) {
         const data: ApiKeyInfo[] = await res.json();
         setKeys(data);
-        if (!data.find((k) => k.provider === 'replicate')) setWizardStep(1);
+        if (studioPaid && !data.find((k) => k.provider === 'replicate')) setWizardStep(1);
       }
       setKeysLoaded(true);
     };
@@ -166,6 +166,17 @@ export default function StudioClient({ userId: _userId }: Props) {
 
   const keyFor = (p: Provider) => keys.find((k) => k.provider === p);
   const isGenerating = genStep !== null;
+
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  async function handleCheckout() {
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch('/api/studio/checkout', { method: 'POST' });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Checkout failed');
+      if (data.url) window.location.href = data.url;
+    } catch { setCheckoutLoading(false); }
+  }
 
   // ── Key management ────────────────────────────────────────────────────────
   async function saveKey(provider: Provider) {
@@ -396,6 +407,49 @@ export default function StudioClient({ userId: _userId }: Props) {
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
 
+      {/* ══ PAYWALL ════════════════════════════════════════════════════════ */}
+      {!studioPaid && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-10 shadow-2xl text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)]/15">
+                <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-primary)]" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">AI Studio</h1>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">One-time access · Lifetime use</p>
+            </div>
+            <ul className="space-y-2 text-sm text-[var(--color-text-muted)] text-left">
+              {[
+                'Generate unlimited images with Flux Schnell',
+                'Generate unlimited videos with Kling v2.1',
+                'AI prompt enhancement with Claude',
+                'Bring your own API keys — you control costs',
+                'No subscription, no monthly fees',
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)]">
+                    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <div>
+              <button
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
+                className="w-full cursor-pointer rounded-xl bg-[var(--color-primary)] py-3.5 text-base font-bold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
+              >
+                {checkoutLoading ? 'Redirecting to payment…' : 'Unlock for $5'}
+              </button>
+              <p className="mt-3 text-xs text-[var(--color-text-dim)]">Secure payment via Stripe · One-time $5 USD · Instant access</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══ ONBOARDING WIZARD ══════════════════════════════════════════════ */}
       {wizardStep !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
@@ -560,6 +614,11 @@ export default function StudioClient({ userId: _userId }: Props) {
                         <button onClick={() => saveKey(id)} disabled={keySaving[id] || !keyInputs[id].trim()} className="cursor-pointer rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">{keySaving[id] ? '…' : 'Save'}</button>
                       </div>
                     )}
+                    {id === 'replicate' && (
+                      <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">
+                        Used for both image and video generation. You only need one Replicate account.
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -666,6 +725,7 @@ export default function StudioClient({ userId: _userId }: Props) {
                     <button onClick={imgHandleGenerate} disabled={imgGenerating || !(imgEnhancedPrompt ?? imgPrompt).trim()} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
                       {imgGenerating ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Generating…</> : <>Generate {imgPreset.display}</>}
                     </button>
+                    <p className="text-center text-xs text-[var(--color-text-dim)]">~$0.003 per image · ~$0.001 per AI enhancement</p>
                   </aside>
 
                   {/* Result */}
@@ -757,6 +817,7 @@ export default function StudioClient({ userId: _userId }: Props) {
                     <button onClick={imgHandleEnhancePhoto} disabled={!enhanceFile || enhanceLoading} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
                       {enhanceLoading ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Processing…</> : 'Enhance Photo'}
                     </button>
+                    <p className="text-center text-xs text-[var(--color-text-dim)]">~$0.10–0.50 per enhancement via Replicate</p>
                   </aside>
 
                   <main className="flex flex-1 flex-col gap-4">
@@ -893,6 +954,7 @@ export default function StudioClient({ userId: _userId }: Props) {
                 </div>
                 {!keyFor('replicate') && <p className="text-xs text-[var(--color-text-dim)]">Video generation disabled — add Replicate key above</p>}
                 {!keyFor('anthropic') && <p className="text-xs text-[var(--color-text-dim)]">AI Enhance disabled — <button onClick={() => openHelp('anthropic')} className="cursor-pointer text-[var(--color-primary)] hover:underline">add Anthropic key</button></p>}
+                <p className="text-xs text-[var(--color-text-dim)]">~$0.30 for 5s video · ~$0.60 for 10s · ~$0.001 per AI enhancement</p>
               </section>
 
               {/* Error */}

@@ -22,6 +22,7 @@ model User {
   aiAdvisorCount  Int      @default(0)
   aiAdvisorMonth  String?
   aiAdvisorLastUsed DateTime?
+  studioPaid      Boolean  @default(false)
   stores          Store[]
   apiKeys         UserApiKey[]
   createdAt       DateTime @default(now())

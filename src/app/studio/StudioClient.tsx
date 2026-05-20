@@ -300,6 +300,25 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
     } catch { /* silent */ }
   }
 
+  async function imgLoadIntoEditor(url: string) {
+    try {
+      const blob = await (await fetch(url)).blob();
+      const file = new File([blob], `generated-${Date.now()}.webp`, { type: blob.type || 'image/webp' });
+      setEditFile(file);
+      setEditPreview(URL.createObjectURL(blob));
+      setEditAiResult(null);
+      setEditAiError(null);
+      setEditFilter('original');
+      setEditBrightness(100);
+      setEditContrast(100);
+      setEditSaturation(100);
+      setEditTemperature(0);
+      setEditSharpness(0);
+      setEditAdjustOpen(false);
+      setImageSubTab('edit');
+    } catch { /* silent */ }
+  }
+
   // "Animate this →" — upload blob → switch to video Image→Video mode
   async function animateImage(sourceUrl: string) {
     setImgAnimating(true);
@@ -880,6 +899,9 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
                             <button onClick={() => imgHandleDownload(imgUrl, imgMeta)} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white">
                               <svg width={12} height={12} viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v7M3 5.5l3 3 3-3M1 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               Download {imgMeta.fmt.toUpperCase()}
+                            </button>
+                            <button onClick={() => imgLoadIntoEditor(imgUrl)} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white">
+                              ✏️ Edit Photo
                             </button>
                             <button onClick={() => animateImage(imgUrl)} disabled={imgAnimating} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
                               {imgAnimating ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Preparing…</> : <>Animate this →</>}

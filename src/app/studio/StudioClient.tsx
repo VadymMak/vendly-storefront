@@ -634,6 +634,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                 </div>
                 {wizardError && <p className="mt-2 text-sm text-red-400">{wizardError}</p>}
                 <button onClick={wizardNext} disabled={wizardSaving || !wizardInputs.replicate.trim()} className="mt-6 w-full cursor-pointer rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">{wizardSaving ? 'Saving…' : 'Next →'}</button>
+                <button onClick={() => setWizardStep(null)} className="mt-3 w-full cursor-pointer text-xs text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text-muted)]">Skip for now</button>
               </>
             )}
 
@@ -659,6 +660,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                   <button onClick={() => wizardFinish(true)} disabled={wizardSaving} className="flex-1 cursor-pointer rounded-xl border border-[var(--color-border)] py-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white disabled:opacity-40">Skip</button>
                   <button onClick={() => wizardFinish(false)} disabled={wizardSaving || !wizardInputs.anthropic.trim()} className="flex-[2] cursor-pointer rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">{wizardSaving ? 'Saving…' : 'Save & Start →'}</button>
                 </div>
+                <button onClick={() => setWizardStep(null)} className="mt-3 w-full cursor-pointer text-xs text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text-muted)]">Skip for now</button>
               </>
             )}
           </div>
@@ -764,7 +766,16 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                 return (
                   <div key={id}>
                     <div className="mb-1.5 flex items-center justify-between">
-                      <label className="text-sm font-medium text-[var(--color-text-muted)]">{label} <span className="ml-1 text-xs text-[var(--color-text-dim)]">({note})</span></label>
+                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-muted)]">
+                        {label}
+                        <span className="text-xs text-[var(--color-text-dim)]">({note})</span>
+                        {id === 'replicate' && !saved && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                            Required
+                          </span>
+                        )}
+                      </label>
                       <button onClick={() => openHelp(hs)} className="cursor-pointer text-xs text-[var(--color-primary)] hover:underline">How to get →</button>
                     </div>
                     {saved ? (
@@ -889,7 +900,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
 
                     {imgError && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{imgError}</div>}
 
-                    <button onClick={imgHandleGenerate} disabled={imgGenerating || !(imgEnhancedPrompt ?? imgPrompt).trim()} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
+                    <button onClick={imgHandleGenerate} disabled={imgGenerating || !(imgEnhancedPrompt ?? imgPrompt).trim() || !keyFor('replicate')} title={!keyFor('replicate') ? 'Add your Replicate API key first → Settings' : undefined} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] py-3 font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
                       {imgGenerating ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Generating…</> : <>Generate {imgPreset.display}</>}
                     </button>
                     <p className="text-center text-xs text-[var(--color-text-dim)]">~$0.003 per image · ~$0.001 per AI enhancement</p>
@@ -933,7 +944,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                             <button onClick={() => imgLoadIntoEditor(imgUrl)} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white">
                               ✏️ Edit Photo
                             </button>
-                            <button onClick={() => animateImage(imgUrl)} disabled={imgAnimating} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
+                            <button onClick={() => animateImage(imgUrl)} disabled={imgAnimating || !keyFor('replicate')} title={!keyFor('replicate') ? 'Add your Replicate API key first → Settings' : undefined} className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
                               {imgAnimating ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Preparing…</> : <>Animate this →</>}
                             </button>
                           </div>
@@ -1161,7 +1172,8 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                         <div className="flex justify-end">
                           <button
                             onClick={editAnimate}
-                            disabled={editAnimating}
+                            disabled={editAnimating || !keyFor('replicate')}
+                            title={!keyFor('replicate') ? 'Add your Replicate API key first → Settings' : undefined}
                             className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
                           >
                             {editAnimating
@@ -1256,7 +1268,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                   <button onClick={vidHandleEnhance} disabled={vidEnhancing || !vidPrompt.trim() || !keyFor('anthropic')} title={!keyFor('anthropic') ? 'Add Anthropic key to enable' : undefined} className="cursor-pointer rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white disabled:opacity-40">
                     {vidEnhancing ? <span className="flex items-center gap-2"><span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />Enhancing…</span> : '✦ AI Enhance Prompt'}
                   </button>
-                  <button onClick={vidHandleGenerate} disabled={isGenerating || !vidPrompt.trim() || !keyFor('replicate') || (videoMode === 'image' && !vidUploadedUrl)} className="cursor-pointer rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
+                  <button onClick={vidHandleGenerate} disabled={isGenerating || !vidPrompt.trim() || !keyFor('replicate') || (videoMode === 'image' && !vidUploadedUrl)} title={!keyFor('replicate') ? 'Add your Replicate API key first → Settings' : undefined} className="cursor-pointer rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40">
                     {isGenerating
                       ? <span className="flex items-center gap-2"><span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />{genStep === 'generating-frame' ? 'Generating frame…' : genStep === 'rate-limiting' ? 'Rate limit pause…' : 'Animating…'}</span>
                       : videoMode === 'text' ? 'Generate Video' : 'Animate'}

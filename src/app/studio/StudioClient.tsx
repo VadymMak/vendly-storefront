@@ -204,13 +204,20 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   async function handleCheckout() {
+    console.log('[studio] handleCheckout: start');
     setCheckoutLoading(true);
     try {
+      console.log('[studio] handleCheckout: fetching /api/studio/checkout');
       const res = await fetch('/api/studio/checkout', { method: 'POST' });
       const data = await res.json() as { url?: string; error?: string };
+      console.log('[studio] handleCheckout: response', res.status, data);
       if (!res.ok) throw new Error(data.error ?? 'Checkout failed');
+      console.log('[studio] handleCheckout: redirecting to', data.url);
       if (data.url) window.location.href = data.url;
-    } catch { setCheckoutLoading(false); }
+    } catch (err) {
+      console.error('[studio] handleCheckout: error', err);
+      setCheckoutLoading(false);
+    }
   }
 
   // ── Key management ────────────────────────────────────────────────────────

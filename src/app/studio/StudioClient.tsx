@@ -163,6 +163,9 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
   const [editAiEditPrompt,    setEditAiEditPrompt]    = useState('');
   const [editAiEditEnhancing, setEditAiEditEnhancing] = useState(false);
   const [editAiEditResult,    setEditAiEditResult]    = useState<string | null>(null);
+  const [editRotation,        setEditRotation]        = useState(0);
+  const [editFlipH,           setEditFlipH]           = useState(false);
+  const [editFlipV,           setEditFlipV]           = useState(false);
 
   // ── Video tab ─────────────────────────────────────────────────────────────
   const [videoMode,        setVideoMode]        = useState<VideoMode>('text');
@@ -331,6 +334,11 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       setEditAdjustOpen(false);
       setEditSaveFormat('webp');
       setEditIsTransparent(false);
+      setEditRotation(0);
+      setEditFlipH(false);
+      setEditFlipV(false);
+      setEditAiEditResult(null);
+      setEditAiEditOpen(false);
       setImageSubTab('edit');
     } catch { /* silent */ }
   }
@@ -376,6 +384,11 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
     setEditAdjustOpen(false);
     setEditSaveFormat('webp');
     setEditIsTransparent(false);
+    setEditRotation(0);
+    setEditFlipH(false);
+    setEditFlipV(false);
+    setEditAiEditResult(null);
+    setEditAiEditOpen(false);
   }
 
   function editResetAdjust() {
@@ -503,13 +516,21 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       img.onerror = () => { clearTimeout(timeout); rej(new Error('Image load failed')); };
       img.src = imgSrc;
     });
+    const rad = editRotation * Math.PI / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
     const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    canvas.width  = Math.round(img.naturalWidth * cos + img.naturalHeight * sin);
+    canvas.height = Math.round(img.naturalWidth * sin + img.naturalHeight * cos);
     const ctx = canvas.getContext('2d')!;
     const f = buildEditFilter(editFilter, editBrightness, editContrast, editSaturation, editTemperature);
     if (f !== 'none') ctx.filter = f;
-    ctx.drawImage(img, 0, 0);
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(rad);
+    ctx.scale(editFlipH ? -1 : 1, editFlipV ? -1 : 1);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    ctx.restore();
     return new Promise<Blob>((res, rej) =>
       canvas.toBlob((b) => (b ? res(b) : rej(new Error('canvas.toBlob failed'))), 'image/png')
     );
@@ -1139,6 +1160,56 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                           )}
                         </section>
 
+                        {/* Level 2.5: Transform */}
+                        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+                          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Transform · Free</h3>
+                          <div className="mb-3 grid grid-cols-4 gap-1.5">
+                            {([
+                              { icon: '↺', title: 'Rotate Left',       short: 'L Rotate', active: false, onClick: () => setEditRotation((r) => ((r - 90 + 180) % 360 + 360) % 360 - 180) },
+                              { icon: '↻', title: 'Rotate Right',      short: 'R Rotate', active: false, onClick: () => setEditRotation((r) => ((r + 90 + 180) % 360 + 360) % 360 - 180) },
+                              { icon: '↔', title: 'Flip Horizontal',   short: 'Flip H',   active: editFlipH, onClick: () => setEditFlipH((v) => !v) },
+                              { icon: '↕', title: 'Flip Vertical',     short: 'Flip V',   active: editFlipV, onClick: () => setEditFlipV((v) => !v) },
+                            ] as Array<{ icon: string; title: string; short: string; active: boolean; onClick: () => void }>).map(({ icon, title, short, active, onClick }) => (
+                              <button
+                                key={title}
+                                onClick={onClick}
+                                title={title}
+                                className={cx(
+                                  'flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border py-2 text-center transition-colors',
+                                  active
+                                    ? 'border-[var(--color-primary)]/60 bg-[var(--color-primary)]/10 text-white'
+                                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40 hover:text-white',
+                                )}
+                              >
+                                <span className="text-base leading-none">{icon}</span>
+                                <span className="text-[9px]">{short}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <div>
+                            <div className="mb-1 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                              <span>Rotation</span>
+                              <span className="font-mono">{editRotation}°</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={-180}
+                              max={180}
+                              value={editRotation}
+                              onChange={(e) => setEditRotation(Number(e.target.value))}
+                              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[var(--color-border)] accent-[var(--color-primary)]"
+                            />
+                          </div>
+                          {(editRotation !== 0 || editFlipH || editFlipV) && (
+                            <button
+                              onClick={() => { setEditRotation(0); setEditFlipH(false); setEditFlipV(false); }}
+                              className="mt-3 cursor-pointer rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] transition-colors hover:text-white"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </section>
+
                         {/* Level 3: AI Tools */}
                         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
                           <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">AI Tools</h3>
@@ -1147,7 +1218,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                               { tool: 'upscale'  as const, icon: '🔍', label: 'Upscale 4×',  price: '~$0.10' },
                               { tool: 'face'     as const, icon: '👤', label: 'Face Enhance', price: '~$0.10' },
                               { tool: 'removebg' as const, icon: '✂️', label: 'Remove BG',    price: '~$0.02' },
-                              { tool: 'aiedit'   as const, icon: '✨', label: 'AI Edit',       price: '~$0.03' },
+                              { tool: 'aiedit'   as const, icon: '✨', label: 'AI Edit (Beta)', price: '~$0.03' },
                             ]).map(({ tool, icon, label, price }) => (
                               <button
                                 key={tool}
@@ -1184,6 +1255,9 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                           {/* AI Edit prompt */}
                           {editAiEditOpen && (
                             <div className="mt-3 space-y-2">
+                              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-300">
+                                ⚠️ Beta: Works best with style changes (e.g. &quot;make vintage&quot;, &quot;add dramatic shadows&quot;, &quot;change to warm tones&quot;). Does NOT work for rotation, zoom, cropping, or angle changes — use Transform tools above instead.
+                              </div>
                               <input
                                 type="text"
                                 value={editAiEditPrompt}
@@ -1326,7 +1400,11 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                           <img
                             src={editAiResult ?? editPreview}
                             alt="Edit preview"
-                            style={{ filter: buildEditFilter(editFilter, editBrightness, editContrast, editSaturation, editTemperature) }}
+                            style={{
+                              filter: buildEditFilter(editFilter, editBrightness, editContrast, editSaturation, editTemperature),
+                              transform: `rotate(${editRotation}deg) scaleX(${editFlipH ? -1 : 1}) scaleY(${editFlipV ? -1 : 1})`,
+                              transition: 'transform 0.15s ease',
+                            }}
                             className="w-full"
                           />
                           {editAiResult && (

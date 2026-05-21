@@ -19,7 +19,7 @@ export default async function StudioPage() {
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
       </div>
     }>
-      <StudioClient userId={session.user.id} studioPaid={user?.studioPaid ?? false} />
+      <StudioClient userId={session.user.id} studioPaid={user?.studioPaid ?? false} userEmail={session.user.email ?? ''} />
     </Suspense>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -68,7 +69,7 @@ type PresetKey      = keyof typeof PRESET_MAP;
 type OutputFormat   = typeof OUTPUT_FORMATS[number];
 
 interface ImageMeta { display: string; ratio: string; fmt: OutputFormat; label: string; }
-interface Props { userId: string; studioPaid: boolean; }
+interface Props { userId: string; studioPaid: boolean; userEmail: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,7 +104,7 @@ function buildEditFilter(filterId: string, brightness: number, contrast: number,
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function StudioClient({ userId: _userId, studioPaid }: Props) {
+export default function StudioClient({ userId: _userId, studioPaid, userEmail }: Props) {
   const searchParams = useSearchParams();
   const [studioTab, setStudioTab] = useState<StudioTab>(() =>
     searchParams.get('tab') === 'video' ? 'video' : 'image',
@@ -708,16 +709,27 @@ export default function StudioClient({ userId: _userId, studioPaid }: Props) {
         <div className="mx-auto max-w-5xl space-y-6">
 
           {/* Header */}
-          <div>
-            <h1 className="text-2xl font-bold">AI Studio</h1>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">Image generation · Photo enhancement · Video generation</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">AI Studio</h1>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">Image generation · Photo enhancement · Video generation</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3 pt-1">
+              <span className="text-xs text-[var(--color-text-dim)]">{userEmail}</span>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="cursor-pointer rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white"
+              >
+                Logout
+              </button>
+            </div>
           </div>
 
           {/* ── Studio tabs ── */}
           <div className="flex gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
             {([
-              { id: 'image' as StudioTab, label: 'Image Generator', desc: 'Flux Schnell · free tier' },
-              { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.1 · your Replicate key' },
+              { id: 'image' as StudioTab, label: 'Image Generator', desc: 'Flux Schnell · ~$0.003/image' },
+              { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.0 · ~$0.30–0.60/video' },
             ] as const).map(({ id, label, desc }) => (
               <button
                 key={id}

@@ -1,5 +1,6 @@
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
+import sharp from 'sharp';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -38,12 +39,16 @@ export async function POST(req: Request) {
     if (!prompt?.trim()) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
 
     const bytes = await file.arrayBuffer();
-    const ext   = file.type.split('/')[1] || 'jpg';
+
+    const resized = await sharp(Buffer.from(bytes))
+      .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer();
 
     const blob = await put(
-      `studio/ai-edit/${session.user.id}/${Date.now()}.${ext}`,
-      Buffer.from(bytes),
-      { access: 'public', contentType: file.type || 'image/jpeg' },
+      `studio/ai-edit/${session.user.id}/${Date.now()}.png`,
+      resized,
+      { access: 'public', contentType: 'image/png' },
     );
 
     const replicate = new Replicate({ auth: replicateKey });
@@ -54,7 +59,7 @@ export async function POST(req: Request) {
         input: {
           image:                blob.url,
           prompt:               prompt.trim(),
-          num_inference_steps:  50,
+          num_inference_steps:  30,
           image_guidance_scale: 1.5,
         },
       },

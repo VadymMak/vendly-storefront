@@ -436,9 +436,19 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       fd.append('image', sourceFile);
       fd.append('prompt', editAiEditPrompt.trim());
       const res = await fetch('/api/ai-edit', { method: 'POST', body: fd });
-      const data = await res.json() as { url?: string; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'AI edit failed');
-      setEditAiEditResult(data.url!);
+      if (!res.ok) {
+        let errMsg = 'AI edit failed';
+        try {
+          const errData = await res.json() as { error?: string };
+          errMsg = errData.error ?? errMsg;
+        } catch {
+          errMsg = await res.text().catch(() => errMsg);
+        }
+        throw new Error(errMsg);
+      }
+      const data = await res.json() as { url?: string };
+      if (!data.url) throw new Error('AI edit returned no image URL');
+      setEditAiEditResult(data.url);
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI edit failed'); }
     finally { setEditAiTool(null); }
   }

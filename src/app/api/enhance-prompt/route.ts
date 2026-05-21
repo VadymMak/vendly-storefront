@@ -6,6 +6,7 @@ import { decrypt } from '@/lib/encryption';
 // ── Video skill system prompts (mirrors TestVideoClient) ──────────────────────
 
 const VIDEO_SKILL_PROMPTS: Record<string, string> = {
+  'aiedit': 'You are an expert at writing editing instructions for the InstructPix2Pix image editing model. Transform the user\'s rough description into a concise, precise editing instruction. Use action language: "make it...", "change ... to ...", "add ...", "remove ...", "convert to...". Keep it under 15 words. Output ONLY the enhanced instruction.',
   'ig-reel':   'You are a creative director for Instagram Reels. Transform the user input into a cinematic, visually engaging video prompt optimized for vertical 9:16 format. Focus on dynamic motion, vibrant colors, trend-forward aesthetics, and hook within the first second. Output ONLY the enhanced prompt, no explanations.',
   'ig-story':  'You are a social media content director specializing in Instagram Stories. Transform the user input into a visually compelling 9:16 video prompt with a clear narrative arc fitting 5 seconds. Output ONLY the enhanced prompt.',
   'ig-post':   'You are a visual content creator for Instagram feed posts. Transform the user input into a square 1:1 video prompt with polished, editorial aesthetics. Output ONLY the enhanced prompt.',

@@ -62,7 +62,7 @@ type StudioTab      = 'image' | 'video';
 type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
-type AiEditTool     = 'upscale' | 'face' | 'removebg' | null;
+type AiEditTool     = 'upscale' | 'face' | 'removebg' | 'aiedit' | null;
 type Provider       = 'replicate' | 'anthropic';
 type HelpSection    = 'replicate' | 'anthropic' | 'tips';
 type PresetKey      = keyof typeof PRESET_MAP;
@@ -159,6 +159,10 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
   const [editAnimating,    setEditAnimating]    = useState(false);
   const [editSaveFormat,   setEditSaveFormat]   = useState<'png' | 'jpeg' | 'webp'>('webp');
   const [editIsTransparent,setEditIsTransparent]= useState(false);
+  const [editAiEditOpen,      setEditAiEditOpen]      = useState(false);
+  const [editAiEditPrompt,    setEditAiEditPrompt]    = useState('');
+  const [editAiEditEnhancing, setEditAiEditEnhancing] = useState(false);
+  const [editAiEditResult,    setEditAiEditResult]    = useState<string | null>(null);
 
   // ── Video tab ─────────────────────────────────────────────────────────────
   const [videoMode,        setVideoMode]        = useState<VideoMode>('text');
@@ -418,6 +422,61 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       setEditAiResult(url);
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI tool failed'); }
     finally { setEditAiTool(null); }
+  }
+
+  async function editRunAiEdit() {
+    if (editAiTool || !editAiEditPrompt.trim()) return;
+    setEditAiTool('aiedit');
+    setEditAiError(null);
+    setEditAiEditResult(null);
+    try {
+      const sourceFile = await editGetSourceFile();
+      const fd = new FormData();
+      fd.append('image', sourceFile);
+      fd.append('prompt', editAiEditPrompt.trim());
+      const res = await fetch('/api/ai-edit', { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'AI edit failed');
+      setEditAiEditResult(data.url!);
+    } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI edit failed'); }
+    finally { setEditAiTool(null); }
+  }
+
+  async function editImproveAiEditPrompt() {
+    if (!editAiEditPrompt.trim() || editAiEditEnhancing) return;
+    setEditAiEditEnhancing(true);
+    setEditAiError(null);
+    try {
+      const res = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: editAiEditPrompt, skillId: 'aiedit' }),
+      });
+      const data = await res.json() as { enhanced?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Enhancement failed');
+      if (data.enhanced) setEditAiEditPrompt(data.enhanced);
+    } catch (e) { setEditAiError(e instanceof Error ? e.message : 'Prompt improvement failed'); }
+    finally { setEditAiEditEnhancing(false); }
+  }
+
+  async function editAiEditDownload() {
+    if (!editAiEditResult || editSaving) return;
+    setEditSaving(true);
+    try {
+      const imgRes = await fetch(editAiEditResult);
+      const imgBlob = await imgRes.blob();
+      const fd = new FormData();
+      fd.append('image', imgBlob, 'ai-edit.png');
+      fd.append('format', editSaveFormat);
+      const resp = await fetch('/api/export-image', { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error('Export failed');
+      const outBlob = await resp.blob();
+      const url = URL.createObjectURL(outBlob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `ai-edit-${Date.now()}.${editSaveFormat}` });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) { setEditAiError(e instanceof Error ? e.message : 'Download failed'); }
+    finally { setEditSaving(false); }
   }
 
   async function editRenderCanvas(source: string): Promise<Blob> {
@@ -1065,15 +1124,24 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                           <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">AI Tools</h3>
                           <div className="grid grid-cols-2 gap-2">
                             {([
-                              { tool: 'upscale'   as const, icon: '🔍', label: 'Upscale 4×',  price: '~$0.10' },
-                              { tool: 'face'      as const, icon: '👤', label: 'Face Enhance', price: '~$0.10' },
-                              { tool: 'removebg'  as const, icon: '✂️', label: 'Remove BG',    price: '~$0.02' },
+                              { tool: 'upscale'  as const, icon: '🔍', label: 'Upscale 4×',  price: '~$0.10' },
+                              { tool: 'face'     as const, icon: '👤', label: 'Face Enhance', price: '~$0.10' },
+                              { tool: 'removebg' as const, icon: '✂️', label: 'Remove BG',    price: '~$0.02' },
+                              { tool: 'aiedit'   as const, icon: '✨', label: 'AI Edit',       price: '~$0.03' },
                             ]).map(({ tool, icon, label, price }) => (
                               <button
                                 key={tool}
-                                onClick={() => editRunAiTool(tool)}
+                                onClick={() => {
+                                  if (tool === 'aiedit') { setEditAiEditOpen((o) => !o); }
+                                  else { editRunAiTool(tool); }
+                                }}
                                 disabled={!!editAiTool || !keyFor('replicate')}
-                                className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-[var(--color-border)] p-3 text-center transition-colors hover:border-[var(--color-primary)]/40 disabled:opacity-40"
+                                className={cx(
+                                  'flex cursor-pointer flex-col items-center gap-1 rounded-lg border p-3 text-center transition-colors disabled:opacity-40',
+                                  tool === 'aiedit' && editAiEditOpen
+                                    ? 'border-[var(--color-primary)]/60 bg-[var(--color-primary)]/10'
+                                    : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/40',
+                                )}
                               >
                                 {editAiTool === tool
                                   ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
@@ -1092,6 +1160,44 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                               <span className="text-[10px] text-[var(--color-text-dim)]">Coming soon</span>
                             </button>
                           </div>
+
+                          {/* AI Edit prompt */}
+                          {editAiEditOpen && (
+                            <div className="mt-3 space-y-2">
+                              <input
+                                type="text"
+                                value={editAiEditPrompt}
+                                onChange={(e) => setEditAiEditPrompt(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && editRunAiEdit()}
+                                placeholder="Describe what to change: e.g. 'make it macro close-up', 'change angle to top-down', 'add steam rising from food', 'blur the background'"
+                                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-primary)] focus:outline-none"
+                              />
+                              <div className="flex gap-2">
+                                {keyFor('anthropic') && (
+                                  <button
+                                    onClick={editImproveAiEditPrompt}
+                                    disabled={editAiEditEnhancing || !editAiEditPrompt.trim()}
+                                    className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/40 hover:text-white disabled:opacity-40"
+                                  >
+                                    {editAiEditEnhancing
+                                      ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />Improving…</>
+                                      : '✨ Improve prompt'}
+                                  </button>
+                                )}
+                                <button
+                                  onClick={editRunAiEdit}
+                                  disabled={!!editAiTool || !editAiEditPrompt.trim() || !keyFor('replicate')}
+                                  className="ml-auto cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40"
+                                >
+                                  {editAiTool === 'aiedit'
+                                    ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Editing…</>
+                                    : 'Apply Edit'}
+                                </button>
+                              </div>
+                              <p className="text-[10px] text-[var(--color-text-dim)]">Works in any language: English, Slovak, German, Ukrainian…</p>
+                            </div>
+                          )}
+
                           {!keyFor('replicate') && <p className="mt-2 text-xs text-[var(--color-text-dim)]">Add Replicate key to use AI tools</p>}
                         </section>
 
@@ -1151,6 +1257,47 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
                           <path d="M6 35l11-9 8 8 6-6 9 7 6-4" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                         </svg>
                         <span className="text-sm text-[var(--color-text-dim)]">Upload a photo to start editing</span>
+                      </div>
+                    ) : editAiEditResult ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Original</p>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={editPreview!} alt="Original" className="w-full rounded-xl border border-[var(--color-border)]" />
+                          </div>
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-green-400">AI Edit Result</p>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={editAiEditResult} alt="AI Edit Result" className="w-full rounded-xl border border-green-500/30" />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => { setEditAiResult(editAiEditResult); setEditAiEditResult(null); setEditAiEditOpen(false); }}
+                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-500"
+                          >Accept</button>
+                          <button
+                            onClick={() => setEditAiEditResult(null)}
+                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-red-500/40 hover:text-red-400"
+                          >Reject</button>
+                          <button
+                            onClick={editAiEditDownload}
+                            disabled={editSaving}
+                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white disabled:opacity-40"
+                          >
+                            <svg width={12} height={12} viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v7M3 5.5l3 3 3-3M1 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            Download
+                          </button>
+                          <button
+                            onClick={() => animateImage(editAiEditResult)}
+                            disabled={editAnimating || !keyFor('replicate')}
+                            title={!keyFor('replicate') ? 'Add your Replicate API key first → Settings' : undefined}
+                            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
+                          >
+                            {editAnimating ? <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />Preparing…</> : <>Animate this →</>}
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-4">

@@ -49,12 +49,12 @@ export async function POST(req: Request) {
     const replicate = new Replicate({ auth: replicateKey });
 
     const output = await replicate.run(
-      'timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23d',
+      'timothybrooks/instruct-pix2pix' as `${string}/${string}`,
       {
         input: {
-          image:               blob.url,
-          prompt:              prompt.trim(),
-          num_inference_steps: 50,
+          image:                blob.url,
+          prompt:               prompt.trim(),
+          num_inference_steps:  50,
           image_guidance_scale: 1.5,
         },
       },

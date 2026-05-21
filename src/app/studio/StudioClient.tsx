@@ -366,6 +366,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
     setEditPreview(file ? URL.createObjectURL(file) : null);
     setEditAiResult(null);
     setEditAiError(null);
+    setEditSaving(false);
     setEditFilter('original');
     setEditBrightness(100);
     setEditContrast(100);
@@ -481,8 +482,17 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
 
   async function editRenderCanvas(source: string): Promise<Blob> {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
-    await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = source; });
+    const isExternal = source.startsWith('http');
+    if (isExternal) img.crossOrigin = 'anonymous';
+    const imgSrc = isExternal
+      ? `${source}${source.includes('?') ? '&' : '?'}cb=${Date.now()}`
+      : source;
+    await new Promise<void>((res, rej) => {
+      const timeout = setTimeout(() => rej(new Error('Image load timeout')), 30_000);
+      img.onload  = () => { clearTimeout(timeout); res(); };
+      img.onerror = () => { clearTimeout(timeout); rej(new Error('Image load failed')); };
+      img.src = imgSrc;
+    });
     const canvas = document.createElement('canvas');
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;

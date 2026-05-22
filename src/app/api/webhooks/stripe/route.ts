@@ -47,6 +47,16 @@ export async function POST(request: Request) {
         break;
       }
 
+      // ── Lead payment ───────────────────────────────────────────────────
+      if (session.metadata?.type === 'lead_payment') {
+        const leadId = session.metadata?.leadId;
+        if (leadId) {
+          await db.lead.update({ where: { id: leadId }, data: { status: 'paid' } });
+          console.log(`✅ Lead marked paid: leadId=${leadId}`);
+        }
+        break;
+      }
+
       const orderId = session.metadata?.orderId;
       if (!orderId) break;
 

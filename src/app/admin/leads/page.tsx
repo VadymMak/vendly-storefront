@@ -631,6 +631,7 @@ function LeadCard({
   const [heroIdx, setHeroIdx]           = useState<number>(lead.heroImageIndex ?? 0);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentCopied, setPaymentCopied] = useState(false);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -659,7 +660,11 @@ function LeadCard({
     try {
       const res = await fetch(`/api/admin/leads/${lead.id}/checkout`, { method: 'POST' });
       const data = await res.json() as { url?: string; error?: string };
-      if (data.url) window.open(data.url, '_blank');
+      if (data.url) {
+        await navigator.clipboard.writeText(data.url);
+        setPaymentCopied(true);
+        setTimeout(() => setPaymentCopied(false), 3000);
+      }
     } finally {
       setPaymentLoading(false);
     }
@@ -1626,13 +1631,20 @@ function LeadCard({
 
               {/* Payment link */}
               {(lead.status === 'site_ready' || lead.status === 'sent') && (
-                <button
-                  onClick={() => void handlePayment()}
-                  disabled={paymentLoading}
-                  className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
-                >
-                  {paymentLoading ? '…' : '💳 Send Payment Link'}
-                </button>
+                <>
+                  <button
+                    onClick={() => void handlePayment()}
+                    disabled={paymentLoading || paymentCopied}
+                    className="rounded-lg bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50 transition-colors"
+                  >
+                    {paymentLoading ? '…' : paymentCopied ? '✅ Copied!' : '💳 Copy Payment Link'}
+                  </button>
+                  {paymentCopied && (
+                    <span className="text-xs font-medium text-violet-300">
+                      Send to client via WhatsApp
+                    </span>
+                  )}
+                </>
               )}
 
               {/* Delete */}

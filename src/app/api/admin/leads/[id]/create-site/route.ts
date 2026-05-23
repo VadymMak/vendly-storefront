@@ -139,14 +139,16 @@ export async function POST(
   const GITHUB_TOKEN      = process.env.GITHUB_TOKEN;
   const GITHUB_OWNER      = process.env.GITHUB_OWNER;
   const VERCEL_TOKEN      = process.env.VERCEL_TOKEN;
+  const VERCEL_TEAM_ID    = process.env.VERCEL_TEAM_ID;
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-  console.log('[create-site] ANTHROPIC_API_KEY present:', !!ANTHROPIC_API_KEY);
+  console.log('[create-site] Env check — ANTHROPIC_API_KEY:', !!ANTHROPIC_API_KEY, '| VERCEL_TEAM_ID:', VERCEL_TEAM_ID ?? '(not set)');
 
   const missingVars = [
-    !GITHUB_TOKEN  && 'GITHUB_TOKEN',
-    !GITHUB_OWNER  && 'GITHUB_OWNER',
-    !VERCEL_TOKEN  && 'VERCEL_TOKEN',
+    !GITHUB_TOKEN      && 'GITHUB_TOKEN',
+    !GITHUB_OWNER      && 'GITHUB_OWNER',
+    !VERCEL_TOKEN      && 'VERCEL_TOKEN',
+    !ANTHROPIC_API_KEY && 'ANTHROPIC_API_KEY',
   ].filter(Boolean);
 
   if (missingVars.length > 0) {
@@ -418,7 +420,8 @@ export async function POST(
 
     // Step 12 — Create Vercel project (AFTER all commits — sees final code immediately)
     console.log('[create-site] Step 12: Creating Vercel project');
-    const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
+    const vercelProjectQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';
+    const vercelRes = await fetch(`https://api.vercel.com/v10/projects${vercelProjectQuery}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${VERCEL_TOKEN}`,
@@ -439,7 +442,6 @@ export async function POST(
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
     // Step 13 — Trigger deployment explicitly using GitHub repoId (correct Vercel API format)
-    const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
     if (githubRepoId) {
       console.log('[create-site] Step 13: Triggering deployment with repoId:', githubRepoId);
       const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';

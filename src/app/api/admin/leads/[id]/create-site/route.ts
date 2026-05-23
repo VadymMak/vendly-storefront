@@ -401,9 +401,29 @@ export async function POST(
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 13 — Save lead and return. Vercel auto-deploys via git integration (Step 12).
-    // No polling — auto-deploy takes 2-3 min, function budget is maxDuration=300s.
-    console.log('[create-site] Step 13: Done — repo committed, Vercel project created, returning 200');
+    // Step 13 — Trigger initial deployment manually. Vercel does NOT auto-deploy when a
+    // project is first connected to a repo — only subsequent pushes trigger auto-deploy.
+    const deployTeamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';
+    const deployRes = await fetch(`https://api.vercel.com/v13/deployments${deployTeamQuery}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${VERCEL_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name:      finalRepoName,
+        target:    'production',
+        gitSource: {
+          type:   'github',
+          repoId: String(githubRepoId),
+          ref:    'main',
+        },
+      }),
+    });
+    console.log('[create-site] Step 13: Deployment triggered, status:', deployRes.status);
+
+    // Step 14 — Save lead and return immediately (no polling — deploy takes 2-3 min).
+    console.log('[create-site] Step 14: Saving lead and returning 200');
 
     await db.lead.update({
       where: { id },

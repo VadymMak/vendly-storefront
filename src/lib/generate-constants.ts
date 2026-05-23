@@ -264,7 +264,10 @@ ${isMenuType
 - APOSTROPHES: any apostrophe inside a single-quoted string MUST be escaped as \\' — e.g. об\\'єму, зв\\'язок
 ${lead.language === 'de' ? `
 === GERMAN LEGAL (IMPRINT) — REQUIRED ===
-Export IMPRINT as a const object with this exact shape:
+Export IMPRINT using EXACTLY the values provided below — do NOT invent, guess, or fill in
+any field that is empty. If a value is empty string '', keep it as '' in the output.
+Never use placeholder names like "Max Mustermann", "Max Mueller", "DE123456789", etc.
+
 export const IMPRINT = {
   ownerFullName:      '${esc(lead.ownerFullName)}',
   companyLegalForm:   '${esc(lead.companyLegalForm) || 'Einzelunternehmer'}',

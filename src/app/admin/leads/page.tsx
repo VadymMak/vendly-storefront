@@ -58,6 +58,12 @@ interface Lead {
   siteCreatedAt:   string | null;
   siteQaReport:    string | null;
   heroImageIndex:  number | null;
+  // German legal (DE sites only)
+  ownerFullName:      string | null;
+  companyLegalForm:   string | null;
+  vatId:              string | null;
+  registrationNumber: string | null;
+  impressumEmail:     string | null;
   createdAt:       string;
   updatedAt:       string;
 }
@@ -1085,6 +1091,56 @@ function LeadCard({
                   onChange={(e) => set('notes', e.target.value)}
                 />
               </Field>
+
+              {/* ── DE legal fields — only shown for German sites ── */}
+              {val('language') === 'de' && (<>
+                <div className="sm:col-span-2">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-yellow-400">
+                    🇩🇪 Impressumspflicht (§5 TMG) — обязательно для DE сайтов
+                  </p>
+                </div>
+                <Field label="Vollständiger Name (Inhaber)">
+                  <input
+                    className={inputCls}
+                    placeholder="Anna Bergmann"
+                    value={val('ownerFullName') as string ?? ''}
+                    onChange={(e) => set('ownerFullName', e.target.value)}
+                  />
+                </Field>
+                <Field label="Rechtsform (Unternehmensform)">
+                  <input
+                    className={inputCls}
+                    placeholder="Einzelunternehmer / GmbH / UG..."
+                    value={val('companyLegalForm') as string ?? ''}
+                    onChange={(e) => set('companyLegalForm', e.target.value)}
+                  />
+                </Field>
+                <Field label="USt-IdNr. (Umsatzsteuer-ID)">
+                  <input
+                    className={inputCls}
+                    placeholder="DE123456789"
+                    value={val('vatId') as string ?? ''}
+                    onChange={(e) => set('vatId', e.target.value)}
+                  />
+                </Field>
+                <Field label="Handelsregisternummer (optional)">
+                  <input
+                    className={inputCls}
+                    placeholder="HRB 12345 Berlin"
+                    value={val('registrationNumber') as string ?? ''}
+                    onChange={(e) => set('registrationNumber', e.target.value)}
+                  />
+                </Field>
+                <Field label="Impressum-E-Mail">
+                  <input
+                    type="email"
+                    className={inputCls}
+                    placeholder="impressum@example.de"
+                    value={val('impressumEmail') as string ?? ''}
+                    onChange={(e) => set('impressumEmail', e.target.value)}
+                  />
+                </Field>
+              </>)}
             </div>
 
             {/* ── Brief section (full width) ── */}

@@ -401,10 +401,9 @@ export async function POST(
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 13 — Return immediately. Vercel git integration auto-deploys when the project
-    // is connected to GitHub (Step 12). Polling would consume the remaining function budget
-    // (auto-deploy takes 2-3 min; Anthropic + GitHub steps already used ~90s of 300s max).
-    console.log('[create-site] Step 13: Saving lead and returning — Vercel auto-deploy in progress');
+    // Step 13 — Save lead and return. Vercel auto-deploys via git integration (Step 12).
+    // No polling — auto-deploy takes 2-3 min, function budget is maxDuration=300s.
+    console.log('[create-site] Step 13: Done — repo committed, Vercel project created, returning 200');
 
     await db.lead.update({
       where: { id },

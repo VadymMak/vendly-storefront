@@ -69,10 +69,11 @@ type Phase =
   | 'business-type'   // step 0a — choose business type
   | 'demo'            // step 0b — show demo preview
   | 'services'        // step 1  — multi-select sections
-  | 'contact'         // step 2  — enter contact
-  | 'confirm'         // step 3  — review & confirm
-  | 'edit'            // step 3b — pick what to edit
-  | 'done';           // step 4  — thank you
+  | 'name'            // step 2  — enter person name
+  | 'contact'         // step 3  — enter phone/WhatsApp
+  | 'confirm'         // step 4  — review & confirm
+  | 'edit'            // step 4b — pick what to edit
+  | 'done';           // step 5  — thank you
 
 interface Message {
   text: string;
@@ -125,6 +126,7 @@ export default function OnboardingChat() {
   const [businessType, setBusinessType]   = useState('');
   const [demoUrl, setDemoUrl]             = useState('');
   const [selectedServices, setSelected]   = useState<string[]>([]);
+  const [contactName, setContactName]     = useState('');
   const [contact, setContact]             = useState('');
   const [inputValue, setInputValue]       = useState('');
   const [messages, setMessages]           = useState<Message[]>([]);
@@ -139,9 +141,9 @@ export default function OnboardingChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input when contact phase is reached
+  // Focus input when name or contact phase is reached
   useEffect(() => {
-    if (phase === 'contact') {
+    if (phase === 'name' || phase === 'contact') {
       const timer = setTimeout(() => inputRef.current?.focus(), 120);
       return () => clearTimeout(timer);
     }
@@ -228,11 +230,23 @@ export default function OnboardingChat() {
     const opts = t.serviceOptions[businessType] ?? [];
     const labels = opts.filter((o) => selectedServices.includes(o.value)).map((o) => o.label);
     pushUser(labels.join(', '));
+    pushBot(t.nameQuestion);
+    setPhase('name');
+  };
+
+  // ── Step 2: name ──────────────────────────────────────────────────────────
+
+  const handleNameSubmit = () => {
+    const text = inputValue.trim();
+    if (!text) return;
+    setContactName(text);
+    setInputValue('');
+    pushUser(text);
     pushBot(t.contactQuestion);
     setPhase('contact');
   };
 
-  // ── Step 2: contact ───────────────────────────────────────────────────────
+  // ── Step 3: contact ───────────────────────────────────────────────────────
 
   const handleContactSubmit = () => {
     const text = inputValue.trim();
@@ -248,7 +262,7 @@ export default function OnboardingChat() {
       .map((o) => o.label)
       .join(', ');
 
-    pushBot(t.confirmMessage({ businessTypeLabel: btLabel, services: serviceLabels, contact: text }));
+    pushBot(t.confirmMessage({ businessTypeLabel: btLabel, services: serviceLabels, name: contactName, contact: text }));
     setPhase('confirm');
   };
 
@@ -274,12 +288,16 @@ export default function OnboardingChat() {
     if (value === 'businessType') {
       setBusinessType('');
       setSelected([]);
+      setContactName('');
       setContact('');
       pushBot(t.greeting);
       setPhase('business-type');
     } else if (value === 'services') {
       pushBot(t.servicesQuestion);
       setPhase('services');
+    } else if (value === 'name') {
+      pushBot(t.nameQuestion);
+      setPhase('name');
     } else {
       pushBot(t.contactQuestion);
       setPhase('contact');
@@ -304,6 +322,7 @@ export default function OnboardingChat() {
           businessName: '',
           services: serviceLabels,
           style:    '',
+          contactName,
           contact,
           language: lang,
           demoUrl,
@@ -321,6 +340,7 @@ export default function OnboardingChat() {
   const progressStep =
     phase === 'business-type' || phase === 'demo' ? 1 :
     phase === 'services'                          ? 2 :
+    phase === 'name'                              ? 3 :
     phase === 'contact'                           ? 3 :
     phase === 'confirm' || phase === 'edit'       ? 4 :
     null; // done
@@ -466,6 +486,30 @@ export default function OnboardingChat() {
                     {t.nextButton}
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* Phase: name input */}
+            {phase === 'name' && (
+              <div className="flex gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
+                  placeholder={t.namePlaceholder}
+                  className="flex-1 min-h-[48px] rounded-xl border bg-transparent px-3 py-2 text-sm outline-none transition-colors focus:border-primary placeholder:text-white/30"
+                  style={{ color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+                />
+                <button
+                  onClick={handleNameSubmit}
+                  disabled={!inputValue.trim()}
+                  className="flex min-h-[48px] w-12 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary-dark disabled:opacity-40 active:scale-95"
+                  aria-label="Send"
+                >
+                  <SendIcon />
+                </button>
               </div>
             )}
 

@@ -12,10 +12,12 @@ export interface ChatTranslation {
   likeButton: string;
   servicesQuestion: string;
   nextButton: string;
+  nameQuestion: string;
+  namePlaceholder: string;
   contactQuestion: string;
   trustMessage: string;
   contactPlaceholder: string;
-  confirmMessage: (data: { businessTypeLabel: string; services: string; contact: string }) => string;
+  confirmMessage: (data: { businessTypeLabel: string; services: string; name: string; contact: string }) => string;
   confirmYes: string;
   confirmEdit: string;
   thankYou: (contact: string) => string;
@@ -85,11 +87,13 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     likeButton:   '👍 Páči sa mi! Ďalej →',
     servicesQuestion: 'Aké sekcie potrebujete na webstránke? Vyberte všetko čo sa hodí:',
     nextButton:   '✅ Ďalej →',
-    contactQuestion: 'Super! Aby sme vám poslali hotový web — zadajte WhatsApp alebo telefón:',
+    nameQuestion: 'Super! Ako sa voláte?',
+    namePlaceholder: 'Vaše meno...',
+    contactQuestion: 'A teraz váš WhatsApp alebo telefón:',
     trustMessage: '🔒 11+ hotových projektov • Web za 48 hodín • Platíte len ak sa páči',
     contactPlaceholder: '+421...',
-    confirmMessage: ({ businessTypeLabel, services, contact }) =>
-      `Výborne! Toto som pochopil:\n📋 Biznis: ${businessTypeLabel}\n✅ Sekcie: ${services}\n📱 Kontakt: ${contact}\n\nVšetko správne?`,
+    confirmMessage: ({ businessTypeLabel, services, name, contact }) =>
+      `Výborne! Toto som pochopil:\n👤 Meno: ${name}\n📋 Biznis: ${businessTypeLabel}\n✅ Sekcie: ${services}\n📱 Kontakt: ${contact}\n\nVšetko správne?`,
     confirmYes:  '✅ Áno, začínajte!',
     confirmEdit: '✏️ Opraviť',
     thankYou: (contact) =>
@@ -99,6 +103,7 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     editOptions: [
       { label: 'Typ biznisu', value: 'businessType' },
       { label: 'Sekcie',      value: 'services' },
+      { label: 'Meno',        value: 'name' },
       { label: 'Kontakt',     value: 'contact' },
     ],
     progressStep: (step) => `Krok ${step} zo 4 • Menej ako minúta`,
@@ -149,11 +154,13 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     likeButton:   '👍 Looks great! Next →',
     servicesQuestion: 'Which sections do you need on the website? Select all that apply:',
     nextButton:   '✅ Next →',
-    contactQuestion: 'Great! To send you the finished website — enter your WhatsApp or phone:',
+    nameQuestion: 'Great! What is your name?',
+    namePlaceholder: 'Your name...',
+    contactQuestion: 'And your WhatsApp or phone number:',
     trustMessage: '🔒 11+ finished projects • Website in 48 hours • Pay only if you like it',
     contactPlaceholder: '+421...',
-    confirmMessage: ({ businessTypeLabel, services, contact }) =>
-      `Great! Here's what I understood:\n📋 Business: ${businessTypeLabel}\n✅ Sections: ${services}\n📱 Contact: ${contact}\n\nIs everything correct?`,
+    confirmMessage: ({ businessTypeLabel, services, name, contact }) =>
+      `Great! Here's what I understood:\n👤 Name: ${name}\n📋 Business: ${businessTypeLabel}\n✅ Sections: ${services}\n📱 Contact: ${contact}\n\nIs everything correct?`,
     confirmYes:  "✅ Yes, let's start!",
     confirmEdit: '✏️ Edit',
     thankYou: (contact) =>
@@ -163,6 +170,7 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     editOptions: [
       { label: 'Business Type', value: 'businessType' },
       { label: 'Sections',      value: 'services' },
+      { label: 'Name',          value: 'name' },
       { label: 'Contact',       value: 'contact' },
     ],
     progressStep: (step) => `Step ${step} of 4 • Less than a minute`,
@@ -213,11 +221,13 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     likeButton:   '👍 Gefällt mir! Weiter →',
     servicesQuestion: 'Welche Bereiche brauchen Sie auf der Website? Wählen Sie alles Passende:',
     nextButton:   '✅ Weiter →',
-    contactQuestion: 'Super! Um Ihnen die fertige Website zu senden — geben Sie WhatsApp oder Telefon an:',
+    nameQuestion: 'Super! Wie heißen Sie?',
+    namePlaceholder: 'Ihr Name...',
+    contactQuestion: 'Und Ihre WhatsApp-Nummer oder Telefonnummer:',
     trustMessage: '🔒 11+ fertige Projekte • Website in 48 Stunden • Zahlen nur wenn gefällt',
     contactPlaceholder: '+421...',
-    confirmMessage: ({ businessTypeLabel, services, contact }) =>
-      `Ausgezeichnet! Das habe ich verstanden:\n📋 Unternehmen: ${businessTypeLabel}\n✅ Bereiche: ${services}\n📱 Kontakt: ${contact}\n\nIst alles korrekt?`,
+    confirmMessage: ({ businessTypeLabel, services, name, contact }) =>
+      `Ausgezeichnet! Das habe ich verstanden:\n👤 Name: ${name}\n📋 Unternehmen: ${businessTypeLabel}\n✅ Bereiche: ${services}\n📱 Kontakt: ${contact}\n\nIst alles korrekt?`,
     confirmYes:  '✅ Ja, loslegen!',
     confirmEdit: '✏️ Korrigieren',
     thankYou: (contact) =>
@@ -227,6 +237,7 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     editOptions: [
       { label: 'Unternehmenstyp', value: 'businessType' },
       { label: 'Bereiche',        value: 'services' },
+      { label: 'Name',            value: 'name' },
       { label: 'Kontakt',         value: 'contact' },
     ],
     progressStep: (step) => `Schritt ${step} von 4 • Weniger als eine Minute`,
@@ -277,11 +288,13 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     likeButton:   '👍 Líbí se mi! Dál →',
     servicesQuestion: 'Jaké sekce potřebujete na webu? Vyberte vše co se hodí:',
     nextButton:   '✅ Dál →',
-    contactQuestion: 'Skvěle! Abychom vám poslali hotový web — zadejte WhatsApp nebo telefon:',
+    nameQuestion: 'Skvěle! Jak se jmenujete?',
+    namePlaceholder: 'Vaše jméno...',
+    contactQuestion: 'A váš WhatsApp nebo telefon:',
     trustMessage: '🔒 11+ hotových projektů • Web za 48 hodin • Platíte jen pokud se líbí',
     contactPlaceholder: '+421...',
-    confirmMessage: ({ businessTypeLabel, services, contact }) =>
-      `Skvěle! Toto jsem pochopil:\n📋 Firma: ${businessTypeLabel}\n✅ Sekce: ${services}\n📱 Kontakt: ${contact}\n\nVše správně?`,
+    confirmMessage: ({ businessTypeLabel, services, name, contact }) =>
+      `Skvěle! Toto jsem pochopil:\n👤 Jméno: ${name}\n📋 Firma: ${businessTypeLabel}\n✅ Sekce: ${services}\n📱 Kontakt: ${contact}\n\nVše správně?`,
     confirmYes:  '✅ Ano, začínáme!',
     confirmEdit: '✏️ Opravit',
     thankYou: (contact) =>
@@ -291,6 +304,7 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     editOptions: [
       { label: 'Typ podnikání', value: 'businessType' },
       { label: 'Sekce',         value: 'services' },
+      { label: 'Jméno',         value: 'name' },
       { label: 'Kontakt',       value: 'contact' },
     ],
     progressStep: (step) => `Krok ${step} ze 4 • Méně než minuta`,
@@ -341,11 +355,13 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     likeButton:   '👍 Подобається! Далі →',
     servicesQuestion: 'Які розділи потрібні на сайті? Виберіть усе що підходить:',
     nextButton:   '✅ Далі →',
-    contactQuestion: 'Чудово! Щоб надіслати вам готовий сайт — вкажіть WhatsApp або телефон:',
+    nameQuestion: 'Чудово! Як вас звати?',
+    namePlaceholder: 'Ваше ім\'я...',
+    contactQuestion: 'І ваш WhatsApp або телефон:',
     trustMessage: '🔒 11+ готових проектів • Сайт за 48 годин • Платите тільки якщо сподобається',
     contactPlaceholder: '+421...',
-    confirmMessage: ({ businessTypeLabel, services, contact }) =>
-      `Чудово! Ось що я зрозумів:\n📋 Бізнес: ${businessTypeLabel}\n✅ Розділи: ${services}\n📱 Контакт: ${contact}\n\nВсе вірно?`,
+    confirmMessage: ({ businessTypeLabel, services, name, contact }) =>
+      `Чудово! Ось що я зрозумів:\n👤 Ім'я: ${name}\n📋 Бізнес: ${businessTypeLabel}\n✅ Розділи: ${services}\n📱 Контакт: ${contact}\n\nВсе вірно?`,
     confirmYes:  '✅ Так, починайте!',
     confirmEdit: '✏️ Виправити',
     thankYou: (contact) =>
@@ -355,6 +371,7 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     editOptions: [
       { label: 'Тип бізнесу', value: 'businessType' },
       { label: 'Розділи',     value: 'services' },
+      { label: 'Ім\'я',       value: 'name' },
       { label: 'Контакт',     value: 'contact' },
     ],
     progressStep: (step) => `Крок ${step} з 4 • Менше хвилини`,
@@ -405,11 +422,13 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     likeButton:   '👍 Нравится! Далее →',
     servicesQuestion: 'Какие разделы нужны на сайте? Выберите все что подходит:',
     nextButton:   '✅ Далее →',
-    contactQuestion: 'Отлично! Чтобы отправить готовый сайт — укажите WhatsApp или телефон:',
+    nameQuestion: 'Отлично! Как вас зовут?',
+    namePlaceholder: 'Ваше имя...',
+    contactQuestion: 'И ваш WhatsApp или телефон:',
     trustMessage: '🔒 11+ готовых проектов • Сайт за 48 часов • Платите только если понравится',
     contactPlaceholder: '+421...',
-    confirmMessage: ({ businessTypeLabel, services, contact }) =>
-      `Отлично! Вот что я понял:\n📋 Бизнес: ${businessTypeLabel}\n✅ Разделы: ${services}\n📱 Контакт: ${contact}\n\nВсё верно?`,
+    confirmMessage: ({ businessTypeLabel, services, name, contact }) =>
+      `Отлично! Вот что я понял:\n👤 Имя: ${name}\n📋 Бизнес: ${businessTypeLabel}\n✅ Разделы: ${services}\n📱 Контакт: ${contact}\n\nВсё верно?`,
     confirmYes:  '✅ Да, начинайте!',
     confirmEdit: '✏️ Исправить',
     thankYou: (contact) =>
@@ -419,6 +438,7 @@ export const CHATBOT_TRANSLATIONS: Record<string, ChatTranslation> = {
     editOptions: [
       { label: 'Тип бизнеса', value: 'businessType' },
       { label: 'Разделы',     value: 'services' },
+      { label: 'Имя',         value: 'name' },
       { label: 'Контакт',     value: 'contact' },
     ],
     progressStep: (step) => `Шаг ${step} из 4 • Меньше минуты`,

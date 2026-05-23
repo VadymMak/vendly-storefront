@@ -8,6 +8,8 @@ import { commitFiles } from '@/lib/github-commit';
 import { getLeadPhotos } from '@/lib/lead-photos';
 import sharp from 'sharp';
 
+export const maxDuration = 300;
+
 // ─── Local types ──────────────────────────────────────────────────────────────
 
 interface GitHubRepoResponse {
@@ -430,38 +432,16 @@ export async function POST(
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 13 — Trigger explicit production deployment (belt-and-suspenders)
-    console.log('[create-site] Step 13: Triggering Vercel deployment');
-    const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${VERCEL_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name:      finalRepoName,
-        target:    'production',
-        gitSource: { type: 'github', org: GITHUB_OWNER, repo: finalRepoName, ref: 'main' },
-      }),
-    });
-
-    if (!deployRes.ok) {
-      const errBody = await deployRes.text();
-      console.warn('[create-site] Step 13: Explicit deploy trigger failed (non-fatal):', deployRes.status, errBody);
-    } else {
-      console.log('[create-site] Step 13: Deployment triggered');
-    }
-
-    // Step 14 — Wait for deployment to become READY (max 55s)
-    console.log('[create-site] Step 14: Polling for READY state...');
+    // Step 13 — Wait for deployment to become READY (max 240s — Vercel auto-deploys via GitHub integration)
+    console.log('[create-site] Step 13: Polling for READY state...');
     const VERCEL_TEAM_ID   = process.env.VERCEL_TEAM_ID;
-    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 55000);
-    console.log('[create-site] Step 14: Deployment result:', deploymentResult);
+    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 240000);
+    console.log('[create-site] Step 13: Deployment result:', deploymentResult);
 
-    // Step 15 — Save lead
+    // Step 14 — Save lead
     const finalUrl    = deploymentResult.url ?? vercelUrl;
     const finalStatus = deploymentResult.ready ? 'created' : 'creating';
-    console.log('[create-site] Step 15: Saving lead — status:', finalStatus, 'url:', finalUrl);
+    console.log('[create-site] Step 14: Saving lead — status:', finalStatus, 'url:', finalUrl);
 
     await db.lead.update({
       where: { id },

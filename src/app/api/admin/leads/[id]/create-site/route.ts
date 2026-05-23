@@ -61,8 +61,10 @@ function buildRepoName(businessName: string | null | undefined, businessType: st
   return `${base}-${type}`;
 }
 
-/** Poll Vercel until the latest production deployment is READY or ERROR, or maxWaitMs exceeded. */
+/** Poll Vercel until the latest production deployment is READY or ERROR, or maxWaitMs exceeded.
+ *  Uses the actual Vercel project ID (not the name) to avoid stale/cross-project results. */
 async function waitForDeployment(
+  vercelProjectId: string,
   projectName: string,
   vercelToken: string,
   teamId: string | undefined,
@@ -75,19 +77,19 @@ async function waitForDeployment(
     try {
       const teamQuery = teamId ? `&teamId=${teamId}` : '';
       const res = await fetch(
-        `https://api.vercel.com/v6/deployments?projectId=${projectName}&limit=1&target=production${teamQuery}`,
+        `https://api.vercel.com/v6/deployments?projectId=${vercelProjectId}&limit=1&target=production${teamQuery}`,
         { headers: { Authorization: `Bearer ${vercelToken}` } },
       );
-      const data = await res.json() as { deployments?: { state: string; url: string }[] };
+      const data = await res.json() as { deployments?: { uid: string; state: string; url: string }[] };
       const deployment = data.deployments?.[0];
 
       if (deployment) {
-        console.log('[create-site] Deployment status:', deployment.state);
+        console.log('[create-site] Deployment uid:', deployment.uid, 'state:', deployment.state);
         if (deployment.state === 'READY') {
           return { ready: true, url: `https://${deployment.url}` };
         }
         if (deployment.state === 'ERROR') {
-          console.error('[create-site] Deployment failed:', deployment.url);
+          console.error('[create-site] Deployment failed:', deployment.uid);
           return { ready: false, url: null };
         }
       }
@@ -441,28 +443,14 @@ export async function POST(
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 13 — Trigger deployment explicitly using GitHub repoId (correct Vercel API format)
-    if (githubRepoId) {
-      console.log('[create-site] Step 13: Triggering deployment with repoId:', githubRepoId);
-      const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';
-      const triggerRes = await fetch(`https://api.vercel.com/v13/deployments${teamQuery}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name:      finalRepoName,
-          target:    'production',
-          gitSource: { type: 'github', repoId: String(githubRepoId), ref: 'main' },
-        }),
-      });
-      const triggerBody = await triggerRes.text();
-      console.log('[create-site] Step 13: Trigger response:', triggerRes.status, triggerBody.slice(0, 200));
-    } else {
-      console.warn('[create-site] Step 13: No repoId — skipping explicit trigger, relying on auto-deploy');
-    }
+    // Step 13 — Vercel auto-deploys via git integration when project is connected to GitHub.
+    // A manual POST /v13/deployments would create a SECOND conflicting deployment → removed.
+    console.log('[create-site] Step 13: Skipping manual trigger — Vercel git integration auto-deploys on connect');
 
-    // Step 14 — Poll up to 200s for READY (repoId trigger starts build immediately)
-    console.log('[create-site] Step 14: Polling for READY state...');
-    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 200000);
+    // Step 14 — Poll up to 200s for READY. Use vercelProject.id (UUID) not the name string
+    // to avoid cross-project stale results from the Vercel v6 deployments API.
+    console.log('[create-site] Step 14: Polling for READY state (projectId:', vercelProject.id, ')');
+    const deploymentResult = await waitForDeployment(vercelProject.id, finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 200000);
     console.log('[create-site] Step 14: Deployment result:', deploymentResult);
 
     // Step 15 — Save lead

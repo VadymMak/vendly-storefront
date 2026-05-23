@@ -65,7 +65,16 @@ export async function POST(req: Request) {
       },
     );
 
+    if (output === null || output === undefined) {
+      return NextResponse.json({ error: 'AI edit produced no output' }, { status: 500 });
+    }
+
     const imageUrl = extractUrl(output);
+
+    if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined' || !imageUrl.startsWith('http')) {
+      return NextResponse.json({ error: 'AI edit returned invalid image URL' }, { status: 500 });
+    }
+
     return NextResponse.json({ url: imageUrl });
   } catch (err) {
     console.error('[ai-edit]', err);

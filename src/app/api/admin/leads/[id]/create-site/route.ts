@@ -61,48 +61,6 @@ function buildRepoName(businessName: string | null | undefined, businessType: st
   return `${base}-${type}`;
 }
 
-/** Poll Vercel until the latest production deployment is READY or ERROR, or maxWaitMs exceeded.
- *  Uses the actual Vercel project ID (not the name) to avoid stale/cross-project results. */
-async function waitForDeployment(
-  vercelProjectId: string,
-  projectName: string,
-  vercelToken: string,
-  teamId: string | undefined,
-  maxWaitMs = 55000,
-): Promise<{ ready: boolean; url: string | null }> {
-  const startTime    = Date.now();
-  const pollInterval = 5000;
-
-  while (Date.now() - startTime < maxWaitMs) {
-    try {
-      const teamQuery = teamId ? `&teamId=${teamId}` : '';
-      const res = await fetch(
-        `https://api.vercel.com/v6/deployments?projectId=${vercelProjectId}&limit=1&target=production${teamQuery}`,
-        { headers: { Authorization: `Bearer ${vercelToken}` } },
-      );
-      const data = await res.json() as { deployments?: { uid: string; state: string; url: string }[] };
-      const deployment = data.deployments?.[0];
-
-      if (deployment) {
-        console.log('[create-site] Deployment uid:', deployment.uid, 'state:', deployment.state);
-        if (deployment.state === 'READY') {
-          return { ready: true, url: `https://${deployment.url}` };
-        }
-        if (deployment.state === 'ERROR') {
-          console.error('[create-site] Deployment failed:', deployment.uid);
-          return { ready: false, url: null };
-        }
-      }
-    } catch (e) {
-      console.error('[create-site] Poll error:', e);
-    }
-
-    await new Promise<void>((r) => setTimeout(r, pollInterval));
-  }
-
-  console.warn('[create-site] Deployment timeout after', maxWaitMs, 'ms');
-  return { ready: false, url: `https://${projectName}.vercel.app` };
-}
 
 /** Fetch raw file content from a GitHub repo. Tries each path in order, returns null if all fail. */
 async function fetchTemplateFile(
@@ -443,38 +401,28 @@ export async function POST(
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 13 — Vercel auto-deploys via git integration when project is connected to GitHub.
-    // A manual POST /v13/deployments would create a SECOND conflicting deployment → removed.
-    console.log('[create-site] Step 13: Skipping manual trigger — Vercel git integration auto-deploys on connect');
-
-    // Step 14 — Poll up to 200s for READY. Use vercelProject.id (UUID) not the name string
-    // to avoid cross-project stale results from the Vercel v6 deployments API.
-    console.log('[create-site] Step 14: Polling for READY state (projectId:', vercelProject.id, ')');
-    const deploymentResult = await waitForDeployment(vercelProject.id, finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 200000);
-    console.log('[create-site] Step 14: Deployment result:', deploymentResult);
-
-    // Step 15 — Save lead
-    const finalUrl    = deploymentResult.url ?? vercelUrl;
-    const finalStatus = deploymentResult.ready ? 'created' : 'creating';
-    console.log('[create-site] Step 15: Saving lead — status:', finalStatus, 'url:', finalUrl);
+    // Step 13 — Return immediately. Vercel git integration auto-deploys when the project
+    // is connected to GitHub (Step 12). Polling would consume the remaining function budget
+    // (auto-deploy takes 2-3 min; Anthropic + GitHub steps already used ~90s of 300s max).
+    console.log('[create-site] Step 13: Saving lead and returning — Vercel auto-deploy in progress');
 
     await db.lead.update({
       where: { id },
       data: {
         siteRepoUrl:   repoUrl,
         siteRepoName:  finalRepoName,
-        siteVercelUrl: finalUrl,
-        siteStatus:    finalStatus,
+        siteVercelUrl: vercelUrl,
+        siteStatus:    'creating',
         siteCreatedAt: new Date(),
-        siteError:     deploymentResult.ready ? null : 'Deployment still in progress',
+        siteError:     null,
       },
     });
 
     return NextResponse.json({
       success:         true,
       repoUrl,
-      vercelUrl:       finalUrl,
-      deploymentReady: deploymentResult.ready,
+      vercelUrl,
+      deploymentReady: false,
     });
 
   } catch (err) {

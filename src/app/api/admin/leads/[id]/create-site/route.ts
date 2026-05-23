@@ -458,12 +458,9 @@ export async function POST(
       console.warn('[create-site] Step 13: No repoId — skipping explicit trigger, relying on auto-deploy');
     }
 
-    // Step 14 — Wait 20s for Vercel to initialise build, then poll up to 240s
-    console.log('[create-site] Step 14: Waiting 20s for Vercel to initialise build...');
-    await new Promise<void>((r) => setTimeout(r, 20000));
-
+    // Step 14 — Poll up to 200s for READY (repoId trigger starts build immediately)
     console.log('[create-site] Step 14: Polling for READY state...');
-    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 240000);
+    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 200000);
     console.log('[create-site] Step 14: Deployment result:', deploymentResult);
 
     // Step 15 — Save lead

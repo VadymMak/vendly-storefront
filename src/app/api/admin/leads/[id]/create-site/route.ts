@@ -363,6 +363,8 @@ export async function POST(
       },
     );
 
+    let githubRepoId: number | null = null;
+
     if (githubRes.status === 422) {
       // Name collision — append random suffix and retry once
       finalRepoName = `${finalRepoName}-${randomSuffix()}`;
@@ -383,13 +385,17 @@ export async function POST(
         const errBody = await retryRes.text();
         throw new Error(`GitHub API error (retry): ${retryRes.status} — ${errBody}`);
       }
-      void (await retryRes.json() as GitHubRepoResponse);
+      const retryData = await retryRes.json() as GitHubRepoResponse;
+      githubRepoId = retryData.id;
     } else if (!githubRes.ok) {
       const errBody = await githubRes.text();
       throw new Error(`GitHub API error: ${githubRes.status} — ${errBody}`);
     } else {
-      void (await githubRes.json() as GitHubRepoResponse);
+      const repoData = await githubRes.json() as GitHubRepoResponse;
+      githubRepoId = repoData.id;
     }
+
+    console.log('[create-site] Step 9: GitHub repo created, id:', githubRepoId);
 
     const repoUrl   = `https://github.com/${GITHUB_OWNER}/${finalRepoName}`;
     const vercelUrl = `https://${finalRepoName}.vercel.app`;
@@ -432,16 +438,38 @@ export async function POST(
     const vercelProject = await vercelRes.json() as VercelProjectResponse;
     console.log('[create-site] Step 12: Vercel project created, id:', vercelProject.id);
 
-    // Step 13 — Wait for deployment to become READY (max 240s — Vercel auto-deploys via GitHub integration)
-    console.log('[create-site] Step 13: Polling for READY state...');
-    const VERCEL_TEAM_ID   = process.env.VERCEL_TEAM_ID;
-    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 240000);
-    console.log('[create-site] Step 13: Deployment result:', deploymentResult);
+    // Step 13 — Trigger deployment explicitly using GitHub repoId (correct Vercel API format)
+    const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID;
+    if (githubRepoId) {
+      console.log('[create-site] Step 13: Triggering deployment with repoId:', githubRepoId);
+      const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';
+      const triggerRes = await fetch(`https://api.vercel.com/v13/deployments${teamQuery}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:      finalRepoName,
+          target:    'production',
+          gitSource: { type: 'github', repoId: String(githubRepoId), ref: 'main' },
+        }),
+      });
+      const triggerBody = await triggerRes.text();
+      console.log('[create-site] Step 13: Trigger response:', triggerRes.status, triggerBody.slice(0, 200));
+    } else {
+      console.warn('[create-site] Step 13: No repoId — skipping explicit trigger, relying on auto-deploy');
+    }
 
-    // Step 14 — Save lead
+    // Step 14 — Wait 20s for Vercel to initialise build, then poll up to 240s
+    console.log('[create-site] Step 14: Waiting 20s for Vercel to initialise build...');
+    await new Promise<void>((r) => setTimeout(r, 20000));
+
+    console.log('[create-site] Step 14: Polling for READY state...');
+    const deploymentResult = await waitForDeployment(finalRepoName, VERCEL_TOKEN!, VERCEL_TEAM_ID, 240000);
+    console.log('[create-site] Step 14: Deployment result:', deploymentResult);
+
+    // Step 15 — Save lead
     const finalUrl    = deploymentResult.url ?? vercelUrl;
     const finalStatus = deploymentResult.ready ? 'created' : 'creating';
-    console.log('[create-site] Step 14: Saving lead — status:', finalStatus, 'url:', finalUrl);
+    console.log('[create-site] Step 15: Saving lead — status:', finalStatus, 'url:', finalUrl);
 
     await db.lead.update({
       where: { id },

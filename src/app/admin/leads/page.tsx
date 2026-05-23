@@ -153,6 +153,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ─── DeployStep ──────────────────────────────────────────────────────────────
+
+function DeployStep({ done, loading, label }: { done: boolean; loading: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      {done ? (
+        <svg className="h-3.5 w-3.5 shrink-0 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+        </svg>
+      ) : loading ? (
+        <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-yellow-400" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+      ) : (
+        <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-gray-700" />
+      )}
+      <span className={done ? 'text-gray-300' : loading ? 'text-yellow-300' : 'text-gray-600'}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 // ─── Lead Card ────────────────────────────────────────────────────────────────
 
 // ─── Prompt helpers ───────────────────────────────────────────────────────────
@@ -624,6 +648,8 @@ function LeadCard({
   const [siteVercelUrl, setSiteVercelUrl] = useState<string | null>(lead.siteVercelUrl);
   const [qaRunning, setQaRunning]       = useState(false);
   const [siteQaReport, setSiteQaReport] = useState<string | null>(lead.siteQaReport);
+  const [deployStatus, setDeployStatus] = useState<'queued' | 'building' | 'ready' | 'error' | null>(null);
+  const [pollTimeout, setPollTimeout]   = useState(false);
   const [photos, setPhotos]             = useState<string[]>(() => {
     const briefPhotos  = parsePhotos(lead.photoUrls);
     const wizardPhotos = [
@@ -638,6 +664,59 @@ function LeadCard({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentCopied, setPaymentCopied] = useState(false);
+
+  // Poll Vercel deployment status while siteStatus === 'creating'
+  useEffect(() => {
+    if (siteStatus !== 'creating') return;
+
+    let stopped    = false;
+    const TIMEOUT  = 5 * 60 * 1000; // 5 min
+    const start    = Date.now();
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      if (stopped) return;
+
+      if (Date.now() - start > TIMEOUT) {
+        setPollTimeout(true);
+        return;
+      }
+
+      try {
+        const res  = await fetch(`/api/admin/leads/${lead.id}/check-deployment`);
+        const data = await res.json() as { status: string };
+        const st   = data.status as 'queued' | 'building' | 'ready' | 'error';
+
+        setDeployStatus(st);
+
+        if (st === 'ready') {
+          setSiteStatus('created');
+          onUpdate(lead.id, { siteStatus: 'created' });
+          return;
+        }
+
+        if (st === 'error') {
+          setSiteStatus('error');
+          setSiteError('Vercel deployment failed — check Vercel Dashboard');
+          onUpdate(lead.id, { siteStatus: 'error', siteError: 'Vercel deployment failed' });
+          return;
+        }
+      } catch {
+        // transient network error — retry on schedule
+      }
+
+      if (!stopped) timerId = setTimeout(poll, 10_000);
+    };
+
+    // First poll after 5s to give Vercel time to register the build
+    timerId = setTimeout(poll, 5_000);
+
+    return () => {
+      stopped = true;
+      clearTimeout(timerId);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteStatus, lead.id]);
 
   // Merge db values with draft for display
   const val = <K extends keyof Lead>(key: K): Lead[K] =>
@@ -1435,26 +1514,50 @@ function LeadCard({
                 {siteStatus && siteStatus !== 'none' && (
                   <div className="mb-3 space-y-2">
                     {siteStatus === 'creating' && (
-                      <div className="space-y-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-400 border border-yellow-800/50">
-                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                          </svg>
-                          {siteVercelUrl ? 'Деплой в процессе...' : 'Создаётся...'}
-                        </span>
-                        {siteVercelUrl && (
-                          <div className="text-xs text-gray-400 space-y-1">
-                            <p>Сайт создан, сборка займёт 1–2 мин:</p>
-                            <a
-                              href={siteVercelUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block text-blue-400 underline break-all"
-                            >
-                              {siteVercelUrl}
-                            </a>
-                          </div>
+                      <div className="space-y-3">
+                        {/* Step-by-step deployment progress */}
+                        <div className="rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-3 space-y-2.5">
+                          <DeployStep done label="Репозиторий создан" loading={false} />
+                          <DeployStep done label="Файлы загружены" loading={false} />
+                          <DeployStep
+                            done={false}
+                            loading={deployStatus === null || deployStatus === 'queued' || deployStatus === 'building'}
+                            label={
+                              deployStatus === 'building' ? 'Сборка...' :
+                              deployStatus === 'queued'   ? 'В очереди сборки...' :
+                              'Ожидание Vercel...'
+                            }
+                          />
+                          <DeployStep
+                            done={false}
+                            loading={false}
+                            label="Публикация сайта"
+                          />
+                        </div>
+
+                        {/* GitHub link — always available */}
+                        {siteRepoUrl && (
+                          <a
+                            href={siteRepoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-1.5 text-xs text-gray-300 hover:bg-[#334155] transition-colors"
+                          >
+                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                            </svg>
+                            GitHub
+                          </a>
+                        )}
+
+                        {/* Timeout warning — shown after 5 min */}
+                        {pollTimeout && (
+                          <p className="rounded-lg border border-yellow-800/50 bg-yellow-950/30 px-3 py-2 text-xs text-yellow-400">
+                            Сборка занимает дольше обычного. Проверьте{' '}
+                            <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">
+                              Vercel Dashboard
+                            </a>.
+                          </p>
                         )}
                       </div>
                     )}

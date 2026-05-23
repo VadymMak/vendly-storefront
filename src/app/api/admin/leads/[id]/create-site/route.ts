@@ -431,6 +431,7 @@ export async function POST(
         siteRepoUrl:   repoUrl,
         siteRepoName:  finalRepoName,
         siteVercelUrl: vercelUrl,
+        vercelProject: vercelProject.id,   // Vercel project ID for deployment polling
         siteStatus:    'creating',
         siteCreatedAt: new Date(),
         siteError:     null,

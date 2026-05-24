@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'reac
 import { useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
+import CreditCounter from '@/components/studio/CreditCounter';
+import UpgradeModal from '@/components/studio/UpgradeModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -69,7 +71,7 @@ type PresetKey      = keyof typeof PRESET_MAP;
 type OutputFormat   = typeof OUTPUT_FORMATS[number];
 
 interface ImageMeta { display: string; ratio: string; fmt: OutputFormat; label: string; }
-interface Props { userId: string; studioPaid: boolean; userEmail: string; }
+interface Props { userId: string; userEmail: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,7 +106,7 @@ function buildEditFilter(filterId: string, brightness: number, contrast: number,
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function StudioClient({ userId: _userId, studioPaid, userEmail }: Props) {
+export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const searchParams = useSearchParams();
   const [studioTab, setStudioTab] = useState<StudioTab>(() =>
     searchParams.get('tab') === 'video' ? 'video' : 'image',
@@ -181,6 +183,10 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
   const [vidUrl,           setVidUrl]           = useState<string | null>(null);
   const [vidError,         setVidError]         = useState<string | null>(null);
 
+  // ── Upgrade modal ─────────────────────────────────────────────────────────
+  const [showUpgrade,  setShowUpgrade]  = useState(false);
+  const [upgradeType,  setUpgradeType]  = useState<'image' | 'video' | 'general'>('general');
+
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
@@ -188,7 +194,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       if (res.ok) {
         const data: ApiKeyInfo[] = await res.json();
         setKeys(data);
-        if (studioPaid && !data.find((k) => k.provider === 'replicate')) setWizardStep(1);
+        if (!data.find((k) => k.provider === 'replicate')) setWizardStep(1);
       }
       setKeysLoaded(true);
     };
@@ -201,6 +207,12 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
     if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }, [helpOpen, helpSection]);
 
+  useEffect(() => {
+    const handler = () => { setUpgradeType('general'); setShowUpgrade(true); };
+    window.addEventListener('studio:showUpgrade', handler);
+    return () => window.removeEventListener('studio:showUpgrade', handler);
+  }, []);
+
   const loadKeys = useCallback(async () => {
     const res = await fetch('/api/user/api-keys');
     if (res.ok) setKeys(await res.json());
@@ -208,24 +220,6 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
 
   const keyFor = (p: Provider) => keys.find((k) => k.provider === p);
   const isGenerating = genStep !== null;
-
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  async function handleCheckout() {
-    console.log('[studio] handleCheckout: start');
-    setCheckoutLoading(true);
-    try {
-      console.log('[studio] handleCheckout: fetching /api/studio/checkout');
-      const res = await fetch('/api/studio/checkout', { method: 'POST' });
-      const data = await res.json() as { url?: string; error?: string };
-      console.log('[studio] handleCheckout: response', res.status, data);
-      if (!res.ok) throw new Error(data.error ?? 'Checkout failed');
-      console.log('[studio] handleCheckout: redirecting to', data.url);
-      if (data.url) window.location.href = data.url;
-    } catch (err) {
-      console.error('[studio] handleCheckout: error', err);
-      setCheckoutLoading(false);
-    }
-  }
 
   // ── Key management ────────────────────────────────────────────────────────
   async function saveKey(provider: Provider) {
@@ -301,10 +295,11 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
     setImgMeta(null);
     try {
       const res = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, target_width: preset.target_width, target_height: preset.target_height, output_format: imgOutputFormat }) });
-      if (!res.ok) { const e = await res.json() as { error?: string }; throw new Error(e.error ?? 'Generation failed'); }
+      if (!res.ok) { const e = await res.json() as { error?: string; needsUpgrade?: boolean }; if (e.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(e.error ?? 'Generation failed'); }
       const blob = await res.blob();
       setImgUrl(URL.createObjectURL(blob));
       setImgMeta({ display: preset.display, ratio: preset.aspect_ratio, fmt: imgOutputFormat, label: preset.label });
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) { setImgError(e instanceof Error ? e.message : 'Generation failed'); }
     finally { setImgGenerating(false); }
   }
@@ -420,20 +415,21 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       let url: string;
       if (tool === 'removebg') {
         const res = await fetch('/api/remove-bg', { method: 'POST', body: fd });
-        const data = await res.json() as { url?: string; error?: string };
-        if (!res.ok) throw new Error(data.error ?? 'Remove background failed');
+        const data = await res.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+        if (!res.ok) { if (data.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(data.error ?? 'Remove background failed'); }
         url = data.url!;
         setEditIsTransparent(true);
         setEditSaveFormat('png');
       } else {
         fd.append('type', tool === 'upscale' ? 'upscale' : 'portrait');
         const res = await fetch('/api/enhance-image', { method: 'POST', body: fd });
-        const data = await res.json() as { url?: string; error?: string };
-        if (!res.ok) throw new Error(data.error ?? 'AI enhancement failed');
+        const data = await res.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+        if (!res.ok) { if (data.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(data.error ?? 'AI enhancement failed'); }
         url = data.url!;
         setEditIsTransparent(false);
       }
       setEditAiResult(url);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI tool failed'); }
     finally { setEditAiTool(null); }
   }
@@ -452,7 +448,8 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       if (!res.ok) {
         let errMsg = 'AI edit failed';
         try {
-          const errData = await res.json() as { error?: string };
+          const errData = await res.json() as { error?: string; needsUpgrade?: boolean };
+          if (errData.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; }
           errMsg = errData.error ?? errMsg;
         } catch {
           errMsg = await res.text().catch(() => errMsg);
@@ -462,6 +459,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       const data = await res.json() as { url?: string };
       if (!data.url) throw new Error('AI edit returned no image URL');
       setEditAiEditResult(data.url);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI edit failed'); }
     finally { setEditAiTool(null); }
   }
@@ -634,16 +632,18 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       await new Promise((r) => setTimeout(r, 10000));
       setGenStep('animating');
       const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameData.url }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string };
-      if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
       setVidUrl(videoData.url ?? null);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } else {
       if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
       setGenStep('animating');
       const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string };
-      if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
       setVidUrl(videoData.url ?? null);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     }
     setGenStep(null);
   }
@@ -662,49 +662,6 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
-
-      {/* ══ PAYWALL ════════════════════════════════════════════════════════ */}
-      {!studioPaid && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-10 shadow-2xl text-center space-y-6">
-            <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)]/15">
-                <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-primary)]" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-              </div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">AI Studio</h1>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">One-time access · Lifetime use</p>
-            </div>
-            <ul className="space-y-2 text-sm text-[var(--color-text-muted)] text-left">
-              {[
-                'Generate unlimited images with Flux Schnell',
-                'Generate unlimited videos with Kling v2.1',
-                'AI prompt enhancement with Claude',
-                'Bring your own API keys — you control costs',
-                'No subscription, no monthly fees',
-              ].map((f) => (
-                <li key={f} className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)]">
-                    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                  </span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <div>
-              <button
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
-                className="w-full cursor-pointer rounded-xl bg-[var(--color-primary)] py-3.5 text-base font-bold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
-              >
-                {checkoutLoading ? 'Redirecting to payment…' : 'Unlock for $5'}
-              </button>
-              <p className="mt-3 text-xs text-[var(--color-text-dim)]">Secure payment via Stripe · One-time $5 USD · Instant access</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ══ ONBOARDING WIZARD ══════════════════════════════════════════════ */}
       {wizardStep !== null && (
@@ -824,6 +781,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">Image generation · Photo enhancement · Video generation</p>
             </div>
             <div className="flex shrink-0 items-center gap-3 pt-1">
+              <CreditCounter />
               <span className="text-xs text-[var(--color-text-dim)]">{userEmail}</span>
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
@@ -1600,6 +1558,12 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       <button onClick={() => openHelp('replicate')} className="fixed bottom-6 right-6 z-30 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-text-muted)] shadow-xl transition-all hover:border-[var(--color-primary)]/60 hover:text-white" aria-label="Open help">
         <span className="text-base font-bold">?</span>
       </button>
+
+      <UpgradeModal
+        isOpen={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        type={upgradeType}
+      />
     </div>
   );
 }

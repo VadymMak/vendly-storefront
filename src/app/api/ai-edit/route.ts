@@ -5,8 +5,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
-import { checkCredits, deductCredit } from '@/lib/credits';
-import { verifyTurnstile } from '@/lib/turnstile';
+import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isAbusivePrompt } from '@/lib/spam-check';
 
 export const maxDuration = 60;
 
@@ -22,19 +23,47 @@ function extractUrl(output: unknown): string {
 }
 
 export async function POST(req: Request) {
+  // ── Parse body (needed for honeypot — must come before auth) ──────────────────
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
+  }
+
+  // ── Honeypot — silent reject (bot thinks it worked) ───────────────────────────
+  if (formData.get('website')) {
+    return NextResponse.json({ success: true });
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────────
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const formData       = await req.formData();
-  const turnstileToken = formData.get('turnstileToken') as string | null;
-  const ip             = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    ?? req.headers.get('x-real-ip')
-    ?? 'unknown';
+  const file   = formData.get('image') as File | null;
+  const prompt = (formData.get('prompt') as string | null)?.trim() ?? '';
 
-  if (!await verifyTurnstile(turnstileToken ?? '', ip)) {
-    return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+  if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  if (!prompt) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
+
+  // ── Rate limit ────────────────────────────────────────────────────────────────
+  const ip       = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+
+  if (!checkRateLimit(`edit:${ip}:${session.user.id}`, RATE_LIMITS.aiEdit[planType])) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 },
+    );
   }
 
+  // ── Spam check ────────────────────────────────────────────────────────────────
+  if (isAbusivePrompt(prompt)) {
+    return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
+  }
+
+  // ── Credit check ─────────────────────────────────────────────────────────────
   const creditCheck = await checkCredits(session.user.id, 'image');
   if (!creditCheck.allowed) {
     return NextResponse.json(
@@ -51,12 +80,6 @@ export async function POST(req: Request) {
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
   try {
-    const file   = formData.get('image') as File | null;
-    const prompt = formData.get('prompt') as string | null;
-
-    if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
-    if (!prompt?.trim()) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
-
     const bytes = await file.arrayBuffer();
 
     const resized = await sharp(Buffer.from(bytes))
@@ -77,7 +100,7 @@ export async function POST(req: Request) {
       {
         input: {
           image:                blob.url,
-          prompt:               prompt.trim(),
+          prompt,
           num_inference_steps:  30,
           image_guidance_scale: 1.5,
         },

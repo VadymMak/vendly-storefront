@@ -37,12 +37,12 @@ export async function POST(request: Request) {
         break;
       }
 
-      // ── Studio access payment ──────────────────────────────────────────
+      // Legacy: $5 one-time Studio access payment (no longer used for access control)
       if (session.metadata?.type === 'studio_access') {
         const userId = session.metadata?.userId;
         if (userId) {
           await db.user.update({ where: { id: userId }, data: { studioPaid: true } });
-          console.log(`✅ Studio access granted: userId=${userId}`);
+          console.log(`✅ Legacy studio_access recorded: userId=${userId}`);
         }
         break;
       }

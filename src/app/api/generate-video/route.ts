@@ -3,16 +3,16 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
-import { checkCredits, deductCredit, getVideoCreditCost } from '@/lib/credits';
-import { verifyTurnstile } from '@/lib/turnstile';
+import { checkCredits, deductCredit, getOrCreateCredits, getVideoCreditCost } from '@/lib/credits';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isAbusivePrompt } from '@/lib/spam-check';
 
 const generateSchema = z.object({
-  prompt:         z.string().min(1),
-  skillId:        z.string(),
-  aspectRatio:    z.enum(['9:16', '1:1', '16:9']),
-  duration:       z.union([z.literal(5), z.literal(10)]),
-  startImage:     z.string().url(),
-  turnstileToken: z.string().optional(),
+  prompt:      z.string().min(1),
+  skillId:     z.string(),
+  aspectRatio: z.enum(['9:16', '1:1', '16:9']),
+  duration:    z.union([z.literal(5), z.literal(10)]),
+  startImage:  z.string().url(),
 });
 
 const POLL_INTERVAL_MS = 4000;
@@ -40,17 +40,40 @@ interface ReplicatePrediction {
 }
 
 export async function POST(request: Request) {
+  // ── Parse body (needed for honeypot — must come before auth) ──────────────────
+  let rawBody: Record<string, unknown>;
+  try {
+    rawBody = await request.json() as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  // ── Honeypot — silent reject (bot thinks it worked) ───────────────────────────
+  if (rawBody.website) {
+    return NextResponse.json({ success: true });
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────────
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = generateSchema.parse(await request.json());
+  const body = generateSchema.parse(rawBody);
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    ?? request.headers.get('x-real-ip')
-    ?? 'unknown';
+  // ── Rate limit ────────────────────────────────────────────────────────────────
+  const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
 
-  if (!await verifyTurnstile(body.turnstileToken ?? '', ip)) {
-    return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+  if (!checkRateLimit(`vid:${ip}:${session.user.id}`, RATE_LIMITS.generateVideo[planType])) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
+  // ── Spam check ────────────────────────────────────────────────────────────────
+  if (isAbusivePrompt(body.prompt)) {
+    return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
   const creditAmount = getVideoCreditCost(body.duration);

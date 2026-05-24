@@ -10,6 +10,25 @@ export const PLAN_CREDITS = {
 export type PlanType = keyof typeof PLAN_CREDITS;
 export type CreditType = 'image' | 'video';
 
+// Superusers — unlimited access, no credit deduction
+export const SUPERUSER_EMAILS = [
+  'makevytssvadym@gmail.com',
+  'akolisnyk1989@gmail.com',
+] as const;
+
+/**
+ * Check if user is a superuser (unlimited free access).
+ * Requires DB lookup to get email from userId.
+ */
+export async function isSuperuser(userId: string): Promise<boolean> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  if (!user?.email) return false;
+  return (SUPERUSER_EMAILS as readonly string[]).includes(user.email.toLowerCase());
+}
+
 // How many credits a video costs (5s=1, 10s=2)
 export function getVideoCreditCost(durationSeconds: number): number {
   return durationSeconds <= 5 ? 1 : 2;
@@ -42,6 +61,11 @@ export async function checkCredits(
   type: CreditType,
   amount: number = 1,
 ): Promise<{ allowed: boolean; reason?: string; byok?: boolean }> {
+  // Superusers bypass all limits
+  if (await isSuperuser(userId)) {
+    return { allowed: true, byok: false };
+  }
+
   const credits = await getOrCreateCredits(userId);
 
   // BYOK users bypass credit system
@@ -73,6 +97,17 @@ export async function deductCredit(
   type: CreditType,
   amount: number = 1,
 ): Promise<void> {
+  // Superusers — only track stats, no deduction
+  if (await isSuperuser(userId)) {
+    await db.studioCredits.update({
+      where: { userId },
+      data: type === 'image'
+        ? { totalGeneratedImages: { increment: amount } }
+        : { totalGeneratedVideos: { increment: amount } },
+    });
+    return;
+  }
+
   const credits = await getOrCreateCredits(userId);
 
   // BYOK — no deduction, just track stats

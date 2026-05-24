@@ -1,6 +1,8 @@
 import Replicate from 'replicate';
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
+import { auth } from '@/lib/auth';
+import { checkCredits, deductCredit } from '@/lib/credits';
 
 // ── In-memory rate limiter (per IP, 5 req/min) ────────────────────────────────
 const rl = new Map<string, { count: number; reset: number }>();
@@ -37,10 +39,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing API token' }, { status: 500 });
   }
 
+  // ── Auth ──────────────────────────────────────────────────────────────────────
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // ── Rate limit ────────────────────────────────────────────────────────────────
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   if (!checkRate(ip)) {
     return NextResponse.json({ error: 'Too many requests — max 5/min' }, { status: 429 });
+  }
+
+  // ── Credit check ─────────────────────────────────────────────────────────────
+  const creditCheck = await checkCredits(session.user.id, 'image');
+  if (!creditCheck.allowed) {
+    return NextResponse.json(
+      { error: creditCheck.reason, needsUpgrade: true },
+      { status: 403 },
+    );
   }
 
   // ── Validate body ─────────────────────────────────────────────────────────────
@@ -138,6 +155,10 @@ export async function POST(request: Request) {
     const name = targetW && targetH
       ? `flux-${targetW}x${targetH}-${Date.now()}.${ext}`
       : `flux-${Date.now()}.${ext}`;
+
+    if (!creditCheck.byok) {
+      await deductCredit(session.user.id, 'image');
+    }
 
     return new Response(new Uint8Array(resized), {
       headers: {

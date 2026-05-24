@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
+import { checkCredits, deductCredit } from '@/lib/credits';
 
 export const maxDuration = 60;
 
@@ -19,6 +20,14 @@ function extractUrl(output: unknown): string {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const creditCheck = await checkCredits(session.user.id, 'image');
+  if (!creditCheck.allowed) {
+    return NextResponse.json(
+      { error: creditCheck.reason, needsUpgrade: true },
+      { status: 403 },
+    );
+  }
 
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
@@ -45,6 +54,11 @@ export async function POST(req: Request) {
     );
 
     const imageUrl = extractUrl(output);
+
+    if (!creditCheck.byok) {
+      await deductCredit(session.user.id, 'image');
+    }
+
     return NextResponse.json({ url: imageUrl });
   } catch (err) {
     console.error('[remove-bg]', err);

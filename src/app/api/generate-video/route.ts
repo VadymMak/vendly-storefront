@@ -3,7 +3,9 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
-import { checkCredits, deductCredit, getVideoCreditCost } from '@/lib/credits';
+import { checkCredits, deductCredit, getOrCreateCredits, getVideoCreditCost } from '@/lib/credits';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isAbusivePrompt } from '@/lib/spam-check';
 
 const generateSchema = z.object({
   prompt:      z.string().min(1),
@@ -42,6 +44,23 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = generateSchema.parse(await request.json());
+
+  // ── Rate limit ────────────────────────────────────────────────────────────────
+  const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+
+  if (!checkRateLimit(`vid:${ip}:${session.user.id}`, RATE_LIMITS.generateVideo[planType])) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
+  // ── Spam check ────────────────────────────────────────────────────────────────
+  if (isAbusivePrompt(body.prompt)) {
+    return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
+  }
 
   const creditAmount = getVideoCreditCost(body.duration);
   const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);

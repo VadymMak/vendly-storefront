@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, type ChangeEvent } from 'reac
 import { useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
+import CreditCounter from '@/components/studio/CreditCounter';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -305,6 +306,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       const blob = await res.blob();
       setImgUrl(URL.createObjectURL(blob));
       setImgMeta({ display: preset.display, ratio: preset.aspect_ratio, fmt: imgOutputFormat, label: preset.label });
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) { setImgError(e instanceof Error ? e.message : 'Generation failed'); }
     finally { setImgGenerating(false); }
   }
@@ -434,6 +436,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
         setEditIsTransparent(false);
       }
       setEditAiResult(url);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI tool failed'); }
     finally { setEditAiTool(null); }
   }
@@ -462,6 +465,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       const data = await res.json() as { url?: string };
       if (!data.url) throw new Error('AI edit returned no image URL');
       setEditAiEditResult(data.url);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) { setEditAiError(e instanceof Error ? e.message : 'AI edit failed'); }
     finally { setEditAiTool(null); }
   }
@@ -637,6 +641,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       const videoData = await videoRes.json() as { url?: string; error?: string };
       if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
       setVidUrl(videoData.url ?? null);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } else {
       if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
       setGenStep('animating');
@@ -644,6 +649,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       const videoData = await videoRes.json() as { url?: string; error?: string };
       if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
       setVidUrl(videoData.url ?? null);
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
     }
     setGenStep(null);
   }
@@ -824,6 +830,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">Image generation · Photo enhancement · Video generation</p>
             </div>
             <div className="flex shrink-0 items-center gap-3 pt-1">
+              <CreditCounter />
               <span className="text-xs text-[var(--color-text-dim)]">{userEmail}</span>
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}

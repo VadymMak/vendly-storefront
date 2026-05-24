@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
+import UpgradeModal from '@/components/studio/UpgradeModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -182,6 +183,10 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
   const [vidUrl,           setVidUrl]           = useState<string | null>(null);
   const [vidError,         setVidError]         = useState<string | null>(null);
 
+  // ── Upgrade modal ─────────────────────────────────────────────────────────
+  const [showUpgrade,  setShowUpgrade]  = useState(false);
+  const [upgradeType,  setUpgradeType]  = useState<'image' | 'video' | 'general'>('general');
+
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
@@ -201,6 +206,12 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
     const el = helpRefs.current[helpSection];
     if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }, [helpOpen, helpSection]);
+
+  useEffect(() => {
+    const handler = () => { setUpgradeType('general'); setShowUpgrade(true); };
+    window.addEventListener('studio:showUpgrade', handler);
+    return () => window.removeEventListener('studio:showUpgrade', handler);
+  }, []);
 
   const loadKeys = useCallback(async () => {
     const res = await fetch('/api/user/api-keys');
@@ -302,7 +313,7 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
     setImgMeta(null);
     try {
       const res = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, target_width: preset.target_width, target_height: preset.target_height, output_format: imgOutputFormat }) });
-      if (!res.ok) { const e = await res.json() as { error?: string }; throw new Error(e.error ?? 'Generation failed'); }
+      if (!res.ok) { const e = await res.json() as { error?: string; needsUpgrade?: boolean }; if (e.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(e.error ?? 'Generation failed'); }
       const blob = await res.blob();
       setImgUrl(URL.createObjectURL(blob));
       setImgMeta({ display: preset.display, ratio: preset.aspect_ratio, fmt: imgOutputFormat, label: preset.label });
@@ -422,16 +433,16 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       let url: string;
       if (tool === 'removebg') {
         const res = await fetch('/api/remove-bg', { method: 'POST', body: fd });
-        const data = await res.json() as { url?: string; error?: string };
-        if (!res.ok) throw new Error(data.error ?? 'Remove background failed');
+        const data = await res.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+        if (!res.ok) { if (data.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(data.error ?? 'Remove background failed'); }
         url = data.url!;
         setEditIsTransparent(true);
         setEditSaveFormat('png');
       } else {
         fd.append('type', tool === 'upscale' ? 'upscale' : 'portrait');
         const res = await fetch('/api/enhance-image', { method: 'POST', body: fd });
-        const data = await res.json() as { url?: string; error?: string };
-        if (!res.ok) throw new Error(data.error ?? 'AI enhancement failed');
+        const data = await res.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+        if (!res.ok) { if (data.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(data.error ?? 'AI enhancement failed'); }
         url = data.url!;
         setEditIsTransparent(false);
       }
@@ -455,7 +466,8 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       if (!res.ok) {
         let errMsg = 'AI edit failed';
         try {
-          const errData = await res.json() as { error?: string };
+          const errData = await res.json() as { error?: string; needsUpgrade?: boolean };
+          if (errData.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; }
           errMsg = errData.error ?? errMsg;
         } catch {
           errMsg = await res.text().catch(() => errMsg);
@@ -638,16 +650,16 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       await new Promise((r) => setTimeout(r, 10000));
       setGenStep('animating');
       const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameData.url }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string };
-      if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
       setVidUrl(videoData.url ?? null);
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } else {
       if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
       setGenStep('animating');
       const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string };
-      if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
       setVidUrl(videoData.url ?? null);
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
     }
@@ -1607,6 +1619,12 @@ export default function StudioClient({ userId: _userId, studioPaid, userEmail }:
       <button onClick={() => openHelp('replicate')} className="fixed bottom-6 right-6 z-30 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-text-muted)] shadow-xl transition-all hover:border-[var(--color-primary)]/60 hover:text-white" aria-label="Open help">
         <span className="text-base font-bold">?</span>
       </button>
+
+      <UpgradeModal
+        isOpen={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        type={upgradeType}
+      />
     </div>
   );
 }

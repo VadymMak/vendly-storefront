@@ -47,6 +47,17 @@ export async function POST(request: Request) {
         break;
       }
 
+      // ── Credit pack purchase ───────────────────────────────────────────
+      if (session.metadata?.type === 'credit_pack') {
+        const { userId, images, videos } = session.metadata;
+        if (userId) {
+          const { addBonusCredits } = await import('@/lib/credits');
+          await addBonusCredits(userId, parseInt(images), parseInt(videos));
+          console.log(`✅ Bonus credits added: userId=${userId} images=${images} videos=${videos}`);
+        }
+        break;
+      }
+
       // ── Lead payment ───────────────────────────────────────────────────
       if (session.metadata?.type === 'lead_payment') {
         const leadId = session.metadata?.leadId;

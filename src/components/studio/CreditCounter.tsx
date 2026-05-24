@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface CreditStatus {
   plan: string;
+  superuser?: boolean;
   byok: boolean;
   monthly: {
     images: { used: number; total: number; remaining: number };
@@ -53,6 +54,15 @@ export default function CreditCounter() {
   }
 
   if (!status) return null;
+
+  // Superusers see unlimited (Admin)
+  if (status.superuser) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/30 rounded-lg text-sm">
+        <span className="text-green-600 dark:text-green-400 font-medium">∞ Unlimited (Admin)</span>
+      </div>
+    );
+  }
 
   // BYOK users see unlimited
   if (status.byok) {

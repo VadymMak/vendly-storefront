@@ -201,12 +201,14 @@ export async function addBonusCredits(
  * Get user's current credit status for UI display.
  */
 export async function getCreditStatus(userId: string) {
+  const superuser = await isSuperuser(userId);
   const credits = await getOrCreateCredits(userId);
   const plan = credits.planType as PlanType;
   const allowance = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
 
   return {
     plan:  credits.planType,
+    superuser,
     byok:  credits.byokEnabled && !!credits.replicateKey,
     monthly: {
       images: {

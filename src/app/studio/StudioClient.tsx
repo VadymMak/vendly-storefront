@@ -194,7 +194,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
       if (res.ok) {
         const data: ApiKeyInfo[] = await res.json();
         setKeys(data);
-        if (!data.find((k) => k.provider === 'replicate')) setWizardStep(1);
+        // Wizard is opt-in — users can add keys from the API Keys section
       }
       setKeysLoaded(true);
     };
@@ -817,7 +817,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             <h2 className="mb-5 text-base font-semibold">API Keys</h2>
             <div className="space-y-5">
               {([
-                { id: 'replicate' as Provider, label: 'Replicate API Key', placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••', hs: 'replicate' as HelpSection, note: 'Required for Video Generator' },
+                { id: 'replicate' as Provider, label: 'Replicate API Key', placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••', hs: 'replicate' as HelpSection, note: 'Optional — for unlimited BYOK access' },
                 { id: 'anthropic' as Provider, label: 'Anthropic API Key',  placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic' as HelpSection, note: 'Optional — AI prompt enhancement' },
               ]).map(({ id, label, placeholder, hs, note }) => {
                 const saved = keyFor(id);

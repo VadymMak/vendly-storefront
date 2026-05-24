@@ -4,13 +4,15 @@ import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 import { checkCredits, deductCredit, getVideoCreditCost } from '@/lib/credits';
+import { verifyTurnstile } from '@/lib/turnstile';
 
 const generateSchema = z.object({
-  prompt:      z.string().min(1),
-  skillId:     z.string(),
-  aspectRatio: z.enum(['9:16', '1:1', '16:9']),
-  duration:    z.union([z.literal(5), z.literal(10)]),
-  startImage:  z.string().url(),
+  prompt:         z.string().min(1),
+  skillId:        z.string(),
+  aspectRatio:    z.enum(['9:16', '1:1', '16:9']),
+  duration:       z.union([z.literal(5), z.literal(10)]),
+  startImage:     z.string().url(),
+  turnstileToken: z.string().optional(),
 });
 
 const POLL_INTERVAL_MS = 4000;
@@ -42,6 +44,14 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = generateSchema.parse(await request.json());
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? request.headers.get('x-real-ip')
+    ?? 'unknown';
+
+  if (!await verifyTurnstile(body.turnstileToken ?? '', ip)) {
+    return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+  }
 
   const creditAmount = getVideoCreditCost(body.duration);
   const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);

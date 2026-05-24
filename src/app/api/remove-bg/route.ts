@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit } from '@/lib/credits';
+import { verifyTurnstile } from '@/lib/turnstile';
 
 export const maxDuration = 60;
 
@@ -21,6 +22,16 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const formData       = await req.formData();
+  const turnstileToken = formData.get('turnstileToken') as string | null;
+  const ip             = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? req.headers.get('x-real-ip')
+    ?? 'unknown';
+
+  if (!await verifyTurnstile(turnstileToken ?? '', ip)) {
+    return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+  }
+
   const creditCheck = await checkCredits(session.user.id, 'image');
   if (!creditCheck.allowed) {
     return NextResponse.json(
@@ -37,7 +48,6 @@ export async function POST(req: Request) {
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
   try {
-    const formData = await req.formData();
     const file = formData.get('image') as File | null;
     if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
 

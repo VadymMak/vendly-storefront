@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { auth } from '@/lib/auth';
 import { checkCredits, deductCredit } from '@/lib/credits';
+import { verifyTurnstile } from '@/lib/turnstile';
 
 // ── In-memory rate limiter (per IP, 5 req/min) ────────────────────────────────
 const rl = new Map<string, { count: number; reset: number }>();
@@ -20,12 +21,13 @@ function checkRate(ip: string): boolean {
 }
 
 interface GenerateBody {
-  prompt:         string;
-  aspect_ratio?:  string;
-  megapixels?:    string;
-  target_width?:  number;
-  target_height?: number;
-  output_format?: 'webp' | 'png' | 'jpeg';
+  prompt:          string;
+  aspect_ratio?:   string;
+  megapixels?:     string;
+  target_width?:   number;
+  target_height?:  number;
+  output_format?:  'webp' | 'png' | 'jpeg';
+  turnstileToken?: string;
 }
 
 export async function POST(request: Request) {
@@ -51,15 +53,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Too many requests — max 5/min' }, { status: 429 });
   }
 
-  // ── Credit check ─────────────────────────────────────────────────────────────
-  const creditCheck = await checkCredits(session.user.id, 'image');
-  if (!creditCheck.allowed) {
-    return NextResponse.json(
-      { error: creditCheck.reason, needsUpgrade: true },
-      { status: 403 },
-    );
-  }
-
   // ── Validate body ─────────────────────────────────────────────────────────────
   let body: GenerateBody;
   try {
@@ -71,6 +64,20 @@ export async function POST(request: Request) {
   const prompt = body.prompt?.trim();
   if (!prompt) {
     return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+  }
+
+  // ── Turnstile ─────────────────────────────────────────────────────────────────
+  if (!await verifyTurnstile(body.turnstileToken ?? '', ip)) {
+    return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+  }
+
+  // ── Credit check ─────────────────────────────────────────────────────────────
+  const creditCheck = await checkCredits(session.user.id, 'image');
+  if (!creditCheck.allowed) {
+    return NextResponse.json(
+      { error: creditCheck.reason, needsUpgrade: true },
+      { status: 403 },
+    );
   }
 
   const aspect_ratio     = body.aspect_ratio ?? '1:1';

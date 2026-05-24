@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
+import { checkCredits, deductCredit, getVideoCreditCost } from '@/lib/credits';
 
 const generateSchema = z.object({
   prompt:      z.string().min(1),
@@ -41,6 +42,15 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = generateSchema.parse(await request.json());
+
+  const creditAmount = getVideoCreditCost(body.duration);
+  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
+  if (!creditCheck.allowed) {
+    return NextResponse.json(
+      { error: creditCheck.reason, needsUpgrade: true },
+      { status: 403 },
+    );
+  }
 
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
@@ -100,5 +110,10 @@ export async function POST(request: Request) {
   }
 
   const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+
+  if (!creditCheck.byok) {
+    await deductCredit(session.user.id, 'video', creditAmount);
+  }
+
   return NextResponse.json({ url });
 }

@@ -12,6 +12,8 @@ export interface BriefT {
   labelAddress: string;
   phAddress: string;
   labelEmail: string;
+  labelContactName: string;
+  phContactName: string;
   labelHours: string;
   phHours: string;
   workingHoursHint: string;
@@ -202,6 +204,8 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelAddress: 'Adresa / Mesto',
     phAddress: 'Hlavná 15, Bratislava',
     labelEmail: 'Email',
+    labelContactName: 'Vaše meno (kontaktná osoba)',
+    phContactName: 'Ján Novák',
     labelHours: 'Pracovné hodiny',
     phHours: 'Po–Pi 8:00–18:00, So 9:00–14:00',
     workingHoursHint: 'Označte dni, keď ste otvorení, a nastavte čas. Zatvorené dni — vypnite prepínač.',
@@ -322,6 +326,8 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelAddress: 'Address / City',
     phAddress: '15 Main St, Bratislava',
     labelEmail: 'Email',
+    labelContactName: 'Your name (contact person)',
+    phContactName: 'John Smith',
     labelHours: 'Working hours',
     phHours: 'Mon–Fri 8:00–18:00, Sat 9:00–14:00',
     workingHoursHint: 'Mark days when you are open and set the hours. Closed days — turn off the toggle.',
@@ -442,6 +448,8 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelAddress: 'Adresse / Stadt',
     phAddress: 'Hauptstraße 15, Bratislava',
     labelEmail: 'E-Mail',
+    labelContactName: 'Ihr Name (Kontaktperson)',
+    phContactName: 'Hans Müller',
     labelHours: 'Öffnungszeiten',
     phHours: 'Mo–Fr 8:00–18:00, Sa 9:00–14:00',
     workingHoursHint: 'Markieren Sie die Tage, an denen Sie geöffnet haben, und stellen Sie die Zeiten ein. Geschlossene Tage — Schalter ausschalten.',
@@ -562,6 +570,8 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelAddress: 'Adresa / Město',
     phAddress: 'Hlavní 15, Praha',
     labelEmail: 'Email',
+    labelContactName: 'Vaše jméno (kontaktní osoba)',
+    phContactName: 'Jan Novák',
     labelHours: 'Pracovní hodiny',
     phHours: 'Po–Pá 8:00–18:00, So 9:00–14:00',
     workingHoursHint: 'Označte dny, kdy jste otevřeni, a nastavte čas. Zavřené dny — vypněte přepínač.',
@@ -682,6 +692,8 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelAddress: 'Адреса / Місто',
     phAddress: 'вул. Головна 15, Київ',
     labelEmail: 'Email',
+    labelContactName: 'Ваше ім\'я (контактна особа)',
+    phContactName: 'Іван Новак',
     labelHours: 'Години роботи',
     phHours: 'Пн–Пт 8:00–18:00, Сб 9:00–14:00',
     workingHoursHint: 'Відмітьте дні, коли ви відкриті, та встановіть час. Закриті дні — вимкніть перемикач.',
@@ -802,6 +814,8 @@ export const BRIEF_TRANSLATIONS: Record<string, BriefT> = {
     labelAddress: 'Адрес / Город',
     phAddress: 'ул. Главная 15, Киев',
     labelEmail: 'Email',
+    labelContactName: 'Ваше имя (контактное лицо)',
+    phContactName: 'Иван Новак',
     labelHours: 'Время работы',
     phHours: 'Пн–Пт 8:00–18:00, Сб 9:00–14:00',
     workingHoursHint: 'Отметьте дни, когда вы открыты, и установите время. Закрытые дни — выключите переключатель.',

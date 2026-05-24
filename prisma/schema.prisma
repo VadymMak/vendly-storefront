@@ -25,6 +25,7 @@ model User {
   studioPaid      Boolean  @default(false)
   stores          Store[]
   apiKeys         UserApiKey[]
+  studioCredits   StudioCredits?
   createdAt       DateTime @default(now())
 }
 
@@ -273,4 +274,27 @@ model Lead {
   // Даты
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+// AI Studio кредитная система
+model StudioCredits {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  monthlyImages         Int       @default(5)
+  monthlyVideos         Int       @default(1)
+  bonusImages           Int       @default(0)
+  bonusVideos           Int       @default(0)
+  lastReset             DateTime  @default(now())
+  planType              String    @default("free")  // free | starter | pro
+  byokEnabled           Boolean   @default(false)
+  replicateKey          String?
+  totalGeneratedImages  Int       @default(0)
+  totalGeneratedVideos  Int       @default(0)
+  phoneVerified         Boolean   @default(false)
+  phoneNumber           String?   @unique
+  existingUserMigration Boolean   @default(false)
+  migrationExpiresAt    DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

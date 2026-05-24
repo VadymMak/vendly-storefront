@@ -41,6 +41,7 @@ export async function GET(
     contact:        lead.contact,
     language:       lead.language,
     businessName:   lead.businessName,
+    contactName:    lead.contactName,
     briefSubmitted: lead.briefSubmitted,
   });
 }
@@ -69,6 +70,7 @@ export async function PATCH(
 
   const {
     businessName, address, workingHours, email,
+    contactName,
     socialInstagram, socialFacebook, referenceUrl, wishes,
     priceListUrl, logoUrl, photoUrls,
     selectedPalette, selectedHero, selectedMood,
@@ -85,6 +87,7 @@ export async function PATCH(
     if (val !== undefined) data[key] = val || null;
   };
 
+  setIfDefined('contactName',     contactName);
   setIfDefined('businessName',    businessName);
   setIfDefined('address',         address);
   setIfDefined('workingHours',    workingHours);

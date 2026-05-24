@@ -19,16 +19,22 @@ function extractUrl(output: unknown): string {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  // ── Parse body ────────────────────────────────────────────────────────────────
+  // ── Parse body (needed for honeypot — must come before auth) ──────────────────
   let formData: FormData;
   try {
     formData = await req.formData();
   } catch {
     return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
   }
+
+  // ── Honeypot — silent reject (bot thinks it worked) ───────────────────────────
+  if (formData.get('website')) {
+    return NextResponse.json({ success: true });
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────────
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const file = formData.get('image') as File | null;
   if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -62,10 +68,10 @@ export async function POST(req: Request) {
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
   try {
-    const bytes   = await file.arrayBuffer();
-    const base64  = Buffer.from(bytes).toString('base64');
+    const bytes    = await file.arrayBuffer();
+    const base64   = Buffer.from(bytes).toString('base64');
     const mimeType = file.type || 'image/jpeg';
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    const dataUrl  = `data:${mimeType};base64,${base64}`;
 
     const replicate = new Replicate({ auth: replicateKey });
 

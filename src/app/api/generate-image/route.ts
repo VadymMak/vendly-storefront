@@ -2,22 +2,9 @@ import Replicate from 'replicate';
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { auth } from '@/lib/auth';
-import { checkCredits, deductCredit } from '@/lib/credits';
-
-// ── In-memory rate limiter (per IP, 5 req/min) ────────────────────────────────
-const rl = new Map<string, { count: number; reset: number }>();
-
-function checkRate(ip: string): boolean {
-  const now   = Date.now();
-  const entry = rl.get(ip);
-  if (!entry || now > entry.reset) {
-    rl.set(ip, { count: 1, reset: now + 60_000 });
-    return true;
-  }
-  if (entry.count >= 5) return false;
-  entry.count++;
-  return true;
-}
+import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { isAbusivePrompt } from '@/lib/spam-check';
 
 interface GenerateBody {
   prompt:         string;
@@ -26,6 +13,7 @@ interface GenerateBody {
   target_width?:  number;
   target_height?: number;
   output_format?: 'webp' | 'png' | 'jpeg';
+  website?:       string;
 }
 
 export async function POST(request: Request) {
@@ -39,16 +27,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing API token' }, { status: 500 });
   }
 
+  // ── Parse body (needed for honeypot — must come before auth) ──────────────────
+  let body: GenerateBody;
+  try {
+    body = await request.json() as GenerateBody;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  // ── Honeypot — silent reject (bot thinks it worked) ───────────────────────────
+  if (body.website) {
+    return NextResponse.json({ success: true });
+  }
+
   // ── Auth ──────────────────────────────────────────────────────────────────────
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const prompt = body.prompt?.trim();
+  if (!prompt) {
+    return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+  }
+
   // ── Rate limit ────────────────────────────────────────────────────────────────
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRate(ip)) {
-    return NextResponse.json({ error: 'Too many requests — max 5/min' }, { status: 429 });
+  const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+
+  if (!checkRateLimit(`img:${ip}:${session.user.id}`, RATE_LIMITS.generateImage[planType])) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
+  // ── Spam check ────────────────────────────────────────────────────────────────
+  if (isAbusivePrompt(prompt)) {
+    return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
   // ── Credit check ─────────────────────────────────────────────────────────────
@@ -58,19 +75,6 @@ export async function POST(request: Request) {
       { error: creditCheck.reason, needsUpgrade: true },
       { status: 403 },
     );
-  }
-
-  // ── Validate body ─────────────────────────────────────────────────────────────
-  let body: GenerateBody;
-  try {
-    body = await request.json() as GenerateBody;
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const prompt = body.prompt?.trim();
-  if (!prompt) {
-    return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
   }
 
   const aspect_ratio     = body.aspect_ratio ?? '1:1';
@@ -106,7 +110,7 @@ export async function POST(request: Request) {
     );
 
     // SDK returns an array of URLs (or ReadableStream objects for file outputs)
-    const urls = output as unknown[];
+    const urls  = output as unknown[];
     const first = urls?.[0];
 
     // Handle both plain URL strings and Replicate FileOutput objects
@@ -139,17 +143,17 @@ export async function POST(request: Request) {
     let ext: string;
 
     if (requested_format === 'jpeg') {
-      resized      = await pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
-      contentType  = 'image/jpeg';
-      ext          = 'jpg';
+      resized     = await pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+      contentType = 'image/jpeg';
+      ext         = 'jpg';
     } else if (requested_format === 'png') {
-      resized      = await pipeline.png({ compressionLevel: 8 }).toBuffer();
-      contentType  = 'image/png';
-      ext          = 'png';
+      resized     = await pipeline.png({ compressionLevel: 8 }).toBuffer();
+      contentType = 'image/png';
+      ext         = 'png';
     } else {
-      resized      = await pipeline.webp({ quality: 90 }).toBuffer();
-      contentType  = 'image/webp';
-      ext          = 'webp';
+      resized     = await pipeline.webp({ quality: 90 }).toBuffer();
+      contentType = 'image/webp';
+      ext         = 'webp';
     }
 
     const name = targetW && targetH

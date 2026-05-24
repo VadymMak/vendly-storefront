@@ -40,10 +40,24 @@ interface ReplicatePrediction {
 }
 
 export async function POST(request: Request) {
+  // ── Parse body (needed for honeypot — must come before auth) ──────────────────
+  let rawBody: Record<string, unknown>;
+  try {
+    rawBody = await request.json() as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  // ── Honeypot — silent reject (bot thinks it worked) ───────────────────────────
+  if (rawBody.website) {
+    return NextResponse.json({ success: true });
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────────
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = generateSchema.parse(await request.json());
+  const body = generateSchema.parse(rawBody);
 
   // ── Rate limit ────────────────────────────────────────────────────────────────
   const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';

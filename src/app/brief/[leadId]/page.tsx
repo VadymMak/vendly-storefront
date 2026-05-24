@@ -16,10 +16,12 @@ interface PublicLead {
   contact:        string;
   language:       string;
   businessName:   string | null;
+  contactName:    string | null;
   briefSubmitted: boolean;
 }
 
 interface FormState {
+  contactName:        string;
   businessName:       string;
   address:            string;
   email:              string;
@@ -36,7 +38,7 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
-  businessName: '', address: '', email: '', workingHours: '',
+  contactName: '', businessName: '', address: '', email: '', workingHours: '',
   additionalServices: '', selectedPalette: '', selectedHero: '', selectedMood: '',
   socialInstagram: '', socialFacebook: '', referenceUrl: '', wishes: '',
   website: '',
@@ -286,7 +288,7 @@ export default function BriefPage() {
         if (data.briefSubmitted) {
           setPage('submitted');
         } else {
-          setForm((p) => ({ ...p, businessName: data.businessName ?? '' }));
+          setForm((p) => ({ ...p, businessName: data.businessName ?? '', contactName: data.contactName ?? '' }));
           setPage('form');
         }
       })
@@ -530,6 +532,14 @@ export default function BriefPage() {
           <div>
             <StepHeader icon="🏢" title={t.s1Title} subtitle={t.s1Subtitle} />
             <div className="space-y-4 rounded-2xl border border-[#374151] bg-[#1E293B] p-5">
+              <div>
+                <label className={labelCls}>{t.labelContactName}</label>
+                <input
+                  type="text" className={inputCls} value={form.contactName}
+                  placeholder={t.phContactName}
+                  onChange={(e) => setField('contactName', e.target.value)}
+                />
+              </div>
               <div>
                 <label className={`${labelCls} flex items-center`}>
                   {t.labelBizName} <span className="ml-1 text-red-400">*</span>

@@ -235,7 +235,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     id: 'faq-1',
     question: 'Koľko stojí vytvorenie obchodu?',
-    answer: 'Začať môžete úplne zadarmo. Platený plán začína od 12€ mesačne a obsahuje vlastnú doménu, viac produktov a pokročilé funkcie.',
+    answer: 'Začať môžete úplne zadarmo. Platený plán začína od 19€ mesačne a obsahuje vlastnú doménu, viac produktov a pokročilé funkcie.',
   },
   {
     id: 'faq-2',

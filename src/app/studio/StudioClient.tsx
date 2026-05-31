@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
 import UpgradeModal from '@/components/studio/UpgradeModal';
+import { replicateDirectRun, fetchImageAsBlob } from '@/lib/replicate-client';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,20 @@ const QUICK_FILTERS = [
 ] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ByokConfig {
+  byok: boolean;
+  superuser?: boolean;
+  apiKey?: string;
+  models?: {
+    image:      string;
+    startFrame: string;
+    video:      string;
+    upscale:    string;
+    removeBg:   string;
+    aiEdit:     string;
+  };
+}
 
 type StudioTab      = 'image' | 'video';
 type ImageSubTab    = 'generate' | 'edit';
@@ -183,6 +198,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const [vidUrl,           setVidUrl]           = useState<string | null>(null);
   const [vidError,         setVidError]         = useState<string | null>(null);
 
+  // ── BYOK direct-call config ───────────────────────────────────────────────
+  const [byokConfig, setByokConfig] = useState<ByokConfig | null>(null);
+
   // ── Upgrade modal ─────────────────────────────────────────────────────────
   const [showUpgrade,  setShowUpgrade]  = useState(false);
   const [upgradeType,  setUpgradeType]  = useState<'image' | 'video' | 'general'>('general');
@@ -190,11 +208,18 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
-      const res = await fetch('/api/user/api-keys');
-      if (res.ok) {
-        const data: ApiKeyInfo[] = await res.json();
+      const [keysRes, byokRes] = await Promise.all([
+        fetch('/api/user/api-keys'),
+        fetch('/api/studio/byok-config'),
+      ]);
+      if (keysRes.ok) {
+        const data: ApiKeyInfo[] = await keysRes.json();
         setKeys(data);
-        // Wizard is opt-in — users can add keys from the API Keys section
+      }
+      if (byokRes.ok) {
+        setByokConfig(await byokRes.json() as ByokConfig);
+      } else {
+        setByokConfig({ byok: false });
       }
       setKeysLoaded(true);
     };
@@ -293,6 +318,25 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setImgError(null);
     setImgUrl(null);
     setImgMeta(null);
+
+    // ── BYOK direct path — browser polls Replicate, zero Vercel CPU ──────────
+    if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
+      try {
+        const result = await replicateDirectRun(byokConfig.apiKey, {
+          model: byokConfig.models.image,
+          input: { prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, num_outputs: 1, output_format: 'webp', output_quality: 90, go_fast: true, num_inference_steps: 4 },
+        });
+        const blobUrl = await fetchImageAsBlob(result.output as string);
+        setImgUrl(blobUrl);
+        setImgMeta({ display: preset.display, ratio: preset.aspect_ratio, fmt: 'webp', label: preset.label });
+        fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'image' }) }).catch(() => {});
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      } catch (e) { setImgError(e instanceof Error ? e.message : 'Generation failed'); }
+      finally { setImgGenerating(false); }
+      return;
+    }
+
+    // ── Server-side path (credit users) ──────────────────────────────────────
     try {
       const res = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, target_width: preset.target_width, target_height: preset.target_height, output_format: imgOutputFormat }) });
       if (!res.ok) { const e = await res.json() as { error?: string; needsUpgrade?: boolean }; if (e.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(e.error ?? 'Generation failed'); }
@@ -622,6 +666,42 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setVidUrl(null);
     setVidStartImageUrl(null);
 
+    // ── BYOK direct path — browser polls Replicate, no Vercel timeout ────────
+    if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
+      try {
+        if (videoMode === 'text') {
+          setGenStep('generating-frame');
+          const frameResult = await replicateDirectRun(byokConfig.apiKey, {
+            model: byokConfig.models.startFrame,
+            input: { prompt: vidPrompt, go_fast: true, num_outputs: 1, aspect_ratio: selectedSkill.aspectRatio, output_format: 'webp', output_quality: 90, num_inference_steps: 4 },
+          });
+          const frameUrl = frameResult.output as string;
+          setVidStartImageUrl(frameUrl);
+          setGenStep('animating');
+          const videoResult = await replicateDirectRun(
+            byokConfig.apiKey,
+            { model: byokConfig.models.video, input: { prompt: vidPrompt, start_image: frameUrl, aspect_ratio: selectedSkill.aspectRatio, duration: selectedSkill.duration } },
+            (status) => { if (status === 'processing') setGenStep('animating'); },
+          );
+          setVidUrl(videoResult.output as string);
+        } else {
+          if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
+          setGenStep('animating');
+          const videoResult = await replicateDirectRun(
+            byokConfig.apiKey,
+            { model: byokConfig.models.video, input: { prompt: vidPrompt, start_image: vidUploadedUrl, aspect_ratio: selectedSkill.aspectRatio, duration: selectedSkill.duration } },
+            (status) => { if (status === 'processing') setGenStep('animating'); },
+          );
+          setVidUrl(videoResult.output as string);
+        }
+        fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'video' }) }).catch(() => {});
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      } catch (e) { setVidError(e instanceof Error ? e.message : 'Video generation failed'); }
+      finally { setGenStep(null); }
+      return;
+    }
+
+    // ── Server-side path (credit users) ──────────────────────────────────────
     if (videoMode === 'text') {
       setGenStep('generating-frame');
       const frameRes = await fetch('/api/generate-start-frame', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, aspectRatio: selectedSkill.aspectRatio }) });

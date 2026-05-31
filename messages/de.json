@@ -1303,7 +1303,14 @@
       "dropMedia": "Bilder oder Videos hier ablegen oder klicken",
       "mediaTypes": "JPG, PNG, WebP, MP4 — bis zu 20 Dateien",
       "videoTooLong": "Video muss 15 Sekunden oder kürzer sein",
-      "videoDuration": "{seconds}s Video"
+      "videoDuration": "{seconds}s Video",
+      "style": "Stil",
+      "styleNone": "Kein (sauber)",
+      "styleGoldenHour": "Goldene Stunde",
+      "styleCinematic": "Kinematografisch",
+      "styleVintage": "Vintage",
+      "styleCoolTone": "Kühler Ton",
+      "styleBw": "Schwarzweiß"
     }
   },
   "aiStudio": {

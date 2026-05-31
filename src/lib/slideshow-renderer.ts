@@ -9,6 +9,8 @@
 
 export type TransitionType = 'fade' | 'slide-left' | 'slide-right' | 'zoom-in' | 'zoom-out';
 
+export type VideoStyle = 'none' | 'golden-hour' | 'cinematic' | 'vintage' | 'cool-tone' | 'bw';
+
 export type CameraMotion =
   | 'zoom-in'
   | 'zoom-out'
@@ -32,6 +34,7 @@ export interface SlideshowConfig {
   outputSize: { width: number; height: number };
   fps: number;
   audioFile?: File;
+  style?: VideoStyle; // default: 'none'
 }
 
 export interface RenderProgress {
@@ -77,6 +80,47 @@ const MOTION_PRESETS: Record<CameraMotion, MotionPreset> = {
   'pan-down':      { startScale: 1.10, endScale: 1.10, startPanX:  0.00, startPanY: -0.12, endPanX:  0.00, endPanY:  0.12 },
   'diagonal-zoom': { startScale: 1.00, endScale: 1.12, startPanX: -0.08, startPanY: -0.06, endPanX:  0.08, endPanY:  0.06 },
 };
+
+// ── Visual styles (canvas filters + overlays) ─────────────────────────────────
+
+interface StylePreset {
+  filter: string;
+  overlay: { color: string; blend: string } | null;
+  letterbox: boolean;
+  vignette?: boolean;
+}
+
+const STYLE_PRESETS: Record<VideoStyle, StylePreset> = {
+  'none':        { filter: 'none', overlay: null, letterbox: false },
+  'golden-hour': { filter: 'brightness(1.08) contrast(1.05) saturate(1.3) sepia(0.15)', overlay: { color: 'rgba(255, 165, 0, 0.08)', blend: 'overlay' }, letterbox: false },
+  'cinematic':   { filter: 'contrast(1.15) saturate(0.9) brightness(0.95)', overlay: null, letterbox: true, vignette: true },
+  'vintage':     { filter: 'sepia(0.35) contrast(1.1) brightness(1.05) saturate(0.8)', overlay: { color: 'rgba(255, 240, 200, 0.1)', blend: 'overlay' }, letterbox: false },
+  'cool-tone':   { filter: 'saturate(0.85) brightness(1.05) contrast(1.05)', overlay: { color: 'rgba(0, 100, 255, 0.06)', blend: 'overlay' }, letterbox: false },
+  'bw':          { filter: 'grayscale(1) contrast(1.15) brightness(1.05)', overlay: null, letterbox: false },
+};
+
+function applyStyle(ctx: CanvasRenderingContext2D, style: VideoStyle, W: number, H: number): void {
+  const preset = STYLE_PRESETS[style];
+  if (preset.overlay) {
+    ctx.globalCompositeOperation = preset.overlay.blend as GlobalCompositeOperation;
+    ctx.fillStyle = preset.overlay.color;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (preset.vignette) {
+    const gradient = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (preset.letterbox) {
+    const barH = H * 0.08;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, W, barH);
+    ctx.fillRect(0, H - barH, W, barH);
+  }
+}
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 
@@ -222,11 +266,12 @@ function drawFrame(
   startTimes: number[],
   frame: number,
 ): void {
-  const { items, transitionDuration, transitionType, fps, outputSize } = config;
+  const { items, transitionDuration, transitionType, fps, outputSize, style = 'none' } = config;
   const W        = outputSize.width;
   const H        = outputSize.height;
   const t        = frame / fps;
   const durations = items.map((item) => item.duration);
+  const cssFilter = STYLE_PRESETS[style].filter;
 
   ctx.globalAlpha = 1;
   ctx.fillStyle   = '#000';
@@ -237,7 +282,10 @@ function drawFrame(
   if (state.kind === 'steady') {
     const item        = items[state.imageIndex];
     const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
+    ctx.filter = cssFilter;
     drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
+    ctx.filter = 'none';
+    applyStyle(ctx, style, W, H);
     return;
   }
 
@@ -250,15 +298,18 @@ function drawFrame(
 
   switch (transitionType) {
     case 'fade': {
+      ctx.filter = cssFilter;
       ctx.globalAlpha = 1 - progress;
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.globalAlpha = progress;
       drawItemAtRect(ctx, toItem,   W, H, toRaw,   0, 0, W, H);
       ctx.globalAlpha = 1;
+      ctx.filter = 'none';
       break;
     }
 
     case 'slide-left': {
+      ctx.filter = cssFilter;
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
@@ -271,10 +322,12 @@ function drawFrame(
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
+      ctx.filter = 'none';
       break;
     }
 
     case 'slide-right': {
+      ctx.filter = cssFilter;
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
@@ -287,10 +340,12 @@ function drawFrame(
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
+      ctx.filter = 'none';
       break;
     }
 
     case 'zoom-in': {
+      ctx.filter = cssFilter;
       ctx.globalAlpha = 1 - progress;
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       const s  = 0.5 + 0.5 * progress;
@@ -299,10 +354,12 @@ function drawFrame(
       ctx.globalAlpha = progress;
       drawItemAtRect(ctx, toItem, W, H, toRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
       ctx.globalAlpha = 1;
+      ctx.filter = 'none';
       break;
     }
 
     case 'zoom-out': {
+      ctx.filter = cssFilter;
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       const s  = 1 - 0.5 * progress;
       const dw = W * s;
@@ -310,9 +367,12 @@ function drawFrame(
       ctx.globalAlpha = 1 - progress;
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
       ctx.globalAlpha = 1;
+      ctx.filter = 'none';
       break;
     }
   }
+
+  applyStyle(ctx, style, W, H);
 }
 
 // ── Audio setup ───────────────────────────────────────────────────────────────

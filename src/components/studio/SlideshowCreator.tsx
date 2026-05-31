@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   renderSlideshow,
   DEFAULT_SEQUENCE,
   type CameraMotion,
   type SlideshowItem,
   type TransitionType,
+  type VideoStyle,
   type RenderProgress,
   type RenderResult,
 } from '@/lib/slideshow-renderer';
@@ -61,6 +63,15 @@ const MOTION_SHORT: Record<CameraMotion, string> = {
 };
 
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime']);
+
+const STYLE_OPTIONS: { value: VideoStyle; labelKey: string }[] = [
+  { value: 'none',         labelKey: 'styleNone' },
+  { value: 'golden-hour', labelKey: 'styleGoldenHour' },
+  { value: 'cinematic',   labelKey: 'styleCinematic' },
+  { value: 'vintage',     labelKey: 'styleVintage' },
+  { value: 'cool-tone',   labelKey: 'styleCoolTone' },
+  { value: 'bw',          labelKey: 'styleBw' },
+];
 
 function cx(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -131,6 +142,7 @@ function releaseVideoElement(video: HTMLVideoElement): void {
 }
 
 export default function SlideshowCreator() {
+  const t = useTranslations('studio.slideshow');
   const [state, setState] = useState<CreatorState>('config');
   const [slides, setSlides] = useState<SlideMedia[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -141,6 +153,7 @@ export default function SlideshowCreator() {
   const [transitionDuration, setTransitionDuration] = useState(0.8);
   const [cameraMotionEnabled, setCameraMotionEnabled] = useState(true);
   const [slideMotions, setSlideMotions] = useState<Record<string, MotionChoice>>({});
+  const [videoStyle, setVideoStyle] = useState<VideoStyle>('none');
   const [outputPresetIdx, setOutputPresetIdx] = useState(0);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -269,6 +282,7 @@ export default function SlideshowCreator() {
           outputSize: { width: preset.width, height: preset.height },
           fps: 30,
           audioFile: audioFile ?? undefined,
+          style: videoStyle,
         },
         setProgress,
       );
@@ -688,6 +702,27 @@ export default function SlideshowCreator() {
                 )}
               />
             </button>
+          </div>
+
+          {/* Visual style */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">{t('style')}</label>
+            <div className="flex flex-wrap gap-2">
+              {STYLE_OPTIONS.map(({ value, labelKey }) => (
+                <button
+                  key={value}
+                  onClick={() => setVideoStyle(value)}
+                  className={cx(
+                    'cursor-pointer rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                    videoStyle === value
+                      ? 'bg-[var(--color-primary)] text-white'
+                      : 'border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50 hover:text-white',
+                  )}
+                >
+                  {t(labelKey)}
+                </button>
+              ))}
+            </div>
           </div>
 
         </div>

@@ -509,9 +509,17 @@ export async function renderSlideshow(
   if (audio) {
     const startAt = audio.audioCtx.currentTime;
     const fadeAt  = Math.max(startAt, startAt + totalDuration - 2);
+    console.log('=== AUDIO SETUP ===');
+    console.log('source.loop:', audio.source.loop);
+    console.log('buffer duration:', audio.source.buffer?.duration?.toFixed(2) + 's');
+    console.log('totalDuration:', totalDuration.toFixed(2) + 's');
+    console.log('GAIN SET:', { value: 1, time: startAt.toFixed(3), audioCtxTime: audio.audioCtx.currentTime.toFixed(3) });
     audio.gainNode.gain.setValueAtTime(1, startAt);
+    console.log('GAIN SET:', { value: 1, time: fadeAt.toFixed(3), audioCtxTime: audio.audioCtx.currentTime.toFixed(3) });
     audio.gainNode.gain.setValueAtTime(1, fadeAt);
+    console.log('GAIN RAMP TO 0:', { endValue: 0, endTime: (startAt + totalDuration).toFixed(3), audioCtxTime: audio.audioCtx.currentTime.toFixed(3) });
     audio.gainNode.gain.linearRampToValueAtTime(0, startAt + totalDuration);
+    console.log('source.start called at audioCtx.currentTime=', audio.audioCtx.currentTime.toFixed(3));
     audio.source.start(startAt);
   }
 
@@ -520,6 +528,8 @@ export async function renderSlideshow(
   // Images are paced at frameInterval with setTimeout for the compositor.
   const frameInterval  = 1000 / fps;
   const startedVideos  = new Set<number>(); // indices of video items currently playing
+  const renderWallStart = performance.now();
+  if (audio) console.log('Render loop start: audioCtx.currentTime=', audio.audioCtx.currentTime.toFixed(3));
 
   for (let frame = 0; frame < totalFrames; frame++) {
     const t          = frame / fps;
@@ -548,9 +558,26 @@ export async function renderSlideshow(
 
     onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * 100) });
 
+    const frameDuration = performance.now() - frameStart;
+
+    if (frameDuration > 40) {
+      const state    = getFrameState(frame, fps, startTimes, durations, transitionDuration);
+      const itemIdx  = state.kind === 'steady' ? state.imageIndex : state.fromIndex;
+      const itemType = items[itemIdx]?.type ?? '?';
+      console.warn(`SLOW FRAME ${frame}: ${frameDuration.toFixed(0)}ms (item ${itemIdx} type=${itemType})`);
+    }
+
+    if (frame % 100 === 0) {
+      const wallElapsed = (performance.now() - renderWallStart) / 1000;
+      const contentTime = frame / fps;
+      console.log(`Frame ${frame}/${totalFrames}: wall=${wallElapsed.toFixed(1)}s content=${contentTime.toFixed(1)}s drift=${(wallElapsed - contentTime).toFixed(1)}s`);
+      if (audio) {
+        console.log(`Frame ${frame}: audioCtx.currentTime=${audio.audioCtx.currentTime.toFixed(1)} gain.value=${audio.gainNode.gain.value.toFixed(3)}`);
+      }
+    }
+
     // Hold each frame for frameInterval so captureStream can sample it
-    const elapsed  = performance.now() - frameStart;
-    const waitTime = Math.max(0, frameInterval - elapsed);
+    const waitTime = Math.max(0, frameInterval - frameDuration);
     await new Promise<void>((r) => setTimeout(r, waitTime));
   }
 

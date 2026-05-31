@@ -1177,5 +1177,89 @@
     "text": "We use only functional cookies to operate the website. Learn more in our",
     "link": "Privacy Policy",
     "btn": "Got it"
+  },
+  "studio": {
+    "hero": {
+      "badge": "AI-POWERED",
+      "title": "AI Studio — Professional Images & Videos for Your Business",
+      "subtitle": "Generate stunning visuals for your website and social media in seconds. No design skills needed.",
+      "cta": "Try Free — 5 Images + 1 Video",
+      "ctaSecondary": "View Pricing"
+    },
+    "tools": {
+      "title": "Everything You Need to Create",
+      "textToImage": {
+        "title": "Text → Image",
+        "description": "Describe your idea, get a professional photo",
+        "price": "6 presets · 12 styles · ~€0.003/image"
+      },
+      "textToVideo": {
+        "title": "Text → Video",
+        "description": "Create videos for Instagram, TikTok, YouTube",
+        "price": "7 social presets · 5–10s · from €0.30"
+      },
+      "imageToVideo": {
+        "title": "Image → Video",
+        "description": "Animate your photos with AI",
+        "price": "Upload photo → get video"
+      },
+      "aiEdit": {
+        "title": "AI Photo Edit",
+        "description": "Edit photos with text instructions",
+        "price": "Change colors, lighting, style"
+      },
+      "upscale": {
+        "title": "Upscale 4×",
+        "description": "Increase image resolution 4 times",
+        "price": "Make any image print-ready"
+      },
+      "faceEnhance": {
+        "title": "Face Enhance",
+        "description": "Professional portrait retouching",
+        "price": "Auto-enhance faces in photos"
+      },
+      "removeBg": {
+        "title": "Remove Background",
+        "description": "One-click background removal",
+        "price": "PNG with transparent background"
+      }
+    },
+    "presets": {
+      "title": "Ready for Every Platform",
+      "subtitle": "Create content for all major social platforms in the right format"
+    },
+    "pricing": {
+      "title": "Simple, Transparent Pricing",
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "month": "/mo",
+      "imagesMonth": "Images/month",
+      "videosMonth": "Videos/month (5s)",
+      "video10s": "Video 10s",
+      "allTools": "All 7 AI tools",
+      "creditPacks": "Credit packs",
+      "websiteBuilder": "Website builder",
+      "tryCta": "Try Free",
+      "startCta": "Get Started",
+      "creditNote": "Need more? Buy credit packs from €12 — credits never expire"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1Title": "Describe",
+      "step1Desc": "Write what you want in plain text. Be as specific or as vague as you like.",
+      "step2Title": "Generate",
+      "step2Desc": "AI creates your image or video in seconds. No design skills needed.",
+      "step3Title": "Use Everywhere",
+      "step3Desc": "Download and post to social media, your website, or anywhere you need."
+    },
+    "cta": {
+      "title": "Start Creating for Free",
+      "subtitle": "5 free images + 1 video every month. No credit card required.",
+      "button": "Create Your First Image"
+    },
+    "byok": {
+      "note": "Advanced users: bring your own Replicate API key for unlimited access"
+    }
   }
 }

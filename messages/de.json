@@ -1177,5 +1177,89 @@
     "text": "Wir verwenden ausschließlich funktionale Cookies für den Betrieb der Website. Mehr erfahren in unserer",
     "link": "Datenschutzerklärung",
     "btn": "Verstanden"
+  },
+  "studio": {
+    "hero": {
+      "badge": "KI-GESTÜTZT",
+      "title": "AI Studio — Professionelle Bilder & Videos für Ihr Unternehmen",
+      "subtitle": "Erstellen Sie in Sekunden beeindruckende Grafiken für Ihre Website und Social Media. Keine Design-Kenntnisse erforderlich.",
+      "cta": "Kostenlos testen — 5 Bilder + 1 Video",
+      "ctaSecondary": "Preise ansehen"
+    },
+    "tools": {
+      "title": "Alles, was Sie zum Erstellen brauchen",
+      "textToImage": {
+        "title": "Text → Bild",
+        "description": "Beschreiben Sie Ihre Idee, erhalten Sie ein professionelles Foto",
+        "price": "6 Vorlagen · 12 Stile · ~€0,003/Bild"
+      },
+      "textToVideo": {
+        "title": "Text → Video",
+        "description": "Videos für Instagram, TikTok, YouTube erstellen",
+        "price": "7 Social-Vorlagen · 5–10s · ab €0,30"
+      },
+      "imageToVideo": {
+        "title": "Bild → Video",
+        "description": "Animieren Sie Ihre Fotos mit KI",
+        "price": "Foto hochladen → Video erhalten"
+      },
+      "aiEdit": {
+        "title": "KI-Fotobearbeitung",
+        "description": "Fotos mit Textbefehlen bearbeiten",
+        "price": "Farben, Beleuchtung, Stil ändern"
+      },
+      "upscale": {
+        "title": "4× Hochskalieren",
+        "description": "Bildauflösung viermal erhöhen",
+        "price": "Jedes Bild druckfertig machen"
+      },
+      "faceEnhance": {
+        "title": "Gesichtsverbesserung",
+        "description": "Professionelle Porträtretusche",
+        "price": "Gesichter automatisch verbessern"
+      },
+      "removeBg": {
+        "title": "Hintergrund entfernen",
+        "description": "Hintergrund mit einem Klick entfernen",
+        "price": "PNG mit transparentem Hintergrund"
+      }
+    },
+    "presets": {
+      "title": "Bereit für jede Plattform",
+      "subtitle": "Erstellen Sie Inhalte für alle wichtigen Social-Media-Plattformen im richtigen Format"
+    },
+    "pricing": {
+      "title": "Einfache, transparente Preise",
+      "free": "Kostenlos",
+      "starter": "Starter",
+      "pro": "Pro",
+      "month": "/Mo.",
+      "imagesMonth": "Bilder/Monat",
+      "videosMonth": "Videos/Monat (5s)",
+      "video10s": "Video 10s",
+      "allTools": "Alle 7 KI-Tools",
+      "creditPacks": "Credit-Pakete",
+      "websiteBuilder": "Website-Baukasten",
+      "tryCta": "Kostenlos testen",
+      "startCta": "Loslegen",
+      "creditNote": "Mehr benötigt? Credit-Pakete ab €12 — Credits verfallen nie"
+    },
+    "howItWorks": {
+      "title": "So funktioniert es",
+      "step1Title": "Beschreiben",
+      "step1Desc": "Schreiben Sie, was Sie möchten, in einfachem Text.",
+      "step2Title": "Generieren",
+      "step2Desc": "KI erstellt Ihr Bild oder Video in Sekunden. Keine Design-Kenntnisse nötig.",
+      "step3Title": "Überall nutzen",
+      "step3Desc": "Herunterladen und auf Social Media, Ihrer Website oder überall teilen."
+    },
+    "cta": {
+      "title": "Kostenlos mit dem Erstellen beginnen",
+      "subtitle": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich.",
+      "button": "Erstes Bild erstellen"
+    },
+    "byok": {
+      "note": "Für Fortgeschrittene: Bringen Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzten Zugang mit"
+    }
   }
 }

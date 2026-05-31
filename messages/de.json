@@ -1290,5 +1290,157 @@
       "button": "AI Studio kostenlos testen",
       "note": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich."
     }
+  },
+  "studioPricing": {
+    "hero": {
+      "title": "AI Studio Preise",
+      "subtitle": "Professionelle Content-Erstellung für Ihr Unternehmen — einfache, transparente Preise"
+    },
+    "plans": {
+      "badge": "Beliebteste Wahl",
+      "free": {
+        "name": "Kostenlos",
+        "price": "€0",
+        "cta": "Kostenlos starten"
+      },
+      "starter": {
+        "name": "Starter",
+        "price": "€19",
+        "period": "/Mo.",
+        "cta": "Mit Starter beginnen"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "€39",
+        "period": "/Mo.",
+        "cta": "Pro werden"
+      },
+      "rows": {
+        "imagesMonth": "Bilder pro Monat",
+        "videosMonth": "Videos pro Monat",
+        "video10s": "10s-Videos",
+        "allTools": "Alle 7 KI-Tools",
+        "promptEnhance": "KI-Prompt-Verbesserung",
+        "creditPacks": "Credit-Pakete",
+        "websiteBuilder": "Website-Baukasten",
+        "customDomain": "Eigene Domain",
+        "prioritySupport": "Priority-Support"
+      },
+      "values": {
+        "freeImages": "5",
+        "freeVideos": "1 (nur 5s)",
+        "starterImages": "50",
+        "starterVideos": "3",
+        "proImages": "150",
+        "proVideos": "8",
+        "video10sNote": "2 Credits"
+      }
+    },
+    "packs": {
+      "title": "Credit-Pakete",
+      "subtitle": "Jederzeit aufladen — Credits verfallen nie",
+      "note": "Credit-Pakete funktionieren mit jedem Plan — auch mit Kostenlos",
+      "s": {
+        "name": "Paket S",
+        "price": "€12",
+        "images": "120 Bilder",
+        "videos": "5 Videos",
+        "cta": "Paket S kaufen"
+      },
+      "l": {
+        "name": "Paket L",
+        "price": "€29",
+        "badge": "Bestes Angebot",
+        "images": "350 Bilder",
+        "videos": "15 Videos",
+        "cta": "Paket L kaufen"
+      }
+    },
+    "toolPricing": {
+      "title": "Kosten pro Tool",
+      "subtitle": "Ungefähre Kosten. Mit Credit-Paketen sinkt Ihr effektiver Preis weiter.",
+      "columns": {
+        "tool": "Tool",
+        "description": "Was es macht",
+        "cost": "Kosten pro Nutzung"
+      },
+      "tools": {
+        "textImage": {
+          "name": "Text → Bild",
+          "desc": "Foto aus Text generieren",
+          "cost": "~€0,003"
+        },
+        "textVideo5": {
+          "name": "Text → Video (5s)",
+          "desc": "Kurzes Video generieren",
+          "cost": "~€0,30"
+        },
+        "textVideo10": {
+          "name": "Text → Video (10s)",
+          "desc": "Langes Video generieren",
+          "cost": "~€0,60"
+        },
+        "imageVideo": {
+          "name": "Bild → Video",
+          "desc": "Foto animieren",
+          "cost": "~€0,30–0,60"
+        },
+        "aiEdit": {
+          "name": "KI-Fotobearbeitung",
+          "desc": "Mit Text bearbeiten",
+          "cost": "~€0,03"
+        },
+        "upscale": {
+          "name": "4× hochskalieren",
+          "desc": "Auflösung erhöhen",
+          "cost": "~€0,10"
+        },
+        "faceEnhance": {
+          "name": "Gesichtsverbesserung",
+          "desc": "Porträtretusche",
+          "cost": "~€0,10"
+        },
+        "removeBg": {
+          "name": "Hintergrund entfernen",
+          "desc": "Transparentes PNG",
+          "cost": "~€0,02"
+        }
+      }
+    },
+    "byok": {
+      "title": "Power-User: Eigenen Schlüssel mitbringen",
+      "description": "Verbinden Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzte Generierungen. Sie bezahlen Replicate direkt — ohne Aufschlag von uns.",
+      "cta": "BYOK einrichten"
+    },
+    "faq": {
+      "title": "Häufig gestellte Fragen",
+      "items": {
+        "howCredits": {
+          "q": "Wie funktionieren Credits?",
+          "a": "Jeden Monat erhalten Sie einen frischen Satz Credits basierend auf Ihrem Plan. Bilder kosten 1 Credit, 5s-Videos 1 Video-Credit, 10s-Videos 2 Video-Credits. Nicht genutzte monatliche Credits verfallen — Credit-Paket-Credits nie."
+        },
+        "runOut": {
+          "q": "Was passiert, wenn mir die Credits ausgehen?",
+          "a": "Sie können ein Credit-Paket (ab €12) für eine sofortige Aufladung kaufen oder Ihren Plan für mehr monatliche Credits upgraden. Credit-Paket-Credits verfallen nie."
+        },
+        "freePlan": {
+          "q": "Kann ich AI Studio mit dem kostenlosen Plan nutzen?",
+          "a": "Ja! Der kostenlose Plan beinhaltet 5 Bilder und 1 Video jeden Monat. Keine Kreditkarte erforderlich."
+        },
+        "byok": {
+          "q": "Was ist BYOK?",
+          "a": "Bring Your Own Key — verbinden Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzten Zugang. Sie bezahlen Replicate direkt. Ideal für Vielnutzer oder Entwickler."
+        },
+        "compare": {
+          "q": "Wie vergleicht sich AI Studio mit Canva oder Midjourney?",
+          "a": "VendShop ist die einzige Plattform, die einen Website-Baukasten mit KI-Bild- UND Videogenerierung kombiniert. Canva Pro kostet €15/Mo. mit begrenzten KI-Credits. Midjourney kostet €10/Mo. nur für Bilder — kein Video. VendShop gibt Ihnen alles auf einer Plattform."
+        }
+      }
+    },
+    "cta": {
+      "title": "Kostenlos mit dem Erstellen beginnen",
+      "note": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich.",
+      "button": "Kostenlos starten"
+    }
   }
 }

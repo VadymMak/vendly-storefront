@@ -8,7 +8,8 @@ import {
   type RenderResult,
 } from '@/lib/slideshow-renderer';
 
-type CreatorState = 'idle' | 'preview' | 'rendering' | 'done';
+// 'config' = upload + settings always visible; 'rendering' = progress; 'done' = result
+type CreatorState = 'config' | 'rendering' | 'done';
 
 interface SlideImage {
   id: string;
@@ -18,7 +19,7 @@ interface SlideImage {
 }
 
 const OUTPUT_PRESETS = [
-  { label: 'Square 1080×1080',      width: 1080, height: 1080 },
+  { label: 'Square 1080×1080',       width: 1080, height: 1080 },
   { label: 'Reel / Story 1080×1920', width: 1080, height: 1920 },
   { label: 'Landscape 1920×1080',    width: 1920, height: 1080 },
 ] as const;
@@ -49,7 +50,7 @@ function loadImage(file: File): Promise<{ element: HTMLImageElement; objectUrl: 
 }
 
 export default function SlideshowCreator() {
-  const [state, setState] = useState<CreatorState>('idle');
+  const [state, setState] = useState<CreatorState>('config');
   const [slides, setSlides] = useState<SlideImage[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -156,7 +157,7 @@ export default function SlideshowCreator() {
       setState('done');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Render failed. Try Chrome for best compatibility.');
-      setState('preview');
+      setState('config');
     }
   };
 
@@ -172,10 +173,12 @@ export default function SlideshowCreator() {
     setError(null);
     setAudioFile(null);
     setAudioElement(null);
-    setState('idle');
+    setState('config');
   };
 
-  const totalSec = +(slides.length * durationPerImage + Math.max(0, slides.length - 1) * transitionDuration).toFixed(1);
+  const totalSec = +(
+    slides.length * durationPerImage + Math.max(0, slides.length - 1) * transitionDuration
+  ).toFixed(1);
 
   // ── Rendering ─────────────────────────────────────────────────────────────────
 
@@ -235,7 +238,7 @@ export default function SlideshowCreator() {
             Download {ext.toUpperCase()}
           </a>
           <button
-            onClick={() => setState('preview')}
+            onClick={() => setState('config')}
             className="cursor-pointer rounded-lg border border-[var(--color-border)] px-4 py-3 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white"
           >
             Re-render
@@ -251,19 +254,38 @@ export default function SlideshowCreator() {
     );
   }
 
-  // ── Idle ──────────────────────────────────────────────────────────────────────
+  // ── Config (upload + settings always visible) ─────────────────────────────────
 
-  if (state === 'idle') {
-    return (
-      <div className="space-y-6">
-        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-          <h2 className="mb-1 text-base font-semibold">Photo Slideshow Creator</h2>
-          <p className="mb-5 text-sm text-[var(--color-text-muted)]">
-            Turn your photos into a smooth MP4 slideshow with transitions and Ken Burns effects — rendered entirely in your
-            browser. No credits needed.
-          </p>
+  const preset = OUTPUT_PRESETS[outputPresetIdx];
 
-          {/* Drop zone */}
+  return (
+    <div className="space-y-6">
+
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
+      )}
+
+      {/* ── Photo upload ── */}
+      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">Photo Slideshow Creator</h2>
+            <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
+              Rendered in your browser · No credits needed
+            </p>
+          </div>
+          {slides.length > 0 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer text-xs text-[var(--color-primary)] hover:underline"
+            >
+              + Add photos
+            </button>
+          )}
+        </div>
+
+        {/* Drop zone — shown when no photos yet */}
+        {slides.length === 0 && (
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}
@@ -283,139 +305,75 @@ export default function SlideshowCreator() {
               <div className="font-semibold text-[var(--color-text-muted)]">Drop images here or click to upload</div>
               <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP — up to 20 photos</div>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => e.target.files && void addFiles(e.target.files)}
-            />
           </div>
+        )}
 
-          {slides.length > 0 && (
-            <div className="mt-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-[var(--color-text-muted)]">
-                  {slides.length} photo{slides.length !== 1 ? 's' : ''} added
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                  className="cursor-pointer text-xs text-[var(--color-primary)] hover:underline"
-                >
-                  + Add more
-                </button>
+        {/* Timeline — shown when photos uploaded */}
+        {slides.length > 0 && (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+            className={cx(
+              'space-y-2 rounded-xl border-2 border-dashed p-3 transition-colors',
+              isDragOver
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                : 'border-transparent',
+            )}
+          >
+            {slides.map((s, idx) => (
+              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
+                <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-12 w-20 shrink-0 rounded object-cover" />
+                <div className="flex-1 truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</div>
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={idx === 0}
+                    onClick={() => moveSlide(idx, -1)}
+                    className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
+                    aria-label="Move up"
+                  >
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
+                  </button>
+                  <button
+                    disabled={idx === slides.length - 1}
+                    onClick={() => moveSlide(idx, 1)}
+                    className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
+                    aria-label="Move down"
+                  >
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                  </button>
+                  <button
+                    onClick={() => removeSlide(s.id)}
+                    className="cursor-pointer rounded p-1 text-red-400/60 hover:text-red-400"
+                    aria-label="Remove"
+                  >
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {slides.map((s, idx) => (
-                  <div key={s.id} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-16 w-16 rounded-lg object-cover" />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeSlide(s.id); }}
-                      className="absolute -right-1 -top-1 flex h-4 w-4 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white"
-                    >
-                      <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {slides.length >= 2 ? (
-                <button
-                  onClick={() => setState('preview')}
-                  className="w-full cursor-pointer rounded-lg bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]"
-                >
-                  Configure & Create Slideshow →
-                </button>
-              ) : (
-                <p className="text-center text-xs text-[var(--color-text-dim)]">Add at least 2 photos to continue</p>
+            ))}
+            <div className="px-1 pt-1 text-xs text-[var(--color-text-dim)]">
+              {slides.length} photo{slides.length !== 1 ? 's' : ''} · {totalSec}s total
+              {slides.length < 2 && (
+                <span className="ml-2 text-amber-400">— add at least 2 photos to render</span>
               )}
             </div>
-          )}
-        </section>
-      </div>
-    );
-  }
-
-  // ── Preview / Settings ────────────────────────────────────────────────────────
-
-  const preset = OUTPUT_PRESETS[outputPresetIdx];
-
-  return (
-    <div className="space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
-      )}
-
-      {/* Timeline */}
-      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Slideshow Timeline</h2>
-          <div className="flex items-center gap-4">
-            <button onClick={() => setState('idle')} className="cursor-pointer text-xs text-[var(--color-text-dim)] hover:text-white">
-              ← Back
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="cursor-pointer text-xs text-[var(--color-primary)] hover:underline"
-            >
-              + Add photos
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => e.target.files && void addFiles(e.target.files)}
-            />
           </div>
-        </div>
+        )}
 
-        <div className="space-y-2">
-          {slides.map((s, idx) => (
-            <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
-              <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-12 w-20 shrink-0 rounded object-cover" />
-              <div className="flex-1 truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</div>
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={idx === 0}
-                  onClick={() => moveSlide(idx, -1)}
-                  className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
-                  aria-label="Move up"
-                >
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
-                </button>
-                <button
-                  disabled={idx === slides.length - 1}
-                  onClick={() => moveSlide(idx, 1)}
-                  className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
-                  aria-label="Move down"
-                >
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
-                </button>
-                <button
-                  onClick={() => removeSlide(s.id)}
-                  className="cursor-pointer rounded p-1 text-red-400/60 hover:text-red-400"
-                  aria-label="Remove"
-                >
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 rounded-lg bg-[var(--color-bg)] px-4 py-3 text-xs text-[var(--color-text-dim)]">
-          Total:{' '}
-          <span className="font-semibold text-[var(--color-text-muted)]">{totalSec}s</span>
-          {' '}· {slides.length} photos · {slides.length - 1} transition{slides.length - 1 !== 1 ? 's' : ''}
-        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && void addFiles(e.target.files)}
+        />
       </section>
 
-      {/* Settings */}
+      {/* ── Settings ── always visible ── */}
       <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
         <h2 className="mb-5 text-base font-semibold">Settings</h2>
         <div className="space-y-6">
@@ -439,6 +397,50 @@ export default function SlideshowCreator() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Background music — after output size, before transition */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">
+              Background music{' '}
+              <span className="text-xs font-normal text-[var(--color-text-dim)]">(optional · max 20 MB · Chrome only)</span>
+            </label>
+            {audioFile ? (
+              <div className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-primary)]" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                <span className="flex-1 truncate text-sm text-[var(--color-text-muted)]">{audioFile.name}</span>
+                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">
+                  {(audioFile.size / 1024 / 1024).toFixed(1)} MB
+                </span>
+                <button
+                  onClick={removeAudio}
+                  className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400"
+                  aria-label="Remove audio"
+                >
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => audioInputRef.current?.click()}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-dim)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-[var(--color-text-muted)]"
+              >
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                Upload MP3, WAV, OGG or M4A
+              </button>
+            )}
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept=".mp3,.wav,.ogg,.m4a"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAudioChange(f); }}
+            />
+            {audioFile && (
+              <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">
+                Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4
+              </p>
+            )}
           </div>
 
           {/* Transition */}
@@ -520,55 +522,18 @@ export default function SlideshowCreator() {
             </button>
           </div>
 
-          {/* Background music */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">
-              Background music{' '}
-              <span className="text-xs font-normal text-[var(--color-text-dim)]">(optional · max 20 MB · Chrome only)</span>
-            </label>
-            {audioFile ? (
-              <div className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-primary)]" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                <span className="flex-1 truncate text-sm text-[var(--color-text-muted)]">{audioFile.name}</span>
-                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">
-                  {(audioFile.size / 1024 / 1024).toFixed(1)} MB
-                </span>
-                <button onClick={removeAudio} className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400" aria-label="Remove audio">
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => audioInputRef.current?.click()}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-dim)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-[var(--color-text-muted)]"
-              >
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                Upload MP3, WAV, OGG or M4A
-              </button>
-            )}
-            <input
-              ref={audioInputRef}
-              type="file"
-              accept=".mp3,.wav,.ogg,.m4a"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAudioChange(f); }}
-            />
-            {audioFile && (
-              <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">
-                Audio auto-trims to video length · fades out in the last 2 seconds · requires Chrome for MP4 export
-              </p>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* Render CTA */}
+      {/* ── Render CTA ── */}
       <button
         onClick={() => void handleRender()}
         disabled={slides.length < 2}
-        className="w-full cursor-pointer rounded-lg bg-[var(--color-primary)] px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
+        className="w-full cursor-pointer rounded-lg bg-[var(--color-primary)] px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Render Slideshow — {slides.length} photos · {preset.width}×{preset.height} · {totalSec}s →
+        {slides.length < 2
+          ? 'Upload at least 2 photos to render'
+          : `Render Slideshow — ${slides.length} photos · ${preset.width}×${preset.height} · ${totalSec}s →`}
       </button>
 
       <p className="text-center text-xs text-[var(--color-text-dim)]">

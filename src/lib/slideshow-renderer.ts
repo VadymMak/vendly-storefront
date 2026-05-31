@@ -15,14 +15,20 @@ export type CameraMotion =
   | 'pan-down'
   | 'diagonal-zoom';
 
+// Each slide item: image or short video clip
+export interface SlideshowItem {
+  type: 'image' | 'video';
+  element: HTMLImageElement | HTMLVideoElement;
+  duration: number;         // seconds — image: durationPerImage setting; video: video.duration
+  motion?: CameraMotion;    // images only; undefined = static (no Ken Burns)
+}
+
 export interface SlideshowConfig {
-  images: HTMLImageElement[];
-  durationPerImage: number;         // seconds (3-8)
-  transitionDuration: number;       // seconds (0.5-1.5)
+  items: SlideshowItem[];
+  transitionDuration: number;  // seconds (0.5–1.5)
   transitionType: TransitionType;
-  cameraMotions?: (CameraMotion | null)[];  // per-image, null = no motion
   outputSize: { width: number; height: number };
-  fps: number;                      // 30 recommended
+  fps: number;                 // 30 recommended
   audioFile?: File;
 }
 
@@ -61,14 +67,15 @@ interface MotionPreset {
   endPanY:    number;
 }
 
+// Increased amplitudes for visible motion on mobile/Instagram screens
 const MOTION_PRESETS: Record<CameraMotion, MotionPreset> = {
-  'zoom-in':      { startScale: 1.00, endScale: 1.10, startPanX:  0.00, startPanY:  0.00, endPanX:  0.02, endPanY: -0.02 },
-  'zoom-out':     { startScale: 1.12, endScale: 1.00, startPanX:  0.02, startPanY:  0.02, endPanX:  0.00, endPanY:  0.00 },
-  'pan-right':    { startScale: 1.08, endScale: 1.08, startPanX: -0.10, startPanY:  0.00, endPanX:  0.10, endPanY:  0.00 },
-  'pan-left':     { startScale: 1.08, endScale: 1.08, startPanX:  0.10, startPanY:  0.00, endPanX: -0.10, endPanY:  0.00 },
-  'pan-up':       { startScale: 1.08, endScale: 1.08, startPanX:  0.00, startPanY:  0.08, endPanX:  0.00, endPanY: -0.08 },
-  'pan-down':     { startScale: 1.08, endScale: 1.08, startPanX:  0.00, startPanY: -0.08, endPanX:  0.00, endPanY:  0.08 },
-  'diagonal-zoom':{ startScale: 1.00, endScale: 1.08, startPanX: -0.06, startPanY: -0.04, endPanX:  0.06, endPanY:  0.04 },
+  'zoom-in':       { startScale: 1.00, endScale: 1.15, startPanX:  0.00, startPanY:  0.00, endPanX:  0.04, endPanY: -0.04 },
+  'zoom-out':      { startScale: 1.18, endScale: 1.00, startPanX:  0.04, startPanY:  0.04, endPanX:  0.00, endPanY:  0.00 },
+  'pan-right':     { startScale: 1.10, endScale: 1.10, startPanX: -0.15, startPanY:  0.00, endPanX:  0.15, endPanY:  0.00 },
+  'pan-left':      { startScale: 1.10, endScale: 1.10, startPanX:  0.15, startPanY:  0.00, endPanX: -0.15, endPanY:  0.00 },
+  'pan-up':        { startScale: 1.10, endScale: 1.10, startPanX:  0.00, startPanY:  0.12, endPanX:  0.00, endPanY: -0.12 },
+  'pan-down':      { startScale: 1.10, endScale: 1.10, startPanX:  0.00, startPanY: -0.12, endPanX:  0.00, endPanY:  0.12 },
+  'diagonal-zoom': { startScale: 1.00, endScale: 1.12, startPanX: -0.08, startPanY: -0.06, endPanX:  0.08, endPanY:  0.06 },
 };
 
 // ── Easing ────────────────────────────────────────────────────────────────────
@@ -78,32 +85,19 @@ function easeInOutCubic(t: number): number {
   return c < 0.5 ? 4 * c * c * c : 1 - Math.pow(-2 * c + 2, 3) / 2;
 }
 
-// ── Crop helpers ──────────────────────────────────────────────────────────────
+// ── Crop / draw helpers ───────────────────────────────────────────────────────
 
-// CSS object-fit: cover source rect (no motion)
-function coverRect(
-  imgW: number, imgH: number,
-  canvasW: number, canvasH: number,
-): { sx: number; sy: number; sw: number; sh: number } {
-  const scale = Math.max(canvasW / imgW, canvasH / imgH);
-  const sw = canvasW / scale;
-  const sh = canvasH / scale;
-  return { sx: (imgW - sw) / 2, sy: (imgH - sh) / 2, sw, sh };
-}
-
-// Source crop rect for a specific motion preset at eased progress (0–1)
 function getCropRect(
   motion: CameraMotion,
-  eased: number,           // already eased, 0–1
+  eased: number,
   imgW: number, imgH: number,
   canvasW: number, canvasH: number,
 ): { sx: number; sy: number; sw: number; sh: number } {
-  const p = MOTION_PRESETS[motion];
+  const p     = MOTION_PRESETS[motion];
   const scale = p.startScale + (p.endScale - p.startScale) * eased;
   const panX  = p.startPanX + (p.endPanX - p.startPanX) * eased;
   const panY  = p.startPanY + (p.endPanY - p.startPanY) * eased;
 
-  // Cover-crop base (same ratio as canvas, full image)
   const canvasAspect = canvasW / canvasH;
   const imgAspect    = imgW / imgH;
   let baseW: number, baseH: number;
@@ -122,57 +116,89 @@ function getCropRect(
   return { sx, sy, sw, sh };
 }
 
-// Returns the source rect for an image at rawProgress (0–1) in its display window
+// Source rect for image: motion crop or plain cover
 function getMotionCrop(
   img: HTMLImageElement,
-  motion: CameraMotion | null,
+  motion: CameraMotion | null | undefined,
   rawProgress: number,
   W: number, H: number,
 ): { sx: number; sy: number; sw: number; sh: number } {
-  if (!motion) return coverRect(img.naturalWidth, img.naturalHeight, W, H);
+  if (!motion) {
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const sw    = W / scale;
+    const sh    = H / scale;
+    return { sx: (img.naturalWidth - sw) / 2, sy: (img.naturalHeight - sh) / 2, sw, sh };
+  }
   return getCropRect(motion, easeInOutCubic(rawProgress), img.naturalWidth, img.naturalHeight, W, H);
 }
 
-// Draw image at full canvas size with camera motion applied
-function drawWithMotion(
+// Draw item (image with optional motion, or video with cover crop) into destination rect.
+// For video items: caller must await seekVideo before calling this.
+function drawItemAtRect(
   ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  W: number, H: number,
-  motion: CameraMotion | null,
+  item: SlideshowItem,
+  canvasW: number, canvasH: number,
   rawProgress: number,
+  dx: number, dy: number, dw: number, dh: number,
 ): void {
-  const { sx, sy, sw, sh } = getMotionCrop(img, motion, rawProgress, W, H);
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  if (item.type === 'video') {
+    const video = item.element as HTMLVideoElement;
+    const vW    = video.videoWidth;
+    const vH    = video.videoHeight;
+    if (vW === 0 || vH === 0) return;
+    // Object-fit: cover — always use canvas aspect for the crop
+    const videoAspect  = vW / vH;
+    const canvasAspect = canvasW / canvasH;
+    let sx: number, sy: number, sw: number, sh: number;
+    if (videoAspect > canvasAspect) {
+      sh = vH; sw = sh * canvasAspect; sx = (vW - sw) / 2; sy = 0;
+    } else {
+      sw = vW; sh = sw / canvasAspect; sx = 0; sy = (vH - sh) / 2;
+    }
+    ctx.drawImage(video, sx, sy, sw, sh, dx, dy, dw, dh);
+  } else {
+    const img         = item.element as HTMLImageElement;
+    const { sx, sy, sw, sh } = getMotionCrop(img, item.motion ?? null, rawProgress, canvasW, canvasH);
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  }
+}
+
+// Seek video to time t, waiting for seeked event (with 2 s timeout fallback)
+async function seekVideo(video: HTMLVideoElement, t: number): Promise<void> {
+  if (Math.abs(video.currentTime - t) < 0.001) return;
+  video.currentTime = t;
+  await new Promise<void>((resolve) => {
+    const timeout = setTimeout(resolve, 2000);
+    video.addEventListener('seeked', () => { clearTimeout(timeout); resolve(); }, { once: true });
+  });
 }
 
 // ── Frame state ───────────────────────────────────────────────────────────────
 //
-// Overlapping model: transitions share time with adjacent images.
-//   step         = durationPerImage - transitionDuration
-//   startTime[i] = i * step
-//   endTime[i]   = startTime[i] + durationPerImage
-//   transition i→i+1 occupies [(i+1)*step, i*step + durationPerImage)
-//   totalDuration = n*durationPerImage - (n-1)*transitionDuration
+// Overlapping model with variable per-item durations:
+//   step[i]      = durations[i] - transitionDuration
+//   startTime[i] = sum(step[0..i-1])
+//   endTime[i]   = startTime[i] + durations[i]
+//   transition i→i+1 occupies [startTime[i+1], endTime[i])
+//   totalDuration = sum(durations) - (n-1) * transitionDuration
 
 type FrameState =
-  | { kind: 'steady'; imageIndex: number; progress: number }
-  | { kind: 'transition'; fromIndex: number; toIndex: number; progress: number };
+  | { kind: 'steady';     imageIndex: number;                             progress: number }
+  | { kind: 'transition'; fromIndex:  number; toIndex: number;            progress: number };
 
 function getFrameState(
   frame: number,
   fps: number,
-  durationPerImage: number,
+  startTimes: number[],
+  durations: number[],
   transitionDuration: number,
-  numImages: number,
 ): FrameState {
-  const t    = frame / fps;
-  const step = durationPerImage - transitionDuration;
+  const t = frame / fps;
+  const n = durations.length;
 
-  // Check transitions first (overlap windows take priority)
-  for (let i = 0; i < numImages - 1; i++) {
-    const transStart = (i + 1) * step;
-    const transEnd   = i * step + durationPerImage; // = transStart + transitionDuration
-
+  for (let i = 0; i < n - 1; i++) {
+    const transStart = startTimes[i + 1];
+    const transEnd   = startTimes[i] + durations[i];
     if (t >= transStart && t < transEnd) {
       return {
         kind:      'transition',
@@ -183,64 +209,71 @@ function getFrameState(
     }
   }
 
-  // Steady: find which single image covers time t
-  for (let i = 0; i < numImages; i++) {
-    const imgStart = i * step;
-    const imgEnd   = imgStart + durationPerImage;
-
+  for (let i = 0; i < n; i++) {
+    const imgStart = startTimes[i];
+    const imgEnd   = imgStart + durations[i];
     if (t >= imgStart && t < imgEnd) {
       return {
         kind:       'steady',
         imageIndex: i,
-        progress:   (t - imgStart) / durationPerImage,
+        progress:   (t - imgStart) / durations[i],
       };
     }
   }
 
-  return { kind: 'steady', imageIndex: numImages - 1, progress: 1 };
+  return { kind: 'steady', imageIndex: n - 1, progress: 1 };
 }
 
 // ── Frame drawing ─────────────────────────────────────────────────────────────
 
-function drawFrame(
+async function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
-  resolvedMotions: (CameraMotion | null)[],
+  startTimes: number[],
   frame: number,
-): void {
-  const { images, durationPerImage, transitionDuration, transitionType, fps, outputSize } = config;
-  const W    = outputSize.width;
-  const H    = outputSize.height;
-  const step = durationPerImage - transitionDuration;
-  const t    = frame / fps;
+): Promise<void> {
+  const { items, transitionDuration, transitionType, fps, outputSize } = config;
+  const W        = outputSize.width;
+  const H        = outputSize.height;
+  const t        = frame / fps;
+  const durations = items.map((item) => item.duration);
 
   ctx.globalAlpha = 1;
-  ctx.fillStyle = '#000';
+  ctx.fillStyle   = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  const state = getFrameState(frame, fps, durationPerImage, transitionDuration, images.length);
+  const state = getFrameState(frame, fps, startTimes, durations, transitionDuration);
 
   if (state.kind === 'steady') {
-    const imgProgress = Math.max(0, Math.min(1, (t - state.imageIndex * step) / durationPerImage));
-    drawWithMotion(ctx, images[state.imageIndex], W, H, resolvedMotions[state.imageIndex], imgProgress);
+    const item       = items[state.imageIndex];
+    const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
+    if (item.type === 'video') {
+      await seekVideo(item.element as HTMLVideoElement, rawProgress * item.duration);
+    }
+    drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
     return;
   }
 
-  // Transition: compute per-image progress within their display windows
+  // Transition
   const { fromIndex, toIndex, progress } = state;
-  const fromImg = images[fromIndex];
-  const toImg   = images[toIndex];
-  const fromProgress = Math.max(0, Math.min(1, (t - fromIndex * step) / durationPerImage));
-  const toProgress   = Math.max(0, Math.min(1, (t - toIndex * step)   / durationPerImage));
-  const fromMotion   = resolvedMotions[fromIndex];
-  const toMotion     = resolvedMotions[toIndex];
+  const fromItem  = items[fromIndex];
+  const toItem    = items[toIndex];
+  const fromRaw   = Math.max(0, Math.min(1, (t - startTimes[fromIndex]) / fromItem.duration));
+  const toRaw     = Math.max(0, Math.min(1, (t - startTimes[toIndex])   / toItem.duration));
+
+  if (fromItem.type === 'video') {
+    await seekVideo(fromItem.element as HTMLVideoElement, fromRaw * fromItem.duration);
+  }
+  if (toItem.type === 'video') {
+    await seekVideo(toItem.element as HTMLVideoElement, toRaw * toItem.duration);
+  }
 
   switch (transitionType) {
     case 'fade': {
       ctx.globalAlpha = 1 - progress;
-      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.globalAlpha = progress;
-      drawWithMotion(ctx, toImg,   W, H, toMotion,   toProgress);
+      drawItemAtRect(ctx, toItem,   W, H, toRaw,   0, 0, W, H);
       ctx.globalAlpha = 1;
       break;
     }
@@ -251,11 +284,11 @@ function drawFrame(
       ctx.clip();
       ctx.save();
       ctx.translate(-progress * W, 0);
-      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.restore();
       ctx.save();
       ctx.translate((1 - progress) * W, 0);
-      drawWithMotion(ctx, toImg, W, H, toMotion, toProgress);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
       break;
@@ -267,11 +300,11 @@ function drawFrame(
       ctx.clip();
       ctx.save();
       ctx.translate(progress * W, 0);
-      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.restore();
       ctx.save();
       ctx.translate(-(1 - progress) * W, 0);
-      drawWithMotion(ctx, toImg, W, H, toMotion, toProgress);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
       break;
@@ -280,26 +313,24 @@ function drawFrame(
     case 'zoom-in': {
       // from fades out at full size; to zooms up (0.5→1) while fading in
       ctx.globalAlpha = 1 - progress;
-      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       const s  = 0.5 + 0.5 * progress;
       const dw = W * s;
       const dh = H * s;
-      const { sx, sy, sw, sh } = getMotionCrop(toImg, toMotion, toProgress, W, H);
       ctx.globalAlpha = progress;
-      ctx.drawImage(toImg, sx, sy, sw, sh, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
       ctx.globalAlpha = 1;
       break;
     }
 
     case 'zoom-out': {
       // to is at full size underneath; from shrinks (1→0.5) while fading out
-      drawWithMotion(ctx, toImg, W, H, toMotion, toProgress);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       const s  = 1 - 0.5 * progress;
       const dw = W * s;
       const dh = H * s;
-      const { sx, sy, sw, sh } = getMotionCrop(fromImg, fromMotion, fromProgress, W, H);
       ctx.globalAlpha = 1 - progress;
-      ctx.drawImage(fromImg, sx, sy, sw, sh, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
       ctx.globalAlpha = 1;
       break;
     }
@@ -309,28 +340,22 @@ function drawFrame(
 // ── Audio setup ───────────────────────────────────────────────────────────────
 
 interface AudioSetup {
-  audioCtx: AudioContext;
+  audioCtx:    AudioContext;
   destination: MediaStreamAudioDestinationNode;
-  source: AudioBufferSourceNode;
+  source:      AudioBufferSourceNode;
 }
 
-async function setupAudio(
-  file: File,
-  totalDuration: number,
-): Promise<AudioSetup> {
-  const audioCtx = new AudioContext();
+async function setupAudio(file: File, totalDuration: number): Promise<AudioSetup> {
+  const audioCtx   = new AudioContext();
   const arrayBuffer = await file.arrayBuffer();
   const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
   const destination = audioCtx.createMediaStreamDestination();
   const gainNode    = audioCtx.createGain();
 
-  // Fade out in the last 2 seconds
   const fadeStart = Math.max(0, totalDuration - 2);
   gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-  if (fadeStart > 0) {
-    gainNode.gain.setValueAtTime(1, audioCtx.currentTime + fadeStart);
-  }
+  if (fadeStart > 0) gainNode.gain.setValueAtTime(1, audioCtx.currentTime + fadeStart);
   gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + totalDuration);
 
   const source = audioCtx.createBufferSource();
@@ -347,35 +372,42 @@ export async function renderSlideshow(
   config: SlideshowConfig,
   onProgress: OnProgress,
 ): Promise<RenderResult> {
-  const { images, durationPerImage, transitionDuration, fps, outputSize } = config;
+  const { items, transitionDuration, fps, outputSize } = config;
   const W = outputSize.width;
   const H = outputSize.height;
 
-  if (images.length < 2) throw new Error('At least 2 images required');
-  if (transitionDuration >= durationPerImage) {
-    throw new Error('Transition duration must be shorter than duration per image');
+  if (items.length < 2) throw new Error('At least 2 items required');
+
+  const minDuration = Math.min(...items.map((item) => item.duration));
+  if (transitionDuration >= minDuration) {
+    throw new Error('Transition duration must be shorter than the shortest clip duration');
   }
 
+  // Mute all video items — audio comes only from the optional audioFile
+  for (const item of items) {
+    if (item.type === 'video') (item.element as HTMLVideoElement).muted = true;
+  }
+
+  // Precompute overlapping timeline
+  const durations: number[]  = items.map((item) => item.duration);
+  const startTimes: number[] = [];
+  let acc = 0;
+  for (let i = 0; i < items.length; i++) {
+    startTimes.push(acc);
+    if (i < items.length - 1) acc += durations[i] - transitionDuration;
+  }
+  const totalDuration = durations.reduce((s, d) => s + d, 0) - (items.length - 1) * transitionDuration;
+  const totalFrames   = Math.max(1, Math.round(totalDuration * fps));
+
   // Create canvas
-  const canvas = document.createElement('canvas');
-  canvas.width  = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  const canvas   = document.createElement('canvas');
+  canvas.width   = W;
+  canvas.height  = H;
+  const ctx      = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas 2D context');
 
-  // High-quality scaling for all frames
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-
-  // Resolve camera motions: use provided array, or fall back to DEFAULT_SEQUENCE
-  const resolvedMotions: (CameraMotion | null)[] = images.map((_, i) => {
-    if (config.cameraMotions) return config.cameraMotions[i] ?? null;
-    return DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length];
-  });
-
-  // Overlapping model: transitions share time with adjacent images
-  const totalDuration = images.length * durationPerImage - (images.length - 1) * transitionDuration;
-  const totalFrames   = Math.max(1, Math.round(totalDuration * fps));
 
   // Pick MIME type — prefer H.264 MP4, fall back to WebM
   const mimeType = [
@@ -385,50 +417,39 @@ export async function renderSlideshow(
     'video/webm',
   ].find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
 
-  // Optional audio
+  // Optional background audio
   let audio: AudioSetup | null = null;
   if (config.audioFile) {
-    try {
-      audio = await setupAudio(config.audioFile, totalDuration);
-    } catch {
-      audio = null;
-    }
+    try { audio = await setupAudio(config.audioFile, totalDuration); } catch { audio = null; }
   }
 
   // Build media stream
-  const videoStream = canvas.captureStream(fps);
+  const videoStream  = canvas.captureStream(fps);
   const tracks: MediaStreamTrack[] = [...videoStream.getTracks()];
   if (audio) tracks.push(...audio.destination.stream.getTracks());
-  const mediaStream = new MediaStream(tracks);
+  const mediaStream  = new MediaStream(tracks);
 
-  // Set up recorder
   const chunks: Blob[] = [];
-  const recorder = new MediaRecorder(mediaStream, { mimeType });
+  const recorder       = new MediaRecorder(mediaStream, { mimeType });
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-  const stopped = new Promise<void>((resolve) => {
-    recorder.onstop = () => resolve();
-  });
+  const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
 
   // Draw first frame before starting recorder (avoids blank first frame)
-  drawFrame(ctx, config, resolvedMotions, 0);
+  await drawFrame(ctx, config, startTimes, 0);
 
   recorder.start(500);
   audio?.source.start(audio.audioCtx.currentTime);
 
-  // Render loop — pace to real-time so captureStream captures each frame
   const frameMs     = 1000 / fps;
   const renderStart = performance.now();
 
   for (let frame = 0; frame < totalFrames; frame++) {
-    drawFrame(ctx, config, resolvedMotions, frame);
+    await drawFrame(ctx, config, startTimes, frame);
 
-    onProgress({
-      currentFrame: frame,
-      totalFrames,
-      percent: Math.round((frame / totalFrames) * 100),
-    });
+    onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * 100) });
 
+    // Pace to real-time so captureStream captures each frame
     const targetMs = renderStart + (frame + 1) * frameMs;
     const delay    = targetMs - performance.now();
     if (delay > 0) await new Promise<void>((r) => setTimeout(r, delay));
@@ -440,7 +461,6 @@ export async function renderSlideshow(
   videoStream.getTracks().forEach((t) => t.stop());
 
   await stopped;
-
   if (audio) await audio.audioCtx.close().catch(() => {});
 
   onProgress({ currentFrame: totalFrames, totalFrames, percent: 100 });

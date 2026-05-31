@@ -1299,7 +1299,11 @@
       "motionPanRight": "Posun vpravo → vlevo",
       "motionPanUp": "Posun nahoru",
       "motionPanDown": "Posun dolů",
-      "motionDiagonal": "Diagonální zoom"
+      "motionDiagonal": "Diagonální zoom",
+      "dropMedia": "Přetáhněte obrázky nebo videa sem nebo klikněte pro nahrání",
+      "mediaTypes": "JPG, PNG, WebP, MP4 — až 20 souborů",
+      "videoTooLong": "Video musí být 15 sekund nebo kratší",
+      "videoDuration": "{seconds}s video"
     }
   },
   "aiStudio": {

@@ -1299,7 +1299,11 @@
       "motionPanRight": "Pohyb vpravo → vľavo",
       "motionPanUp": "Pohyb nahor",
       "motionPanDown": "Pohyb nadol",
-      "motionDiagonal": "Diagonálny zoom"
+      "motionDiagonal": "Diagonálny zoom",
+      "dropMedia": "Sem presuňte obrázky alebo videá alebo kliknite pre nahratie",
+      "mediaTypes": "JPG, PNG, WebP, MP4 — až 20 súborov",
+      "videoTooLong": "Video musí mať 15 sekúnd alebo menej",
+      "videoDuration": "{seconds}s video"
     }
   },
   "aiStudio": {

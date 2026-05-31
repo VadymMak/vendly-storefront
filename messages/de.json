@@ -1299,7 +1299,11 @@
       "motionPanRight": "Schwenk rechts → links",
       "motionPanUp": "Schwenk nach oben",
       "motionPanDown": "Schwenk nach unten",
-      "motionDiagonal": "Diagonaler Zoom"
+      "motionDiagonal": "Diagonaler Zoom",
+      "dropMedia": "Bilder oder Videos hier ablegen oder klicken",
+      "mediaTypes": "JPG, PNG, WebP, MP4 — bis zu 20 Dateien",
+      "videoTooLong": "Video muss 15 Sekunden oder kürzer sein",
+      "videoDuration": "{seconds}s Video"
     }
   },
   "aiStudio": {

@@ -5,6 +5,7 @@ import {
   renderSlideshow,
   DEFAULT_SEQUENCE,
   type CameraMotion,
+  type SlideshowItem,
   type TransitionType,
   type RenderProgress,
   type RenderResult,
@@ -14,11 +15,14 @@ import {
 type CreatorState = 'config' | 'rendering' | 'done';
 type MotionChoice = 'auto' | CameraMotion;
 
-interface SlideImage {
+interface SlideMedia {
   id: string;
+  type: 'image' | 'video';
   file: File;
   objectUrl: string;
-  element: HTMLImageElement;
+  element: HTMLImageElement | HTMLVideoElement;
+  thumbnailDataUrl?: string; // first frame for video; images use objectUrl directly
+  videoDuration?: number;    // seconds, only for video items
 }
 
 const OUTPUT_PRESETS = [
@@ -46,7 +50,6 @@ const MOTION_OPTIONS: { value: MotionChoice; label: string }[] = [
   { value: 'diagonal-zoom', label: 'Diagonal zoom' },
 ];
 
-// Short labels for "auto" preview hint
 const MOTION_SHORT: Record<CameraMotion, string> = {
   'zoom-in':       'zoom in',
   'zoom-out':      'zoom out',
@@ -57,6 +60,8 @@ const MOTION_SHORT: Record<CameraMotion, string> = {
   'diagonal-zoom': 'diagonal',
 };
 
+const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime']);
+
 function cx(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -64,19 +69,64 @@ function cx(...classes: (string | boolean | undefined | null)[]): string {
 function loadImage(file: File): Promise<{ element: HTMLImageElement; objectUrl: string }> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve({ element: img, objectUrl });
-    img.onerror = () => {
+    const img       = new Image();
+    img.onload  = () => resolve({ element: img, objectUrl });
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error(`Failed to load ${file.name}`)); };
+    img.src     = objectUrl;
+  });
+}
+
+function captureVideoFrame(video: HTMLVideoElement): string | null {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width  = 128;
+    canvas.height = 72;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, 128, 72);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return null;
+  }
+}
+
+function loadVideo(
+  file: File,
+): Promise<{ element: HTMLVideoElement; objectUrl: string; duration: number; thumbnailDataUrl: string | null }> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video     = document.createElement('video');
+    video.muted     = true;
+    video.preload   = 'metadata';
+    video.src       = objectUrl;
+
+    video.addEventListener('loadedmetadata', () => {
+      if (video.duration > 15) {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Video must be 15 seconds or shorter'));
+        return;
+      }
+      video.addEventListener('seeked', () => {
+        resolve({ element: video, objectUrl, duration: video.duration, thumbnailDataUrl: captureVideoFrame(video) });
+      }, { once: true });
+      video.currentTime = 0.01; // trigger seek so first frame is available for thumbnail
+    }, { once: true });
+
+    video.addEventListener('error', () => {
       URL.revokeObjectURL(objectUrl);
       reject(new Error(`Failed to load ${file.name}`));
-    };
-    img.src = objectUrl;
+    }, { once: true });
   });
+}
+
+function releaseVideoElement(video: HTMLVideoElement): void {
+  video.src = '';
+  video.load();
 }
 
 export default function SlideshowCreator() {
   const [state, setState] = useState<CreatorState>('config');
-  const [slides, setSlides] = useState<SlideImage[]>([]);
+  const [slides, setSlides] = useState<SlideMedia[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Settings
@@ -93,26 +143,46 @@ export default function SlideshowCreator() {
   const [progress, setProgress] = useState<RenderProgress>({ currentFrame: 0, totalFrames: 0, percent: 0 });
   const [result, setResult] = useState<RenderResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const videoUrlRef = useRef<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoUrlRef   = useRef<string | null>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // Resolve the effective motion for slide at index idx
+  // Resolve effective motion for an image slide at global index idx
   const resolveMotion = (slideId: string, idx: number): CameraMotion =>
     (slideMotions[slideId] ?? 'auto') !== 'auto'
       ? (slideMotions[slideId] as CameraMotion)
       : DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length];
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    const arr = Array.from(files).filter(
+      (f) => f.type.startsWith('image/') || VIDEO_TYPES.has(f.type),
+    );
     if (!arr.length) return;
-    const loaded: SlideImage[] = [];
+
+    const loaded: SlideMedia[] = [];
     for (const file of arr) {
       try {
-        const { element, objectUrl } = await loadImage(file);
-        loaded.push({ id: crypto.randomUUID(), file, objectUrl, element });
-      } catch {
-        // skip unreadable files
+        if (file.type.startsWith('image/')) {
+          const { element, objectUrl } = await loadImage(file);
+          loaded.push({ id: crypto.randomUUID(), type: 'image', file, objectUrl, element });
+        } else {
+          if (file.size > 50 * 1024 * 1024) {
+            setError(`${file.name}: Video must be under 50 MB`);
+            continue;
+          }
+          const { element, objectUrl, duration, thumbnailDataUrl } = await loadVideo(file);
+          loaded.push({
+            id: crypto.randomUUID(),
+            type: 'video',
+            file,
+            objectUrl,
+            element,
+            thumbnailDataUrl: thumbnailDataUrl ?? undefined,
+            videoDuration: duration,
+          });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : `Failed to load ${file.name}`);
       }
     }
     setSlides((prev) => [...prev, ...loaded].slice(0, 20));
@@ -121,7 +191,10 @@ export default function SlideshowCreator() {
   const removeSlide = (id: string) => {
     setSlides((prev) => {
       const slide = prev.find((s) => s.id === id);
-      if (slide) URL.revokeObjectURL(slide.objectUrl);
+      if (slide) {
+        URL.revokeObjectURL(slide.objectUrl);
+        if (slide.type === 'video') releaseVideoElement(slide.element as HTMLVideoElement);
+      }
       return prev.filter((s) => s.id !== id);
     });
     setSlideMotions((prev) => { const n = { ...prev }; delete n[id]; return n; });
@@ -129,7 +202,7 @@ export default function SlideshowCreator() {
 
   const moveSlide = (idx: number, dir: -1 | 1) => {
     setSlides((prev) => {
-      const next = [...prev];
+      const next   = [...prev];
       const target = idx + dir;
       if (target < 0 || target >= next.length) return prev;
       [next[idx], next[target]] = [next[target], next[idx]];
@@ -147,10 +220,7 @@ export default function SlideshowCreator() {
   );
 
   const handleAudioChange = (file: File) => {
-    if (file.size > 20 * 1024 * 1024) {
-      setError('Audio file must be under 20 MB');
-      return;
-    }
+    if (file.size > 20 * 1024 * 1024) { setError('Audio file must be under 20 MB'); return; }
     if (audioElement) URL.revokeObjectURL(audioElement.src);
     const url = URL.createObjectURL(file);
     setAudioFile(file);
@@ -170,18 +240,26 @@ export default function SlideshowCreator() {
     setProgress({ currentFrame: 0, totalFrames: 0, percent: 0 });
     const preset = OUTPUT_PRESETS[outputPresetIdx];
 
-    const cameraMotions: (CameraMotion | null)[] = slides.map((s, i) =>
-      cameraMotionEnabled ? resolveMotion(s.id, i) : null,
-    );
+    const items: SlideshowItem[] = slides.map((s, i) => {
+      if (s.type === 'video') {
+        const video  = s.element as HTMLVideoElement;
+        video.muted  = true;
+        return { type: 'video' as const, element: video, duration: s.videoDuration ?? 5 };
+      }
+      return {
+        type:     'image' as const,
+        element:  s.element as HTMLImageElement,
+        duration: durationPerImage,
+        motion:   cameraMotionEnabled ? resolveMotion(s.id, i) : undefined,
+      };
+    });
 
     try {
       const r = await renderSlideshow(
         {
-          images: slides.map((s) => s.element),
-          durationPerImage,
+          items,
           transitionDuration,
           transitionType: transition,
-          cameraMotions,
           outputSize: { width: preset.width, height: preset.height },
           fps: 30,
           audioFile: audioFile ?? undefined,
@@ -199,11 +277,11 @@ export default function SlideshowCreator() {
   };
 
   const resetAll = () => {
-    slides.forEach((s) => URL.revokeObjectURL(s.objectUrl));
-    if (videoUrlRef.current) {
-      URL.revokeObjectURL(videoUrlRef.current);
-      videoUrlRef.current = null;
-    }
+    slides.forEach((s) => {
+      URL.revokeObjectURL(s.objectUrl);
+      if (s.type === 'video') releaseVideoElement(s.element as HTMLVideoElement);
+    });
+    if (videoUrlRef.current) { URL.revokeObjectURL(videoUrlRef.current); videoUrlRef.current = null; }
     if (audioElement) URL.revokeObjectURL(audioElement.src);
     setSlides([]);
     setSlideMotions({});
@@ -214,9 +292,11 @@ export default function SlideshowCreator() {
     setState('config');
   };
 
-  const totalSec = +(
-    slides.length * durationPerImage - Math.max(0, slides.length - 1) * transitionDuration
-  ).toFixed(1);
+  // Total slideshow duration with per-item durations
+  const totalSec = slides.length < 1 ? 0 : +(Math.max(0,
+    slides.reduce((sum, s) => sum + (s.videoDuration ?? durationPerImage), 0) -
+    Math.max(0, slides.length - 1) * transitionDuration,
+  )).toFixed(1);
 
   // ── Rendering ─────────────────────────────────────────────────────────────────
 
@@ -303,11 +383,11 @@ export default function SlideshowCreator() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
       )}
 
-      {/* ── Photo upload / timeline ── */}
+      {/* ── Media upload / timeline ── */}
       <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">Photo Slideshow Creator</h2>
+            <h2 className="text-base font-semibold">Photo &amp; Video Slideshow</h2>
             <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
               Rendered in your browser · No credits needed
             </p>
@@ -317,12 +397,12 @@ export default function SlideshowCreator() {
               onClick={() => fileInputRef.current?.click()}
               className="cursor-pointer text-xs text-[var(--color-primary)] hover:underline"
             >
-              + Add photos
+              + Add more
             </button>
           )}
         </div>
 
-        {/* Drop zone — shown when no photos yet */}
+        {/* Drop zone — shown when no media yet */}
         {slides.length === 0 && (
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -340,13 +420,13 @@ export default function SlideshowCreator() {
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
             </svg>
             <div className="text-center">
-              <div className="font-semibold text-[var(--color-text-muted)]">Drop images here or click to upload</div>
-              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP — up to 20 photos</div>
+              <div className="font-semibold text-[var(--color-text-muted)]">Drop images or videos here or click to upload</div>
+              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP, MP4 — up to 20 files</div>
             </div>
           </div>
         )}
 
-        {/* Timeline with per-slide motion dropdowns */}
+        {/* Timeline with per-slide controls */}
         {slides.length > 0 && (
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -360,19 +440,32 @@ export default function SlideshowCreator() {
             )}
           >
             {slides.map((s, idx) => {
-              const choice = slideMotions[s.id] ?? 'auto';
+              const isVideo    = s.type === 'video';
+              const choice     = slideMotions[s.id] ?? 'auto';
               const autoMotion = DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length];
 
               return (
                 <div key={s.id} className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
                   <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-12 w-16 shrink-0 rounded object-cover" />
+                  <img
+                    src={isVideo ? (s.thumbnailDataUrl ?? s.objectUrl) : s.objectUrl}
+                    alt={`Slide ${idx + 1}`}
+                    className="h-12 w-16 shrink-0 rounded object-cover"
+                  />
 
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <div className="truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</div>
-                    {/* Camera motion dropdown per slide */}
-                    {cameraMotionEnabled && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</span>
+                      {isVideo && (
+                        <span className="shrink-0 rounded bg-[var(--color-primary)]/20 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-primary)]">
+                          ▶ {s.videoDuration?.toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Camera motion dropdown — images only */}
+                    {!isVideo && cameraMotionEnabled && (
                       <div className="flex items-center gap-1.5">
                         <select
                           value={choice}
@@ -422,9 +515,9 @@ export default function SlideshowCreator() {
             })}
 
             <div className="px-1 pt-1 text-xs text-[var(--color-text-dim)]">
-              {slides.length} photo{slides.length !== 1 ? 's' : ''} · {totalSec}s total
+              {slides.length} item{slides.length !== 1 ? 's' : ''} · {totalSec}s total
               {slides.length < 2 && (
-                <span className="ml-2 text-amber-400">— add at least 2 photos to render</span>
+                <span className="ml-2 text-amber-400">— add at least 2 items to render</span>
               )}
             </div>
           </div>
@@ -433,7 +526,7 @@ export default function SlideshowCreator() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
           multiple
           className="hidden"
           onChange={(e) => e.target.files && void addFiles(e.target.files)}
@@ -499,7 +592,7 @@ export default function SlideshowCreator() {
             />
             {audioFile && (
               <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">
-                Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4
+                Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4 · video audio is always muted
               </p>
             )}
             <a href="https://pixabay.com/music/" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[13px] text-[var(--color-primary)] hover:underline">
@@ -528,7 +621,7 @@ export default function SlideshowCreator() {
             </div>
           </div>
 
-          {/* Duration per image */}
+          {/* Duration per photo */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="text-sm font-medium text-[var(--color-text-muted)]">Duration per photo</label>
@@ -543,6 +636,7 @@ export default function SlideshowCreator() {
             <div className="mt-1 flex justify-between text-xs text-[var(--color-text-dim)]">
               <span>3s (faster)</span><span>8s (slower)</span>
             </div>
+            <p className="mt-1 text-xs text-[var(--color-text-dim)]">Videos use their natural duration (max 15s)</p>
           </div>
 
           {/* Transition duration */}
@@ -568,8 +662,8 @@ export default function SlideshowCreator() {
               <div className="text-sm font-medium text-[var(--color-text-muted)]">Camera motion</div>
               <div className="text-xs text-[var(--color-text-dim)]">
                 {cameraMotionEnabled
-                  ? 'Instagram-style zoom & pan — set per photo above'
-                  : 'Disabled — images shown static'}
+                  ? 'Instagram-style zoom & pan — set per photo above · videos play as-is'
+                  : 'Disabled — photos shown static · videos play as-is'}
               </div>
             </div>
             <button
@@ -600,8 +694,8 @@ export default function SlideshowCreator() {
         className="w-full cursor-pointer rounded-lg bg-[var(--color-primary)] px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {slides.length < 2
-          ? 'Upload at least 2 photos to render'
-          : `Render Slideshow — ${slides.length} photos · ${preset.width}×${preset.height} · ${totalSec}s →`}
+          ? 'Upload at least 2 photos or videos to render'
+          : `Render Slideshow — ${slides.length} items · ${preset.width}×${preset.height} · ${totalSec}s →`}
       </button>
 
       <p className="text-center text-xs text-[var(--color-text-dim)]">

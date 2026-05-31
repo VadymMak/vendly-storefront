@@ -1269,6 +1269,28 @@
     },
     "byok": {
       "note": "Advanced users: bring your own Replicate API key for unlimited access"
+    },
+    "slideshow": {
+      "tabLabel": "Photo Slideshow",
+      "tabDesc": "Canvas render · No credits needed",
+      "title": "Photo Slideshow Creator",
+      "subtitle": "Turn your photos into a smooth MP4 slideshow with transitions and Ken Burns effects — rendered entirely in your browser. No credits needed.",
+      "dropzone": "Drop images here or click to upload",
+      "dropzoneHint": "JPG, PNG, WebP — up to 20 photos",
+      "addMore": "+ Add more",
+      "configure": "Configure & Create Slideshow →",
+      "minPhotos": "Add at least 2 photos to continue",
+      "rendering": "Rendering your slideshow…",
+      "doNotClose": "Rendering happens in your browser at real-time speed — do not close this tab",
+      "ready": "Your Slideshow is Ready",
+      "startOver": "Start over",
+      "download": "Download",
+      "reRender": "Re-render",
+      "noCredits": "Rendered locally in your browser · No credits used · No data uploaded to our servers",
+      "music": "Background music",
+      "uploadMusic": "Upload MP3, WAV, OGG or M4A",
+      "noMusic": "No audio selected",
+      "findFreeMusic": "Find free music on Pixabay →"
     }
   },
   "aiStudio": {

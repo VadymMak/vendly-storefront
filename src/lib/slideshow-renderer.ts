@@ -360,27 +360,28 @@ interface AudioSetup {
   audioCtx:    AudioContext;
   destination: MediaStreamAudioDestinationNode;
   source:      AudioBufferSourceNode;
+  gainNode:    GainNode;
 }
 
-async function setupAudio(file: File, totalDuration: number): Promise<AudioSetup> {
-  const audioCtx   = new AudioContext();
-  const arrayBuffer = await file.arrayBuffer();
-  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+// Decode and wire up audio nodes. Gain scheduling happens at source.start() time,
+// not here, so that any preload delay doesn't shift the fade-out window.
+async function setupAudio(file: File): Promise<AudioSetup> {
+  const audioCtx    = new AudioContext();
+  const arrayBuffer  = await file.arrayBuffer();
+  const audioBuffer  = await audioCtx.decodeAudioData(arrayBuffer);
 
   const destination = audioCtx.createMediaStreamDestination();
   const gainNode    = audioCtx.createGain();
-
-  const fadeStart = Math.max(0, totalDuration - 2);
-  gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-  if (fadeStart > 0) gainNode.gain.setValueAtTime(1, audioCtx.currentTime + fadeStart);
-  gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + totalDuration);
+  gainNode.gain.value = 1;
 
   const source = audioCtx.createBufferSource();
   source.buffer = audioBuffer;
+  // Loop so the music continues even if the audio file is shorter than the slideshow
+  source.loop = true;
   source.connect(gainNode);
   gainNode.connect(destination);
 
-  return { audioCtx, destination, source };
+  return { audioCtx, destination, source, gainNode };
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -449,7 +450,7 @@ export async function renderSlideshow(
   // Optional background audio
   let audio: AudioSetup | null = null;
   if (config.audioFile) {
-    try { audio = await setupAudio(config.audioFile, totalDuration); } catch { audio = null; }
+    try { audio = await setupAudio(config.audioFile); } catch { audio = null; }
   }
 
   // Build media stream
@@ -468,7 +469,20 @@ export async function renderSlideshow(
   await drawFrame(ctx, config, startTimes, 0);
 
   recorder.start(500);
-  audio?.source.start(audio.audioCtx.currentTime);
+
+  if (audio) {
+    // Resume in case the AudioContext was suspended (e.g. no recent user gesture)
+    await audio.audioCtx.resume();
+    const startAt  = audio.audioCtx.currentTime;
+    const fadeAt   = Math.max(startAt, startAt + totalDuration - 2);
+
+    // Schedule gain relative to actual start time, not to setupAudio() call time
+    audio.gainNode.gain.setValueAtTime(1, startAt);
+    audio.gainNode.gain.setValueAtTime(1, fadeAt);
+    audio.gainNode.gain.linearRampToValueAtTime(0, startAt + totalDuration);
+
+    audio.source.start(startAt);
+  }
 
   // Per-frame interval timing: each frame must hold the canvas for at least frameInterval ms
   // so captureStream has time to sample it. setTimeout always yields to the compositor.

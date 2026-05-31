@@ -722,7 +722,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setVidUrl(null);
     setVidStartImageUrl(null);
 
-    // ── BYOK direct path — browser polls Replicate, no Vercel timeout ────────
+    // ── BYOK path — start frame direct (Flux/CORS ok), video via server async ──
+    // Kling v2.1 does not send CORS headers → direct browser fetch is blocked.
+    // Server creates the prediction with the user's own key and returns jobId <1s.
     if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
       try {
         if (videoMode === 'text') {
@@ -733,22 +735,35 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
           });
           const frameUrl = frameResult.output as string;
           setVidStartImageUrl(frameUrl);
+
           setGenStep('animating');
-          const videoResult = await replicateDirectRun(
-            byokConfig.apiKey,
-            { model: byokConfig.models.video, input: { prompt: vidPrompt, start_image: frameUrl, aspect_ratio: selectedSkill.aspectRatio, duration: selectedSkill.duration } },
-            (status) => { if (status === 'processing') setGenStep('animating'); },
-          );
-          setVidUrl(videoResult.output as string);
+          const videoRes = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameUrl }),
+          });
+          const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
+          if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+          if (videoData.jobId) {
+            const result = await pollJobUntilDone(videoData.jobId);
+            if (result.status === 'succeeded' && result.outputUrl) { setVidUrl(result.outputUrl); }
+            else { setVidError(result.error ?? 'Video generation failed'); }
+          } else if (videoData.url) { setVidUrl(videoData.url); }
         } else {
           if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
           setGenStep('animating');
-          const videoResult = await replicateDirectRun(
-            byokConfig.apiKey,
-            { model: byokConfig.models.video, input: { prompt: vidPrompt, start_image: vidUploadedUrl, aspect_ratio: selectedSkill.aspectRatio, duration: selectedSkill.duration } },
-            (status) => { if (status === 'processing') setGenStep('animating'); },
-          );
-          setVidUrl(videoResult.output as string);
+          const videoRes = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }),
+          });
+          const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
+          if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+          if (videoData.jobId) {
+            const result = await pollJobUntilDone(videoData.jobId);
+            if (result.status === 'succeeded' && result.outputUrl) { setVidUrl(result.outputUrl); }
+            else { setVidError(result.error ?? 'Video generation failed'); }
+          } else if (videoData.url) { setVidUrl(videoData.url); }
         }
         fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'video' }) }).catch(() => {});
         (window as unknown as Record<string, () => void>).__refreshCredits?.();

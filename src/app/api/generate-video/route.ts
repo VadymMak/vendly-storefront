@@ -87,10 +87,12 @@ export async function POST(request: Request) {
 
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+    select: { encryptedKey: true },
   });
-  if (!keyRecord) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 400 });
-
-  const replicateKey = decrypt(keyRecord.encryptedKey);
+  const replicateKey = keyRecord
+    ? decrypt(keyRecord.encryptedKey)
+    : (process.env.REPLICATE_API_TOKEN ?? '');
+  if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
   // ── Create prediction — no Prefer:wait, returns prediction.id immediately ─
   const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions', {

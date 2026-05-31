@@ -660,6 +660,23 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     finally { setVidEnhancing(false); }
   }
 
+  async function pollJobUntilDone(jobId: string): Promise<{ status: string; outputUrl?: string; error?: string }> {
+    const maxPollTime = 10 * 60 * 1000;
+    const startTime = Date.now();
+    while (true) {
+      if (Date.now() - startTime > maxPollTime) {
+        return { status: 'failed', error: 'Generation timed out' };
+      }
+      await new Promise<void>((r) => setTimeout(r, 4000));
+      try {
+        const res = await fetch(`/api/studio/job/${jobId}`);
+        if (!res.ok) continue;
+        const data = await res.json() as { status: string; outputUrl?: string; error?: string };
+        if (data.status === 'succeeded' || data.status === 'failed' || data.status === 'canceled') return data;
+      } catch { /* Network error — retry */ }
+    }
+  }
+
   async function vidHandleGenerate() {
     if (!vidPrompt.trim()) return;
     setVidError(null);
@@ -705,25 +722,53 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     if (videoMode === 'text') {
       setGenStep('generating-frame');
       const frameRes = await fetch('/api/generate-start-frame', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, aspectRatio: selectedSkill.aspectRatio }) });
-      const frameData = await frameRes.json() as { url?: string; error?: string };
+      const frameData = await frameRes.json() as { url?: string; jobId?: string; async?: boolean; error?: string };
       if (!frameRes.ok) { setVidError(frameData.error ?? 'Frame generation failed'); setGenStep(null); return; }
-      setVidStartImageUrl(frameData.url ?? null);
-      setGenStep('rate-limiting');
-      await new Promise((r) => setTimeout(r, 10000));
+
+      let startImageUrl: string;
+      if (frameData.url) {
+        startImageUrl = frameData.url;
+      } else if (frameData.jobId && frameData.async) {
+        const frameJob = await pollJobUntilDone(frameData.jobId);
+        if (frameJob.status !== 'succeeded' || !frameJob.outputUrl) { setVidError(frameJob.error ?? 'Frame generation failed'); setGenStep(null); return; }
+        startImageUrl = frameJob.outputUrl;
+      } else {
+        setVidError('Frame generation failed'); setGenStep(null); return;
+      }
+      setVidStartImageUrl(startImageUrl);
+
       setGenStep('animating');
-      const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameData.url }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: startImageUrl }) });
+      const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
       if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
-      setVidUrl(videoData.url ?? null);
-      (window as unknown as Record<string, () => void>).__refreshCredits?.();
+
+      if (videoData.jobId) {
+        const result = await pollJobUntilDone(videoData.jobId);
+        if (result.status === 'succeeded' && result.outputUrl) {
+          setVidUrl(result.outputUrl);
+          (window as unknown as Record<string, () => void>).__refreshCredits?.();
+        } else { setVidError(result.error ?? 'Video generation failed'); }
+      } else if (videoData.url) {
+        setVidUrl(videoData.url);
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      }
     } else {
       if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
       setGenStep('animating');
       const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
       if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
-      setVidUrl(videoData.url ?? null);
-      (window as unknown as Record<string, () => void>).__refreshCredits?.();
+
+      if (videoData.jobId) {
+        const result = await pollJobUntilDone(videoData.jobId);
+        if (result.status === 'succeeded' && result.outputUrl) {
+          setVidUrl(result.outputUrl);
+          (window as unknown as Record<string, () => void>).__refreshCredits?.();
+        } else { setVidError(result.error ?? 'Video generation failed'); }
+      } else if (videoData.url) {
+        setVidUrl(videoData.url);
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      }
     }
     setGenStep(null);
   }

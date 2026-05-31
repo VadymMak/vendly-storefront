@@ -3,9 +3,10 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
-import { checkCredits, deductCredit, getOrCreateCredits, getVideoCreditCost } from '@/lib/credits';
+import { checkCredits, getOrCreateCredits, getVideoCreditCost } from '@/lib/credits';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
+import { createJob } from '@/lib/studio-jobs';
 
 const generateSchema = z.object({
   prompt:      z.string().min(1),
@@ -15,8 +16,6 @@ const generateSchema = z.object({
   startImage:  z.string().url(),
 });
 
-const POLL_INTERVAL_MS = 4000;
-const TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 3;
 
 async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
@@ -40,7 +39,7 @@ interface ReplicatePrediction {
 }
 
 export async function POST(request: Request) {
-  // ── Parse body (needed for honeypot — must come before auth) ──────────────────
+  // ── Parse body (honeypot must come before auth) ───────────────────────────
   let rawBody: Record<string, unknown>;
   try {
     rawBody = await request.json() as Record<string, unknown>;
@@ -48,18 +47,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // ── Honeypot — silent reject (bot thinks it worked) ───────────────────────────
+  // ── Honeypot — silent reject ──────────────────────────────────────────────
   if (rawBody.website) {
     return NextResponse.json({ success: true });
   }
 
-  // ── Auth ──────────────────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = generateSchema.parse(rawBody);
 
-  // ── Rate limit ────────────────────────────────────────────────────────────────
+  // ── Rate limit ────────────────────────────────────────────────────────────
   const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
@@ -71,11 +70,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // ── Spam check ────────────────────────────────────────────────────────────────
+  // ── Spam check ────────────────────────────────────────────────────────────
   if (isAbusivePrompt(body.prompt)) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
+  // ── Credit check (still required — deduction happens later in job polling) ─
   const creditAmount = getVideoCreditCost(body.duration);
   const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
   if (!creditCheck.allowed) {
@@ -92,20 +92,17 @@ export async function POST(request: Request) {
 
   const replicateKey = decrypt(keyRecord.encryptedKey);
 
-  console.log('Kling input:', { prompt: body.prompt, start_image: body.startImage, duration: body.duration, aspect_ratio: body.aspectRatio });
-
-  // kwaivgi/kling-v2.1 is an image-to-video model; `start_image` is the start frame input
+  // ── Create prediction — no Prefer:wait, returns prediction.id immediately ─
   const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${replicateKey}`,
       'Content-Type': 'application/json',
-      Prefer: 'wait',
     },
     body: JSON.stringify({
       input: {
-        prompt:      body.prompt,
-        start_image: body.startImage,
+        prompt:       body.prompt,
+        start_image:  body.startImage,
         aspect_ratio: body.aspectRatio,
         duration:     body.duration,
       },
@@ -118,35 +115,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Replicate error: ${detail}` }, { status: 502 });
   }
 
-  let prediction = await createRes.json() as ReplicatePrediction;
+  const prediction = await createRes.json() as ReplicatePrediction;
 
-  const deadline = Date.now() + TIMEOUT_MS;
-  while (
-    prediction.status !== 'succeeded' &&
-    prediction.status !== 'failed' &&
-    prediction.status !== 'canceled'
-  ) {
-    if (Date.now() > deadline) {
-      return NextResponse.json({ error: 'Generation timed out after 5 minutes' }, { status: 504 });
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-
-    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-      headers: { Authorization: `Bearer ${replicateKey}` },
-    });
-    if (!pollRes.ok) continue;
-    prediction = await pollRes.json() as ReplicatePrediction;
+  if (prediction.status === 'failed') {
+    return NextResponse.json({ error: prediction.error ?? 'Generation failed' }, { status: 500 });
   }
 
-  if (prediction.status !== 'succeeded' || !prediction.output) {
-    return NextResponse.json({ error: prediction.error ?? 'Generation failed' }, { status: 502 });
-  }
+  // ── Persist job — credit deduction happens in refreshJobStatus on success ─
+  const jobId = await createJob({
+    userId:       session.user.id,
+    predictionId: prediction.id,
+    type:         'video',
+    creditType:   creditCheck.byok ? undefined : 'video',
+    creditAmount: creditCheck.byok ? 0 : creditAmount,
+    metadata: {
+      prompt:      body.prompt,
+      skillId:     body.skillId,
+      aspectRatio: body.aspectRatio,
+      duration:    body.duration,
+    },
+  });
 
-  const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-
-  if (!creditCheck.byok) {
-    await deductCredit(session.user.id, 'video', creditAmount);
-  }
-
-  return NextResponse.json({ url });
+  return NextResponse.json({ jobId, predictionId: prediction.id });
 }

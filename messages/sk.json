@@ -771,7 +771,8 @@
       "f5": "WhatsApp integrácia",
       "f6": "SEO optimalizácia",
       "f7": "Hotové za 48 hodín",
-      "cta": "Objednať Landing"
+      "cta": "Objednať Landing",
+      "studio": "AI Studio: 5 images + 1 video/month"
     },
     "premium": {
       "badge": "Najpopulárnejší",
@@ -783,7 +784,8 @@
       "f5": "AI chatbot zahrnutý",
       "f6": "WhatsApp + formuláre",
       "f7": "3 zmeny mesačne",
-      "cta": "Objednať Premium"
+      "cta": "Objednať Premium",
+      "studio": "AI Studio: 50 images + 3 videos/month"
     },
     "individual": {
       "desc": "Viacstranový web na mieru",
@@ -794,7 +796,8 @@
       "f5": "Prioritná podpora",
       "f6": "Plná AI integrácia",
       "f7": "5 zmien mesačne",
-      "cta": "Napísať nám"
+      "cta": "Napísať nám",
+      "studio": "AI Studio: 150 images + 8 videos/month"
     }
   },
   "included": {
@@ -866,7 +869,8 @@
       "f3": "Na zákazku (drahé)",
       "f5": "€0 (záloha €1k+)",
       "f6": "Závisí od freelancera"
-    }
+    },
+    "aiStudio": "AI Content Studio"
   },
   "dachTrust": {
     "badge1": "Made in Europe",
@@ -904,7 +908,12 @@
     "title": "Jednoduché ceny. Žiadne prekvapenia.",
     "subtitle": "Začnite zadarmo. Rastite spolu so svojím podnikaním.",
     "faqText": "Máte ďalšie otázky?",
-    "faqLink": "Pozrite si FAQ"
+    "faqLink": "Pozrite si FAQ",
+    "faqAiTitle": "AI Studio Questions",
+    "faqAiQ1": "What is AI Studio?",
+    "faqAiA1": "AI Studio is our built-in content creation tool. Generate professional images and videos for your website and social media using AI. Every plan includes free monthly credits.",
+    "faqAiQ2": "Can I buy more AI credits?",
+    "faqAiA2": "Yes! Credit packs start from €12 (120 images + 5 videos). Credits from packs never expire. Visit /studio/pricing for details."
   },
   "templatesPage": {
     "badge": "6 šablón",

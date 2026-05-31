@@ -771,7 +771,8 @@
       "f5": "WhatsApp-Integration",
       "f6": "SEO-Optimierung",
       "f7": "Fertig in 48 Stunden",
-      "cta": "Landing bestellen"
+      "cta": "Landing bestellen",
+      "studio": "AI Studio: 5 Bilder + 1 Video/Monat"
     },
     "premium": {
       "badge": "Am beliebtesten",
@@ -783,7 +784,8 @@
       "f5": "KI-Chatbot inklusive",
       "f6": "WhatsApp + Formulare",
       "f7": "3 Änderungen pro Monat",
-      "cta": "Premium bestellen"
+      "cta": "Premium bestellen",
+      "studio": "AI Studio: 50 Bilder + 3 Videos/Monat"
     },
     "individual": {
       "desc": "Mehrseitige Webseite nach Maß",
@@ -794,7 +796,8 @@
       "f5": "Prioritätssupport",
       "f6": "Vollständige KI-Integration",
       "f7": "5 Änderungen pro Monat",
-      "cta": "Uns schreiben"
+      "cta": "Uns schreiben",
+      "studio": "AI Studio: 150 Bilder + 8 Videos/Monat"
     }
   },
   "included": {
@@ -866,7 +869,8 @@
       "f3": "Individuell (teuer)",
       "f5": "€0 (Vorauszahlung €1k+)",
       "f6": "Abhängig vom Anbieter"
-    }
+    },
+    "aiStudio": "KI-Content-Studio"
   },
   "dachTrust": {
     "badge1": "Made in Europe",
@@ -904,7 +908,12 @@
     "title": "Einfache Preise. Keine Überraschungen.",
     "subtitle": "Kostenlos starten. Wachsen Sie mit Ihrem Business.",
     "faqText": "Noch Fragen?",
-    "faqLink": "Zum FAQ"
+    "faqLink": "Zum FAQ",
+    "faqAiTitle": "AI Studio Fragen",
+    "faqAiQ1": "Was ist AI Studio?",
+    "faqAiA1": "AI Studio ist unser integriertes Content-Erstellungs-Tool. Generieren Sie professionelle Bilder und Videos für Ihre Website und Social Media mit KI. Jeder Plan beinhaltet kostenlose monatliche Credits.",
+    "faqAiQ2": "Kann ich mehr KI-Credits kaufen?",
+    "faqAiA2": "Ja! Credit-Pakete starten ab €12 (120 Bilder + 5 Videos). Credits aus Paketen verfallen nie. Besuchen Sie /studio/pricing für Details."
   },
   "templatesPage": {
     "badge": "6 Vorlagen",

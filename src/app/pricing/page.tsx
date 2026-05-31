@@ -106,8 +106,30 @@ export default async function PricingPage() {
           </div>
         </section>
 
-        {/* FAQ quick links */}
-        <section className="py-16 px-4 text-center">
+        {/* AI Studio FAQ */}
+        <section className="py-16 px-4 sm:px-6">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-xl font-bold text-white sm:text-2xl">{t('faqAiTitle')}</h2>
+            <div className="mt-8 divide-y divide-[--color-border] rounded-2xl border border-[--color-border] bg-[--color-card]">
+              <div className="px-6 py-5">
+                <p className="text-sm font-semibold text-white">{t('faqAiQ1')}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[--color-text-muted]">{t('faqAiA1')}</p>
+              </div>
+              <div className="px-6 py-5">
+                <p className="text-sm font-semibold text-white">{t('faqAiQ2')}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[--color-text-muted]">
+                  {t('faqAiA2')}{' '}
+                  <a href="/studio/pricing" className="text-[--color-primary] underline hover:opacity-80">
+                    /studio/pricing
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* General FAQ link */}
+        <section className="pb-16 px-4 text-center">
           <p className="text-[--color-text-muted]">
             {t('faqText')}{' '}
             <a href="/#faq" className="text-[--color-primary] underline hover:opacity-80">

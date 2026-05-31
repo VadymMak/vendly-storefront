@@ -5,6 +5,11 @@
  *
  * Video items: played in real-time via video.play() — no per-frame seeking.
  * Image items: drawn with Ken Burns camera motion at frameInterval pace.
+ *
+ * Two-pass when audio is present:
+ *   Pass 1 — render video-only (canvas.captureStream, no AudioContext).
+ *             Audio starts at recording start, not after encoding delay.
+ *   Pass 2 — play Pass-1 video + mix audio in real-time → final blob.
  */
 
 export type TransitionType = 'fade' | 'slide-left' | 'slide-right' | 'zoom-in' | 'zoom-out';
@@ -41,6 +46,7 @@ export interface RenderProgress {
   currentFrame: number;
   totalFrames: number;
   percent: number;
+  phase: 'rendering' | 'audio';
 }
 
 export type OnProgress = (progress: RenderProgress) => void;
@@ -260,6 +266,12 @@ function getFrameState(
 
 // ── Frame drawing (synchronous — videos drawn from current play position) ─────
 
+// Audio is now in Pass 2 (real-time, no drift), so slow filter rendering in Pass 1
+// no longer breaks audio sync. Apply cssFilter to all items including video.
+function itemFilter(_item: SlideshowItem, cssFilter: string): string {
+  return cssFilter;
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
@@ -282,7 +294,7 @@ function drawFrame(
   if (state.kind === 'steady') {
     const item        = items[state.imageIndex];
     const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
-    ctx.filter = cssFilter;
+    ctx.filter = itemFilter(item, cssFilter);
     drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
     ctx.filter = 'none';
     applyStyle(ctx, style, W, H);
@@ -298,10 +310,11 @@ function drawFrame(
 
   switch (transitionType) {
     case 'fade': {
-      ctx.filter = cssFilter;
       ctx.globalAlpha = 1 - progress;
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.globalAlpha = progress;
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem,   W, H, toRaw,   0, 0, W, H);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
@@ -309,16 +322,17 @@ function drawFrame(
     }
 
     case 'slide-left': {
-      ctx.filter = cssFilter;
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
       ctx.save();
       ctx.translate(-progress * W, 0);
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.restore();
       ctx.save();
       ctx.translate((1 - progress) * W, 0);
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
@@ -327,16 +341,17 @@ function drawFrame(
     }
 
     case 'slide-right': {
-      ctx.filter = cssFilter;
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
       ctx.save();
       ctx.translate(progress * W, 0);
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.restore();
       ctx.save();
       ctx.translate(-(1 - progress) * W, 0);
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
@@ -345,27 +360,29 @@ function drawFrame(
     }
 
     case 'zoom-in': {
-      ctx.filter = cssFilter;
       ctx.globalAlpha = 1 - progress;
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
-      const s  = 0.5 + 0.5 * progress;
-      const dw = W * s;
-      const dh = H * s;
+      const zis  = 0.5 + 0.5 * progress;
+      const zidw = W * zis;
+      const zidh = H * zis;
       ctx.globalAlpha = progress;
-      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.filter = itemFilter(toItem, cssFilter);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - zidw) / 2, (H - zidh) / 2, zidw, zidh);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
       break;
     }
 
     case 'zoom-out': {
-      ctx.filter = cssFilter;
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
-      const s  = 1 - 0.5 * progress;
-      const dw = W * s;
-      const dh = H * s;
+      const zos  = 1 - 0.5 * progress;
+      const zodw = W * zos;
+      const zodh = H * zos;
       ctx.globalAlpha = 1 - progress;
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.filter = itemFilter(fromItem, cssFilter);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - zodw) / 2, (H - zodh) / 2, zodw, zodh);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
       break;
@@ -375,31 +392,109 @@ function drawFrame(
   applyStyle(ctx, style, W, H);
 }
 
-// ── Audio setup ───────────────────────────────────────────────────────────────
+// ── Pass 2: add audio track in real-time ──────────────────────────────────────
+//
+// Plays the Pass-1 video through a <video> element and re-records it with an
+// AudioContext music track mixed in. No filters — they are already baked into
+// the Pass-1 video. video.play() drives timing so audio is always in sync.
 
-interface AudioSetup {
-  audioCtx:    AudioContext;
-  destination: MediaStreamAudioDestinationNode;
-  source:      AudioBufferSourceNode;
-  gainNode:    GainNode;
-}
+async function addAudioToVideo(
+  videoBlob: Blob,
+  audioFile: File,
+  mimeType: string,
+  onProgress: (p: number) => void,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const videoUrl = URL.createObjectURL(videoBlob);
+    const video    = document.createElement('video');
+    video.src         = videoUrl;
+    video.muted       = true;
+    video.playsInline = true;
+    video.preload     = 'auto';
 
-async function setupAudio(file: File): Promise<AudioSetup> {
-  const audioCtx    = new AudioContext();
-  const arrayBuffer  = await file.arrayBuffer();
-  const audioBuffer  = await audioCtx.decodeAudioData(arrayBuffer);
+    video.addEventListener('error', () => reject(new Error('Audio-pass video failed to load')), { once: true });
 
-  const destination = audioCtx.createMediaStreamDestination();
-  const gainNode    = audioCtx.createGain();
-  gainNode.gain.value = 1;
+    video.addEventListener('loadedmetadata', async () => {
+      const duration = video.duration;
 
-  const source = audioCtx.createBufferSource();
-  source.buffer = audioBuffer;
-  source.loop   = true; // loop if music is shorter than the slideshow
-  source.connect(gainNode);
-  gainNode.connect(destination);
+      const canvas = document.createElement('canvas');
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas 2D context unavailable')); return; }
 
-  return { audioCtx, destination, source, gainNode };
+      try {
+        const audioCtx = new AudioContext();
+        await audioCtx.resume();
+        const audioBuffer = await audioCtx.decodeAudioData(await audioFile.arrayBuffer());
+
+        const source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.loop   = true;
+
+        const gain = audioCtx.createGain();
+        source.connect(gain);
+
+        const audioDest = audioCtx.createMediaStreamDestination();
+        gain.connect(audioDest);
+
+        const videoStream  = canvas.captureStream(30);
+        const mergedStream = new MediaStream([
+          ...videoStream.getTracks(),
+          ...audioDest.stream.getTracks(),
+        ]);
+
+        const chunks: Blob[] = [];
+        const recorder = new MediaRecorder(mergedStream, { mimeType, videoBitsPerSecond: 8_000_000 });
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+        recorder.onstop = () => {
+          URL.revokeObjectURL(videoUrl);
+          videoStream.getTracks().forEach((t) => t.stop());
+          audioCtx.close().catch(() => {});
+          resolve(new Blob(chunks, { type: mimeType }));
+        };
+
+        recorder.start(500);
+
+        const startAt = audioCtx.currentTime;
+        const fadeAt  = Math.max(startAt, startAt + duration - 2);
+        gain.gain.setValueAtTime(1, startAt);
+        gain.gain.setValueAtTime(1, fadeAt);
+        gain.gain.linearRampToValueAtTime(0, startAt + duration);
+        source.start(startAt);
+
+        video.currentTime = 0;
+        await video.play();
+
+        const stop = () => {
+          if (recorder.state !== 'recording') return;
+          try { source.stop(); } catch { /* already stopped */ }
+          recorder.stop();
+        };
+
+        const drawVideoFrame = () => {
+          if (video.ended || video.currentTime >= duration - 0.1) {
+            setTimeout(stop, 100);
+            return;
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          onProgress(video.currentTime / duration);
+          requestAnimationFrame(drawVideoFrame);
+        };
+        drawVideoFrame();
+
+        // Safety timeout in case video.ended never fires
+        setTimeout(stop, (duration + 3) * 1000);
+
+      } catch (err) {
+        URL.revokeObjectURL(videoUrl);
+        reject(err);
+      }
+    }, { once: true });
+
+    video.load();
+  });
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -465,52 +560,30 @@ export async function renderSlideshow(
     'video/webm',
   ].find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
 
-  // Optional background audio
-  let audio: AudioSetup | null = null;
-  if (config.audioFile) {
-    try { audio = await setupAudio(config.audioFile); } catch { audio = null; }
-  }
+  const hasAudio = !!config.audioFile;
+  const pass1Max = hasAudio ? 70 : 100;
 
-  // Build media stream — video from canvas, audio from AudioContext destination
+  // ── Pass 1: video-only (no AudioContext, no audio track in MediaStream) ──────
+  // Filters are applied to image items via itemFilter() as in the working build.
+  // Audio is deferred to Pass 2 so its start time is never affected by encoding.
+
   const videoStream = canvas.captureStream(fps);
-  const tracks: MediaStreamTrack[] = [...videoStream.getTracks()];
-  if (audio) tracks.push(...audio.destination.stream.getTracks());
-  const mediaStream = new MediaStream(tracks);
-
   const chunks: Blob[] = [];
-  const recorder = new MediaRecorder(mediaStream, { mimeType, videoBitsPerSecond: 8_000_000 });
+  const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: 8_000_000 });
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
 
-  // Draw first frame before starting recorder (avoids blank first frame)
   drawFrame(ctx, config, startTimes, 0);
-
   recorder.start(500);
 
-  if (audio) {
-    await audio.audioCtx.resume();
-    const startAt = audio.audioCtx.currentTime;
-    const fadeAt  = Math.max(startAt, startAt + totalDuration - 2);
-
-    // Schedule gain fade relative to actual start time
-    audio.gainNode.gain.setValueAtTime(1, startAt);
-    audio.gainNode.gain.setValueAtTime(1, fadeAt);
-    audio.gainNode.gain.linearRampToValueAtTime(0, startAt + totalDuration);
-    audio.source.start(startAt);
-  }
-
-  // ── Render loop ───────────────────────────────────────────────────────────────
-  // Videos play in real-time via play() — captureStream(fps) stays in sync.
-  // Images are paced at frameInterval with setTimeout for the compositor.
-  const frameInterval  = 1000 / fps;
-  const startedVideos  = new Set<number>(); // indices of video items currently playing
+  const frameInterval = 1000 / fps;
+  const startedVideos = new Set<number>();
 
   for (let frame = 0; frame < totalFrames; frame++) {
     const t          = frame / fps;
     const frameStart = performance.now();
 
-    // Start/stop video elements based on their active time windows
     for (let i = 0; i < items.length; i++) {
       if (items[i].type !== 'video') continue;
       const video     = items[i].element as HTMLVideoElement;
@@ -518,12 +591,10 @@ export async function renderSlideshow(
       const itemEnd   = startTimes[i] + items[i].duration;
 
       if (t >= itemStart && t < itemEnd && !startedVideos.has(i)) {
-        // Time window just opened — start real-time playback from beginning
         video.currentTime = 0;
         try { await video.play(); } catch { /* autoplay policy — proceed with static frame */ }
         startedVideos.add(i);
       } else if (t >= itemEnd && startedVideos.has(i)) {
-        // Time window closed
         video.pause();
         startedVideos.delete(i);
       }
@@ -531,28 +602,43 @@ export async function renderSlideshow(
 
     drawFrame(ctx, config, startTimes, frame);
 
-    onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * 100) });
+    onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * pass1Max), phase: 'rendering' });
 
-    // Hold each frame for frameInterval so captureStream can sample it
     const elapsed  = performance.now() - frameStart;
     const waitTime = Math.max(0, frameInterval - elapsed);
     await new Promise<void>((r) => setTimeout(r, waitTime));
   }
 
-  // Stop any videos still playing after loop ends
   for (const idx of startedVideos) {
     (items[idx].element as HTMLVideoElement).pause();
   }
 
-  try { audio?.source.stop(); } catch { /* already stopped */ }
-
   recorder.stop();
   videoStream.getTracks().forEach((t) => t.stop());
-
   await stopped;
-  if (audio) await audio.audioCtx.close().catch(() => {});
 
-  onProgress({ currentFrame: totalFrames, totalFrames, percent: 100 });
+  onProgress({ currentFrame: totalFrames, totalFrames, percent: pass1Max, phase: 'rendering' });
 
-  return { blob: new Blob(chunks, { type: mimeType }), mimeType };
+  const videoBlob = new Blob(chunks, { type: mimeType });
+
+  if (!hasAudio) return { blob: videoBlob, mimeType };
+
+  // ── Pass 2: add audio in real-time ────────────────────────────────────────────
+  const finalBlob = await addAudioToVideo(
+    videoBlob,
+    config.audioFile!,
+    mimeType,
+    (p) => {
+      onProgress({
+        currentFrame: totalFrames,
+        totalFrames,
+        percent: pass1Max + Math.round(p * (100 - pass1Max)),
+        phase: 'audio',
+      });
+    },
+  );
+
+  onProgress({ currentFrame: totalFrames, totalFrames, percent: 100, phase: 'audio' });
+
+  return { blob: finalBlob, mimeType };
 }

@@ -159,7 +159,7 @@ export default function SlideshowCreator() {
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   // Render
-  const [progress, setProgress] = useState<RenderProgress>({ currentFrame: 0, totalFrames: 0, percent: 0 });
+  const [progress, setProgress] = useState<RenderProgress>({ currentFrame: 0, totalFrames: 0, percent: 0, phase: 'rendering' });
   const [result, setResult] = useState<RenderResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const videoUrlRef   = useRef<string | null>(null);
@@ -256,7 +256,7 @@ export default function SlideshowCreator() {
   const handleRender = async () => {
     setState('rendering');
     setError(null);
-    setProgress({ currentFrame: 0, totalFrames: 0, percent: 0 });
+    setProgress({ currentFrame: 0, totalFrames: 0, percent: 0, phase: 'rendering' });
     const preset = OUTPUT_PRESETS[outputPresetIdx];
 
     const items: SlideshowItem[] = slides.map((s, i) => {
@@ -332,9 +332,13 @@ export default function SlideshowCreator() {
             </div>
           </div>
           <div>
-            <div className="text-base font-semibold">Rendering your slideshow…</div>
+            <div className="text-base font-semibold">
+              {progress.phase === 'audio' ? 'Adding music…' : 'Rendering your slideshow…'}
+            </div>
             <div className="mt-1 text-xs text-[var(--color-text-dim)]">
-              Frame {progress.currentFrame} of {progress.totalFrames} · {totalSec}s video
+              {progress.phase === 'audio'
+                ? 'Syncing audio in real-time — almost done'
+                : `Frame ${progress.currentFrame} of ${progress.totalFrames} · ${totalSec}s video`}
             </div>
           </div>
           <div className="w-full max-w-sm">

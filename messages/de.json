@@ -1286,7 +1286,10 @@
       "startOver": "Von vorne beginnen",
       "download": "Herunterladen",
       "reRender": "Erneut rendern",
-      "noCredits": "Lokal in Ihrem Browser gerendert · Keine Credits verwendet · Keine Daten hochgeladen"
+      "noCredits": "Lokal in Ihrem Browser gerendert · Keine Credits verwendet · Keine Daten hochgeladen",
+      "music": "Hintergrundmusik",
+      "uploadMusic": "MP3, WAV, OGG oder M4A hochladen",
+      "noMusic": "Kein Audio ausgewählt"
     }
   },
   "aiStudio": {

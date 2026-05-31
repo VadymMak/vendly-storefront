@@ -1286,7 +1286,10 @@
       "startOver": "Start over",
       "download": "Download",
       "reRender": "Re-render",
-      "noCredits": "Rendered locally in your browser · No credits used · No data uploaded to our servers"
+      "noCredits": "Rendered locally in your browser · No credits used · No data uploaded to our servers",
+      "music": "Background music",
+      "uploadMusic": "Upload MP3, WAV, OGG or M4A",
+      "noMusic": "No audio selected"
     }
   },
   "aiStudio": {

@@ -1286,7 +1286,10 @@
       "startOver": "Začít znovu",
       "download": "Stáhnout",
       "reRender": "Znovu renderovat",
-      "noCredits": "Renderováno lokálně ve vašem prohlížeči · Bez kreditů · Žádná data nejsou nahrávána"
+      "noCredits": "Renderováno lokálně ve vašem prohlížeči · Bez kreditů · Žádná data nejsou nahrávána",
+      "music": "Hudba na pozadí",
+      "uploadMusic": "Nahrát MP3, WAV, OGG nebo M4A",
+      "noMusic": "Žádné audio není vybráno"
     }
   },
   "aiStudio": {

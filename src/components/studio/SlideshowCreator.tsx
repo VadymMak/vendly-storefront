@@ -60,6 +60,7 @@ export default function SlideshowCreator() {
   const [kenBurns, setKenBurns] = useState(true);
   const [outputPresetIdx, setOutputPresetIdx] = useState(0);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   // Render
   const [progress, setProgress] = useState<RenderProgress>({ currentFrame: 0, totalFrames: 0, percent: 0 });
@@ -111,6 +112,25 @@ export default function SlideshowCreator() {
     [addFiles],
   );
 
+  const handleAudioChange = (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      setError('Audio file must be under 20 MB');
+      return;
+    }
+    if (audioElement) URL.revokeObjectURL(audioElement.src);
+    const url = URL.createObjectURL(file);
+    const el = new Audio(url);
+    setAudioFile(file);
+    setAudioElement(el);
+  };
+
+  const removeAudio = () => {
+    if (audioElement) URL.revokeObjectURL(audioElement.src);
+    setAudioFile(null);
+    setAudioElement(null);
+    if (audioInputRef.current) audioInputRef.current.value = '';
+  };
+
   const handleRender = async () => {
     setState('rendering');
     setError(null);
@@ -146,10 +166,12 @@ export default function SlideshowCreator() {
       URL.revokeObjectURL(videoUrlRef.current);
       videoUrlRef.current = null;
     }
+    if (audioElement) URL.revokeObjectURL(audioElement.src);
     setSlides([]);
     setResult(null);
     setError(null);
     setAudioFile(null);
+    setAudioElement(null);
     setState('idle');
   };
 
@@ -498,38 +520,42 @@ export default function SlideshowCreator() {
             </button>
           </div>
 
-          {/* Audio */}
+          {/* Background music */}
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">
               Background music{' '}
-              <span className="text-xs font-normal text-[var(--color-text-dim)]">(optional, Chrome only)</span>
+              <span className="text-xs font-normal text-[var(--color-text-dim)]">(optional · max 20 MB · Chrome only)</span>
             </label>
             {audioFile ? (
               <div className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-primary)]" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
                 <span className="flex-1 truncate text-sm text-[var(--color-text-muted)]">{audioFile.name}</span>
-                <button onClick={() => setAudioFile(null)} className="cursor-pointer text-xs text-red-400 hover:text-red-300">
-                  Remove
+                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">
+                  {(audioFile.size / 1024 / 1024).toFixed(1)} MB
+                </span>
+                <button onClick={removeAudio} className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400" aria-label="Remove audio">
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => audioInputRef.current?.click()}
-                className="cursor-pointer rounded-lg border border-dashed border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text-dim)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-[var(--color-text-muted)]"
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-dim)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-[var(--color-text-muted)]"
               >
-                + Upload MP3 / audio file
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                Upload MP3, WAV, OGG or M4A
               </button>
             )}
             <input
               ref={audioInputRef}
               type="file"
-              accept="audio/*"
+              accept=".mp3,.wav,.ogg,.m4a"
               className="hidden"
-              onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAudioChange(f); }}
             />
             {audioFile && (
               <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">
-                Audio fades out in the last 2 seconds. Muted in WebM fallback on Safari.
+                Audio auto-trims to video length · fades out in the last 2 seconds · requires Chrome for MP4 export
               </p>
             )}
           </div>

@@ -1290,7 +1290,16 @@
       "music": "Background music",
       "uploadMusic": "Upload MP3, WAV, OGG or M4A",
       "noMusic": "No audio selected",
-      "findFreeMusic": "Find free music on Pixabay →"
+      "findFreeMusic": "Find free music on Pixabay →",
+      "cameraMotion": "Camera motion",
+      "motionAuto": "Auto",
+      "motionZoomIn": "Zoom in",
+      "motionZoomOut": "Zoom out",
+      "motionPanLeft": "Pan left → right",
+      "motionPanRight": "Pan right → left",
+      "motionPanUp": "Pan up",
+      "motionPanDown": "Pan down",
+      "motionDiagonal": "Diagonal zoom"
     }
   },
   "aiStudio": {

@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback } from 'react';
 import {
   renderSlideshow,
+  DEFAULT_SEQUENCE,
+  type CameraMotion,
   type TransitionType,
   type RenderProgress,
   type RenderResult,
@@ -10,6 +12,7 @@ import {
 
 // 'config' = upload + settings always visible; 'rendering' = progress; 'done' = result
 type CreatorState = 'config' | 'rendering' | 'done';
+type MotionChoice = 'auto' | CameraMotion;
 
 interface SlideImage {
   id: string;
@@ -31,6 +34,28 @@ const TRANSITIONS: { id: TransitionType; label: string }[] = [
   { id: 'zoom-in',     label: 'Zoom In' },
   { id: 'zoom-out',    label: 'Zoom Out' },
 ];
+
+const MOTION_OPTIONS: { value: MotionChoice; label: string }[] = [
+  { value: 'auto',          label: 'Auto' },
+  { value: 'zoom-in',       label: 'Zoom in' },
+  { value: 'zoom-out',      label: 'Zoom out' },
+  { value: 'pan-right',     label: 'Pan left → right' },
+  { value: 'pan-left',      label: 'Pan right → left' },
+  { value: 'pan-up',        label: 'Pan up' },
+  { value: 'pan-down',      label: 'Pan down' },
+  { value: 'diagonal-zoom', label: 'Diagonal zoom' },
+];
+
+// Short labels for "auto" preview hint
+const MOTION_SHORT: Record<CameraMotion, string> = {
+  'zoom-in':       'zoom in',
+  'zoom-out':      'zoom out',
+  'pan-right':     'pan →',
+  'pan-left':      '← pan',
+  'pan-up':        'pan ↑',
+  'pan-down':      'pan ↓',
+  'diagonal-zoom': 'diagonal',
+};
 
 function cx(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -58,7 +83,8 @@ export default function SlideshowCreator() {
   const [transition, setTransition] = useState<TransitionType>('fade');
   const [durationPerImage, setDurationPerImage] = useState(4);
   const [transitionDuration, setTransitionDuration] = useState(0.8);
-  const [kenBurns, setKenBurns] = useState(true);
+  const [cameraMotionEnabled, setCameraMotionEnabled] = useState(true);
+  const [slideMotions, setSlideMotions] = useState<Record<string, MotionChoice>>({});
   const [outputPresetIdx, setOutputPresetIdx] = useState(0);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -70,6 +96,12 @@ export default function SlideshowCreator() {
   const videoUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Resolve the effective motion for slide at index idx
+  const resolveMotion = (slideId: string, idx: number): CameraMotion =>
+    (slideMotions[slideId] ?? 'auto') !== 'auto'
+      ? (slideMotions[slideId] as CameraMotion)
+      : DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length];
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
@@ -92,6 +124,7 @@ export default function SlideshowCreator() {
       if (slide) URL.revokeObjectURL(slide.objectUrl);
       return prev.filter((s) => s.id !== id);
     });
+    setSlideMotions((prev) => { const n = { ...prev }; delete n[id]; return n; });
   };
 
   const moveSlide = (idx: number, dir: -1 | 1) => {
@@ -120,9 +153,8 @@ export default function SlideshowCreator() {
     }
     if (audioElement) URL.revokeObjectURL(audioElement.src);
     const url = URL.createObjectURL(file);
-    const el = new Audio(url);
     setAudioFile(file);
-    setAudioElement(el);
+    setAudioElement(new Audio(url));
   };
 
   const removeAudio = () => {
@@ -137,6 +169,11 @@ export default function SlideshowCreator() {
     setError(null);
     setProgress({ currentFrame: 0, totalFrames: 0, percent: 0 });
     const preset = OUTPUT_PRESETS[outputPresetIdx];
+
+    const cameraMotions: (CameraMotion | null)[] = slides.map((s, i) =>
+      cameraMotionEnabled ? resolveMotion(s.id, i) : null,
+    );
+
     try {
       const r = await renderSlideshow(
         {
@@ -144,7 +181,7 @@ export default function SlideshowCreator() {
           durationPerImage,
           transitionDuration,
           transitionType: transition,
-          kenBurns,
+          cameraMotions,
           outputSize: { width: preset.width, height: preset.height },
           fps: 30,
           audioFile: audioFile ?? undefined,
@@ -169,6 +206,7 @@ export default function SlideshowCreator() {
     }
     if (audioElement) URL.revokeObjectURL(audioElement.src);
     setSlides([]);
+    setSlideMotions({});
     setResult(null);
     setError(null);
     setAudioFile(null);
@@ -265,7 +303,7 @@ export default function SlideshowCreator() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
       )}
 
-      {/* ── Photo upload ── */}
+      {/* ── Photo upload / timeline ── */}
       <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -308,7 +346,7 @@ export default function SlideshowCreator() {
           </div>
         )}
 
-        {/* Timeline — shown when photos uploaded */}
+        {/* Timeline with per-slide motion dropdowns */}
         {slides.length > 0 && (
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -321,39 +359,68 @@ export default function SlideshowCreator() {
                 : 'border-transparent',
             )}
           >
-            {slides.map((s, idx) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
-                <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-12 w-20 shrink-0 rounded object-cover" />
-                <div className="flex-1 truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</div>
-                <div className="flex items-center gap-1">
-                  <button
-                    disabled={idx === 0}
-                    onClick={() => moveSlide(idx, -1)}
-                    className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
-                    aria-label="Move up"
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
-                  </button>
-                  <button
-                    disabled={idx === slides.length - 1}
-                    onClick={() => moveSlide(idx, 1)}
-                    className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
-                    aria-label="Move down"
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
-                  </button>
-                  <button
-                    onClick={() => removeSlide(s.id)}
-                    className="cursor-pointer rounded p-1 text-red-400/60 hover:text-red-400"
-                    aria-label="Remove"
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  </button>
+            {slides.map((s, idx) => {
+              const choice = slideMotions[s.id] ?? 'auto';
+              const autoMotion = DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length];
+
+              return (
+                <div key={s.id} className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
+                  <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-12 w-16 shrink-0 rounded object-cover" />
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</div>
+                    {/* Camera motion dropdown per slide */}
+                    {cameraMotionEnabled && (
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          value={choice}
+                          onChange={(e) => setSlideMotions((prev) => ({ ...prev, [s.id]: e.target.value as MotionChoice }))}
+                          className="cursor-pointer rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
+                        >
+                          {MOTION_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                        {choice === 'auto' && (
+                          <span className="text-[11px] text-[var(--color-text-dim)]">
+                            ({MOTION_SHORT[autoMotion]})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      disabled={idx === 0}
+                      onClick={() => moveSlide(idx, -1)}
+                      className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
+                      aria-label="Move up"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
+                    </button>
+                    <button
+                      disabled={idx === slides.length - 1}
+                      onClick={() => moveSlide(idx, 1)}
+                      className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
+                      aria-label="Move down"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                    <button
+                      onClick={() => removeSlide(s.id)}
+                      className="cursor-pointer rounded p-1 text-red-400/60 hover:text-red-400"
+                      aria-label="Remove"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+
             <div className="px-1 pt-1 text-xs text-[var(--color-text-dim)]">
               {slides.length} photo{slides.length !== 1 ? 's' : ''} · {totalSec}s total
               {slides.length < 2 && (
@@ -399,7 +466,7 @@ export default function SlideshowCreator() {
             </div>
           </div>
 
-          {/* Background music — after output size, before transition */}
+          {/* Background music */}
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">
               Background music{' '}
@@ -409,14 +476,8 @@ export default function SlideshowCreator() {
               <div className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5">
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-primary)]" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
                 <span className="flex-1 truncate text-sm text-[var(--color-text-muted)]">{audioFile.name}</span>
-                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">
-                  {(audioFile.size / 1024 / 1024).toFixed(1)} MB
-                </span>
-                <button
-                  onClick={removeAudio}
-                  className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400"
-                  aria-label="Remove audio"
-                >
+                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">{(audioFile.size / 1024 / 1024).toFixed(1)} MB</span>
+                <button onClick={removeAudio} className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400" aria-label="Remove audio">
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
@@ -441,12 +502,7 @@ export default function SlideshowCreator() {
                 Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4
               </p>
             )}
-            <a
-              href="https://pixabay.com/music/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-block text-[13px] text-[var(--color-primary)] hover:underline"
-            >
+            <a href="https://pixabay.com/music/" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[13px] text-[var(--color-primary)] hover:underline">
               Find free music on Pixabay →
             </a>
           </div>
@@ -506,25 +562,29 @@ export default function SlideshowCreator() {
             </div>
           </div>
 
-          {/* Ken Burns toggle */}
+          {/* Camera motion toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-[var(--color-text-muted)]">Ken Burns effect</div>
-              <div className="text-xs text-[var(--color-text-dim)]">Subtle zoom and pan per photo</div>
+              <div className="text-sm font-medium text-[var(--color-text-muted)]">Camera motion</div>
+              <div className="text-xs text-[var(--color-text-dim)]">
+                {cameraMotionEnabled
+                  ? 'Instagram-style zoom & pan — set per photo above'
+                  : 'Disabled — images shown static'}
+              </div>
             </div>
             <button
-              onClick={() => setKenBurns((v) => !v)}
+              onClick={() => setCameraMotionEnabled((v) => !v)}
               role="switch"
-              aria-checked={kenBurns}
+              aria-checked={cameraMotionEnabled}
               className={cx(
                 'relative h-6 w-11 cursor-pointer rounded-full transition-colors',
-                kenBurns ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
+                cameraMotionEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
               )}
             >
               <span
                 className={cx(
                   'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left]',
-                  kenBurns ? 'left-[22px]' : 'left-0.5',
+                  cameraMotionEnabled ? 'left-[22px]' : 'left-0.5',
                 )}
               />
             </button>

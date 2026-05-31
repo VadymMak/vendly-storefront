@@ -1290,7 +1290,16 @@
       "music": "Hudba na pozadí",
       "uploadMusic": "Nahrať MP3, WAV, OGG alebo M4A",
       "noMusic": "Žiadne audio nie je vybrané",
-      "findFreeMusic": "Nájsť bezplatnú hudbu na Pixabay →"
+      "findFreeMusic": "Nájsť bezplatnú hudbu na Pixabay →",
+      "cameraMotion": "Pohyb kamery",
+      "motionAuto": "Automaticky",
+      "motionZoomIn": "Priblíženie",
+      "motionZoomOut": "Oddialenie",
+      "motionPanLeft": "Pohyb vľavo → vpravo",
+      "motionPanRight": "Pohyb vpravo → vľavo",
+      "motionPanUp": "Pohyb nahor",
+      "motionPanDown": "Pohyb nadol",
+      "motionDiagonal": "Diagonálny zoom"
     }
   },
   "aiStudio": {

@@ -6,14 +6,23 @@
 
 export type TransitionType = 'fade' | 'slide-left' | 'slide-right' | 'zoom-in' | 'zoom-out';
 
+export type CameraMotion =
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'pan-left'
+  | 'pan-right'
+  | 'pan-up'
+  | 'pan-down'
+  | 'diagonal-zoom';
+
 export interface SlideshowConfig {
   images: HTMLImageElement[];
-  durationPerImage: number;    // seconds (3-8)
-  transitionDuration: number;  // seconds (0.5-1.5)
+  durationPerImage: number;         // seconds (3-8)
+  transitionDuration: number;       // seconds (0.5-1.5)
   transitionType: TransitionType;
-  kenBurns: boolean;
+  cameraMotions?: (CameraMotion | null)[];  // per-image, null = no motion
   outputSize: { width: number; height: number };
-  fps: number;                 // 30 recommended
+  fps: number;                      // 30 recommended
   audioFile?: File;
 }
 
@@ -30,33 +39,48 @@ export interface RenderResult {
   mimeType: string;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Camera motion ──────────────────────────────────────────────────────────────
 
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * Math.max(0, Math.min(1, t));
+// Automatic sequence — varied types, no two adjacent are the same
+export const DEFAULT_SEQUENCE: CameraMotion[] = [
+  'zoom-in',
+  'pan-right',
+  'zoom-out',
+  'pan-left',
+  'diagonal-zoom',
+  'pan-up',
+  'pan-down',
+];
+
+interface MotionPreset {
+  startScale: number;
+  endScale:   number;
+  startPanX:  number;
+  startPanY:  number;
+  endPanX:    number;
+  endPanY:    number;
 }
 
-interface KenBurnsParams {
-  startScale: number;  // 1.05–1.15 (zoom into image)
-  endScale: number;
-  startPanX: number;   // fraction of canvas width, -0.05 to 0.05
-  startPanY: number;
-  endPanX: number;
-  endPanY: number;
+const MOTION_PRESETS: Record<CameraMotion, MotionPreset> = {
+  'zoom-in':      { startScale: 1.00, endScale: 1.10, startPanX:  0.00, startPanY:  0.00, endPanX:  0.02, endPanY: -0.02 },
+  'zoom-out':     { startScale: 1.12, endScale: 1.00, startPanX:  0.02, startPanY:  0.02, endPanX:  0.00, endPanY:  0.00 },
+  'pan-right':    { startScale: 1.08, endScale: 1.08, startPanX: -0.10, startPanY:  0.00, endPanX:  0.10, endPanY:  0.00 },
+  'pan-left':     { startScale: 1.08, endScale: 1.08, startPanX:  0.10, startPanY:  0.00, endPanX: -0.10, endPanY:  0.00 },
+  'pan-up':       { startScale: 1.08, endScale: 1.08, startPanX:  0.00, startPanY:  0.08, endPanX:  0.00, endPanY: -0.08 },
+  'pan-down':     { startScale: 1.08, endScale: 1.08, startPanX:  0.00, startPanY: -0.08, endPanX:  0.00, endPanY:  0.08 },
+  'diagonal-zoom':{ startScale: 1.00, endScale: 1.08, startPanX: -0.06, startPanY: -0.04, endPanX:  0.06, endPanY:  0.04 },
+};
+
+// ── Easing ────────────────────────────────────────────────────────────────────
+
+function easeInOutCubic(t: number): number {
+  const c = Math.max(0, Math.min(1, t));
+  return c < 0.5 ? 4 * c * c * c : 1 - Math.pow(-2 * c + 2, 3) / 2;
 }
 
-function generateKenBurns(): KenBurnsParams {
-  return {
-    startScale: 1.05 + Math.random() * 0.1,
-    endScale:   1.05 + Math.random() * 0.1,
-    startPanX:  (Math.random() - 0.5) * 0.06,
-    startPanY:  (Math.random() - 0.5) * 0.06,
-    endPanX:    (Math.random() - 0.5) * 0.06,
-    endPanY:    (Math.random() - 0.5) * 0.06,
-  };
-}
+// ── Crop helpers ──────────────────────────────────────────────────────────────
 
-// Compute source-crop rect for CSS-like object-fit: cover
+// CSS object-fit: cover source rect (no motion)
 function coverRect(
   imgW: number, imgH: number,
   canvasW: number, canvasH: number,
@@ -67,41 +91,57 @@ function coverRect(
   return { sx: (imgW - sw) / 2, sy: (imgH - sh) / 2, sw, sh };
 }
 
-// Draw image with cover crop + optional Ken Burns zoom/pan
-function drawCoverKB(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  W: number, H: number,
-  kb: KenBurnsParams | null,
-  progress: number, // 0–1 within this image's display time
-): void {
-  const { sx, sy, sw, sh } = coverRect(img.naturalWidth, img.naturalHeight, W, H);
+// Source crop rect for a specific motion preset at eased progress (0–1)
+function getCropRect(
+  motion: CameraMotion,
+  eased: number,           // already eased, 0–1
+  imgW: number, imgH: number,
+  canvasW: number, canvasH: number,
+): { sx: number; sy: number; sw: number; sh: number } {
+  const p = MOTION_PRESETS[motion];
+  const scale = p.startScale + (p.endScale - p.startScale) * eased;
+  const panX  = p.startPanX + (p.endPanX - p.startPanX) * eased;
+  const panY  = p.startPanY + (p.endPanY - p.startPanY) * eased;
 
-  if (!kb) {
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-    return;
+  // Cover-crop base (same ratio as canvas, full image)
+  const canvasAspect = canvasW / canvasH;
+  const imgAspect    = imgW / imgH;
+  let baseW: number, baseH: number;
+  if (imgAspect > canvasAspect) {
+    baseH = imgH;
+    baseW = imgH * canvasAspect;
+  } else {
+    baseW = imgW;
+    baseH = imgW / canvasAspect;
   }
 
-  const scale = lerp(kb.startScale, kb.endScale, progress);
-  const panX  = lerp(kb.startPanX,  kb.endPanX,  progress);
-  const panY  = lerp(kb.startPanY,  kb.endPanY,  progress);
-
-  // Transform: center image on canvas, apply extra scale + pan, then draw
-  ctx.save();
-  ctx.translate(W / 2 + panX * W, H / 2 + panY * H);
-  ctx.scale(scale, scale);
-  ctx.translate(-W / 2, -H / 2);
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-  ctx.restore();
+  const sw = baseW / scale;
+  const sh = baseH / scale;
+  const sx = (imgW - sw) * (0.5 + panX);
+  const sy = (imgH - sh) * (0.5 + panY);
+  return { sx, sy, sw, sh };
 }
 
-// Plain cover draw (used during transitions to avoid transform conflicts)
-function drawCover(
+// Returns the source rect for an image at rawProgress (0–1) in its display window
+function getMotionCrop(
+  img: HTMLImageElement,
+  motion: CameraMotion | null,
+  rawProgress: number,
+  W: number, H: number,
+): { sx: number; sy: number; sw: number; sh: number } {
+  if (!motion) return coverRect(img.naturalWidth, img.naturalHeight, W, H);
+  return getCropRect(motion, easeInOutCubic(rawProgress), img.naturalWidth, img.naturalHeight, W, H);
+}
+
+// Draw image at full canvas size with camera motion applied
+function drawWithMotion(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   W: number, H: number,
+  motion: CameraMotion | null,
+  rawProgress: number,
 ): void {
-  const { sx, sy, sw, sh } = coverRect(img.naturalWidth, img.naturalHeight, W, H);
+  const { sx, sy, sw, sh } = getMotionCrop(img, motion, rawProgress, W, H);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
 }
 
@@ -135,10 +175,10 @@ function getFrameState(
 
     if (t >= transStart && t < transEnd) {
       return {
-        kind:       'transition',
-        fromIndex:  i,
-        toIndex:    i + 1,
-        progress:   (t - transStart) / transitionDuration,
+        kind:      'transition',
+        fromIndex: i,
+        toIndex:   i + 1,
+        progress:  (t - transStart) / transitionDuration,
       };
     }
   }
@@ -150,9 +190,9 @@ function getFrameState(
 
     if (t >= imgStart && t < imgEnd) {
       return {
-        kind:        'steady',
-        imageIndex:  i,
-        progress:    (t - imgStart) / durationPerImage,
+        kind:       'steady',
+        imageIndex: i,
+        progress:   (t - imgStart) / durationPerImage,
       };
     }
   }
@@ -165,14 +205,15 @@ function getFrameState(
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
-  kbParams: (KenBurnsParams | null)[],
+  resolvedMotions: (CameraMotion | null)[],
   frame: number,
 ): void {
   const { images, durationPerImage, transitionDuration, transitionType, fps, outputSize } = config;
-  const W = outputSize.width;
-  const H = outputSize.height;
+  const W    = outputSize.width;
+  const H    = outputSize.height;
+  const step = durationPerImage - transitionDuration;
+  const t    = frame / fps;
 
-  // Clear to black
   ctx.globalAlpha = 1;
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
@@ -180,38 +221,41 @@ function drawFrame(
   const state = getFrameState(frame, fps, durationPerImage, transitionDuration, images.length);
 
   if (state.kind === 'steady') {
-    drawCoverKB(ctx, images[state.imageIndex], W, H, kbParams[state.imageIndex], state.progress);
+    const imgProgress = Math.max(0, Math.min(1, (t - state.imageIndex * step) / durationPerImage));
+    drawWithMotion(ctx, images[state.imageIndex], W, H, resolvedMotions[state.imageIndex], imgProgress);
     return;
   }
 
-  // Transition
+  // Transition: compute per-image progress within their display windows
   const { fromIndex, toIndex, progress } = state;
   const fromImg = images[fromIndex];
   const toImg   = images[toIndex];
+  const fromProgress = Math.max(0, Math.min(1, (t - fromIndex * step) / durationPerImage));
+  const toProgress   = Math.max(0, Math.min(1, (t - toIndex * step)   / durationPerImage));
+  const fromMotion   = resolvedMotions[fromIndex];
+  const toMotion     = resolvedMotions[toIndex];
 
   switch (transitionType) {
     case 'fade': {
-      // Crossfade — use KB at end/start states
       ctx.globalAlpha = 1 - progress;
-      drawCoverKB(ctx, fromImg, W, H, kbParams[fromIndex], 1);
+      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
       ctx.globalAlpha = progress;
-      drawCoverKB(ctx, toImg,   W, H, kbParams[toIndex],   0);
+      drawWithMotion(ctx, toImg,   W, H, toMotion,   toProgress);
       ctx.globalAlpha = 1;
       break;
     }
 
     case 'slide-left': {
-      // Both images slide left; from exits, to enters from right
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
       ctx.save();
       ctx.translate(-progress * W, 0);
-      drawCover(ctx, fromImg, W, H);
+      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
       ctx.restore();
       ctx.save();
       ctx.translate((1 - progress) * W, 0);
-      drawCover(ctx, toImg, W, H);
+      drawWithMotion(ctx, toImg, W, H, toMotion, toProgress);
       ctx.restore();
       ctx.restore();
       break;
@@ -223,24 +267,24 @@ function drawFrame(
       ctx.clip();
       ctx.save();
       ctx.translate(progress * W, 0);
-      drawCover(ctx, fromImg, W, H);
+      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
       ctx.restore();
       ctx.save();
       ctx.translate(-(1 - progress) * W, 0);
-      drawCover(ctx, toImg, W, H);
+      drawWithMotion(ctx, toImg, W, H, toMotion, toProgress);
       ctx.restore();
       ctx.restore();
       break;
     }
 
     case 'zoom-in': {
-      // From fades at full size; to scales up (0.5 → 1.0) while fading in
+      // from fades out at full size; to zooms up (0.5→1) while fading in
       ctx.globalAlpha = 1 - progress;
-      drawCover(ctx, fromImg, W, H);
-      const s = 0.5 + 0.5 * progress;
-      const { sx, sy, sw, sh } = coverRect(toImg.naturalWidth, toImg.naturalHeight, W, H);
+      drawWithMotion(ctx, fromImg, W, H, fromMotion, fromProgress);
+      const s  = 0.5 + 0.5 * progress;
       const dw = W * s;
       const dh = H * s;
+      const { sx, sy, sw, sh } = getMotionCrop(toImg, toMotion, toProgress, W, H);
       ctx.globalAlpha = progress;
       ctx.drawImage(toImg, sx, sy, sw, sh, (W - dw) / 2, (H - dh) / 2, dw, dh);
       ctx.globalAlpha = 1;
@@ -248,12 +292,12 @@ function drawFrame(
     }
 
     case 'zoom-out': {
-      // To is at full size underneath; from shrinks (1.0 → 0.5) and fades out
-      drawCover(ctx, toImg, W, H);
-      const s = 1 - 0.5 * progress;
-      const { sx, sy, sw, sh } = coverRect(fromImg.naturalWidth, fromImg.naturalHeight, W, H);
+      // to is at full size underneath; from shrinks (1→0.5) while fading out
+      drawWithMotion(ctx, toImg, W, H, toMotion, toProgress);
+      const s  = 1 - 0.5 * progress;
       const dw = W * s;
       const dh = H * s;
+      const { sx, sy, sw, sh } = getMotionCrop(fromImg, fromMotion, fromProgress, W, H);
       ctx.globalAlpha = 1 - progress;
       ctx.drawImage(fromImg, sx, sy, sw, sh, (W - dw) / 2, (H - dh) / 2, dw, dh);
       ctx.globalAlpha = 1;
@@ -319,10 +363,15 @@ export async function renderSlideshow(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas 2D context');
 
-  // Pre-generate Ken Burns params per image
-  const kbParams = images.map(() =>
-    config.kenBurns ? generateKenBurns() : null,
-  );
+  // High-quality scaling for all frames
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // Resolve camera motions: use provided array, or fall back to DEFAULT_SEQUENCE
+  const resolvedMotions: (CameraMotion | null)[] = images.map((_, i) => {
+    if (config.cameraMotions) return config.cameraMotions[i] ?? null;
+    return DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length];
+  });
 
   // Overlapping model: transitions share time with adjacent images
   const totalDuration = images.length * durationPerImage - (images.length - 1) * transitionDuration;
@@ -342,7 +391,6 @@ export async function renderSlideshow(
     try {
       audio = await setupAudio(config.audioFile, totalDuration);
     } catch {
-      // Non-fatal: render without audio
       audio = null;
     }
   }
@@ -362,18 +410,18 @@ export async function renderSlideshow(
     recorder.onstop = () => resolve();
   });
 
-  // Draw first frame to canvas before starting recorder (avoids blank first frame)
-  drawFrame(ctx, config, kbParams, 0);
+  // Draw first frame before starting recorder (avoids blank first frame)
+  drawFrame(ctx, config, resolvedMotions, 0);
 
-  recorder.start(500); // collect chunks every 500ms
+  recorder.start(500);
   audio?.source.start(audio.audioCtx.currentTime);
 
   // Render loop — pace to real-time so captureStream captures each frame
-  const frameMs    = 1000 / fps;
+  const frameMs     = 1000 / fps;
   const renderStart = performance.now();
 
   for (let frame = 0; frame < totalFrames; frame++) {
-    drawFrame(ctx, config, kbParams, frame);
+    drawFrame(ctx, config, resolvedMotions, frame);
 
     onProgress({
       currentFrame: frame,
@@ -381,13 +429,11 @@ export async function renderSlideshow(
       percent: Math.round((frame / totalFrames) * 100),
     });
 
-    // Wait until the next frame's target time
     const targetMs = renderStart + (frame + 1) * frameMs;
     const delay    = targetMs - performance.now();
     if (delay > 0) await new Promise<void>((r) => setTimeout(r, delay));
   }
 
-  // Tear down
   try { audio?.source.stop(); } catch { /* already stopped */ }
 
   recorder.stop();

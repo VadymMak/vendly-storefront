@@ -4,6 +4,7 @@ import HeroSection from '@/components/sections/HeroSection';
 import DachTrustBar from '@/components/sections/DachTrustBar';
 import PortfolioSection from '@/components/sections/PortfolioSection';
 import HowItWorks from '@/components/sections/HowItWorks';
+import AIStudioSection from '@/components/sections/AIStudioSection';
 import FeaturesSection from '@/components/sections/FeaturesSection';
 import ComparisonTable from '@/components/sections/ComparisonTable';
 import PricingSection from '@/components/sections/PricingSection';
@@ -19,6 +20,7 @@ export default function Home() {
         <DachTrustBar />
         <PortfolioSection />
         <HowItWorks />
+        <AIStudioSection />
         <FeaturesSection />
         <ComparisonTable />
         <PricingSection />

@@ -357,10 +357,11 @@ async function drawFrame(
 // ── Audio setup ───────────────────────────────────────────────────────────────
 
 interface AudioSetup {
-  audioCtx:    AudioContext;
-  destination: MediaStreamAudioDestinationNode;
-  source:      AudioBufferSourceNode;
-  gainNode:    GainNode;
+  audioCtx:      AudioContext;
+  destination:   MediaStreamAudioDestinationNode;
+  source:        AudioBufferSourceNode;
+  gainNode:      GainNode;
+  bufferDuration: number;  // decoded audio file duration in seconds
 }
 
 // Decode and wire up audio nodes. Gain scheduling happens at source.start() time,
@@ -381,7 +382,7 @@ async function setupAudio(file: File): Promise<AudioSetup> {
   source.connect(gainNode);
   gainNode.connect(destination);
 
-  return { audioCtx, destination, source, gainNode };
+  return { audioCtx, destination, source, gainNode, bufferDuration: audioBuffer.duration };
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -482,14 +483,60 @@ export async function renderSlideshow(
     audio.gainNode.gain.linearRampToValueAtTime(0, startAt + totalDuration);
 
     audio.source.start(startAt);
+
+    // ── AUDIO DEBUG ────────────────────────────────────────────────────────────
+    console.log('=== AUDIO DEBUG ===');
+    console.log('totalDuration:', totalDuration);
+    console.log('totalFrames:', totalFrames);
+    console.log('items:', items.map((item, i) => ({
+      index: i,
+      type: item.type,
+      duration: item.duration,
+      startTime: +startTimes[i].toFixed(3),
+    })));
+    console.log('audioBuffer.duration:', audio.bufferDuration);
+    console.log('fadeStart (relative):', +(totalDuration - 2).toFixed(3));
+    console.log('fadeAt (absolute AudioCtx):', +fadeAt.toFixed(3));
+    console.log('startAt (AudioCtx):', +startAt.toFixed(3));
+    console.log('AudioContext state:', audio.audioCtx.state);
+    console.log('===================');
   }
 
   // Per-frame interval timing: each frame must hold the canvas for at least frameInterval ms
   // so captureStream has time to sample it. setTimeout always yields to the compositor.
   const frameInterval = 1000 / fps;
+  let lastLoggedItemIndex = -1;
 
   for (let frame = 0; frame < totalFrames; frame++) {
     const frameStart = performance.now();
+
+    // ── ITEM-SWITCH DEBUG ─────────────────────────────────────────────────────
+    const dbgState  = getFrameState(frame, fps, startTimes, durations, transitionDuration);
+    const dbgIdx    = dbgState.kind === 'steady' ? dbgState.imageIndex : dbgState.fromIndex;
+    if (dbgIdx !== lastLoggedItemIndex) {
+      console.log('Switching to item', dbgIdx, 'type:', items[dbgIdx].type,
+                  'at frame:', frame, 'time:', +(frame / fps).toFixed(3));
+      lastLoggedItemIndex = dbgIdx;
+    }
+    // ── VIDEO FRAME TIMING DEBUG (first & last 5 frames per video item) ───────
+    if (dbgState.kind === 'steady' && items[dbgState.imageIndex].type === 'video') {
+      const itemStartFrame = Math.round(startTimes[dbgState.imageIndex] * fps);
+      const itemEndFrame   = Math.round((startTimes[dbgState.imageIndex] + items[dbgState.imageIndex].duration) * fps);
+      const frameInItem    = frame - itemStartFrame;
+      const videoTime      = frame / fps - startTimes[dbgState.imageIndex];
+      if (frameInItem < 5 || itemEndFrame - frame <= 5) {
+        console.log('Video render:', {
+          frame,
+          frameInItem,
+          videoTime:      +videoTime.toFixed(4),
+          videoDuration:  items[dbgState.imageIndex].duration,
+          itemStartFrame,
+          itemEndFrame,
+          expectedFrames: Math.round(items[dbgState.imageIndex].duration * fps),
+        });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     await drawFrame(ctx, config, startTimes, frame);
 

@@ -333,11 +333,11 @@ export default function SlideshowCreator() {
           </div>
           <div>
             <div className="text-base font-semibold">
-              {progress.phase === 'adding-audio' ? 'Applying effects…' : 'Rendering your slideshow…'}
+              {progress.phase === 'audio' ? 'Adding music…' : 'Rendering your slideshow…'}
             </div>
             <div className="mt-1 text-xs text-[var(--color-text-dim)]">
-              {progress.phase === 'adding-audio'
-                ? 'Adding filters & music in real-time — almost done'
+              {progress.phase === 'audio'
+                ? 'Syncing audio in real-time — almost done'
                 : `Frame ${progress.currentFrame} of ${progress.totalFrames} · ${totalSec}s video`}
             </div>
           </div>

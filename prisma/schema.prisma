@@ -26,6 +26,7 @@ model User {
   stores          Store[]
   apiKeys         UserApiKey[]
   studioCredits   StudioCredits?
+  studioJobs      StudioJob[]
   createdAt       DateTime @default(now())
 }
 
@@ -297,4 +298,25 @@ model StudioCredits {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Async AI generation job tracking
+model StudioJob {
+  id             String   @id @default(cuid())
+  userId         String
+  predictionId   String   @unique   // Replicate prediction ID
+  type           String             // 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit'
+  status         String   @default("starting") // starting | processing | succeeded | failed | canceled
+  outputUrl      String?            // Replicate CDN URL when completed
+  error          String?            // Error message if failed
+  creditType     String?            // 'image' | 'video' — for deduction on success
+  creditAmount   Int      @default(1)
+  creditDeducted Boolean  @default(false)
+  metadata       Json?              // prompt, model, params for debugging
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
 }

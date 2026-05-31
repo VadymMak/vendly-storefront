@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
 import UpgradeModal from '@/components/studio/UpgradeModal';
+import { replicateDirectRun, fetchImageAsBlob } from '@/lib/replicate-client';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,20 @@ const QUICK_FILTERS = [
 ] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ByokConfig {
+  byok: boolean;
+  superuser?: boolean;
+  apiKey?: string;
+  models?: {
+    image:      string;
+    startFrame: string;
+    video:      string;
+    upscale:    string;
+    removeBg:   string;
+    aiEdit:     string;
+  };
+}
 
 type StudioTab      = 'image' | 'video';
 type ImageSubTab    = 'generate' | 'edit';
@@ -183,6 +198,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const [vidUrl,           setVidUrl]           = useState<string | null>(null);
   const [vidError,         setVidError]         = useState<string | null>(null);
 
+  // ── BYOK direct-call config ───────────────────────────────────────────────
+  const [byokConfig, setByokConfig] = useState<ByokConfig | null>(null);
+
   // ── Upgrade modal ─────────────────────────────────────────────────────────
   const [showUpgrade,  setShowUpgrade]  = useState(false);
   const [upgradeType,  setUpgradeType]  = useState<'image' | 'video' | 'general'>('general');
@@ -190,11 +208,18 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
-      const res = await fetch('/api/user/api-keys');
-      if (res.ok) {
-        const data: ApiKeyInfo[] = await res.json();
+      const [keysRes, byokRes] = await Promise.all([
+        fetch('/api/user/api-keys'),
+        fetch('/api/studio/byok-config'),
+      ]);
+      if (keysRes.ok) {
+        const data: ApiKeyInfo[] = await keysRes.json();
         setKeys(data);
-        // Wizard is opt-in — users can add keys from the API Keys section
+      }
+      if (byokRes.ok) {
+        setByokConfig(await byokRes.json() as ByokConfig);
+      } else {
+        setByokConfig({ byok: false });
       }
       setKeysLoaded(true);
     };
@@ -293,6 +318,25 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setImgError(null);
     setImgUrl(null);
     setImgMeta(null);
+
+    // ── BYOK direct path — browser polls Replicate, zero Vercel CPU ──────────
+    if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
+      try {
+        const result = await replicateDirectRun(byokConfig.apiKey, {
+          model: byokConfig.models.image,
+          input: { prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, num_outputs: 1, output_format: 'webp', output_quality: 90, go_fast: true, num_inference_steps: 4 },
+        });
+        const blobUrl = await fetchImageAsBlob(result.output as string);
+        setImgUrl(blobUrl);
+        setImgMeta({ display: preset.display, ratio: preset.aspect_ratio, fmt: 'webp', label: preset.label });
+        fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'image' }) }).catch(() => {});
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      } catch (e) { setImgError(e instanceof Error ? e.message : 'Generation failed'); }
+      finally { setImgGenerating(false); }
+      return;
+    }
+
+    // ── Server-side path (credit users) ──────────────────────────────────────
     try {
       const res = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, target_width: preset.target_width, target_height: preset.target_height, output_format: imgOutputFormat }) });
       if (!res.ok) { const e = await res.json() as { error?: string; needsUpgrade?: boolean }; if (e.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(e.error ?? 'Generation failed'); }
@@ -410,6 +454,45 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setEditAiError(null);
     try {
       const sourceFile = await editGetSourceFile();
+
+      // ── BYOK direct path — browser calls Replicate, zero Vercel CPU ──────────
+      if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(sourceFile);
+        });
+        if (tool === 'removebg') {
+          const result = await replicateDirectRun(byokConfig.apiKey, {
+            model: byokConfig.models.removeBg,
+            input: { image: dataUrl },
+          });
+          const resultUrl = typeof result.output === 'string' ? result.output : String(result.output);
+          setEditAiResult(resultUrl);
+          setEditIsTransparent(true);
+          setEditSaveFormat('png');
+        } else {
+          const input = tool === 'upscale'
+            ? { image: dataUrl, scale: 4, face_enhance: false }
+            : { image: dataUrl, scale: 2, face_enhance: true };
+          const result = await replicateDirectRun(byokConfig.apiKey, {
+            model: byokConfig.models.upscale,
+            input,
+          });
+          const resultUrl = typeof result.output === 'string' ? result.output : String(result.output);
+          setEditAiResult(resultUrl);
+          setEditIsTransparent(false);
+        }
+        fetch('/api/studio/track-generation', {
+          method: 'POST',
+          body: JSON.stringify({ type: 'image' }),
+          headers: { 'Content-Type': 'application/json' },
+        }).catch(() => {});
+        return;
+      }
+
+      // ── Server path ───────────────────────────────────────────────────────────
       const fd = new FormData();
       fd.append('image', sourceFile);
       let url: string;
@@ -616,34 +699,130 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     finally { setVidEnhancing(false); }
   }
 
+  async function pollJobUntilDone(jobId: string): Promise<{ status: string; outputUrl?: string; error?: string }> {
+    const maxPollTime = 10 * 60 * 1000;
+    const startTime = Date.now();
+    while (true) {
+      if (Date.now() - startTime > maxPollTime) {
+        return { status: 'failed', error: 'Generation timed out' };
+      }
+      await new Promise<void>((r) => setTimeout(r, 4000));
+      try {
+        const res = await fetch(`/api/studio/job/${jobId}`);
+        if (!res.ok) continue;
+        const data = await res.json() as { status: string; outputUrl?: string; error?: string };
+        if (data.status === 'succeeded' || data.status === 'failed' || data.status === 'canceled') return data;
+      } catch { /* Network error — retry */ }
+    }
+  }
+
   async function vidHandleGenerate() {
     if (!vidPrompt.trim()) return;
     setVidError(null);
     setVidUrl(null);
     setVidStartImageUrl(null);
 
+    // ── BYOK path — start frame direct (Flux/CORS ok), video via server async ──
+    // Kling v2.1 does not send CORS headers → direct browser fetch is blocked.
+    // Server creates the prediction with the user's own key and returns jobId <1s.
+    if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
+      try {
+        if (videoMode === 'text') {
+          setGenStep('generating-frame');
+          const frameResult = await replicateDirectRun(byokConfig.apiKey, {
+            model: byokConfig.models.startFrame,
+            input: { prompt: vidPrompt, go_fast: true, num_outputs: 1, aspect_ratio: selectedSkill.aspectRatio, output_format: 'webp', output_quality: 90, num_inference_steps: 4 },
+          });
+          const frameUrl = frameResult.output as string;
+          setVidStartImageUrl(frameUrl);
+
+          setGenStep('animating');
+          const videoRes = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameUrl }),
+          });
+          const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
+          if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+          if (videoData.jobId) {
+            const result = await pollJobUntilDone(videoData.jobId);
+            if (result.status === 'succeeded' && result.outputUrl) { setVidUrl(result.outputUrl); }
+            else { setVidError(result.error ?? 'Video generation failed'); }
+          } else if (videoData.url) { setVidUrl(videoData.url); }
+        } else {
+          if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
+          setGenStep('animating');
+          const videoRes = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }),
+          });
+          const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
+          if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
+          if (videoData.jobId) {
+            const result = await pollJobUntilDone(videoData.jobId);
+            if (result.status === 'succeeded' && result.outputUrl) { setVidUrl(result.outputUrl); }
+            else { setVidError(result.error ?? 'Video generation failed'); }
+          } else if (videoData.url) { setVidUrl(videoData.url); }
+        }
+        fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'video' }) }).catch(() => {});
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      } catch (e) { setVidError(e instanceof Error ? e.message : 'Video generation failed'); }
+      finally { setGenStep(null); }
+      return;
+    }
+
+    // ── Server-side path (credit users) ──────────────────────────────────────
     if (videoMode === 'text') {
       setGenStep('generating-frame');
       const frameRes = await fetch('/api/generate-start-frame', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, aspectRatio: selectedSkill.aspectRatio }) });
-      const frameData = await frameRes.json() as { url?: string; error?: string };
+      const frameData = await frameRes.json() as { url?: string; jobId?: string; async?: boolean; error?: string };
       if (!frameRes.ok) { setVidError(frameData.error ?? 'Frame generation failed'); setGenStep(null); return; }
-      setVidStartImageUrl(frameData.url ?? null);
-      setGenStep('rate-limiting');
-      await new Promise((r) => setTimeout(r, 10000));
+
+      let startImageUrl: string;
+      if (frameData.url) {
+        startImageUrl = frameData.url;
+      } else if (frameData.jobId && frameData.async) {
+        const frameJob = await pollJobUntilDone(frameData.jobId);
+        if (frameJob.status !== 'succeeded' || !frameJob.outputUrl) { setVidError(frameJob.error ?? 'Frame generation failed'); setGenStep(null); return; }
+        startImageUrl = frameJob.outputUrl;
+      } else {
+        setVidError('Frame generation failed'); setGenStep(null); return;
+      }
+      setVidStartImageUrl(startImageUrl);
+
       setGenStep('animating');
-      const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameData.url }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: startImageUrl }) });
+      const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
       if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
-      setVidUrl(videoData.url ?? null);
-      (window as unknown as Record<string, () => void>).__refreshCredits?.();
+
+      if (videoData.jobId) {
+        const result = await pollJobUntilDone(videoData.jobId);
+        if (result.status === 'succeeded' && result.outputUrl) {
+          setVidUrl(result.outputUrl);
+          (window as unknown as Record<string, () => void>).__refreshCredits?.();
+        } else { setVidError(result.error ?? 'Video generation failed'); }
+      } else if (videoData.url) {
+        setVidUrl(videoData.url);
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      }
     } else {
       if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
       setGenStep('animating');
       const videoRes = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }) });
-      const videoData = await videoRes.json() as { url?: string; error?: string; needsUpgrade?: boolean };
+      const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
       if (!videoRes.ok) { if (videoData.needsUpgrade) { setUpgradeType('video'); setShowUpgrade(true); setGenStep(null); return; } setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
-      setVidUrl(videoData.url ?? null);
-      (window as unknown as Record<string, () => void>).__refreshCredits?.();
+
+      if (videoData.jobId) {
+        const result = await pollJobUntilDone(videoData.jobId);
+        if (result.status === 'succeeded' && result.outputUrl) {
+          setVidUrl(result.outputUrl);
+          (window as unknown as Record<string, () => void>).__refreshCredits?.();
+        } else { setVidError(result.error ?? 'Video generation failed'); }
+      } else if (videoData.url) {
+        setVidUrl(videoData.url);
+        (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      }
     }
     setGenStep(null);
   }

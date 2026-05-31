@@ -3,14 +3,13 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
+import { createJob } from '@/lib/studio-jobs';
 
 const schema = z.object({
   prompt:      z.string().min(1),
   aspectRatio: z.enum(['9:16', '1:1', '16:9']),
 });
 
-const POLL_INTERVAL_MS = 2000;
-const TIMEOUT_MS = 2 * 60 * 1000;
 const MAX_RETRIES = 3;
 
 async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
@@ -42,11 +41,14 @@ export async function POST(request: Request) {
 
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+    select: { encryptedKey: true },
   });
-  if (!keyRecord) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 400 });
+  const replicateKey = keyRecord
+    ? decrypt(keyRecord.encryptedKey)
+    : (process.env.REPLICATE_API_TOKEN ?? '');
+  if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
-  const replicateKey = decrypt(keyRecord.encryptedKey);
-
+  // Prefer:wait — Replicate holds until Flux completes (~3-6s, well within 60s)
   const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
     method: 'POST',
     headers: {
@@ -56,11 +58,11 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       input: {
-        prompt: body.prompt,
-        aspect_ratio: body.aspectRatio,
-        num_outputs: 1,
-        output_format: 'webp',
-        go_fast: true,
+        prompt:              body.prompt,
+        aspect_ratio:        body.aspectRatio,
+        num_outputs:         1,
+        output_format:       'webp',
+        go_fast:             true,
         num_inference_steps: 4,
       },
     }),
@@ -71,29 +73,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Replicate error: ${JSON.stringify(err)}` }, { status: 502 });
   }
 
-  let prediction = await createRes.json() as ReplicatePrediction;
+  const prediction = await createRes.json() as ReplicatePrediction;
 
-  // Flux with Prefer: wait usually returns immediately; poll as fallback
-  const deadline = Date.now() + TIMEOUT_MS;
-  while (
-    prediction.status !== 'succeeded' &&
-    prediction.status !== 'failed' &&
-    prediction.status !== 'canceled'
-  ) {
-    if (Date.now() > deadline) {
-      return NextResponse.json({ error: 'Frame generation timed out' }, { status: 504 });
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-    const poll = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-      headers: { Authorization: `Bearer ${replicateKey}` },
-    });
-    if (poll.ok) prediction = await poll.json() as ReplicatePrediction;
+  if (prediction.status === 'succeeded') {
+    const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    return NextResponse.json({ url });
   }
 
-  if (prediction.status !== 'succeeded' || !prediction.output) {
+  if (prediction.status === 'failed') {
     return NextResponse.json({ error: prediction.error ?? 'Frame generation failed' }, { status: 502 });
   }
 
-  const url = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-  return NextResponse.json({ url });
+  // Rare: Prefer:wait timed out on Replicate side — fall back to async job
+  const jobId = await createJob({
+    userId:       session.user.id,
+    predictionId: prediction.id,
+    type:         'image',
+    metadata:     { prompt: body.prompt, type: 'start-frame' },
+  });
+
+  return NextResponse.json({ jobId, async: true });
 }

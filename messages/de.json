@@ -1290,7 +1290,20 @@
       "music": "Hintergrundmusik",
       "uploadMusic": "MP3, WAV, OGG oder M4A hochladen",
       "noMusic": "Kein Audio ausgewählt",
-      "findFreeMusic": "Kostenlose Musik auf Pixabay finden →"
+      "findFreeMusic": "Kostenlose Musik auf Pixabay finden →",
+      "cameraMotion": "Kamerabewegung",
+      "motionAuto": "Automatisch",
+      "motionZoomIn": "Einzoomen",
+      "motionZoomOut": "Auszoomen",
+      "motionPanLeft": "Schwenk links → rechts",
+      "motionPanRight": "Schwenk rechts → links",
+      "motionPanUp": "Schwenk nach oben",
+      "motionPanDown": "Schwenk nach unten",
+      "motionDiagonal": "Diagonaler Zoom",
+      "dropMedia": "Bilder oder Videos hier ablegen oder klicken",
+      "mediaTypes": "JPG, PNG, WebP, MP4 — bis zu 20 Dateien",
+      "videoTooLong": "Video muss 15 Sekunden oder kürzer sein",
+      "videoDuration": "{seconds}s Video"
     }
   },
   "aiStudio": {

@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback } from 'react';
 import {
   renderSlideshow,
+  DEFAULT_SEQUENCE,
+  type CameraMotion,
+  type SlideshowItem,
   type TransitionType,
   type RenderProgress,
   type RenderResult,
@@ -10,12 +13,16 @@ import {
 
 // 'config' = upload + settings always visible; 'rendering' = progress; 'done' = result
 type CreatorState = 'config' | 'rendering' | 'done';
+type MotionChoice = 'auto' | CameraMotion;
 
-interface SlideImage {
+interface SlideMedia {
   id: string;
+  type: 'image' | 'video';
   file: File;
   objectUrl: string;
-  element: HTMLImageElement;
+  element: HTMLImageElement | HTMLVideoElement;
+  thumbnailDataUrl?: string; // first frame for video; images use objectUrl directly
+  videoDuration?: number;    // seconds, only for video items
 }
 
 const OUTPUT_PRESETS = [
@@ -32,6 +39,29 @@ const TRANSITIONS: { id: TransitionType; label: string }[] = [
   { id: 'zoom-out',    label: 'Zoom Out' },
 ];
 
+const MOTION_OPTIONS: { value: MotionChoice; label: string }[] = [
+  { value: 'auto',          label: 'Auto' },
+  { value: 'zoom-in',       label: 'Zoom in' },
+  { value: 'zoom-out',      label: 'Zoom out' },
+  { value: 'pan-right',     label: 'Pan left → right' },
+  { value: 'pan-left',      label: 'Pan right → left' },
+  { value: 'pan-up',        label: 'Pan up' },
+  { value: 'pan-down',      label: 'Pan down' },
+  { value: 'diagonal-zoom', label: 'Diagonal zoom' },
+];
+
+const MOTION_SHORT: Record<CameraMotion, string> = {
+  'zoom-in':       'zoom in',
+  'zoom-out':      'zoom out',
+  'pan-right':     'pan →',
+  'pan-left':      '← pan',
+  'pan-up':        'pan ↑',
+  'pan-down':      'pan ↓',
+  'diagonal-zoom': 'diagonal',
+};
+
+const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime']);
+
 function cx(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -39,26 +69,78 @@ function cx(...classes: (string | boolean | undefined | null)[]): string {
 function loadImage(file: File): Promise<{ element: HTMLImageElement; objectUrl: string }> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve({ element: img, objectUrl });
-    img.onerror = () => {
+    const img       = new Image();
+    img.onload  = () => resolve({ element: img, objectUrl });
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error(`Failed to load ${file.name}`)); };
+    img.src     = objectUrl;
+  });
+}
+
+function captureVideoFrame(video: HTMLVideoElement): string | null {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width  = 128;
+    canvas.height = 72;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, 128, 72);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return null;
+  }
+}
+
+function loadVideo(
+  file: File,
+): Promise<{ element: HTMLVideoElement; objectUrl: string; duration: number; thumbnailDataUrl: string | null }> {
+  return new Promise((resolve, reject) => {
+    const objectUrl   = URL.createObjectURL(file);
+    const video       = document.createElement('video');
+    video.muted       = true;
+    video.playsInline = true;
+    video.preload     = 'auto';
+    video.src         = objectUrl;
+
+    video.addEventListener('loadedmetadata', () => {
+      if (video.duration > 15) {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Video must be 15 seconds or shorter'));
+        return;
+      }
+      // Wait for enough data to decode the first frame
+      video.addEventListener('canplay', () => {
+        video.currentTime = 0;
+        video.addEventListener('seeked', () => {
+          resolve({ element: video, objectUrl, duration: video.duration, thumbnailDataUrl: captureVideoFrame(video) });
+        }, { once: true });
+      }, { once: true });
+    }, { once: true });
+
+    video.addEventListener('error', () => {
       URL.revokeObjectURL(objectUrl);
       reject(new Error(`Failed to load ${file.name}`));
-    };
-    img.src = objectUrl;
+    }, { once: true });
+
+    video.load();
   });
+}
+
+function releaseVideoElement(video: HTMLVideoElement): void {
+  video.src = '';
+  video.load();
 }
 
 export default function SlideshowCreator() {
   const [state, setState] = useState<CreatorState>('config');
-  const [slides, setSlides] = useState<SlideImage[]>([]);
+  const [slides, setSlides] = useState<SlideMedia[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Settings
   const [transition, setTransition] = useState<TransitionType>('fade');
   const [durationPerImage, setDurationPerImage] = useState(4);
   const [transitionDuration, setTransitionDuration] = useState(0.8);
-  const [kenBurns, setKenBurns] = useState(true);
+  const [cameraMotionEnabled, setCameraMotionEnabled] = useState(true);
+  const [slideMotions, setSlideMotions] = useState<Record<string, MotionChoice>>({});
   const [outputPresetIdx, setOutputPresetIdx] = useState(0);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -67,20 +149,46 @@ export default function SlideshowCreator() {
   const [progress, setProgress] = useState<RenderProgress>({ currentFrame: 0, totalFrames: 0, percent: 0 });
   const [result, setResult] = useState<RenderResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const videoUrlRef = useRef<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoUrlRef   = useRef<string | null>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
+  // Resolve effective motion for an image slide at global index idx
+  const resolveMotion = (slideId: string, idx: number): CameraMotion =>
+    (slideMotions[slideId] ?? 'auto') !== 'auto'
+      ? (slideMotions[slideId] as CameraMotion)
+      : DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length];
+
   const addFiles = useCallback(async (files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    const arr = Array.from(files).filter(
+      (f) => f.type.startsWith('image/') || VIDEO_TYPES.has(f.type),
+    );
     if (!arr.length) return;
-    const loaded: SlideImage[] = [];
+
+    const loaded: SlideMedia[] = [];
     for (const file of arr) {
       try {
-        const { element, objectUrl } = await loadImage(file);
-        loaded.push({ id: crypto.randomUUID(), file, objectUrl, element });
-      } catch {
-        // skip unreadable files
+        if (file.type.startsWith('image/')) {
+          const { element, objectUrl } = await loadImage(file);
+          loaded.push({ id: crypto.randomUUID(), type: 'image', file, objectUrl, element });
+        } else {
+          if (file.size > 50 * 1024 * 1024) {
+            setError(`${file.name}: Video must be under 50 MB`);
+            continue;
+          }
+          const { element, objectUrl, duration, thumbnailDataUrl } = await loadVideo(file);
+          loaded.push({
+            id: crypto.randomUUID(),
+            type: 'video',
+            file,
+            objectUrl,
+            element,
+            thumbnailDataUrl: thumbnailDataUrl ?? undefined,
+            videoDuration: duration,
+          });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : `Failed to load ${file.name}`);
       }
     }
     setSlides((prev) => [...prev, ...loaded].slice(0, 20));
@@ -89,14 +197,18 @@ export default function SlideshowCreator() {
   const removeSlide = (id: string) => {
     setSlides((prev) => {
       const slide = prev.find((s) => s.id === id);
-      if (slide) URL.revokeObjectURL(slide.objectUrl);
+      if (slide) {
+        URL.revokeObjectURL(slide.objectUrl);
+        if (slide.type === 'video') releaseVideoElement(slide.element as HTMLVideoElement);
+      }
       return prev.filter((s) => s.id !== id);
     });
+    setSlideMotions((prev) => { const n = { ...prev }; delete n[id]; return n; });
   };
 
   const moveSlide = (idx: number, dir: -1 | 1) => {
     setSlides((prev) => {
-      const next = [...prev];
+      const next   = [...prev];
       const target = idx + dir;
       if (target < 0 || target >= next.length) return prev;
       [next[idx], next[target]] = [next[target], next[idx]];
@@ -114,15 +226,11 @@ export default function SlideshowCreator() {
   );
 
   const handleAudioChange = (file: File) => {
-    if (file.size > 20 * 1024 * 1024) {
-      setError('Audio file must be under 20 MB');
-      return;
-    }
+    if (file.size > 20 * 1024 * 1024) { setError('Audio file must be under 20 MB'); return; }
     if (audioElement) URL.revokeObjectURL(audioElement.src);
     const url = URL.createObjectURL(file);
-    const el = new Audio(url);
     setAudioFile(file);
-    setAudioElement(el);
+    setAudioElement(new Audio(url));
   };
 
   const removeAudio = () => {
@@ -137,14 +245,27 @@ export default function SlideshowCreator() {
     setError(null);
     setProgress({ currentFrame: 0, totalFrames: 0, percent: 0 });
     const preset = OUTPUT_PRESETS[outputPresetIdx];
+
+    const items: SlideshowItem[] = slides.map((s, i) => {
+      if (s.type === 'video') {
+        const video  = s.element as HTMLVideoElement;
+        video.muted  = true;
+        return { type: 'video' as const, element: video, duration: s.videoDuration ?? 5 };
+      }
+      return {
+        type:     'image' as const,
+        element:  s.element as HTMLImageElement,
+        duration: durationPerImage,
+        motion:   cameraMotionEnabled ? resolveMotion(s.id, i) : undefined,
+      };
+    });
+
     try {
       const r = await renderSlideshow(
         {
-          images: slides.map((s) => s.element),
-          durationPerImage,
+          items,
           transitionDuration,
           transitionType: transition,
-          kenBurns,
           outputSize: { width: preset.width, height: preset.height },
           fps: 30,
           audioFile: audioFile ?? undefined,
@@ -162,13 +283,14 @@ export default function SlideshowCreator() {
   };
 
   const resetAll = () => {
-    slides.forEach((s) => URL.revokeObjectURL(s.objectUrl));
-    if (videoUrlRef.current) {
-      URL.revokeObjectURL(videoUrlRef.current);
-      videoUrlRef.current = null;
-    }
+    slides.forEach((s) => {
+      URL.revokeObjectURL(s.objectUrl);
+      if (s.type === 'video') releaseVideoElement(s.element as HTMLVideoElement);
+    });
+    if (videoUrlRef.current) { URL.revokeObjectURL(videoUrlRef.current); videoUrlRef.current = null; }
     if (audioElement) URL.revokeObjectURL(audioElement.src);
     setSlides([]);
+    setSlideMotions({});
     setResult(null);
     setError(null);
     setAudioFile(null);
@@ -176,9 +298,11 @@ export default function SlideshowCreator() {
     setState('config');
   };
 
-  const totalSec = +(
-    slides.length * durationPerImage + Math.max(0, slides.length - 1) * transitionDuration
-  ).toFixed(1);
+  // Total slideshow duration with per-item durations
+  const totalSec = slides.length < 1 ? 0 : +(Math.max(0,
+    slides.reduce((sum, s) => sum + (s.videoDuration ?? durationPerImage), 0) -
+    Math.max(0, slides.length - 1) * transitionDuration,
+  )).toFixed(1);
 
   // ── Rendering ─────────────────────────────────────────────────────────────────
 
@@ -265,11 +389,11 @@ export default function SlideshowCreator() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
       )}
 
-      {/* ── Photo upload ── */}
+      {/* ── Media upload / timeline ── */}
       <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">Photo Slideshow Creator</h2>
+            <h2 className="text-base font-semibold">Photo &amp; Video Slideshow</h2>
             <p className="mt-0.5 text-xs text-[var(--color-text-dim)]">
               Rendered in your browser · No credits needed
             </p>
@@ -279,12 +403,12 @@ export default function SlideshowCreator() {
               onClick={() => fileInputRef.current?.click()}
               className="cursor-pointer text-xs text-[var(--color-primary)] hover:underline"
             >
-              + Add photos
+              + Add more
             </button>
           )}
         </div>
 
-        {/* Drop zone — shown when no photos yet */}
+        {/* Drop zone — shown when no media yet */}
         {slides.length === 0 && (
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -302,13 +426,13 @@ export default function SlideshowCreator() {
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
             </svg>
             <div className="text-center">
-              <div className="font-semibold text-[var(--color-text-muted)]">Drop images here or click to upload</div>
-              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP — up to 20 photos</div>
+              <div className="font-semibold text-[var(--color-text-muted)]">Drop images or videos here or click to upload</div>
+              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP, MP4 — up to 20 files</div>
             </div>
           </div>
         )}
 
-        {/* Timeline — shown when photos uploaded */}
+        {/* Timeline with per-slide controls */}
         {slides.length > 0 && (
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -321,43 +445,85 @@ export default function SlideshowCreator() {
                 : 'border-transparent',
             )}
           >
-            {slides.map((s, idx) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
-                <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.objectUrl} alt={`Slide ${idx + 1}`} className="h-12 w-20 shrink-0 rounded object-cover" />
-                <div className="flex-1 truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</div>
-                <div className="flex items-center gap-1">
-                  <button
-                    disabled={idx === 0}
-                    onClick={() => moveSlide(idx, -1)}
-                    className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
-                    aria-label="Move up"
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
-                  </button>
-                  <button
-                    disabled={idx === slides.length - 1}
-                    onClick={() => moveSlide(idx, 1)}
-                    className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
-                    aria-label="Move down"
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
-                  </button>
-                  <button
-                    onClick={() => removeSlide(s.id)}
-                    className="cursor-pointer rounded p-1 text-red-400/60 hover:text-red-400"
-                    aria-label="Remove"
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  </button>
+            {slides.map((s, idx) => {
+              const isVideo    = s.type === 'video';
+              const choice     = slideMotions[s.id] ?? 'auto';
+              const autoMotion = DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length];
+
+              return (
+                <div key={s.id} className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
+                  <span className="w-5 shrink-0 text-center text-xs text-[var(--color-text-dim)]">{idx + 1}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={isVideo ? (s.thumbnailDataUrl ?? s.objectUrl) : s.objectUrl}
+                    alt={`Slide ${idx + 1}`}
+                    className="h-12 w-16 shrink-0 rounded object-cover"
+                  />
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-xs text-[var(--color-text-dim)]">{s.file.name}</span>
+                      {isVideo && (
+                        <span className="shrink-0 rounded bg-[var(--color-primary)]/20 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-primary)]">
+                          ▶ {s.videoDuration?.toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Camera motion dropdown — images only */}
+                    {!isVideo && cameraMotionEnabled && (
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          value={choice}
+                          onChange={(e) => setSlideMotions((prev) => ({ ...prev, [s.id]: e.target.value as MotionChoice }))}
+                          className="cursor-pointer rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
+                        >
+                          {MOTION_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                        {choice === 'auto' && (
+                          <span className="text-[11px] text-[var(--color-text-dim)]">
+                            ({MOTION_SHORT[autoMotion]})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      disabled={idx === 0}
+                      onClick={() => moveSlide(idx, -1)}
+                      className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
+                      aria-label="Move up"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
+                    </button>
+                    <button
+                      disabled={idx === slides.length - 1}
+                      onClick={() => moveSlide(idx, 1)}
+                      className="cursor-pointer rounded p-1 text-[var(--color-text-dim)] hover:text-white disabled:opacity-30"
+                      aria-label="Move down"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                    <button
+                      onClick={() => removeSlide(s.id)}
+                      className="cursor-pointer rounded p-1 text-red-400/60 hover:text-red-400"
+                      aria-label="Remove"
+                    >
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+
             <div className="px-1 pt-1 text-xs text-[var(--color-text-dim)]">
-              {slides.length} photo{slides.length !== 1 ? 's' : ''} · {totalSec}s total
+              {slides.length} item{slides.length !== 1 ? 's' : ''} · {totalSec}s total
               {slides.length < 2 && (
-                <span className="ml-2 text-amber-400">— add at least 2 photos to render</span>
+                <span className="ml-2 text-amber-400">— add at least 2 items to render</span>
               )}
             </div>
           </div>
@@ -366,7 +532,7 @@ export default function SlideshowCreator() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
           multiple
           className="hidden"
           onChange={(e) => e.target.files && void addFiles(e.target.files)}
@@ -399,7 +565,7 @@ export default function SlideshowCreator() {
             </div>
           </div>
 
-          {/* Background music — after output size, before transition */}
+          {/* Background music */}
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--color-text-muted)]">
               Background music{' '}
@@ -409,14 +575,8 @@ export default function SlideshowCreator() {
               <div className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5">
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-primary)]" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
                 <span className="flex-1 truncate text-sm text-[var(--color-text-muted)]">{audioFile.name}</span>
-                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">
-                  {(audioFile.size / 1024 / 1024).toFixed(1)} MB
-                </span>
-                <button
-                  onClick={removeAudio}
-                  className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400"
-                  aria-label="Remove audio"
-                >
+                <span className="shrink-0 text-xs text-[var(--color-text-dim)]">{(audioFile.size / 1024 / 1024).toFixed(1)} MB</span>
+                <button onClick={removeAudio} className="cursor-pointer text-[var(--color-text-dim)] transition-colors hover:text-red-400" aria-label="Remove audio">
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
@@ -438,15 +598,10 @@ export default function SlideshowCreator() {
             />
             {audioFile && (
               <p className="mt-1.5 text-xs text-[var(--color-text-dim)]">
-                Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4
+                Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4 · video audio is always muted
               </p>
             )}
-            <a
-              href="https://pixabay.com/music/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-block text-[13px] text-[var(--color-primary)] hover:underline"
-            >
+            <a href="https://pixabay.com/music/" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[13px] text-[var(--color-primary)] hover:underline">
               Find free music on Pixabay →
             </a>
           </div>
@@ -472,7 +627,7 @@ export default function SlideshowCreator() {
             </div>
           </div>
 
-          {/* Duration per image */}
+          {/* Duration per photo */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="text-sm font-medium text-[var(--color-text-muted)]">Duration per photo</label>
@@ -487,6 +642,7 @@ export default function SlideshowCreator() {
             <div className="mt-1 flex justify-between text-xs text-[var(--color-text-dim)]">
               <span>3s (faster)</span><span>8s (slower)</span>
             </div>
+            <p className="mt-1 text-xs text-[var(--color-text-dim)]">Videos use their natural duration (max 15s)</p>
           </div>
 
           {/* Transition duration */}
@@ -506,25 +662,29 @@ export default function SlideshowCreator() {
             </div>
           </div>
 
-          {/* Ken Burns toggle */}
+          {/* Camera motion toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-[var(--color-text-muted)]">Ken Burns effect</div>
-              <div className="text-xs text-[var(--color-text-dim)]">Subtle zoom and pan per photo</div>
+              <div className="text-sm font-medium text-[var(--color-text-muted)]">Camera motion</div>
+              <div className="text-xs text-[var(--color-text-dim)]">
+                {cameraMotionEnabled
+                  ? 'Instagram-style zoom & pan — set per photo above · videos play as-is'
+                  : 'Disabled — photos shown static · videos play as-is'}
+              </div>
             </div>
             <button
-              onClick={() => setKenBurns((v) => !v)}
+              onClick={() => setCameraMotionEnabled((v) => !v)}
               role="switch"
-              aria-checked={kenBurns}
+              aria-checked={cameraMotionEnabled}
               className={cx(
                 'relative h-6 w-11 cursor-pointer rounded-full transition-colors',
-                kenBurns ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
+                cameraMotionEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
               )}
             >
               <span
                 className={cx(
                   'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left]',
-                  kenBurns ? 'left-[22px]' : 'left-0.5',
+                  cameraMotionEnabled ? 'left-[22px]' : 'left-0.5',
                 )}
               />
             </button>
@@ -540,8 +700,8 @@ export default function SlideshowCreator() {
         className="w-full cursor-pointer rounded-lg bg-[var(--color-primary)] px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {slides.length < 2
-          ? 'Upload at least 2 photos to render'
-          : `Render Slideshow — ${slides.length} photos · ${preset.width}×${preset.height} · ${totalSec}s →`}
+          ? 'Upload at least 2 photos or videos to render'
+          : `Render Slideshow — ${slides.length} items · ${preset.width}×${preset.height} · ${totalSec}s →`}
       </button>
 
       <p className="text-center text-xs text-[var(--color-text-dim)]">

@@ -1290,7 +1290,20 @@
       "music": "Фонова музика",
       "uploadMusic": "Завантажити MP3, WAV, OGG або M4A",
       "noMusic": "Аудіо не вибрано",
-      "findFreeMusic": "Знайти безкоштовну музику на Pixabay →"
+      "findFreeMusic": "Знайти безкоштовну музику на Pixabay →",
+      "cameraMotion": "Рух камери",
+      "motionAuto": "Авто",
+      "motionZoomIn": "Наближення",
+      "motionZoomOut": "Віддалення",
+      "motionPanLeft": "Панорама вліво → вправо",
+      "motionPanRight": "Панорама вправо → вліво",
+      "motionPanUp": "Панорама вгору",
+      "motionPanDown": "Панорама вниз",
+      "motionDiagonal": "Діагональний зум",
+      "dropMedia": "Перетягніть зображення або відео сюди або натисніть для завантаження",
+      "mediaTypes": "JPG, PNG, WebP, MP4 — до 20 файлів",
+      "videoTooLong": "Відео має бути 15 секунд або коротше",
+      "videoDuration": "{seconds}с відео"
     }
   },
   "aiStudio": {

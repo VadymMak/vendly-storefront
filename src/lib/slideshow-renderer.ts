@@ -145,15 +145,7 @@ function drawItemAtRect(
     const video = item.element as HTMLVideoElement;
     const vW    = video.videoWidth;
     const vH    = video.videoHeight;
-    // DEBUG
-    console.log('Video frame:', {
-      currentTime: video.currentTime,
-      readyState: video.readyState,
-      videoWidth: vW,
-      videoHeight: vH,
-      src: video.src.slice(0, 60),
-    });
-    if (vW === 0 || vH === 0) { console.warn('Video has no dimensions — skipping drawImage'); return; }
+    if (vW === 0 || vH === 0) return;
     // Object-fit: cover — always use canvas aspect for the crop
     const videoAspect  = vW / vH;
     const canvasAspect = canvasW / canvasH;
@@ -164,11 +156,6 @@ function drawItemAtRect(
       sw = vW; sh = sw / canvasAspect; sx = 0; sy = (vH - sh) / 2;
     }
     ctx.drawImage(video, sx, sy, sw, sh, dx, dy, dw, dh);
-    // DEBUG pixel check (centre of 1080×1920 reel)
-    try {
-      const px = ctx.getImageData(Math.min(540, canvasW - 1), Math.min(960, canvasH - 1), 1, 1).data;
-      console.log('Drew video frame, pixel check:', Array.from(px));
-    } catch { /* cross-origin guard */ }
   } else {
     const img         = item.element as HTMLImageElement;
     const { sx, sy, sw, sh } = getMotionCrop(img, item.motion ?? null, rawProgress, canvasW, canvasH);
@@ -420,7 +407,6 @@ export async function renderSlideshow(
       video.muted      = true;
       video.playsInline = true;
       video.preload    = 'auto';
-      console.log('Preload video — before:', { readyState: video.readyState, src: video.src.slice(0, 60), duration: video.duration });
       if (video.readyState < 2) {
         await new Promise<void>((resolve) => {
           video.addEventListener('canplay', () => resolve(), { once: true });
@@ -428,7 +414,6 @@ export async function renderSlideshow(
         });
       }
       await seekVideoToTime(video, 0).catch(() => {});
-      console.log('Preload video — after:', { readyState: video.readyState, videoWidth: video.videoWidth, videoHeight: video.videoHeight });
     }
   }
 
@@ -474,7 +459,7 @@ export async function renderSlideshow(
   const mediaStream  = new MediaStream(tracks);
 
   const chunks: Blob[] = [];
-  const recorder       = new MediaRecorder(mediaStream, { mimeType });
+  const recorder       = new MediaRecorder(mediaStream, { mimeType, videoBitsPerSecond: 8_000_000 });
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
@@ -485,18 +470,20 @@ export async function renderSlideshow(
   recorder.start(500);
   audio?.source.start(audio.audioCtx.currentTime);
 
-  const frameMs     = 1000 / fps;
-  const renderStart = performance.now();
+  // Per-frame interval timing: each frame must hold the canvas for at least frameInterval ms
+  // so captureStream has time to sample it. setTimeout always yields to the compositor.
+  const frameInterval = 1000 / fps;
 
   for (let frame = 0; frame < totalFrames; frame++) {
+    const frameStart = performance.now();
+
     await drawFrame(ctx, config, startTimes, frame);
 
     onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * 100) });
 
-    // Pace to real-time so captureStream captures each frame
-    const targetMs = renderStart + (frame + 1) * frameMs;
-    const delay    = targetMs - performance.now();
-    if (delay > 0) await new Promise<void>((r) => setTimeout(r, delay));
+    const elapsed  = performance.now() - frameStart;
+    const waitTime = Math.max(0, frameInterval - elapsed);
+    await new Promise<void>((r) => setTimeout(r, waitTime));
   }
 
   try { audio?.source.stop(); } catch { /* already stopped */ }

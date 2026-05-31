@@ -1290,5 +1290,157 @@
       "button": "Try AI Studio Free",
       "note": "5 free images + 1 video every month. No credit card required."
     }
+  },
+  "studioPricing": {
+    "hero": {
+      "title": "AI Studio Pricing",
+      "subtitle": "Professional content creation for your business — simple, transparent pricing"
+    },
+    "plans": {
+      "badge": "Most Popular",
+      "free": {
+        "name": "Free",
+        "price": "€0",
+        "cta": "Get Started Free"
+      },
+      "starter": {
+        "name": "Starter",
+        "price": "€19",
+        "period": "/mo",
+        "cta": "Start with Starter"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "€39",
+        "period": "/mo",
+        "cta": "Go Pro"
+      },
+      "rows": {
+        "imagesMonth": "Images per month",
+        "videosMonth": "Videos per month",
+        "video10s": "10s videos",
+        "allTools": "All 7 AI tools",
+        "promptEnhance": "AI prompt enhancement",
+        "creditPacks": "Credit packs",
+        "websiteBuilder": "Website builder",
+        "customDomain": "Custom domain",
+        "prioritySupport": "Priority support"
+      },
+      "values": {
+        "freeImages": "5",
+        "freeVideos": "1 (5s only)",
+        "starterImages": "50",
+        "starterVideos": "3",
+        "proImages": "150",
+        "proVideos": "8",
+        "video10sNote": "2 credits"
+      }
+    },
+    "packs": {
+      "title": "Credit Packs",
+      "subtitle": "Top up anytime — credits never expire",
+      "note": "Credit packs work on any plan — even Free",
+      "s": {
+        "name": "Pack S",
+        "price": "€12",
+        "images": "120 images",
+        "videos": "5 videos",
+        "cta": "Buy Pack S"
+      },
+      "l": {
+        "name": "Pack L",
+        "price": "€29",
+        "badge": "Best Value",
+        "images": "350 images",
+        "videos": "15 videos",
+        "cta": "Buy Pack L"
+      }
+    },
+    "toolPricing": {
+      "title": "Per-Tool Cost Breakdown",
+      "subtitle": "Approximate costs. Credit packs lower your effective price further.",
+      "columns": {
+        "tool": "Tool",
+        "description": "What it does",
+        "cost": "Cost per use"
+      },
+      "tools": {
+        "textImage": {
+          "name": "Text → Image",
+          "desc": "Generate photo from text",
+          "cost": "~€0.003"
+        },
+        "textVideo5": {
+          "name": "Text → Video (5s)",
+          "desc": "Generate short video",
+          "cost": "~€0.30"
+        },
+        "textVideo10": {
+          "name": "Text → Video (10s)",
+          "desc": "Generate long video",
+          "cost": "~€0.60"
+        },
+        "imageVideo": {
+          "name": "Image → Video",
+          "desc": "Animate a photo",
+          "cost": "~€0.30–0.60"
+        },
+        "aiEdit": {
+          "name": "AI Photo Edit",
+          "desc": "Edit with text instructions",
+          "cost": "~€0.03"
+        },
+        "upscale": {
+          "name": "Upscale 4×",
+          "desc": "Increase resolution",
+          "cost": "~€0.10"
+        },
+        "faceEnhance": {
+          "name": "Face Enhance",
+          "desc": "Portrait retouching",
+          "cost": "~€0.10"
+        },
+        "removeBg": {
+          "name": "Remove Background",
+          "desc": "Transparent PNG",
+          "cost": "~€0.02"
+        }
+      }
+    },
+    "byok": {
+      "title": "Power Users: Bring Your Own Key",
+      "description": "Connect your own Replicate API key for unlimited generations. You pay Replicate directly — no markup from us.",
+      "cta": "Set up BYOK"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "items": {
+        "howCredits": {
+          "q": "How do credits work?",
+          "a": "Each month you get a fresh set of credits based on your plan. Images cost 1 credit, 5-second videos cost 1 video credit, 10-second videos cost 2 video credits. Unused monthly credits do not roll over — but credit pack credits never expire."
+        },
+        "runOut": {
+          "q": "What happens when I run out of credits?",
+          "a": "You can buy a credit pack (from €12) for an instant top-up, or upgrade your plan for more monthly credits. Credit pack credits never expire."
+        },
+        "freePlan": {
+          "q": "Can I use AI Studio on the Free plan?",
+          "a": "Yes! Free plan includes 5 images and 1 video every month. No credit card required."
+        },
+        "byok": {
+          "q": "What is BYOK?",
+          "a": "Bring Your Own Key — connect your own Replicate API key for unlimited access. You pay Replicate directly for usage. Great for heavy users or developers."
+        },
+        "compare": {
+          "q": "How does AI Studio compare to Canva or Midjourney?",
+          "a": "VendShop is the only platform that combines a website builder with AI image AND video generation. Canva Pro costs €15/mo with limited AI credits. Midjourney is €10/mo for images only — no video. VendShop gives you everything in one platform."
+        }
+      }
+    },
+    "cta": {
+      "title": "Start Creating for Free",
+      "note": "5 free images + 1 video every month. No credit card required.",
+      "button": "Get Started Free"
+    }
   }
 }

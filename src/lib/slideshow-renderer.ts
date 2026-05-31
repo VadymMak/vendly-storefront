@@ -2,6 +2,9 @@
  * Client-side slideshow video renderer.
  * Uses Canvas + MediaRecorder — zero server CPU, runs entirely in browser.
  * Primary target: Chrome desktop (H.264 MP4). Falls back to WebM.
+ *
+ * Video items: played in real-time via video.play() — no per-frame seeking.
+ * Image items: drawn with Ken Burns camera motion at frameInterval pace.
  */
 
 export type TransitionType = 'fade' | 'slide-left' | 'slide-right' | 'zoom-in' | 'zoom-out';
@@ -15,20 +18,19 @@ export type CameraMotion =
   | 'pan-down'
   | 'diagonal-zoom';
 
-// Each slide item: image or short video clip
 export interface SlideshowItem {
   type: 'image' | 'video';
   element: HTMLImageElement | HTMLVideoElement;
-  duration: number;         // seconds — image: durationPerImage setting; video: video.duration
-  motion?: CameraMotion;    // images only; undefined = static (no Ken Burns)
+  duration: number;      // image: durationPerImage setting; video: video.duration
+  motion?: CameraMotion; // images only; undefined = static
 }
 
 export interface SlideshowConfig {
   items: SlideshowItem[];
-  transitionDuration: number;  // seconds (0.5–1.5)
+  transitionDuration: number;
   transitionType: TransitionType;
   outputSize: { width: number; height: number };
-  fps: number;                 // 30 recommended
+  fps: number;
   audioFile?: File;
 }
 
@@ -47,7 +49,6 @@ export interface RenderResult {
 
 // ── Camera motion ──────────────────────────────────────────────────────────────
 
-// Automatic sequence — varied types, no two adjacent are the same
 export const DEFAULT_SEQUENCE: CameraMotion[] = [
   'zoom-in',
   'pan-right',
@@ -67,7 +68,6 @@ interface MotionPreset {
   endPanY:    number;
 }
 
-// Increased amplitudes for visible motion on mobile/Instagram screens
 const MOTION_PRESETS: Record<CameraMotion, MotionPreset> = {
   'zoom-in':       { startScale: 1.00, endScale: 1.15, startPanX:  0.00, startPanY:  0.00, endPanX:  0.04, endPanY: -0.04 },
   'zoom-out':      { startScale: 1.18, endScale: 1.00, startPanX:  0.04, startPanY:  0.04, endPanX:  0.00, endPanY:  0.00 },
@@ -116,7 +116,6 @@ function getCropRect(
   return { sx, sy, sw, sh };
 }
 
-// Source rect for image: motion crop or plain cover
 function getMotionCrop(
   img: HTMLImageElement,
   motion: CameraMotion | null | undefined,
@@ -132,8 +131,8 @@ function getMotionCrop(
   return getCropRect(motion, easeInOutCubic(rawProgress), img.naturalWidth, img.naturalHeight, W, H);
 }
 
-// Draw item (image with optional motion, or video with cover crop) into destination rect.
-// For video items: caller must await seekVideo before calling this.
+// Draw item into destination rect.
+// Videos are drawn from their current real-time play position — no seeking.
 function drawItemAtRect(
   ctx: CanvasRenderingContext2D,
   item: SlideshowItem,
@@ -146,7 +145,6 @@ function drawItemAtRect(
     const vW    = video.videoWidth;
     const vH    = video.videoHeight;
     if (vW === 0 || vH === 0) return;
-    // Object-fit: cover — always use canvas aspect for the crop
     const videoAspect  = vW / vH;
     const canvasAspect = canvasW / canvasH;
     let sx: number, sy: number, sw: number, sh: number;
@@ -157,25 +155,17 @@ function drawItemAtRect(
     }
     ctx.drawImage(video, sx, sy, sw, sh, dx, dy, dw, dh);
   } else {
-    const img         = item.element as HTMLImageElement;
+    const img            = item.element as HTMLImageElement;
     const { sx, sy, sw, sh } = getMotionCrop(img, item.motion ?? null, rawProgress, canvasW, canvasH);
     ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
   }
 }
 
-// Seek video to time, resolving on 'seeked'; resolves immediately if already at time
+// Used only in the preload phase — not during the rendering loop.
 async function seekVideoToTime(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    const onSeeked = () => {
-      video.removeEventListener('seeked', onSeeked);
-      video.removeEventListener('error', onError);
-      resolve();
-    };
-    const onError = () => {
-      video.removeEventListener('seeked', onSeeked);
-      video.removeEventListener('error', onError);
-      reject(new Error('Video seek failed'));
-    };
+    const onSeeked = () => { video.removeEventListener('seeked', onSeeked); video.removeEventListener('error', onError); resolve(); };
+    const onError  = () => { video.removeEventListener('seeked', onSeeked); video.removeEventListener('error', onError); reject(new Error('Video seek failed')); };
     if (Math.abs(video.currentTime - time) < 0.01) { resolve(); return; }
     video.addEventListener('seeked', onSeeked);
     video.addEventListener('error', onError);
@@ -183,25 +173,17 @@ async function seekVideoToTime(video: HTMLVideoElement, time: number): Promise<v
   });
 }
 
-// Seek video and ensure a decodable frame is available (readyState >= HAVE_CURRENT_DATA)
-async function ensureVideoFrame(video: HTMLVideoElement, time: number): Promise<void> {
-  const clamped = Math.min(Math.max(0, time), Math.max(0, video.duration - 0.05));
-  try { await seekVideoToTime(video, clamped); } catch { /* proceed with current frame */ }
-  if (video.readyState < 2) await new Promise<void>((r) => setTimeout(r, 50));
-}
-
 // ── Frame state ───────────────────────────────────────────────────────────────
 //
 // Overlapping model with variable per-item durations:
 //   step[i]      = durations[i] - transitionDuration
 //   startTime[i] = sum(step[0..i-1])
-//   endTime[i]   = startTime[i] + durations[i]
-//   transition i→i+1 occupies [startTime[i+1], endTime[i])
+//   transition i→i+1 occupies [startTimes[i+1], startTimes[i] + durations[i])
 //   totalDuration = sum(durations) - (n-1) * transitionDuration
 
 type FrameState =
-  | { kind: 'steady';     imageIndex: number;                             progress: number }
-  | { kind: 'transition'; fromIndex:  number; toIndex: number;            progress: number };
+  | { kind: 'steady';     imageIndex: number;                  progress: number }
+  | { kind: 'transition'; fromIndex:  number; toIndex: number; progress: number };
 
 function getFrameState(
   frame: number,
@@ -217,12 +199,7 @@ function getFrameState(
     const transStart = startTimes[i + 1];
     const transEnd   = startTimes[i] + durations[i];
     if (t >= transStart && t < transEnd) {
-      return {
-        kind:      'transition',
-        fromIndex: i,
-        toIndex:   i + 1,
-        progress:  (t - transStart) / transitionDuration,
-      };
+      return { kind: 'transition', fromIndex: i, toIndex: i + 1, progress: (t - transStart) / transitionDuration };
     }
   }
 
@@ -230,25 +207,21 @@ function getFrameState(
     const imgStart = startTimes[i];
     const imgEnd   = imgStart + durations[i];
     if (t >= imgStart && t < imgEnd) {
-      return {
-        kind:       'steady',
-        imageIndex: i,
-        progress:   (t - imgStart) / durations[i],
-      };
+      return { kind: 'steady', imageIndex: i, progress: (t - imgStart) / durations[i] };
     }
   }
 
   return { kind: 'steady', imageIndex: n - 1, progress: 1 };
 }
 
-// ── Frame drawing ─────────────────────────────────────────────────────────────
+// ── Frame drawing (synchronous — videos drawn from current play position) ─────
 
-async function drawFrame(
+function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
   startTimes: number[],
   frame: number,
-): Promise<void> {
+): void {
   const { items, transitionDuration, transitionType, fps, outputSize } = config;
   const W        = outputSize.width;
   const H        = outputSize.height;
@@ -262,28 +235,18 @@ async function drawFrame(
   const state = getFrameState(frame, fps, startTimes, durations, transitionDuration);
 
   if (state.kind === 'steady') {
-    const item       = items[state.imageIndex];
+    const item        = items[state.imageIndex];
     const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
-    if (item.type === 'video') {
-      await ensureVideoFrame(item.element as HTMLVideoElement, rawProgress * item.duration);
-    }
     drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
     return;
   }
 
-  // Transition
+  // Transition — video items are already playing via play() in the render loop
   const { fromIndex, toIndex, progress } = state;
   const fromItem  = items[fromIndex];
   const toItem    = items[toIndex];
   const fromRaw   = Math.max(0, Math.min(1, (t - startTimes[fromIndex]) / fromItem.duration));
   const toRaw     = Math.max(0, Math.min(1, (t - startTimes[toIndex])   / toItem.duration));
-
-  if (fromItem.type === 'video') {
-    await ensureVideoFrame(fromItem.element as HTMLVideoElement, fromRaw * fromItem.duration);
-  }
-  if (toItem.type === 'video') {
-    await ensureVideoFrame(toItem.element as HTMLVideoElement, toRaw * toItem.duration);
-  }
 
   switch (transitionType) {
     case 'fade': {
@@ -328,7 +291,6 @@ async function drawFrame(
     }
 
     case 'zoom-in': {
-      // from fades out at full size; to zooms up (0.5→1) while fading in
       ctx.globalAlpha = 1 - progress;
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       const s  = 0.5 + 0.5 * progress;
@@ -341,7 +303,6 @@ async function drawFrame(
     }
 
     case 'zoom-out': {
-      // to is at full size underneath; from shrinks (1→0.5) while fading out
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       const s  = 1 - 0.5 * progress;
       const dw = W * s;
@@ -357,15 +318,12 @@ async function drawFrame(
 // ── Audio setup ───────────────────────────────────────────────────────────────
 
 interface AudioSetup {
-  audioCtx:      AudioContext;
-  destination:   MediaStreamAudioDestinationNode;
-  source:        AudioBufferSourceNode;
-  gainNode:      GainNode;
-  bufferDuration: number;  // decoded audio file duration in seconds
+  audioCtx:    AudioContext;
+  destination: MediaStreamAudioDestinationNode;
+  source:      AudioBufferSourceNode;
+  gainNode:    GainNode;
 }
 
-// Decode and wire up audio nodes. Gain scheduling happens at source.start() time,
-// not here, so that any preload delay doesn't shift the fade-out window.
 async function setupAudio(file: File): Promise<AudioSetup> {
   const audioCtx    = new AudioContext();
   const arrayBuffer  = await file.arrayBuffer();
@@ -377,12 +335,11 @@ async function setupAudio(file: File): Promise<AudioSetup> {
 
   const source = audioCtx.createBufferSource();
   source.buffer = audioBuffer;
-  // Loop so the music continues even if the audio file is shorter than the slideshow
-  source.loop = true;
+  source.loop   = true; // loop if music is shorter than the slideshow
   source.connect(gainNode);
   gainNode.connect(destination);
 
-  return { audioCtx, destination, source, gainNode, bufferDuration: audioBuffer.duration };
+  return { audioCtx, destination, source, gainNode };
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -402,13 +359,13 @@ export async function renderSlideshow(
     throw new Error('Transition duration must be shorter than the shortest clip duration');
   }
 
-  // Preload all video items — ensure canplay readyState before rendering starts
+  // Preload all video items — buffer them and seek to 0 so play() starts instantly
   for (const item of items) {
     if (item.type === 'video') {
-      const video      = item.element as HTMLVideoElement;
-      video.muted      = true;
-      video.playsInline = true;
-      video.preload    = 'auto';
+      const video       = item.element as HTMLVideoElement;
+      video.muted       = true;
+      video.playsInline  = true;
+      video.preload     = 'auto';
       if (video.readyState < 2) {
         await new Promise<void>((resolve) => {
           video.addEventListener('canplay', () => resolve(), { once: true });
@@ -431,10 +388,10 @@ export async function renderSlideshow(
   const totalFrames   = Math.max(1, Math.round(totalDuration * fps));
 
   // Create canvas
-  const canvas   = document.createElement('canvas');
-  canvas.width   = W;
-  canvas.height  = H;
-  const ctx      = canvas.getContext('2d');
+  const canvas  = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx     = canvas.getContext('2d');
   if (!ctx) throw new Error('Failed to get canvas 2D context');
 
   ctx.imageSmoothingEnabled = true;
@@ -454,97 +411,77 @@ export async function renderSlideshow(
     try { audio = await setupAudio(config.audioFile); } catch { audio = null; }
   }
 
-  // Build media stream
-  const videoStream  = canvas.captureStream(fps);
+  // Build media stream — video from canvas, audio from AudioContext destination
+  const videoStream = canvas.captureStream(fps);
   const tracks: MediaStreamTrack[] = [...videoStream.getTracks()];
   if (audio) tracks.push(...audio.destination.stream.getTracks());
-  const mediaStream  = new MediaStream(tracks);
+  const mediaStream = new MediaStream(tracks);
 
   const chunks: Blob[] = [];
-  const recorder       = new MediaRecorder(mediaStream, { mimeType, videoBitsPerSecond: 8_000_000 });
+  const recorder = new MediaRecorder(mediaStream, { mimeType, videoBitsPerSecond: 8_000_000 });
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
 
   // Draw first frame before starting recorder (avoids blank first frame)
-  await drawFrame(ctx, config, startTimes, 0);
+  drawFrame(ctx, config, startTimes, 0);
 
   recorder.start(500);
 
   if (audio) {
-    // Resume in case the AudioContext was suspended (e.g. no recent user gesture)
     await audio.audioCtx.resume();
-    const startAt  = audio.audioCtx.currentTime;
-    const fadeAt   = Math.max(startAt, startAt + totalDuration - 2);
+    const startAt = audio.audioCtx.currentTime;
+    const fadeAt  = Math.max(startAt, startAt + totalDuration - 2);
 
-    // Schedule gain relative to actual start time, not to setupAudio() call time
+    // Schedule gain fade relative to actual start time
     audio.gainNode.gain.setValueAtTime(1, startAt);
     audio.gainNode.gain.setValueAtTime(1, fadeAt);
     audio.gainNode.gain.linearRampToValueAtTime(0, startAt + totalDuration);
-
     audio.source.start(startAt);
-
-    // ── AUDIO DEBUG ────────────────────────────────────────────────────────────
-    console.log('=== AUDIO DEBUG ===');
-    console.log('totalDuration:', totalDuration);
-    console.log('totalFrames:', totalFrames);
-    console.log('items:', items.map((item, i) => ({
-      index: i,
-      type: item.type,
-      duration: item.duration,
-      startTime: +startTimes[i].toFixed(3),
-    })));
-    console.log('audioBuffer.duration:', audio.bufferDuration);
-    console.log('fadeStart (relative):', +(totalDuration - 2).toFixed(3));
-    console.log('fadeAt (absolute AudioCtx):', +fadeAt.toFixed(3));
-    console.log('startAt (AudioCtx):', +startAt.toFixed(3));
-    console.log('AudioContext state:', audio.audioCtx.state);
-    console.log('===================');
   }
 
-  // Per-frame interval timing: each frame must hold the canvas for at least frameInterval ms
-  // so captureStream has time to sample it. setTimeout always yields to the compositor.
-  const frameInterval = 1000 / fps;
-  let lastLoggedItemIndex = -1;
+  // ── Render loop ───────────────────────────────────────────────────────────────
+  // Videos play in real-time via play() — captureStream(fps) stays in sync.
+  // Images are paced at frameInterval with setTimeout for the compositor.
+  const frameInterval  = 1000 / fps;
+  const startedVideos  = new Set<number>(); // indices of video items currently playing
 
   for (let frame = 0; frame < totalFrames; frame++) {
+    const t          = frame / fps;
     const frameStart = performance.now();
 
-    // ── ITEM-SWITCH DEBUG ─────────────────────────────────────────────────────
-    const dbgState  = getFrameState(frame, fps, startTimes, durations, transitionDuration);
-    const dbgIdx    = dbgState.kind === 'steady' ? dbgState.imageIndex : dbgState.fromIndex;
-    if (dbgIdx !== lastLoggedItemIndex) {
-      console.log('Switching to item', dbgIdx, 'type:', items[dbgIdx].type,
-                  'at frame:', frame, 'time:', +(frame / fps).toFixed(3));
-      lastLoggedItemIndex = dbgIdx;
-    }
-    // ── VIDEO FRAME TIMING DEBUG (first & last 5 frames per video item) ───────
-    if (dbgState.kind === 'steady' && items[dbgState.imageIndex].type === 'video') {
-      const itemStartFrame = Math.round(startTimes[dbgState.imageIndex] * fps);
-      const itemEndFrame   = Math.round((startTimes[dbgState.imageIndex] + items[dbgState.imageIndex].duration) * fps);
-      const frameInItem    = frame - itemStartFrame;
-      const videoTime      = frame / fps - startTimes[dbgState.imageIndex];
-      if (frameInItem < 5 || itemEndFrame - frame <= 5) {
-        console.log('Video render:', {
-          frame,
-          frameInItem,
-          videoTime:      +videoTime.toFixed(4),
-          videoDuration:  items[dbgState.imageIndex].duration,
-          itemStartFrame,
-          itemEndFrame,
-          expectedFrames: Math.round(items[dbgState.imageIndex].duration * fps),
-        });
+    // Start/stop video elements based on their active time windows
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type !== 'video') continue;
+      const video     = items[i].element as HTMLVideoElement;
+      const itemStart = startTimes[i];
+      const itemEnd   = startTimes[i] + items[i].duration;
+
+      if (t >= itemStart && t < itemEnd && !startedVideos.has(i)) {
+        // Time window just opened — start real-time playback from beginning
+        video.currentTime = 0;
+        try { await video.play(); } catch { /* autoplay policy — proceed with static frame */ }
+        startedVideos.add(i);
+      } else if (t >= itemEnd && startedVideos.has(i)) {
+        // Time window closed
+        video.pause();
+        startedVideos.delete(i);
       }
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
-    await drawFrame(ctx, config, startTimes, frame);
+    drawFrame(ctx, config, startTimes, frame);
 
     onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * 100) });
 
+    // Hold each frame for frameInterval so captureStream can sample it
     const elapsed  = performance.now() - frameStart;
     const waitTime = Math.max(0, frameInterval - elapsed);
     await new Promise<void>((r) => setTimeout(r, waitTime));
+  }
+
+  // Stop any videos still playing after loop ends
+  for (const idx of startedVideos) {
+    (items[idx].element as HTMLVideoElement).pause();
   }
 
   try { audio?.source.stop(); } catch { /* already stopped */ }

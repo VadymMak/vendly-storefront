@@ -441,6 +441,14 @@ export default function SlideshowCreator() {
                 Auto-trims to video length · fades out last 2 seconds · requires Chrome for MP4
               </p>
             )}
+            <a
+              href="https://pixabay.com/music/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-[13px] text-[var(--color-primary)] hover:underline"
+            >
+              Find free music on Pixabay →
+            </a>
           </div>
 
           {/* Transition */}

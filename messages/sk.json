@@ -1289,7 +1289,8 @@
       "noCredits": "Renderované lokálne vo vašom prehliadači · Bez kreditov · Žiadne dáta neboli nahrané",
       "music": "Hudba na pozadí",
       "uploadMusic": "Nahrať MP3, WAV, OGG alebo M4A",
-      "noMusic": "Žiadne audio nie je vybrané"
+      "noMusic": "Žiadne audio nie je vybrané",
+      "findFreeMusic": "Nájsť bezplatnú hudbu na Pixabay →"
     }
   },
   "aiStudio": {

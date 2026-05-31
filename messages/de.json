@@ -1289,7 +1289,8 @@
       "noCredits": "Lokal in Ihrem Browser gerendert · Keine Credits verwendet · Keine Daten hochgeladen",
       "music": "Hintergrundmusik",
       "uploadMusic": "MP3, WAV, OGG oder M4A hochladen",
-      "noMusic": "Kein Audio ausgewählt"
+      "noMusic": "Kein Audio ausgewählt",
+      "findFreeMusic": "Kostenlose Musik auf Pixabay finden →"
     }
   },
   "aiStudio": {

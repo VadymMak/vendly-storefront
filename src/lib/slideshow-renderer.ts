@@ -266,11 +266,10 @@ function getFrameState(
 
 // ── Frame drawing (synchronous — videos drawn from current play position) ─────
 
-// ctx.filter with complex values (brightness+contrast+saturate+sepia) is GPU-heavy
-// and adds 20-50ms per drawImage on video frames, breaking captureStream timing.
-// Solution: filter only image items (static, render fast); video items get 'none'.
-function itemFilter(item: SlideshowItem, cssFilter: string): string {
-  return item.type === 'image' ? cssFilter : 'none';
+// Audio is now in Pass 2 (real-time, no drift), so slow filter rendering in Pass 1
+// no longer breaks audio sync. Apply cssFilter to all items including video.
+function itemFilter(_item: SlideshowItem, cssFilter: string): string {
+  return cssFilter;
 }
 
 function drawFrame(

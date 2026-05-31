@@ -162,7 +162,26 @@ export async function resetMonthlyCredits(): Promise<number> {
   });
 
   let resetCount = 0;
+  const now = new Date();
+
   for (const user of usersToReset) {
+    // Migration expired — downgrade to free before resetting
+    if (user.existingUserMigration && user.migrationExpiresAt && now > user.migrationExpiresAt) {
+      await db.studioCredits.update({
+        where: { id: user.id },
+        data: {
+          planType:              'free',
+          monthlyImages:         PLAN_CREDITS.free.images,
+          monthlyVideos:         PLAN_CREDITS.free.videos,
+          existingUserMigration: false,
+          migrationExpiresAt:    null,
+          lastReset:             now,
+        },
+      });
+      resetCount++;
+      continue;
+    }
+
     const plan = user.planType as PlanType;
     const allowance = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
 
@@ -171,7 +190,7 @@ export async function resetMonthlyCredits(): Promise<number> {
       data: {
         monthlyImages: allowance.images,
         monthlyVideos: allowance.videos,
-        lastReset:     new Date(),
+        lastReset:     now,
       },
     });
     resetCount++;

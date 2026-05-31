@@ -771,7 +771,8 @@
       "f5": "WhatsApp integration",
       "f6": "SEO optimization",
       "f7": "Ready in 48 hours",
-      "cta": "Order Landing"
+      "cta": "Order Landing",
+      "studio": "AI Studio: 5 images + 1 video/month"
     },
     "premium": {
       "badge": "Most popular",
@@ -783,7 +784,8 @@
       "f5": "AI chatbot included",
       "f6": "WhatsApp + forms",
       "f7": "3 changes per month",
-      "cta": "Order Premium"
+      "cta": "Order Premium",
+      "studio": "AI Studio: 50 images + 3 videos/month"
     },
     "individual": {
       "desc": "Multi-page custom website",
@@ -794,7 +796,8 @@
       "f5": "Priority support",
       "f6": "Full AI integration",
       "f7": "5 changes per month",
-      "cta": "Contact us"
+      "cta": "Contact us",
+      "studio": "AI Studio: 150 images + 8 videos/month"
     }
   },
   "included": {
@@ -866,7 +869,8 @@
       "f3": "Custom (costly)",
       "f5": "€0 (upfront €1k+)",
       "f6": "Depends"
-    }
+    },
+    "aiStudio": "AI Content Studio"
   },
   "dachTrust": {
     "badge1": "Made in Europe",
@@ -904,7 +908,12 @@
     "title": "Simple pricing. No surprises.",
     "subtitle": "Start for free. Scale as your business grows.",
     "faqText": "Have more questions?",
-    "faqLink": "Check our FAQ"
+    "faqLink": "Check our FAQ",
+    "faqAiTitle": "AI Studio Questions",
+    "faqAiQ1": "What is AI Studio?",
+    "faqAiA1": "AI Studio is our built-in content creation tool. Generate professional images and videos for your website and social media using AI. Every plan includes free monthly credits.",
+    "faqAiQ2": "Can I buy more AI credits?",
+    "faqAiA2": "Yes! Credit packs start from €12 (120 images + 5 videos). Credits from packs never expire. Visit /studio/pricing for details."
   },
   "templatesPage": {
     "badge": "6 templates",

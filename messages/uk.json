@@ -771,7 +771,8 @@
       "f5": "Інтеграція WhatsApp",
       "f6": "SEO оптимізація",
       "f7": "Готово за 48 годин",
-      "cta": "Замовити Landing"
+      "cta": "Замовити Landing",
+      "studio": "AI Studio: 5 images + 1 video/month"
     },
     "premium": {
       "badge": "Найпопулярніший",
@@ -783,7 +784,8 @@
       "f5": "AI чатбот включено",
       "f6": "WhatsApp + форми",
       "f7": "3 зміни на місяць",
-      "cta": "Замовити Premium"
+      "cta": "Замовити Premium",
+      "studio": "AI Studio: 50 images + 3 videos/month"
     },
     "individual": {
       "desc": "Багатосторінковий сайт на замовлення",
@@ -794,7 +796,8 @@
       "f5": "Пріоритетна підтримка",
       "f6": "Повна AI інтеграція",
       "f7": "5 змін на місяць",
-      "cta": "Написати нам"
+      "cta": "Написати нам",
+      "studio": "AI Studio: 150 images + 8 videos/month"
     }
   },
   "included": {
@@ -866,7 +869,8 @@
       "f3": "На замовлення (дорого)",
       "f5": "€0 (передоплата €1k+)",
       "f6": "Залежить від виконавця"
-    }
+    },
+    "aiStudio": "AI Content Studio"
   },
   "dachTrust": {
     "badge1": "Made in Europe",
@@ -904,7 +908,12 @@
     "title": "Прості ціни. Без сюрпризів.",
     "subtitle": "Починайте безкоштовно. Зростайте разом з вашим бізнесом.",
     "faqText": "Є ще питання?",
-    "faqLink": "Дивіться FAQ"
+    "faqLink": "Дивіться FAQ",
+    "faqAiTitle": "AI Studio Questions",
+    "faqAiQ1": "What is AI Studio?",
+    "faqAiA1": "AI Studio is our built-in content creation tool. Generate professional images and videos for your website and social media using AI. Every plan includes free monthly credits.",
+    "faqAiQ2": "Can I buy more AI credits?",
+    "faqAiA2": "Yes! Credit packs start from €12 (120 images + 5 videos). Credits from packs never expire. Visit /studio/pricing for details."
   },
   "templatesPage": {
     "badge": "6 шаблонів",

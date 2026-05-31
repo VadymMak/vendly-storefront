@@ -260,6 +260,13 @@ function getFrameState(
 
 // ── Frame drawing (synchronous — videos drawn from current play position) ─────
 
+// ctx.filter with complex values (brightness+contrast+saturate+sepia) is GPU-heavy
+// and adds 20-50ms per drawImage on video frames, breaking captureStream timing.
+// Solution: filter only image items (static, render fast); video items get 'none'.
+function itemFilter(item: SlideshowItem, cssFilter: string): string {
+  return item.type === 'image' ? cssFilter : 'none';
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
@@ -282,7 +289,7 @@ function drawFrame(
   if (state.kind === 'steady') {
     const item        = items[state.imageIndex];
     const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
-    ctx.filter = cssFilter;
+    ctx.filter = itemFilter(item, cssFilter);
     drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
     ctx.filter = 'none';
     applyStyle(ctx, style, W, H);
@@ -298,10 +305,11 @@ function drawFrame(
 
   switch (transitionType) {
     case 'fade': {
-      ctx.filter = cssFilter;
       ctx.globalAlpha = 1 - progress;
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.globalAlpha = progress;
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem,   W, H, toRaw,   0, 0, W, H);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
@@ -309,16 +317,17 @@ function drawFrame(
     }
 
     case 'slide-left': {
-      ctx.filter = cssFilter;
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
       ctx.save();
       ctx.translate(-progress * W, 0);
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.restore();
       ctx.save();
       ctx.translate((1 - progress) * W, 0);
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
@@ -327,16 +336,17 @@ function drawFrame(
     }
 
     case 'slide-right': {
-      ctx.filter = cssFilter;
       ctx.save();
       ctx.rect(0, 0, W, H);
       ctx.clip();
       ctx.save();
       ctx.translate(progress * W, 0);
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
       ctx.restore();
       ctx.save();
       ctx.translate(-(1 - progress) * W, 0);
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
       ctx.restore();
       ctx.restore();
@@ -345,27 +355,29 @@ function drawFrame(
     }
 
     case 'zoom-in': {
-      ctx.filter = cssFilter;
       ctx.globalAlpha = 1 - progress;
+      ctx.filter = itemFilter(fromItem, cssFilter);
       drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
-      const s  = 0.5 + 0.5 * progress;
-      const dw = W * s;
-      const dh = H * s;
+      const zis  = 0.5 + 0.5 * progress;
+      const zidw = W * zis;
+      const zidh = H * zis;
       ctx.globalAlpha = progress;
-      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.filter = itemFilter(toItem, cssFilter);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - zidw) / 2, (H - zidh) / 2, zidw, zidh);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
       break;
     }
 
     case 'zoom-out': {
-      ctx.filter = cssFilter;
+      ctx.filter = itemFilter(toItem, cssFilter);
       drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
-      const s  = 1 - 0.5 * progress;
-      const dw = W * s;
-      const dh = H * s;
+      const zos  = 1 - 0.5 * progress;
+      const zodw = W * zos;
+      const zodh = H * zos;
       ctx.globalAlpha = 1 - progress;
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.filter = itemFilter(fromItem, cssFilter);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - zodw) / 2, (H - zodh) / 2, zodw, zodh);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
       break;

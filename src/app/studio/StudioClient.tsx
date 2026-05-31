@@ -454,6 +454,45 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setEditAiError(null);
     try {
       const sourceFile = await editGetSourceFile();
+
+      // ── BYOK direct path — browser calls Replicate, zero Vercel CPU ──────────
+      if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(sourceFile);
+        });
+        if (tool === 'removebg') {
+          const result = await replicateDirectRun(byokConfig.apiKey, {
+            model: byokConfig.models.removeBg,
+            input: { image: dataUrl },
+          });
+          const resultUrl = typeof result.output === 'string' ? result.output : String(result.output);
+          setEditAiResult(resultUrl);
+          setEditIsTransparent(true);
+          setEditSaveFormat('png');
+        } else {
+          const input = tool === 'upscale'
+            ? { image: dataUrl, scale: 4, face_enhance: false }
+            : { image: dataUrl, scale: 2, face_enhance: true };
+          const result = await replicateDirectRun(byokConfig.apiKey, {
+            model: byokConfig.models.upscale,
+            input,
+          });
+          const resultUrl = typeof result.output === 'string' ? result.output : String(result.output);
+          setEditAiResult(resultUrl);
+          setEditIsTransparent(false);
+        }
+        fetch('/api/studio/track-generation', {
+          method: 'POST',
+          body: JSON.stringify({ type: 'image' }),
+          headers: { 'Content-Type': 'application/json' },
+        }).catch(() => {});
+        return;
+      }
+
+      // ── Server path ───────────────────────────────────────────────────────────
       const fd = new FormData();
       fd.append('image', sourceFile);
       let url: string;

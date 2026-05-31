@@ -177,12 +177,14 @@ function getMotionCrop(
 
 // Draw item into destination rect.
 // Videos are drawn from their current real-time play position — no seeking.
+// filteredSources: pre-filtered offscreen canvases for image items (filter applied once before render loop).
 function drawItemAtRect(
   ctx: CanvasRenderingContext2D,
   item: SlideshowItem,
   canvasW: number, canvasH: number,
   rawProgress: number,
   dx: number, dy: number, dw: number, dh: number,
+  filteredSources: Map<HTMLImageElement, HTMLCanvasElement>,
 ): void {
   if (item.type === 'video') {
     const video = item.element as HTMLVideoElement;
@@ -199,9 +201,10 @@ function drawItemAtRect(
     }
     ctx.drawImage(video, sx, sy, sw, sh, dx, dy, dw, dh);
   } else {
-    const img            = item.element as HTMLImageElement;
+    const img    = item.element as HTMLImageElement;
+    const source = filteredSources.get(img) ?? img;
     const { sx, sy, sw, sh } = getMotionCrop(img, item.motion ?? null, rawProgress, canvasW, canvasH);
-    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    ctx.drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh);
   }
 }
 
@@ -260,25 +263,18 @@ function getFrameState(
 
 // ── Frame drawing (synchronous — videos drawn from current play position) ─────
 
-// ctx.filter with complex values (brightness+contrast+saturate+sepia) is GPU-heavy
-// and adds 20-50ms per drawImage on video frames, breaking captureStream timing.
-// Solution: filter only image items (static, render fast); video items get 'none'.
-function itemFilter(item: SlideshowItem, cssFilter: string): string {
-  return item.type === 'image' ? cssFilter : 'none';
-}
-
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
   startTimes: number[],
   frame: number,
+  filteredSources: Map<HTMLImageElement, HTMLCanvasElement>,
 ): void {
   const { items, transitionDuration, transitionType, fps, outputSize, style = 'none' } = config;
   const W        = outputSize.width;
   const H        = outputSize.height;
   const t        = frame / fps;
   const durations = items.map((item) => item.duration);
-  const cssFilter = STYLE_PRESETS[style].filter;
 
   ctx.globalAlpha = 1;
   ctx.fillStyle   = '#000';
@@ -289,9 +285,7 @@ function drawFrame(
   if (state.kind === 'steady') {
     const item        = items[state.imageIndex];
     const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
-    ctx.filter = itemFilter(item, cssFilter);
-    drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
-    ctx.filter = 'none';
+    drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H, filteredSources);
     applyStyle(ctx, style, W, H);
     return;
   }
@@ -306,13 +300,10 @@ function drawFrame(
   switch (transitionType) {
     case 'fade': {
       ctx.globalAlpha = 1 - progress;
-      ctx.filter = itemFilter(fromItem, cssFilter);
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H, filteredSources);
       ctx.globalAlpha = progress;
-      ctx.filter = itemFilter(toItem, cssFilter);
-      drawItemAtRect(ctx, toItem,   W, H, toRaw,   0, 0, W, H);
+      drawItemAtRect(ctx, toItem,   W, H, toRaw,   0, 0, W, H, filteredSources);
       ctx.globalAlpha = 1;
-      ctx.filter = 'none';
       break;
     }
 
@@ -322,16 +313,13 @@ function drawFrame(
       ctx.clip();
       ctx.save();
       ctx.translate(-progress * W, 0);
-      ctx.filter = itemFilter(fromItem, cssFilter);
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H, filteredSources);
       ctx.restore();
       ctx.save();
       ctx.translate((1 - progress) * W, 0);
-      ctx.filter = itemFilter(toItem, cssFilter);
-      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H, filteredSources);
       ctx.restore();
       ctx.restore();
-      ctx.filter = 'none';
       break;
     }
 
@@ -341,45 +329,36 @@ function drawFrame(
       ctx.clip();
       ctx.save();
       ctx.translate(progress * W, 0);
-      ctx.filter = itemFilter(fromItem, cssFilter);
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H, filteredSources);
       ctx.restore();
       ctx.save();
       ctx.translate(-(1 - progress) * W, 0);
-      ctx.filter = itemFilter(toItem, cssFilter);
-      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H, filteredSources);
       ctx.restore();
       ctx.restore();
-      ctx.filter = 'none';
       break;
     }
 
     case 'zoom-in': {
       ctx.globalAlpha = 1 - progress;
-      ctx.filter = itemFilter(fromItem, cssFilter);
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, 0, 0, W, H, filteredSources);
       const zis  = 0.5 + 0.5 * progress;
       const zidw = W * zis;
       const zidh = H * zis;
       ctx.globalAlpha = progress;
-      ctx.filter = itemFilter(toItem, cssFilter);
-      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - zidw) / 2, (H - zidh) / 2, zidw, zidh);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, (W - zidw) / 2, (H - zidh) / 2, zidw, zidh, filteredSources);
       ctx.globalAlpha = 1;
-      ctx.filter = 'none';
       break;
     }
 
     case 'zoom-out': {
-      ctx.filter = itemFilter(toItem, cssFilter);
-      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H);
+      drawItemAtRect(ctx, toItem, W, H, toRaw, 0, 0, W, H, filteredSources);
       const zos  = 1 - 0.5 * progress;
       const zodw = W * zos;
       const zodh = H * zos;
       ctx.globalAlpha = 1 - progress;
-      ctx.filter = itemFilter(fromItem, cssFilter);
-      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - zodw) / 2, (H - zodh) / 2, zodw, zodh);
+      drawItemAtRect(ctx, fromItem, W, H, fromRaw, (W - zodw) / 2, (H - zodh) / 2, zodw, zodh, filteredSources);
       ctx.globalAlpha = 1;
-      ctx.filter = 'none';
       break;
     }
   }
@@ -429,6 +408,29 @@ export async function renderSlideshow(
   const minDuration = Math.min(...items.map((item) => item.duration));
   if (transitionDuration >= minDuration) {
     throw new Error('Transition duration must be shorter than the shortest clip duration');
+  }
+
+  // Pre-render filtered images once — filter applied to offscreen canvas before recording.
+  // Each image is filtered exactly once instead of on every frame (~120× per image).
+  const filteredSources: Map<HTMLImageElement, HTMLCanvasElement> = new Map();
+  const style = config.style ?? 'none';
+  if (style !== 'none') {
+    const preset = STYLE_PRESETS[style];
+    for (const item of items) {
+      if (item.type === 'image') {
+        const img       = item.element as HTMLImageElement;
+        const offscreen = document.createElement('canvas');
+        offscreen.width  = img.naturalWidth;
+        offscreen.height = img.naturalHeight;
+        const offCtx = offscreen.getContext('2d');
+        if (offCtx) {
+          offCtx.filter = preset.filter;
+          offCtx.drawImage(img, 0, 0);
+          offCtx.filter = 'none';
+          filteredSources.set(img, offscreen);
+        }
+      }
+    }
   }
 
   // Preload all video items — buffer them and seek to 0 so play() starts instantly
@@ -496,7 +498,7 @@ export async function renderSlideshow(
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
 
   // Draw first frame before starting recorder (avoids blank first frame)
-  drawFrame(ctx, config, startTimes, 0);
+  drawFrame(ctx, config, startTimes, 0, filteredSources);
 
   recorder.start(500);
 
@@ -541,7 +543,7 @@ export async function renderSlideshow(
       }
     }
 
-    drawFrame(ctx, config, startTimes, frame);
+    drawFrame(ctx, config, startTimes, frame, filteredSources);
 
     onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * 100) });
 

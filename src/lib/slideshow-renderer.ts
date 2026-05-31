@@ -145,7 +145,15 @@ function drawItemAtRect(
     const video = item.element as HTMLVideoElement;
     const vW    = video.videoWidth;
     const vH    = video.videoHeight;
-    if (vW === 0 || vH === 0) return;
+    // DEBUG
+    console.log('Video frame:', {
+      currentTime: video.currentTime,
+      readyState: video.readyState,
+      videoWidth: vW,
+      videoHeight: vH,
+      src: video.src.slice(0, 60),
+    });
+    if (vW === 0 || vH === 0) { console.warn('Video has no dimensions — skipping drawImage'); return; }
     // Object-fit: cover — always use canvas aspect for the crop
     const videoAspect  = vW / vH;
     const canvasAspect = canvasW / canvasH;
@@ -156,6 +164,11 @@ function drawItemAtRect(
       sw = vW; sh = sw / canvasAspect; sx = 0; sy = (vH - sh) / 2;
     }
     ctx.drawImage(video, sx, sy, sw, sh, dx, dy, dw, dh);
+    // DEBUG pixel check (centre of 1080×1920 reel)
+    try {
+      const px = ctx.getImageData(Math.min(540, canvasW - 1), Math.min(960, canvasH - 1), 1, 1).data;
+      console.log('Drew video frame, pixel check:', Array.from(px));
+    } catch { /* cross-origin guard */ }
   } else {
     const img         = item.element as HTMLImageElement;
     const { sx, sy, sw, sh } = getMotionCrop(img, item.motion ?? null, rawProgress, canvasW, canvasH);
@@ -407,6 +420,7 @@ export async function renderSlideshow(
       video.muted      = true;
       video.playsInline = true;
       video.preload    = 'auto';
+      console.log('Preload video — before:', { readyState: video.readyState, src: video.src.slice(0, 60), duration: video.duration });
       if (video.readyState < 2) {
         await new Promise<void>((resolve) => {
           video.addEventListener('canplay', () => resolve(), { once: true });
@@ -414,6 +428,7 @@ export async function renderSlideshow(
         });
       }
       await seekVideoToTime(video, 0).catch(() => {});
+      console.log('Preload video — after:', { readyState: video.readyState, videoWidth: video.videoWidth, videoHeight: video.videoHeight });
     }
   }
 

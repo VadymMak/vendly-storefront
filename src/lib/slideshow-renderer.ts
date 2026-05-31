@@ -163,14 +163,31 @@ function drawItemAtRect(
   }
 }
 
-// Seek video to time t, waiting for seeked event (with 2 s timeout fallback)
-async function seekVideo(video: HTMLVideoElement, t: number): Promise<void> {
-  if (Math.abs(video.currentTime - t) < 0.001) return;
-  video.currentTime = t;
-  await new Promise<void>((resolve) => {
-    const timeout = setTimeout(resolve, 2000);
-    video.addEventListener('seeked', () => { clearTimeout(timeout); resolve(); }, { once: true });
+// Seek video to time, resolving on 'seeked'; resolves immediately if already at time
+async function seekVideoToTime(video: HTMLVideoElement, time: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onSeeked = () => {
+      video.removeEventListener('seeked', onSeeked);
+      video.removeEventListener('error', onError);
+      resolve();
+    };
+    const onError = () => {
+      video.removeEventListener('seeked', onSeeked);
+      video.removeEventListener('error', onError);
+      reject(new Error('Video seek failed'));
+    };
+    if (Math.abs(video.currentTime - time) < 0.01) { resolve(); return; }
+    video.addEventListener('seeked', onSeeked);
+    video.addEventListener('error', onError);
+    video.currentTime = time;
   });
+}
+
+// Seek video and ensure a decodable frame is available (readyState >= HAVE_CURRENT_DATA)
+async function ensureVideoFrame(video: HTMLVideoElement, time: number): Promise<void> {
+  const clamped = Math.min(Math.max(0, time), Math.max(0, video.duration - 0.05));
+  try { await seekVideoToTime(video, clamped); } catch { /* proceed with current frame */ }
+  if (video.readyState < 2) await new Promise<void>((r) => setTimeout(r, 50));
 }
 
 // ── Frame state ───────────────────────────────────────────────────────────────
@@ -248,7 +265,7 @@ async function drawFrame(
     const item       = items[state.imageIndex];
     const rawProgress = Math.max(0, Math.min(1, (t - startTimes[state.imageIndex]) / item.duration));
     if (item.type === 'video') {
-      await seekVideo(item.element as HTMLVideoElement, rawProgress * item.duration);
+      await ensureVideoFrame(item.element as HTMLVideoElement, rawProgress * item.duration);
     }
     drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
     return;
@@ -262,10 +279,10 @@ async function drawFrame(
   const toRaw     = Math.max(0, Math.min(1, (t - startTimes[toIndex])   / toItem.duration));
 
   if (fromItem.type === 'video') {
-    await seekVideo(fromItem.element as HTMLVideoElement, fromRaw * fromItem.duration);
+    await ensureVideoFrame(fromItem.element as HTMLVideoElement, fromRaw * fromItem.duration);
   }
   if (toItem.type === 'video') {
-    await seekVideo(toItem.element as HTMLVideoElement, toRaw * toItem.duration);
+    await ensureVideoFrame(toItem.element as HTMLVideoElement, toRaw * toItem.duration);
   }
 
   switch (transitionType) {
@@ -383,9 +400,21 @@ export async function renderSlideshow(
     throw new Error('Transition duration must be shorter than the shortest clip duration');
   }
 
-  // Mute all video items — audio comes only from the optional audioFile
+  // Preload all video items — ensure canplay readyState before rendering starts
   for (const item of items) {
-    if (item.type === 'video') (item.element as HTMLVideoElement).muted = true;
+    if (item.type === 'video') {
+      const video      = item.element as HTMLVideoElement;
+      video.muted      = true;
+      video.playsInline = true;
+      video.preload    = 'auto';
+      if (video.readyState < 2) {
+        await new Promise<void>((resolve) => {
+          video.addEventListener('canplay', () => resolve(), { once: true });
+          video.load();
+        });
+      }
+      await seekVideoToTime(video, 0).catch(() => {});
+    }
   }
 
   // Precompute overlapping timeline

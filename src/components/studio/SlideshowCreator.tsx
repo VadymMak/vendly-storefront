@@ -94,11 +94,12 @@ function loadVideo(
   file: File,
 ): Promise<{ element: HTMLVideoElement; objectUrl: string; duration: number; thumbnailDataUrl: string | null }> {
   return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const video     = document.createElement('video');
-    video.muted     = true;
-    video.preload   = 'metadata';
-    video.src       = objectUrl;
+    const objectUrl   = URL.createObjectURL(file);
+    const video       = document.createElement('video');
+    video.muted       = true;
+    video.playsInline = true;
+    video.preload     = 'auto';
+    video.src         = objectUrl;
 
     video.addEventListener('loadedmetadata', () => {
       if (video.duration > 15) {
@@ -106,16 +107,21 @@ function loadVideo(
         reject(new Error('Video must be 15 seconds or shorter'));
         return;
       }
-      video.addEventListener('seeked', () => {
-        resolve({ element: video, objectUrl, duration: video.duration, thumbnailDataUrl: captureVideoFrame(video) });
+      // Wait for enough data to decode the first frame
+      video.addEventListener('canplay', () => {
+        video.currentTime = 0;
+        video.addEventListener('seeked', () => {
+          resolve({ element: video, objectUrl, duration: video.duration, thumbnailDataUrl: captureVideoFrame(video) });
+        }, { once: true });
       }, { once: true });
-      video.currentTime = 0.01; // trigger seek so first frame is available for thumbnail
     }, { once: true });
 
     video.addEventListener('error', () => {
       URL.revokeObjectURL(objectUrl);
       reject(new Error(`Failed to load ${file.name}`));
     }, { once: true });
+
+    video.load();
   });
 }
 

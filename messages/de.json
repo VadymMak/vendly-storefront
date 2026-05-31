@@ -1269,6 +1269,24 @@
     },
     "byok": {
       "note": "Für Fortgeschrittene: Bringen Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzten Zugang mit"
+    },
+    "slideshow": {
+      "tabLabel": "Foto-Diashow",
+      "tabDesc": "Canvas-Render · Keine Credits nötig",
+      "title": "Foto-Diashow-Ersteller",
+      "subtitle": "Verwandeln Sie Ihre Fotos in eine flüssige MP4-Diashow mit Übergängen und Ken-Burns-Effekten — direkt in Ihrem Browser gerendert. Keine Credits nötig.",
+      "dropzone": "Bilder hier ablegen oder klicken zum Hochladen",
+      "dropzoneHint": "JPG, PNG, WebP — bis zu 20 Fotos",
+      "addMore": "+ Weitere hinzufügen",
+      "configure": "Konfigurieren & Diashow erstellen →",
+      "minPhotos": "Mindestens 2 Fotos hinzufügen, um fortzufahren",
+      "rendering": "Diashow wird gerendert…",
+      "doNotClose": "Das Rendering läuft in Ihrem Browser in Echtzeit — schließen Sie diesen Tab nicht",
+      "ready": "Ihre Diashow ist fertig",
+      "startOver": "Von vorne beginnen",
+      "download": "Herunterladen",
+      "reRender": "Erneut rendern",
+      "noCredits": "Lokal in Ihrem Browser gerendert · Keine Credits verwendet · Keine Daten hochgeladen"
     }
   },
   "aiStudio": {

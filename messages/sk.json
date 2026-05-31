@@ -1269,6 +1269,24 @@
     },
     "byok": {
       "note": "Advanced users: bring your own Replicate API key for unlimited access"
+    },
+    "slideshow": {
+      "tabLabel": "Foto Prezentácia",
+      "tabDesc": "Canvas render · Bez kreditov",
+      "title": "Tvorba Foto Prezentácie",
+      "subtitle": "Premeňte svoje fotografie na plynulú MP4 prezentáciu s prechodmi a Ken Burns efektom — renderovanú priamo vo vašom prehliadači. Bez kreditov.",
+      "dropzone": "Presuňte sem obrázky alebo kliknite pre nahranie",
+      "dropzoneHint": "JPG, PNG, WebP — až 20 fotografií",
+      "addMore": "+ Pridať ďalšie",
+      "configure": "Nastaviť a vytvoriť prezentáciu →",
+      "minPhotos": "Pridajte aspoň 2 fotografie pre pokračovanie",
+      "rendering": "Renderujem vašu prezentáciu…",
+      "doNotClose": "Renderovanie prebieha vo vašom prehliadači v reálnom čase — nezatvárajte túto kartu",
+      "ready": "Vaša prezentácia je hotová",
+      "startOver": "Začať znova",
+      "download": "Stiahnuť",
+      "reRender": "Znovu rendrovať",
+      "noCredits": "Renderované lokálne vo vašom prehliadači · Bez kreditov · Žiadne dáta neboli nahrané"
     }
   },
   "aiStudio": {

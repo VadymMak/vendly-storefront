@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
 import UpgradeModal from '@/components/studio/UpgradeModal';
+import SlideshowCreator from '@/components/studio/SlideshowCreator';
 import { replicateDirectRun, fetchImageAsBlob } from '@/lib/replicate-client';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ interface ByokConfig {
   };
 }
 
-type StudioTab      = 'image' | 'video';
+type StudioTab      = 'image' | 'video' | 'slideshow';
 type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
@@ -976,6 +977,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             {([
               { id: 'image' as StudioTab, label: 'Image Generator', desc: 'Flux Schnell · ~$0.003/image' },
               { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.0 · ~$0.30–0.60/video' },
+              { id: 'slideshow' as StudioTab, label: 'Photo Slideshow', desc: 'Canvas render · No credits needed' },
             ] as const).map(({ id, label, desc }) => (
               <button
                 key={id}
@@ -1730,6 +1732,11 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
               )}
             </div>
           )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              SLIDESHOW TAB
+          ══════════════════════════════════════════════════════════════ */}
+          {studioTab === 'slideshow' && <SlideshowCreator />}
         </div>
       </div>
 

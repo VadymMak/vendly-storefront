@@ -1261,5 +1261,34 @@
     "byok": {
       "note": "Für Fortgeschrittene: Bringen Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzten Zugang mit"
     }
+  },
+  "aiStudio": {
+    "badge": "KI-GESTÜTZT",
+    "title": "Erstellen Sie beeindruckende Inhalte für Ihre Website & Social Media",
+    "subtitle": "Erstellen Sie professionelle Bilder und Videos in Sekunden. Direkt in Ihre Website-Plattform integriert.",
+    "cards": {
+      "images": {
+        "title": "KI-Bildgenerator",
+        "description": "Beschreiben Sie Ihre Idee — erhalten Sie ein professionelles Foto. 6 Vorlagen, 12 Stile.",
+        "price": "ab €0,003/Bild"
+      },
+      "video": {
+        "title": "KI-Videogenerator",
+        "description": "5–10-Sekunden-Videos für Instagram Reels, TikTok, YouTube Shorts.",
+        "price": "ab €0,30/Video"
+      },
+      "tools": {
+        "title": "KI-Foto-Tools",
+        "description": "4× hochskalieren, Hintergrund entfernen, Porträts verbessern, mit Text bearbeiten.",
+        "price": "ab €0,02/Bearbeitung"
+      }
+    },
+    "social": {
+      "text": "Perfekt für Social-Media-Inhalte"
+    },
+    "cta": {
+      "button": "AI Studio kostenlos testen",
+      "note": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich."
+    }
   }
 }

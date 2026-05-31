@@ -1261,5 +1261,34 @@
     "byok": {
       "note": "Advanced users: bring your own Replicate API key for unlimited access"
     }
+  },
+  "aiStudio": {
+    "badge": "AI-POWERED",
+    "title": "Create Stunning Content for Your Website & Social Media",
+    "subtitle": "Generate professional images and videos in seconds. Built right into your website platform.",
+    "cards": {
+      "images": {
+        "title": "AI Image Generator",
+        "description": "Describe your idea — get a professional photo. 6 presets, 12 styles.",
+        "price": "from €0.003/image"
+      },
+      "video": {
+        "title": "AI Video Generator",
+        "description": "5–10 second videos for Instagram Reels, TikTok, YouTube Shorts.",
+        "price": "from €0.30/video"
+      },
+      "tools": {
+        "title": "AI Photo Tools",
+        "description": "Upscale 4×, remove background, enhance portraits, edit with text.",
+        "price": "from €0.02/edit"
+      }
+    },
+    "social": {
+      "text": "Perfect for social media content"
+    },
+    "cta": {
+      "button": "Try AI Studio Free",
+      "note": "5 free images + 1 video every month. No credit card required."
+    }
   }
 }

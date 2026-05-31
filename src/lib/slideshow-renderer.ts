@@ -106,6 +106,13 @@ function drawCover(
 }
 
 // ── Frame state ───────────────────────────────────────────────────────────────
+//
+// Overlapping model: transitions share time with adjacent images.
+//   step         = durationPerImage - transitionDuration
+//   startTime[i] = i * step
+//   endTime[i]   = startTime[i] + durationPerImage
+//   transition i→i+1 occupies [(i+1)*step, i*step + durationPerImage)
+//   totalDuration = n*durationPerImage - (n-1)*transitionDuration
 
 type FrameState =
   | { kind: 'steady'; imageIndex: number; progress: number }
@@ -118,35 +125,36 @@ function getFrameState(
   transitionDuration: number,
   numImages: number,
 ): FrameState {
-  const t = frame / fps;
-  let elapsed = 0;
+  const t    = frame / fps;
+  const step = durationPerImage - transitionDuration;
 
+  // Check transitions first (overlap windows take priority)
+  for (let i = 0; i < numImages - 1; i++) {
+    const transStart = (i + 1) * step;
+    const transEnd   = i * step + durationPerImage; // = transStart + transitionDuration
+
+    if (t >= transStart && t < transEnd) {
+      return {
+        kind:       'transition',
+        fromIndex:  i,
+        toIndex:    i + 1,
+        progress:   (t - transStart) / transitionDuration,
+      };
+    }
+  }
+
+  // Steady: find which single image covers time t
   for (let i = 0; i < numImages; i++) {
-    const steadyEnd = elapsed + durationPerImage;
+    const imgStart = i * step;
+    const imgEnd   = imgStart + durationPerImage;
 
-    if (t < steadyEnd || i === numImages - 1) {
+    if (t >= imgStart && t < imgEnd) {
       return {
-        kind: 'steady',
-        imageIndex: i,
-        progress: durationPerImage > 0
-          ? Math.min(1, (t - elapsed) / durationPerImage)
-          : 1,
+        kind:        'steady',
+        imageIndex:  i,
+        progress:    (t - imgStart) / durationPerImage,
       };
     }
-
-    elapsed = steadyEnd;
-    const transitionEnd = elapsed + transitionDuration;
-
-    if (t < transitionEnd) {
-      return {
-        kind: 'transition',
-        fromIndex: i,
-        toIndex: i + 1,
-        progress: (t - elapsed) / transitionDuration,
-      };
-    }
-
-    elapsed = transitionEnd;
   }
 
   return { kind: 'steady', imageIndex: numImages - 1, progress: 1 };
@@ -300,6 +308,9 @@ export async function renderSlideshow(
   const H = outputSize.height;
 
   if (images.length < 2) throw new Error('At least 2 images required');
+  if (transitionDuration >= durationPerImage) {
+    throw new Error('Transition duration must be shorter than duration per image');
+  }
 
   // Create canvas
   const canvas = document.createElement('canvas');
@@ -313,9 +324,9 @@ export async function renderSlideshow(
     config.kenBurns ? generateKenBurns() : null,
   );
 
-  // Calculate total
-  const totalDuration  = images.length * durationPerImage + (images.length - 1) * transitionDuration;
-  const totalFrames    = Math.max(1, Math.round(totalDuration * fps));
+  // Overlapping model: transitions share time with adjacent images
+  const totalDuration = images.length * durationPerImage - (images.length - 1) * transitionDuration;
+  const totalFrames   = Math.max(1, Math.round(totalDuration * fps));
 
   // Pick MIME type — prefer H.264 MP4, fall back to WebM
   const mimeType = [

@@ -177,7 +177,7 @@ export default function SlideshowCreator() {
   };
 
   const totalSec = +(
-    slides.length * durationPerImage + Math.max(0, slides.length - 1) * transitionDuration
+    slides.length * durationPerImage - Math.max(0, slides.length - 1) * transitionDuration
   ).toFixed(1);
 
   // ── Rendering ─────────────────────────────────────────────────────────────────

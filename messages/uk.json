@@ -1303,7 +1303,14 @@
       "dropMedia": "Перетягніть зображення або відео сюди або натисніть для завантаження",
       "mediaTypes": "JPG, PNG, WebP, MP4 — до 20 файлів",
       "videoTooLong": "Відео має бути 15 секунд або коротше",
-      "videoDuration": "{seconds}с відео"
+      "videoDuration": "{seconds}с відео",
+      "style": "Стиль",
+      "styleNone": "Без ефекту",
+      "styleGoldenHour": "Золота година",
+      "styleCinematic": "Кінематографічний",
+      "styleVintage": "Вінтаж",
+      "styleCoolTone": "Холодні тони",
+      "styleBw": "Чорно-білий"
     }
   },
   "aiStudio": {

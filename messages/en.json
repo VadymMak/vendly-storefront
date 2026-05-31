@@ -1303,7 +1303,14 @@
       "dropMedia": "Drop images or videos here or click to upload",
       "mediaTypes": "JPG, PNG, WebP, MP4 — up to 20 files",
       "videoTooLong": "Video must be 15 seconds or shorter",
-      "videoDuration": "{seconds}s video"
+      "videoDuration": "{seconds}s video",
+      "style": "Style",
+      "styleNone": "None (clean)",
+      "styleGoldenHour": "Golden Hour",
+      "styleCinematic": "Cinematic",
+      "styleVintage": "Vintage",
+      "styleCoolTone": "Cool Tone",
+      "styleBw": "Black & White"
     }
   },
   "aiStudio": {

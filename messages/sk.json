@@ -1303,7 +1303,14 @@
       "dropMedia": "Sem presuňte obrázky alebo videá alebo kliknite pre nahratie",
       "mediaTypes": "JPG, PNG, WebP, MP4 — až 20 súborov",
       "videoTooLong": "Video musí mať 15 sekúnd alebo menej",
-      "videoDuration": "{seconds}s video"
+      "videoDuration": "{seconds}s video",
+      "style": "Štýl",
+      "styleNone": "Žiadny (čistý)",
+      "styleGoldenHour": "Zlatá hodina",
+      "styleCinematic": "Kinematografický",
+      "styleVintage": "Vintage",
+      "styleCoolTone": "Chladný tón",
+      "styleBw": "Čiernobiely"
     }
   },
   "aiStudio": {

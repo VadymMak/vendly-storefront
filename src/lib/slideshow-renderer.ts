@@ -410,6 +410,13 @@ export async function renderSlideshow(
     throw new Error('Transition duration must be shorter than the shortest clip duration');
   }
 
+  // Setup audio first — decode buffer before pre-filtering so audio is ready immediately at GO!
+  // source.start() is NOT called here; it fires synchronously right before the render loop.
+  let audio: AudioSetup | null = null;
+  if (config.audioFile) {
+    try { audio = await setupAudio(config.audioFile); } catch { audio = null; }
+  }
+
   // Pre-render filtered images once — filter applied to offscreen canvas before recording.
   // Each image is filtered exactly once instead of on every frame (~120× per image).
   const filteredSources: Map<HTMLImageElement, HTMLCanvasElement> = new Map();
@@ -479,12 +486,6 @@ export async function renderSlideshow(
     'video/webm',
   ].find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
 
-  // Optional background audio
-  let audio: AudioSetup | null = null;
-  if (config.audioFile) {
-    try { audio = await setupAudio(config.audioFile); } catch { audio = null; }
-  }
-
   // Build media stream — video from canvas, audio from AudioContext destination
   const videoStream = canvas.captureStream(fps);
   const tracks: MediaStreamTrack[] = [...videoStream.getTracks()];
@@ -497,17 +498,17 @@ export async function renderSlideshow(
 
   const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
 
+  // Resume AudioContext before the critical section — async OK here, nothing is recording yet
+  if (audio) await audio.audioCtx.resume();
+
   // Draw first frame before starting recorder (avoids blank first frame)
   drawFrame(ctx, config, startTimes, 0, filteredSources);
 
+  // GO! — recorder and audio source start back-to-back; render loop follows with zero async gap
   recorder.start(500);
-
   if (audio) {
-    await audio.audioCtx.resume();
     const startAt = audio.audioCtx.currentTime;
     const fadeAt  = Math.max(startAt, startAt + totalDuration - 2);
-
-    // Schedule gain fade relative to actual start time
     audio.gainNode.gain.setValueAtTime(1, startAt);
     audio.gainNode.gain.setValueAtTime(1, fadeAt);
     audio.gainNode.gain.linearRampToValueAtTime(0, startAt + totalDuration);

@@ -378,17 +378,14 @@ function pickMimeType(): string {
   );
 }
 
-// ── Pass 1: render video-only (no audio, captureStream(0) + requestFrame) ────
+// ── Pass 1: clean video render (no filters, captureStream(fps) + setTimeout) ──
 //
-// Renders each frame as fast as possible without any audio sync constraint.
-// Frame timestamps are driven by requestFrame() wall-clock calls.
-// Frame timing is maintained via setTimeout so the resulting video has the
-// correct playback speed regardless of how fast each frame renders.
-// Video items are seek-per-frame (no real-time constraint needed).
+// Renders at natural frame rate with no filters — fast enough to keep each frame
+// within its 33ms budget. captureStream(fps) stamps correct timestamps automatically.
+// Video items play in real-time via video.play() so their frames are always current.
 
 async function renderVideoPass(
   config: SlideshowConfig,
-  filteredSources: Map<HTMLImageElement, HTMLCanvasElement>,
   startTimes: number[],
   totalFrames: number,
   mimeType: string,
@@ -407,11 +404,16 @@ async function renderVideoPass(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  const videoStream  = canvas.captureStream(0); // manual frame-on-demand capture
-  const captureTrack = videoStream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack;
+  // fps-driven capture — encoder receives correct timestamps without requestFrame()
+  const videoStream = canvas.captureStream(fps);
   const chunks: Blob[] = [];
   const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: 8_000_000 });
   recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+  // No filters in Pass 1 — keeps frames fast so setTimeout(33ms) is honoured
+  const cleanConfig: SlideshowConfig = { ...config, style: 'none' as VideoStyle };
+  const emptyFiltered: Map<HTMLImageElement, HTMLCanvasElement> = new Map();
+  const startedVideos = new Set<HTMLVideoElement>();
 
   return new Promise<Blob>((resolve) => {
     recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
@@ -419,28 +421,33 @@ async function renderVideoPass(
 
     (async () => {
       for (let frame = 0; frame < totalFrames; frame++) {
-        const t         = frame / fps;
+        const t          = frame / fps;
         const frameStart = performance.now();
 
-        // Video items: seek to the exact content time (no real-time constraint here)
+        // Start video items at their content time via play() — no seeking needed
         for (let i = 0; i < items.length; i++) {
           if (items[i].type !== 'video') continue;
           const video     = items[i].element as HTMLVideoElement;
           const itemStart = startTimes[i];
           const itemEnd   = startTimes[i] + items[i].duration;
-          if (t >= itemStart && t < itemEnd) {
-            await seekVideoToTime(video, Math.min(t - itemStart, video.duration - 0.01)).catch(() => {});
+          if (t >= itemStart && t < itemEnd && !startedVideos.has(video)) {
+            startedVideos.add(video);
+            video.currentTime = 0;
+            await video.play().catch(() => {});
           }
         }
 
-        drawFrame(ctx, config, startTimes, frame, filteredSources);
-        captureTrack.requestFrame(); // explicitly stamp this frame into the stream
+        drawFrame(ctx, cleanConfig, startTimes, frame, emptyFiltered);
         onProgress(frame);
 
-        // Maintain target fps so the encoded video has correct playback speed
+        // Hold frame for correct duration — critical for proper video playback speed
         const elapsed  = performance.now() - frameStart;
         const waitTime = Math.max(0, frameInterval - elapsed);
         if (waitTime > 0) await new Promise<void>((r) => setTimeout(r, waitTime));
+      }
+
+      for (const item of items) {
+        if (item.type === 'video') (item.element as HTMLVideoElement).pause();
       }
 
       recorder.stop();
@@ -449,15 +456,18 @@ async function renderVideoPass(
   });
 }
 
-// ── Pass 2: add audio in real-time ────────────────────────────────────────────
+// ── Pass 2: apply filters + audio in real-time ────────────────────────────────
 //
-// Plays the Pass-1 video through a <video> element and records it together with
-// an AudioContext source. video.play() runs at natural speed → audio is always
-// in sync. Audio duration is derived from video.duration (actual encoded length).
+// Plays the Pass-1 video through a <video> element and re-records it with:
+//   • CSS filter applied via ctx.filter per frame (fast — just one drawImage)
+//   • overlay/vignette/letterbox via applyStyle()
+//   • optional AudioContext music track
+// video.play() drives timing so audio is always in sync.
 
-async function addAudioPass(
+async function addFilterAndAudioPass(
   videoBlob: Blob,
-  audioFile: File,
+  audioFile: File | undefined,
+  style: VideoStyle,
   mimeType: string,
   onProgress: (p: number) => void,
 ): Promise<Blob> {
@@ -472,35 +482,51 @@ async function addAudioPass(
     video.addEventListener('error', () => reject(new Error('Pass-2 video failed to load')), { once: true });
 
     video.addEventListener('loadedmetadata', async () => {
-      const actualDuration = video.duration; // real encoded duration from Pass 1
+      const actualDuration = video.duration;
+      const W = video.videoWidth;
+      const H = video.videoHeight;
 
       const canvas = document.createElement('canvas');
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width  = W;
+      canvas.height = H;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas 2D context unavailable')); return; }
 
+      const cssFilter = style !== 'none' ? STYLE_PRESETS[style].filter : 'none';
+
       let audioCtx: AudioContext | null = null;
+      let sourceNode: AudioBufferSourceNode | null = null;
+
       try {
-        audioCtx = new AudioContext();
-        const audioBuffer = await audioCtx.decodeAudioData(await audioFile.arrayBuffer());
+        const videoStream = canvas.captureStream(30);
+        const trackList: MediaStreamTrack[] = [...videoStream.getTracks()];
 
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.loop   = true;
+        if (audioFile) {
+          audioCtx = new AudioContext();
+          const audioBuffer = await audioCtx.decodeAudioData(await audioFile.arrayBuffer());
 
-        const gain = audioCtx.createGain();
-        source.connect(gain);
+          sourceNode = audioCtx.createBufferSource();
+          sourceNode.buffer = audioBuffer;
+          sourceNode.loop   = true;
 
-        const audioDest = audioCtx.createMediaStreamDestination();
-        gain.connect(audioDest);
+          const gain = audioCtx.createGain();
+          sourceNode.connect(gain);
 
-        const videoStream  = canvas.captureStream(30);
-        const mergedStream = new MediaStream([
-          ...videoStream.getTracks(),
-          ...audioDest.stream.getTracks(),
-        ]);
+          const audioDest = audioCtx.createMediaStreamDestination();
+          gain.connect(audioDest);
+          trackList.push(...audioDest.stream.getTracks());
 
+          await audioCtx.resume();
+
+          const startAt = audioCtx.currentTime;
+          const fadeAt  = Math.max(startAt, startAt + actualDuration - 2);
+          gain.gain.setValueAtTime(1, startAt);
+          gain.gain.setValueAtTime(1, fadeAt);
+          gain.gain.linearRampToValueAtTime(0, startAt + actualDuration);
+          sourceNode.start(startAt);
+        }
+
+        const mergedStream = new MediaStream(trackList);
         const chunks: Blob[] = [];
         const recorder = new MediaRecorder(mergedStream, { mimeType, videoBitsPerSecond: 8_000_000 });
         recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
@@ -512,23 +538,14 @@ async function addAudioPass(
         };
 
         recorder.onstop = () => { cleanup(); resolve(new Blob(chunks, { type: mimeType })); };
-
-        await audioCtx.resume();
         recorder.start(500);
-
-        const startAt = audioCtx.currentTime;
-        const fadeAt  = Math.max(startAt, startAt + actualDuration - 2);
-        gain.gain.setValueAtTime(1, startAt);
-        gain.gain.setValueAtTime(1, fadeAt);
-        gain.gain.linearRampToValueAtTime(0, startAt + actualDuration);
-        source.start(startAt);
 
         video.currentTime = 0;
         await video.play();
 
         const stopRecording = () => {
           if (recorder.state !== 'recording') return;
-          try { source.stop(); } catch { /* already stopped */ }
+          try { sourceNode?.stop(); } catch { /* already stopped */ }
           recorder.stop();
         };
 
@@ -537,13 +554,15 @@ async function addAudioPass(
             stopRecording();
             return;
           }
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          if (style !== 'none') ctx.filter = cssFilter;
+          ctx.drawImage(video, 0, 0, W, H);
+          ctx.filter = 'none';
+          if (style !== 'none') applyStyle(ctx, style, W, H);
           onProgress(video.currentTime / actualDuration);
           requestAnimationFrame(drawVideoFrame);
         };
         drawVideoFrame();
 
-        // Safety timeout in case video.ended never fires
         setTimeout(stopRecording, (actualDuration + 5) * 1000);
 
       } catch (err) {
@@ -564,6 +583,7 @@ export async function renderSlideshow(
   onProgress: OnProgress,
 ): Promise<RenderResult> {
   const { items, transitionDuration, fps } = config;
+  const style = config.style ?? 'none';
 
   if (items.length < 2) throw new Error('At least 2 items required');
 
@@ -572,35 +592,13 @@ export async function renderSlideshow(
     throw new Error('Transition duration must be shorter than the shortest clip duration');
   }
 
-  // Pre-render filtered images once — applied to offscreen canvas, reused every frame
-  const filteredSources: Map<HTMLImageElement, HTMLCanvasElement> = new Map();
-  const style = config.style ?? 'none';
-  if (style !== 'none') {
-    const preset = STYLE_PRESETS[style];
-    for (const item of items) {
-      if (item.type === 'image') {
-        const img       = item.element as HTMLImageElement;
-        const offscreen = document.createElement('canvas');
-        offscreen.width  = img.naturalWidth;
-        offscreen.height = img.naturalHeight;
-        const offCtx    = offscreen.getContext('2d');
-        if (offCtx) {
-          offCtx.filter = preset.filter;
-          offCtx.drawImage(img, 0, 0);
-          offCtx.filter = 'none';
-          filteredSources.set(img, offscreen);
-        }
-      }
-    }
-  }
-
   // Preload video items
   for (const item of items) {
     if (item.type === 'video') {
-      const video      = item.element as HTMLVideoElement;
-      video.muted      = true;
+      const video       = item.element as HTMLVideoElement;
+      video.muted       = true;
       video.playsInline = true;
-      video.preload    = 'auto';
+      video.preload     = 'auto';
       if (video.readyState < 2) {
         await new Promise<void>((resolve) => {
           video.addEventListener('canplay', () => resolve(), { once: true });
@@ -621,14 +619,14 @@ export async function renderSlideshow(
   const totalDuration = durations.reduce((s, d) => s + d, 0) - (items.length - 1) * transitionDuration;
   const totalFrames   = Math.max(1, Math.round(totalDuration * fps));
 
-  const mimeType = pickMimeType();
-  const hasAudio = !!config.audioFile;
-  const pass1Max = hasAudio ? 70 : 100;
+  const mimeType    = pickMimeType();
+  const hasAudio    = !!config.audioFile;
+  const needsPass2  = hasAudio || style !== 'none';
+  const pass1Max    = needsPass2 ? 60 : 100;
 
-  // Pass 1 — video-only render (no audio drift possible)
+  // Pass 1 — clean render (no filters → fast → correct frame timing)
   const videoBlob = await renderVideoPass(
     config,
-    filteredSources,
     startTimes,
     totalFrames,
     mimeType,
@@ -644,12 +642,13 @@ export async function renderSlideshow(
 
   onProgress({ currentFrame: totalFrames, totalFrames, percent: pass1Max, phase: 'rendering' });
 
-  if (!hasAudio) return { blob: videoBlob, mimeType };
+  if (!needsPass2) return { blob: videoBlob, mimeType };
 
-  // Pass 2 — add audio in real-time; video.play() drives timing
-  const finalBlob = await addAudioPass(
+  // Pass 2 — apply filters + audio in real-time via video.play()
+  const finalBlob = await addFilterAndAudioPass(
     videoBlob,
-    config.audioFile!,
+    config.audioFile,
+    style,
     mimeType,
     (p) => {
       onProgress({

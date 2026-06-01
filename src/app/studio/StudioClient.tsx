@@ -706,57 +706,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setVidUrl(null);
     setVidStartImageUrl(null);
 
-    // ── BYOK path — start frame direct (Flux/CORS ok), video via server async ──
-    // Kling v2.1 does not send CORS headers → direct browser fetch is blocked.
-    // Server creates the prediction with the user's own key and returns jobId <1s.
-    if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
-      try {
-        if (videoMode === 'text') {
-          setGenStep('generating-frame');
-          const frameResult = await replicateDirectRun(byokConfig.apiKey, {
-            model: byokConfig.models.startFrame,
-            input: { prompt: vidPrompt, go_fast: true, num_outputs: 1, aspect_ratio: selectedSkill.aspectRatio, output_format: 'webp', output_quality: 90, num_inference_steps: 4 },
-          });
-          const frameUrl = frameResult.output as string;
-          setVidStartImageUrl(frameUrl);
-
-          setGenStep('animating');
-          const videoRes = await fetch('/api/generate-video', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: frameUrl }),
-          });
-          const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
-          if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
-          if (videoData.jobId) {
-            const result = await pollJobUntilDone(videoData.jobId);
-            if (result.status === 'succeeded' && result.outputUrl) { setVidUrl(result.outputUrl); }
-            else { setVidError(result.error ?? 'Video generation failed'); }
-          } else if (videoData.url) { setVidUrl(videoData.url); }
-        } else {
-          if (!vidUploadedUrl) { setVidError('Please upload an image first'); return; }
-          setGenStep('animating');
-          const videoRes = await fetch('/api/generate-video', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: vidPrompt, skillId: selectedSkill.id, aspectRatio: selectedSkill.aspectRatio, duration: selectedSkill.duration, startImage: vidUploadedUrl }),
-          });
-          const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
-          if (!videoRes.ok) { setVidError(videoData.error ?? 'Video generation failed'); setGenStep(null); return; }
-          if (videoData.jobId) {
-            const result = await pollJobUntilDone(videoData.jobId);
-            if (result.status === 'succeeded' && result.outputUrl) { setVidUrl(result.outputUrl); }
-            else { setVidError(result.error ?? 'Video generation failed'); }
-          } else if (videoData.url) { setVidUrl(videoData.url); }
-        }
-        fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'video' }) }).catch(() => {});
-        (window as unknown as Record<string, () => void>).__refreshCredits?.();
-      } catch (e) { setVidError(e instanceof Error ? e.message : 'Video generation failed'); }
-      finally { setGenStep(null); }
-      return;
-    }
-
-    // ── Server-side path (credit users) ──────────────────────────────────────
+    // ── Server path — BYOK key resolved server-side from DB ──────────────────
     if (videoMode === 'text') {
       setGenStep('generating-frame');
       const frameRes = await fetch('/api/generate-start-frame', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, aspectRatio: selectedSkill.aspectRatio }) });

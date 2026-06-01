@@ -2,6 +2,8 @@ import Replicate from 'replicate';
 import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
@@ -17,16 +19,6 @@ interface GenerateBody {
 }
 
 export async function POST(request: Request) {
-  // ── Feature flag ─────────────────────────────────────────────────────────────
-  if (process.env.REPLICATE_ENABLED !== 'true') {
-    return NextResponse.json({ error: 'Image generation is disabled' }, { status: 503 });
-  }
-
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) {
-    return NextResponse.json({ error: 'Missing API token' }, { status: 500 });
-  }
-
   // ── Parse body (needed for honeypot — must come before auth) ──────────────────
   let body: GenerateBody;
   try {
@@ -44,6 +36,18 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // ── Replicate key: BYOK first, env fallback ───────────────────────────────────
+  const keyRecord = await db.userApiKey.findUnique({
+    where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+    select: { encryptedKey: true },
+  });
+  const token = keyRecord
+    ? decrypt(keyRecord.encryptedKey)
+    : (process.env.REPLICATE_API_TOKEN ?? '');
+  if (!token) {
+    return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
   }
 
   const prompt = body.prompt?.trim();

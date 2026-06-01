@@ -24,6 +24,7 @@ export interface LeadConfigInput {
   email:           string | null;
   language:        string;
   selectedPalette: string | null;    // brief values: dark | light | warm | professional | natural | custom
+  address:         string | null;
 }
 
 // ─── Presets by canonical business slug ───────────────────────────────────────
@@ -86,6 +87,13 @@ export function generateConfigTs(lead: LeadConfigInput): string {
   const safeEmail = (lead.email ?? '').replace(/'/g, "\\'");
   const safePhone = lead.contact.replace(/\D/g, '');
 
+  const googleQuery = encodeURIComponent(
+    `${lead.businessName ?? ''} ${lead.address ?? ''}`.trim(),
+  );
+  const googleReviewsUrl = googleQuery
+    ? `https://www.google.com/maps/search/${googleQuery}`
+    : '';
+
   return `import type { SiteConfig } from './types';
 
 export const SITE_CONFIG: SiteConfig = {
@@ -97,6 +105,7 @@ export const SITE_CONFIG: SiteConfig = {
   headingFont: '${headingFont}',
   whatsappNumber: '${safePhone}',
   contactEmail: '${safeEmail}',
+  googleReviewsUrl: '${googleReviewsUrl}',
 };
 `;
 }

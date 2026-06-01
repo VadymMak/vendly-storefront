@@ -260,6 +260,7 @@ export async function POST(
       email:           lead.email,
       language:        lead.language,
       selectedPalette: lead.selectedPalette,
+      address:         lead.address,
     };
     const configTs = generateConfigTs(configInput);
     // Derive templateType the same way generate-config.ts does — share the logic

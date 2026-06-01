@@ -320,24 +320,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     setImgUrl(null);
     setImgMeta(null);
 
-    // ── BYOK direct path — browser polls Replicate, zero Vercel CPU ──────────
-    if (byokConfig?.byok && byokConfig.apiKey && byokConfig.models) {
-      try {
-        const result = await replicateDirectRun(byokConfig.apiKey, {
-          model: byokConfig.models.image,
-          input: { prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, num_outputs: 1, output_format: 'webp', output_quality: 90, go_fast: true, num_inference_steps: 4 },
-        });
-        const blobUrl = await fetchImageAsBlob(result.output as string);
-        setImgUrl(blobUrl);
-        setImgMeta({ display: preset.display, ratio: preset.aspect_ratio, fmt: 'webp', label: preset.label });
-        fetch('/api/studio/track-generation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'image' }) }).catch(() => {});
-        (window as unknown as Record<string, () => void>).__refreshCredits?.();
-      } catch (e) { setImgError(e instanceof Error ? e.message : 'Generation failed'); }
-      finally { setImgGenerating(false); }
-      return;
-    }
-
-    // ── Server-side path (credit users) ──────────────────────────────────────
+    // ── Server path — BYOK key resolved server-side from DB ──────────────────
     try {
       const res = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: finalPrompt, aspect_ratio: preset.aspect_ratio, megapixels: preset.megapixels, target_width: preset.target_width, target_height: preset.target_height, output_format: imgOutputFormat }) });
       if (!res.ok) { const e = await res.json() as { error?: string; needsUpgrade?: boolean }; if (e.needsUpgrade) { setUpgradeType('image'); setShowUpgrade(true); return; } throw new Error(e.error ?? 'Generation failed'); }

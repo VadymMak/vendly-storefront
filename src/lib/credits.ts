@@ -13,7 +13,7 @@ export type CreditType = "image" | "video";
 // Superusers — unlimited access, no credit deduction
 export const SUPERUSER_EMAILS = [
   "makevytssvadym@gmail.com",
-  "akolisnyk1989@gmail.com",
+  "akolesnyk1989@gmail.com",
   "777sdv@gmail.com",
 ] as const;
 

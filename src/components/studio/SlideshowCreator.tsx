@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { MediaPreview } from '@/components/studio/MediaPreview';
 import {
   renderSlideshow,
   DEFAULT_SEQUENCE,
@@ -64,6 +65,24 @@ const MOTION_SHORT: Record<CameraMotion, string> = {
 
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime']);
 
+const RAW_EXTENSIONS = new Set([
+  '.cr2', '.cr3', '.crw',  // Canon
+  '.nef', '.nrw',           // Nikon
+  '.arw', '.srf', '.sr2',  // Sony
+  '.dng',                    // Adobe DNG
+  '.orf',                    // Olympus
+  '.raf',                    // Fuji
+  '.rw2',                    // Panasonic
+  '.srw',                    // Samsung
+  '.pef',                    // Pentax
+  '.raw',
+]);
+
+function isRawFile(file: File): boolean {
+  const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? '';
+  return RAW_EXTENSIONS.has(ext);
+}
+
 const STYLE_OPTIONS: { value: VideoStyle; labelKey: string }[] = [
   { value: 'none',         labelKey: 'styleNone' },
   { value: 'golden-hour', labelKey: 'styleGoldenHour' },
@@ -85,6 +104,30 @@ function loadImage(file: File): Promise<{ element: HTMLImageElement; objectUrl: 
     img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error(`Failed to load ${file.name}`)); };
     img.src     = objectUrl;
   });
+}
+
+// RAW camera files (CR2, NEF, ARW, DNG, …) cannot be decoded by browsers.
+// Upload to the server for conversion, then load the returned WebP URL as a preview.
+async function loadRawImage(
+  file: File,
+): Promise<{ element: HTMLImageElement; objectUrl: string }> {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('purpose', 'slideshow-preview');
+  const res = await fetch('/api/upload', { method: 'POST', body: fd });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error ?? `Failed to convert ${file.name}`);
+  }
+  const { url } = (await res.json()) as { url: string };
+  const element = new Image();
+  await new Promise<void>((resolve, reject) => {
+    element.onload  = () => resolve();
+    element.onerror = () => reject(new Error(`Preview failed for ${file.name}`));
+    element.src     = url;
+  });
+  // objectUrl here is a server URL — URL.revokeObjectURL silently ignores non-blob URLs
+  return { element, objectUrl: url };
 }
 
 function captureVideoFrame(video: HTMLVideoElement): string | null {
@@ -162,6 +205,7 @@ export default function SlideshowCreator() {
   const [progress, setProgress] = useState<RenderProgress>({ currentFrame: 0, totalFrames: 0, percent: 0, phase: 'rendering' });
   const [result, setResult] = useState<RenderResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rawConverting, setRawConverting] = useState(0); // count of RAW files currently being converted
   const videoUrlRef   = useRef<string | null>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -174,14 +218,22 @@ export default function SlideshowCreator() {
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const arr = Array.from(files).filter(
-      (f) => f.type.startsWith('image/') || VIDEO_TYPES.has(f.type),
+      (f) => f.type.startsWith('image/') || VIDEO_TYPES.has(f.type) || isRawFile(f),
     );
     if (!arr.length) return;
+
+    const rawCount = arr.filter(isRawFile).length;
+    if (rawCount > 0) setRawConverting((n) => n + rawCount);
 
     const loaded: SlideMedia[] = [];
     for (const file of arr) {
       try {
-        if (file.type.startsWith('image/')) {
+        if (isRawFile(file)) {
+          // RAW files: upload to server for conversion, receive WebP preview URL
+          const { element, objectUrl } = await loadRawImage(file);
+          loaded.push({ id: crypto.randomUUID(), type: 'image', file, objectUrl, element });
+          setRawConverting((n) => Math.max(0, n - 1));
+        } else if (file.type.startsWith('image/')) {
           const { element, objectUrl } = await loadImage(file);
           loaded.push({ id: crypto.randomUUID(), type: 'image', file, objectUrl, element });
         } else {
@@ -201,6 +253,7 @@ export default function SlideshowCreator() {
           });
         }
       } catch (err) {
+        if (isRawFile(file)) setRawConverting((n) => Math.max(0, n - 1));
         setError(err instanceof Error ? err.message : `Failed to load ${file.name}`);
       }
     }
@@ -369,7 +422,15 @@ export default function SlideshowCreator() {
             Start over
           </button>
         </div>
-        <video src={videoUrlRef.current} controls autoPlay loop className="w-full rounded-lg" />
+        <MediaPreview
+          items={[{
+            id: 'slideshow-result',
+            url: videoUrlRef.current,
+            type: 'video',
+            format: ext.toUpperCase(),
+            label: 'Slideshow',
+          }]}
+        />
         <div className="flex gap-3">
           <a
             href={videoUrlRef.current}
@@ -405,6 +466,13 @@ export default function SlideshowCreator() {
 
       {error && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</div>
+      )}
+
+      {rawConverting > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-300">
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin shrink-0" aria-hidden="true"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.25"/><path d="M21 12a9 9 0 00-9-9"/></svg>
+          Converting {rawConverting} RAW file{rawConverting > 1 ? 's' : ''}…
+        </div>
       )}
 
       {/* ── Media upload / timeline ── */}
@@ -445,7 +513,7 @@ export default function SlideshowCreator() {
             </svg>
             <div className="text-center">
               <div className="font-semibold text-[var(--color-text-muted)]">Drop images or videos here or click to upload</div>
-              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP, MP4 — up to 20 files</div>
+              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP, RAW formats · videos: MP4, MOV — up to 20 files</div>
             </div>
           </div>
         )}
@@ -550,7 +618,7 @@ export default function SlideshowCreator() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.cr2,.cr3,.crw,.nef,.nrw,.arw,.srf,.sr2,.dng,.orf,.raf,.rw2,.srw,.pef,.raw"
           multiple
           className="hidden"
           onChange={(e) => e.target.files && void addFiles(e.target.files)}

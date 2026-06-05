@@ -555,12 +555,12 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     if (!editAiEditResult || editSaving) return;
     setEditSaving(true);
     try {
-      const imgRes = await fetch(editAiEditResult);
-      const imgBlob = await imgRes.blob();
-      const fd = new FormData();
-      fd.append('image', imgBlob, 'ai-edit.png');
-      fd.append('format', editSaveFormat);
-      const resp = await fetch('/api/export-image', { method: 'POST', body: fd });
+      // Proxy through server to avoid CORS issues with Replicate/xAI CDN URLs
+      const resp = await fetch('/api/export-image', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url: editAiEditResult, format: editSaveFormat }),
+      });
       if (!resp.ok) throw new Error('Export failed');
       const outBlob = await resp.blob();
       const url = URL.createObjectURL(outBlob);

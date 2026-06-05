@@ -4,9 +4,15 @@ import { db } from '@/lib/db';
 import { encrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 
+const KEY_PREFIXES: Record<string, string> = {
+  replicate: 'r8_',
+  anthropic: 'sk-ant-',
+  xai:       'xai-',
+};
+
 const saveSchema = z.object({
   provider: z.enum(['replicate', 'anthropic', 'xai']),
-  key: z.string().min(10),
+  key:      z.string().min(10),
 });
 
 export async function GET() {
@@ -14,8 +20,8 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const keys = await db.userApiKey.findMany({
-    where: { userId: session.user.id },
-    select: { id: true, provider: true, keyHint: true, createdAt: true },
+    where:   { userId: session.user.id },
+    select:  { id: true, provider: true, keyHint: true, createdAt: true },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -29,11 +35,19 @@ export async function POST(request: Request) {
   const body = await request.json();
   const data = saveSchema.parse(body);
 
+  const expectedPrefix = KEY_PREFIXES[data.provider];
+  if (expectedPrefix && !data.key.startsWith(expectedPrefix)) {
+    return NextResponse.json(
+      { error: `Invalid ${data.provider} API key — must start with "${expectedPrefix}"` },
+      { status: 400 },
+    );
+  }
+
   const encryptedKey = encrypt(data.key);
-  const keyHint = '••••' + data.key.slice(-4);
+  const keyHint      = '••••' + data.key.slice(-4);
 
   await db.userApiKey.upsert({
-    where: { userId_provider: { userId: session.user.id, provider: data.provider } },
+    where:  { userId_provider: { userId: session.user.id, provider: data.provider } },
     create: { userId: session.user.id, provider: data.provider, encryptedKey, keyHint },
     update: { encryptedKey, keyHint },
   });

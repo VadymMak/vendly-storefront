@@ -82,6 +82,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'xAI API key not configured' }, { status: 400 });
     }
     const xaiKey = decrypt(xaiKeyRecord.encryptedKey);
+    if (!xaiKey.startsWith('xai-')) {
+      return NextResponse.json(
+        { error: 'Invalid xAI API key — please delete it in Settings and re-enter a valid key starting with "xai-"' },
+        { status: 400 },
+      );
+    }
 
     try {
       const grokUrl  = await grokGenerate(xaiKey, prompt);

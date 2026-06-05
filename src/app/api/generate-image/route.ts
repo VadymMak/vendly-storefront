@@ -7,7 +7,7 @@ import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
-import { grokGenerate, aspectToGrokSize } from '@/lib/xai-client';
+import { grokGenerate } from '@/lib/xai-client';
 
 interface GenerateBody {
   prompt:         string;
@@ -82,10 +82,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'xAI API key not configured' }, { status: 400 });
     }
     const xaiKey = decrypt(xaiKeyRecord.encryptedKey);
-    const grokSize = aspectToGrokSize(aspect_ratio);
 
     try {
-      const grokUrl  = await grokGenerate(xaiKey, prompt, grokSize);
+      const grokUrl  = await grokGenerate(xaiKey, prompt);
       const grokRes  = await fetch(grokUrl);
       const inputBuf = Buffer.from(await grokRes.arrayBuffer());
       const pipeline = sharp(inputBuf);

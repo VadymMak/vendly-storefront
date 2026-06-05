@@ -136,7 +136,7 @@ export async function POST(req: Request) {
       {
         input: {
           prompt,
-          image_url:        blob.url,
+          input_image:      blob.url,
           aspect_ratio:     'match_input_image',
           safety_tolerance: 2,
           output_format:    'png',

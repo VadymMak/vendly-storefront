@@ -3,7 +3,7 @@ interface GrokImageResponse {
   created?: number;
 }
 
-export async function grokGenerate(apiKey: string, prompt: string, size = '1024x1024'): Promise<string> {
+export async function grokGenerate(apiKey: string, prompt: string): Promise<string> {
   const res = await fetch('https://api.x.ai/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -11,11 +11,10 @@ export async function grokGenerate(apiKey: string, prompt: string, size = '1024x
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'grok-2-image-1212',
+      model: 'grok-imagine-image',
       prompt,
       n: 1,
       response_format: 'url',
-      size,
     }),
   });
 
@@ -38,8 +37,8 @@ export async function grokEdit(apiKey: string, imageUrl: string, prompt: string)
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'grok-2-image-1212',
-      image: imageUrl,
+      model: 'grok-imagine-image',
+      image: { url: imageUrl },
       prompt,
       n: 1,
       response_format: 'url',
@@ -55,10 +54,4 @@ export async function grokEdit(apiKey: string, imageUrl: string, prompt: string)
   const url = data.data?.[0]?.url;
   if (!url) throw new Error('xAI edit returned no image URL');
   return url;
-}
-
-export function aspectToGrokSize(ratio: string): string {
-  if (ratio === '9:16' || ratio === '2:3' || ratio === '3:4') return '1024x1792';
-  if (ratio === '16:9' || ratio === '3:2' || ratio === '4:3') return '1792x1024';
-  return '1024x1024';
 }

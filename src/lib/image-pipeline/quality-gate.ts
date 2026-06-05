@@ -10,6 +10,8 @@ export interface ImageAnalysis {
   format: string;
   colorSpace: string;
   wasConverted: boolean;
+  wasRawConverted?: boolean;  // true when source was a RAW camera file (CR2, NEF, ARW, …)
+  originalFormat?: string;    // 'CR2', 'NEF', 'DNG', etc.
   isBlurry: boolean;
   isDuplicate: boolean;
   brightness: number;  // 0–255 average greyscale mean

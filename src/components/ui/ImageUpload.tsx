@@ -128,7 +128,7 @@ export default function ImageUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,.cr2,.cr3,.crw,.nef,.nrw,.arw,.srf,.sr2,.dng,.orf,.raf,.rw2,.srw,.pef,.raw"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />

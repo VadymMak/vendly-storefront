@@ -7,6 +7,7 @@ import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
+import { grokGenerate } from '@/lib/xai-client';
 
 interface GenerateBody {
   prompt:         string;
@@ -16,6 +17,7 @@ interface GenerateBody {
   target_height?: number;
   output_format?: 'webp' | 'png' | 'jpeg';
   website?:       string;
+  provider?:      'flux' | 'grok';
 }
 
 export async function POST(request: Request) {
@@ -36,18 +38,6 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // ── Replicate key: BYOK first, env fallback ───────────────────────────────────
-  const keyRecord = await db.userApiKey.findUnique({
-    where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
-    select: { encryptedKey: true },
-  });
-  const token = keyRecord
-    ? decrypt(keyRecord.encryptedKey)
-    : (process.env.REPLICATE_API_TOKEN ?? '');
-  if (!token) {
-    return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
   }
 
   const prompt = body.prompt?.trim();
@@ -72,6 +62,90 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
+  const aspect_ratio     = body.aspect_ratio ?? '1:1';
+  const megapixels       = body.megapixels   ?? '1';
+  const targetW          = body.target_width;
+  const targetH          = body.target_height;
+  const requested_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
+    ? (body.output_format as 'webp' | 'png' | 'jpeg')
+    : 'webp';
+
+  console.log('API received:', { aspect_ratio, megapixels, targetW, targetH, requested_format, provider: body.provider });
+
+  // ── Grok Imagine path (BYOK — no credit deduction) ────────────────────────────
+  if (body.provider === 'grok') {
+    const xaiKeyRecord = await db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'xai' } },
+      select: { encryptedKey: true },
+    });
+    if (!xaiKeyRecord) {
+      return NextResponse.json({ error: 'xAI API key not configured' }, { status: 400 });
+    }
+    const xaiKey = decrypt(xaiKeyRecord.encryptedKey);
+    if (!xaiKey.startsWith('xai-')) {
+      return NextResponse.json(
+        { error: 'Invalid xAI API key — please delete it in Settings and re-enter a valid key starting with "xai-"' },
+        { status: 400 },
+      );
+    }
+
+    try {
+      const grokUrl  = await grokGenerate(xaiKey, prompt);
+      const grokRes  = await fetch(grokUrl);
+      const inputBuf = Buffer.from(await grokRes.arrayBuffer());
+      const pipeline = sharp(inputBuf);
+
+      if (targetW && targetH) {
+        pipeline.resize(targetW, targetH, { fit: 'fill' });
+      }
+
+      let resized: Buffer;
+      let contentType: string;
+      let ext: string;
+
+      if (requested_format === 'jpeg') {
+        resized     = await pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+        contentType = 'image/jpeg';
+        ext         = 'jpg';
+      } else if (requested_format === 'png') {
+        resized     = await pipeline.png({ compressionLevel: 8 }).toBuffer();
+        contentType = 'image/png';
+        ext         = 'png';
+      } else {
+        resized     = await pipeline.webp({ quality: 90 }).toBuffer();
+        contentType = 'image/webp';
+        ext         = 'webp';
+      }
+
+      const name = targetW && targetH
+        ? `grok-${targetW}x${targetH}-${Date.now()}.${ext}`
+        : `grok-${Date.now()}.${ext}`;
+
+      return new Response(new Uint8Array(resized), {
+        headers: {
+          'Content-Type':        contentType,
+          'Content-Disposition': `inline; filename="${name}"`,
+          'Cache-Control':       'no-store',
+        },
+      });
+    } catch (err) {
+      console.error('Grok error:', err);
+      return NextResponse.json({ error: 'Grok generation failed' }, { status: 500 });
+    }
+  }
+
+  // ── Flux Schnell path (default) ───────────────────────────────────────────────
+  const keyRecord = await db.userApiKey.findUnique({
+    where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+    select: { encryptedKey: true },
+  });
+  const token = keyRecord
+    ? decrypt(keyRecord.encryptedKey)
+    : (process.env.REPLICATE_API_TOKEN ?? '');
+  if (!token) {
+    return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+  }
+
   // ── Credit check ─────────────────────────────────────────────────────────────
   const creditCheck = await checkCredits(session.user.id, 'image');
   if (!creditCheck.allowed) {
@@ -81,19 +155,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const aspect_ratio     = body.aspect_ratio ?? '1:1';
-  const megapixels       = body.megapixels   ?? '1';
-  const targetW          = body.target_width;
-  const targetH          = body.target_height;
-  const requested_format = ['webp', 'png', 'jpeg'].includes(body.output_format ?? '')
-    ? (body.output_format as 'webp' | 'png' | 'jpeg')
-    : 'webp';
   // Flux Schnell doesn't support jpeg output — generate png, convert via Sharp
   const replicate_format = requested_format === 'jpeg' ? 'png' : requested_format;
 
-  console.log('API received:', { aspect_ratio, megapixels, targetW, targetH, requested_format });
-
-  // ── Run Flux Schnell ──────────────────────────────────────────────────────────
   const replicate = new Replicate({ auth: token });
 
   try {

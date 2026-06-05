@@ -82,8 +82,8 @@ type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
 type AiEditTool     = 'upscale' | 'face' | 'removebg' | 'aiedit' | null;
-type Provider       = 'replicate' | 'anthropic';
-type HelpSection    = 'replicate' | 'anthropic' | 'tips';
+type Provider       = 'replicate' | 'anthropic' | 'xai';
+type HelpSection    = 'replicate' | 'anthropic' | 'xai' | 'tips';
 type PresetKey      = keyof typeof PRESET_MAP;
 type OutputFormat   = typeof OUTPUT_FORMATS[number];
 
@@ -132,13 +132,13 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   // ── Shared: API Keys ──────────────────────────────────────────────────────
   const [keys,        setKeys]        = useState<ApiKeyInfo[]>([]);
   const [keysLoaded,  setKeysLoaded]  = useState(false);
-  const [keyInputs,   setKeyInputs]   = useState<Record<Provider, string>>({ replicate: '', anthropic: '' });
-  const [keySaving,   setKeySaving]   = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false });
-  const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false });
+  const [keyInputs,   setKeyInputs]   = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '' });
+  const [keySaving,   setKeySaving]   = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
+  const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
 
   // ── Shared: Wizard ────────────────────────────────────────────────────────
   const [wizardStep,   setWizardStep]   = useState<1 | 2 | null>(null);
-  const [wizardInputs, setWizardInputs] = useState<Record<Provider, string>>({ replicate: '', anthropic: '' });
+  const [wizardInputs, setWizardInputs] = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '' });
   const [wizardSaving, setWizardSaving] = useState(false);
   const [wizardError,  setWizardError]  = useState<string | null>(null);
 
@@ -182,6 +182,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const [editAiEditPrompt,    setEditAiEditPrompt]    = useState('');
   const [editAiEditEnhancing, setEditAiEditEnhancing] = useState(false);
   const [editAiEditResult,    setEditAiEditResult]    = useState<string | null>(null);
+  const [editProvider,        setEditProvider]        = useState<'flux' | 'grok'>('flux');
   const [editRotation,        setEditRotation]        = useState(0);
   const [editFlipH,           setEditFlipH]           = useState(false);
   const [editFlipV,           setEditFlipV]           = useState(false);
@@ -512,6 +513,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
       const fd = new FormData();
       fd.append('image', sourceFile);
       fd.append('prompt', editAiEditPrompt.trim());
+      fd.append('provider', editProvider);
       const res = await fetch('/api/ai-edit', { method: 'POST', body: fd });
       if (!res.ok) {
         let errMsg = 'AI edit failed';
@@ -864,6 +866,13 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                 <div className="mt-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3 text-xs text-[var(--color-text-muted)]">💡 Prompt enhancement costs ~$0.001 per call. Highly recommended.</div>
               </div>
               <hr className="border-[var(--color-border)]" />
+              <div ref={(el) => { helpRefs.current.xai = el; }}>
+                <h3 className="mb-1 font-semibold text-white">xAI API Key <span className="text-xs font-normal text-[var(--color-text-dim)]">(optional)</span></h3>
+                <p className="mt-2 mb-3 text-[var(--color-text-muted)]">Grok Imagine generates and edits images using your own xAI credit. No Replicate account needed for this provider.</p>
+                <ol className="space-y-2 text-[var(--color-text-muted)]">{(['console.x.ai → Sign up / Log in', 'API Keys → Create new key', 'Add credit in Billing', 'Key starts with xai-'] as string[]).map((item, i) => (<li key={i} className="flex gap-2"><span className="shrink-0 font-bold text-[var(--color-primary)]">{i + 1}.</span><span>{item}</span></li>))}</ol>
+                <div className="mt-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3 text-xs text-[var(--color-text-muted)]">💡 Image generation $0.02–$0.055/image. Appears as AI Improve provider toggle when key is saved.</div>
+              </div>
+              <hr className="border-[var(--color-border)]" />
               <div ref={(el) => { helpRefs.current.tips = el; }}>
                 <h3 className="mb-4 font-semibold text-white">Prompt Writing Tips</h3>
                 <div className="space-y-3">{[
@@ -932,8 +941,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             <h2 className="mb-5 text-base font-semibold">API Keys</h2>
             <div className="space-y-5">
               {([
-                { id: 'replicate' as Provider, label: 'Replicate API Key', placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••', hs: 'replicate' as HelpSection, note: 'Optional — for unlimited BYOK access' },
-                { id: 'anthropic' as Provider, label: 'Anthropic API Key',  placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic' as HelpSection, note: 'Optional — AI prompt enhancement' },
+                { id: 'replicate' as Provider, label: 'Replicate API Key',       placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••',     hs: 'replicate' as HelpSection, note: 'Optional — for unlimited BYOK access' },
+                { id: 'anthropic' as Provider, label: 'Anthropic API Key',       placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic' as HelpSection, note: 'Optional — AI prompt enhancement' },
+                { id: 'xai'       as Provider, label: 'xAI API Key (Grok)', placeholder: 'xai-••••••••••••••••••••••••••••••••••••••••',         hs: 'xai'       as HelpSection, note: '$0.02–$0.055/img · image generation & editing' },
               ]).map(({ id, label, placeholder, hs, note }) => {
                 const saved = keyFor(id);
                 return (
@@ -1292,7 +1302,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                               { tool: 'upscale'  as const, icon: '🔍', label: 'Upscale 4×',  price: '~$0.10' },
                               { tool: 'face'     as const, icon: '👤', label: 'Face Enhance', price: '~$0.10' },
                               { tool: 'removebg' as const, icon: '✂️', label: 'Remove BG',    price: '~$0.02' },
-                              { tool: 'aiedit'   as const, icon: '✨', label: 'AI Edit (Beta)', price: '~$0.03' },
+                              { tool: 'aiedit'   as const, icon: '✨', label: 'AI Improve', price: '~$0.04' },
                             ]).map(({ tool, icon, label, price }) => (
                               <button
                                 key={tool}
@@ -1300,7 +1310,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                                   if (tool === 'aiedit') { setEditAiEditOpen((o) => !o); }
                                   else { editRunAiTool(tool); }
                                 }}
-                                disabled={!!editAiTool || !keyFor('replicate')}
+                                disabled={!!editAiTool || (tool === 'aiedit' ? (!keyFor('replicate') && !keyFor('xai')) : !keyFor('replicate'))}
                                 className={cx(
                                   'flex cursor-pointer flex-col items-center gap-1 rounded-lg border p-3 text-center transition-colors disabled:opacity-40',
                                   tool === 'aiedit' && editAiEditOpen
@@ -1326,12 +1336,32 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                             </button>
                           </div>
 
-                          {/* AI Edit prompt */}
+                          {/* AI Improve prompt */}
                           {editAiEditOpen && (
                             <div className="mt-3 space-y-2">
-                              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-300">
-                                ⚠️ Beta: Works best with style changes (e.g. &quot;make vintage&quot;, &quot;add dramatic shadows&quot;, &quot;change to warm tones&quot;). Does NOT work for rotation, zoom, cropping, or angle changes — use Transform tools above instead.
+                              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5 text-xs leading-relaxed text-[var(--color-text-muted)]">
+                                {editProvider === 'grok'
+                                  ? '🧠 Grok Imagine (BYOK) — creative style transfers and reinterpretation. Uses your xAI credit, no platform credits deducted.'
+                                  : '⚡ Flux Kontext Pro — high quality img2img editing. Style changes, lighting adjustments, object modifications.'}
                               </div>
+                              {keyFor('xai') && (
+                                <div className="flex overflow-hidden rounded-lg border border-[var(--color-border)]">
+                                  {(['flux', 'grok'] as const).map((p) => (
+                                    <button
+                                      key={p}
+                                      onClick={() => setEditProvider(p)}
+                                      className={cx(
+                                        'flex-1 cursor-pointer py-1.5 text-xs font-semibold transition-colors',
+                                        editProvider === p
+                                          ? 'bg-[var(--color-primary)]/15 text-white'
+                                          : 'text-[var(--color-text-muted)] hover:text-white',
+                                      )}
+                                    >
+                                      {p === 'flux' ? 'Flux ⚡ ($0.04)' : 'Grok 🧠 ($0.05)'}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                               <input
                                 type="text"
                                 value={editAiEditPrompt}
@@ -1354,7 +1384,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                                 )}
                                 <button
                                   onClick={editRunAiEdit}
-                                  disabled={!!editAiTool || !editAiEditPrompt.trim() || !keyFor('replicate')}
+                                  disabled={!!editAiTool || !editAiEditPrompt.trim() || (!keyFor('replicate') && !keyFor('xai'))}
                                   className="ml-auto cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)] disabled:opacity-40"
                                 >
                                   {editAiTool === 'aiedit'
@@ -1366,7 +1396,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                             </div>
                           )}
 
-                          {!keyFor('replicate') && <p className="mt-2 text-xs text-[var(--color-text-dim)]">Add Replicate key to use AI tools</p>}
+                          {!keyFor('replicate') && !keyFor('xai') && <p className="mt-2 text-xs text-[var(--color-text-dim)]">Add Replicate or xAI key to use AI tools</p>}
                         </section>
 
                         {editAiError && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{editAiError}</div>}

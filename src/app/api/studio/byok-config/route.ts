@@ -40,7 +40,7 @@ export async function GET() {
       video:      'kwaivgi/kling-v2.1',
       upscale:    'nightmareai/real-esrgan',
       removeBg:   'lucataco/remove-bg',
-      aiEdit:     'timothybrooks/instruct-pix2pix',
+      aiEdit:     'black-forest-labs/flux-kontext-pro',
     },
   });
 }

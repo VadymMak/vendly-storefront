@@ -8,6 +8,7 @@ import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
+import { grokEdit } from '@/lib/xai-client';
 
 export const maxDuration = 60;
 
@@ -40,10 +41,11 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const file   = formData.get('image') as File | null;
-  const prompt = (formData.get('prompt') as string | null)?.trim() ?? '';
+  const file     = formData.get('image') as File | null;
+  const prompt   = (formData.get('prompt') as string | null)?.trim() ?? '';
+  const provider = (formData.get('provider') as string | null) ?? 'flux';
 
-  if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  if (!file)   return NextResponse.json({ error: 'No image provided' }, { status: 400 });
   if (!prompt) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
 
   // ── Rate limit ────────────────────────────────────────────────────────────────
@@ -63,7 +65,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  // ── Credit check ─────────────────────────────────────────────────────────────
+  // ── Grok Imagine path (BYOK — no credit deduction) ────────────────────────────
+  if (provider === 'grok') {
+    const xaiKeyRecord = await db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'xai' } },
+    });
+    if (!xaiKeyRecord) {
+      return NextResponse.json({ error: 'xAI API key not configured' }, { status: 400 });
+    }
+    const xaiKey = decrypt(xaiKeyRecord.encryptedKey);
+
+    try {
+      const bytes = await file.arrayBuffer();
+      const resized = await sharp(Buffer.from(bytes))
+        .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+        .png()
+        .toBuffer();
+
+      const blob = await put(
+        `studio/ai-edit/${session.user.id}/${Date.now()}.png`,
+        resized,
+        { access: 'public', contentType: 'image/png' },
+      );
+
+      const imageUrl = await grokEdit(xaiKey, blob.url, prompt);
+      return NextResponse.json({ url: imageUrl });
+    } catch (err) {
+      console.error('[ai-edit grok]', err);
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : 'Grok edit failed' },
+        { status: 500 },
+      );
+    }
+  }
+
+  // ── Flux Kontext Pro path (default) ───────────────────────────────────────────
   const creditCheck = await checkCredits(session.user.id, 'image');
   if (!creditCheck.allowed) {
     return NextResponse.json(
@@ -83,7 +119,7 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
 
     const resized = await sharp(Buffer.from(bytes))
-      .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
+      .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
       .png()
       .toBuffer();
 
@@ -96,13 +132,14 @@ export async function POST(req: Request) {
     const replicate = new Replicate({ auth: replicateKey });
 
     const output = await replicate.run(
-      'timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60437c13c588468b9810ec23f',
+      'black-forest-labs/flux-kontext-pro',
       {
         input: {
-          image:                blob.url,
           prompt,
-          num_inference_steps:  30,
-          image_guidance_scale: 1.5,
+          image_url:        blob.url,
+          aspect_ratio:     'match_input_image',
+          safety_tolerance: 2,
+          output_format:    'png',
         },
       },
     );
@@ -123,7 +160,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: imageUrl });
   } catch (err) {
-    console.error('[ai-edit]', err);
+    console.error('[ai-edit flux]', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'AI edit failed' },
       { status: 500 },

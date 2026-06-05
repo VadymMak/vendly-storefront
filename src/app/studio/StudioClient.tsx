@@ -1560,13 +1560,13 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                           <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-text-dim)]" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                           <div>
                             <p className="text-sm font-medium text-[var(--color-text-muted)]">Drop image here or click to browse</p>
-                            <p className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WEBP · max 5 MB</p>
+                            <p className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WEBP, CR2, NEF, ARW, DNG &amp; more · max 50 MB</p>
                           </div>
                         </>
                       )}
                     </div>
                   )}
-                  <input ref={vidFileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) vidUploadFile(f); e.target.value = ''; }} />
+                  <input ref={vidFileInputRef} type="file" accept="image/*,.cr2,.cr3,.crw,.nef,.nrw,.arw,.srf,.sr2,.dng,.orf,.raf,.rw2,.srw,.pef,.raw" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) vidUploadFile(f); e.target.value = ''; }} />
                 </section>
               )}
 

@@ -513,7 +513,7 @@ export default function SlideshowCreator() {
             </svg>
             <div className="text-center">
               <div className="font-semibold text-[var(--color-text-muted)]">Drop images or videos here or click to upload</div>
-              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP, MP4 — up to 20 files</div>
+              <div className="mt-1 text-xs text-[var(--color-text-dim)]">JPG, PNG, WebP, RAW formats · videos: MP4, MOV — up to 20 files</div>
             </div>
           </div>
         )}

@@ -5,7 +5,7 @@ import { encrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 
 const saveSchema = z.object({
-  provider: z.enum(['replicate', 'anthropic']),
+  provider: z.enum(['replicate', 'anthropic', 'xai']),
   key: z.string().min(10),
 });
 

@@ -7,6 +7,7 @@ import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import SlideshowCreator from '@/components/studio/SlideshowCreator';
+import { MediaPreview } from '@/components/studio/MediaPreview';
 import { replicateDirectRun, fetchImageAsBlob } from '@/lib/replicate-client';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1100,8 +1101,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
 
                     {!imgGenerating && imgUrl && imgMeta && (
                       <div className="space-y-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imgUrl} alt="Generated" className="w-full rounded-xl border border-[var(--color-border)]" />
+                        <MediaPreview
+                          items={[{ id: 'generated-image', url: imgUrl, type: 'image', format: imgMeta.fmt.toUpperCase(), label: 'Generated' }]}
+                        />
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex flex-wrap gap-1.5">
                             {[imgMeta.display, imgMeta.ratio, imgMeta.fmt, imgMeta.label].map((tag) => (
@@ -1426,18 +1428,12 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                       </div>
                     ) : editAiEditResult ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Original</p>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={editPreview!} alt="Original" className="w-full rounded-xl border border-[var(--color-border)]" />
-                          </div>
-                          <div>
-                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-green-400">AI Edit Result</p>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={editAiEditResult} alt="AI Edit Result" className="w-full rounded-xl border border-green-500/30" />
-                          </div>
-                        </div>
+                        <MediaPreview
+                          items={[
+                            { id: 'ai-edit-original', url: editPreview!, type: 'image', format: 'PNG', label: 'Original' },
+                            { id: 'ai-edit-result',   url: editAiEditResult,  type: 'image', format: 'PNG', label: 'AI Edit' },
+                          ]}
+                        />
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => { setEditAiResult(editAiEditResult); setEditAiEditResult(null); setEditAiEditOpen(false); }}
@@ -1656,7 +1652,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                       <div className="text-xs text-[var(--color-text-dim)]"><div className="font-medium text-[var(--color-text-muted)]">Video</div><div>Animated by Kling v2.1</div></div>
                     </div>
                   )}
-                  <video src={vidUrl} controls className="w-full rounded-lg" style={{ maxHeight: selectedSkill.aspectRatio === '9:16' ? '70vh' : '50vh', objectFit: 'contain' }} />
+                  <MediaPreview
+                    items={[{ id: 'generated-video', url: vidUrl, type: 'video', format: 'MP4', label: 'Generated' }]}
+                  />
                   <a href={vidUrl} download="generated-video.mp4" className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)]/50 hover:text-white">
                     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Download MP4

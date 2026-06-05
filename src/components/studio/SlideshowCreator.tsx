@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { MediaPreview } from '@/components/studio/MediaPreview';
 import {
   renderSlideshow,
   DEFAULT_SEQUENCE,
@@ -421,7 +422,15 @@ export default function SlideshowCreator() {
             Start over
           </button>
         </div>
-        <video src={videoUrlRef.current} controls autoPlay loop className="w-full rounded-lg" />
+        <MediaPreview
+          items={[{
+            id: 'slideshow-result',
+            url: videoUrlRef.current,
+            type: 'video',
+            format: ext.toUpperCase(),
+            label: 'Slideshow',
+          }]}
+        />
         <div className="flex gap-3">
           <a
             href={videoUrlRef.current}

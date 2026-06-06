@@ -78,12 +78,15 @@ export default function ScoutPage() {
 
   const [query, setQuery]               = useState('');
   const [city, setCity]                 = useState('Trenčín');
+  const [maxResults, setMaxResults]     = useState(50);
   const [loading, setLoading]           = useState(false);
   const [results, setResults]           = useState<ScoutLead[]>([]);
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
   const [statuses, setStatuses]         = useState<Record<string, LeadStatus>>({});
   const [toast, setToast]               = useState<string | null>(null);
   const [searched, setSearched]         = useState(false);
+  const [page, setPage]                 = useState(1);
+  const perPage = 25;
 
   useEffect(() => {
     try {
@@ -115,11 +118,12 @@ export default function ScoutPage() {
       const res = await fetch('/api/admin/scout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), city: city.trim() }),
+        body: JSON.stringify({ query: query.trim(), city: city.trim(), maxResults }),
       });
       const data = await res.json() as { results?: ApifyPlace[]; error?: string };
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setResults(transformLeads(data.results ?? []));
+      setPage(1);
     } catch (err) {
       showToast(`Error: ${err instanceof Error ? err.message : 'Search failed'}`);
     } finally {
@@ -151,7 +155,9 @@ export default function ScoutPage() {
     ? results.filter(l => !l.website)
     : results;
 
-  const noWebsiteCount = results.filter(l => !l.website).length;
+  const noWebsiteCount  = results.filter(l => !l.website).length;
+  const totalPages      = Math.ceil(displayResults.length / perPage);
+  const paginatedResults = displayResults.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div className="space-y-6">
@@ -194,6 +200,21 @@ export default function ScoutPage() {
               className="w-full rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-gray-600 focus:border-indigo-500"
             />
           </div>
+          <div className="w-32 shrink-0">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Max Results
+            </label>
+            <select
+              value={maxResults}
+              onChange={e => setMaxResults(Number(e.target.value))}
+              className="w-full rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+            </select>
+          </div>
           <button
             type="submit"
             disabled={loading || !query.trim() || !city.trim()}
@@ -220,7 +241,8 @@ export default function ScoutPage() {
 
         {loading && (
           <p className="mt-3 text-xs text-gray-500">
-            Querying Google Places via Apify — may take 20–60 seconds...
+            Querying Google Places via Apify — searching up to {maxResults} places,
+            may take {maxResults > 50 ? '1–3 minutes' : '20–60 seconds'}...
           </p>
         )}
       </form>
@@ -235,7 +257,7 @@ export default function ScoutPage() {
                 <input
                   type="checkbox"
                   checked={filterNoWebsite}
-                  onChange={e => setFilterNoWebsite(e.target.checked)}
+                  onChange={e => { setFilterNoWebsite(e.target.checked); setPage(1); }}
                   className="h-4 w-4 accent-indigo-500"
                 />
                 Show without website only
@@ -272,6 +294,7 @@ export default function ScoutPage() {
               <p className="text-gray-500">No results found. Try different search terms.</p>
             </div>
           ) : (
+            <div className="space-y-3">
             <div className="overflow-x-auto rounded-xl border border-[#374151]">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-[#374151] bg-[#0F172A]">
@@ -287,11 +310,11 @@ export default function ScoutPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#374151] bg-[#1E293B]">
-                  {displayResults.map((lead, i) => {
+                  {paginatedResults.map((lead, i) => {
                     const status = statuses[lead.id] ?? 'New';
                     return (
                       <tr key={lead.id} className="transition-colors hover:bg-[#263349]">
-                        <td className="px-4 py-3 text-xs text-gray-600">{i + 1}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{(page - 1) * perPage + i + 1}</td>
 
                         <td className="px-4 py-3">
                           <p className="font-medium text-white">{lead.title}</p>
@@ -371,6 +394,45 @@ export default function ScoutPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs text-gray-500">
+                  Page {page} of {totalPages} · Showing {paginatedResults.length} of {displayResults.length}
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="rounded-lg border border-[#374151] bg-[#1E293B] px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-[#263349] disabled:opacity-40"
+                  >
+                    ← Prev
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                        p === page
+                          ? 'bg-indigo-600 text-white'
+                          : 'border border-[#374151] bg-[#1E293B] text-gray-300 hover:bg-[#263349]'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="rounded-lg border border-[#374151] bg-[#1E293B] px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-[#263349] disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
             </div>
           )}
         </>

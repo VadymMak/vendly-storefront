@@ -24,9 +24,10 @@ export async function POST(req: Request) {
     return Response.json({ error: 'APIFY_API_TOKEN is not configured' }, { status: 500 });
   }
 
-  const body = await req.json() as { query?: string; city?: string };
-  const query = (body.query ?? '').trim();
-  const city  = (body.city  ?? '').trim();
+  const body = await req.json() as { query?: string; city?: string; maxResults?: number };
+  const query      = (body.query ?? '').trim();
+  const city       = (body.city  ?? '').trim();
+  const maxResults = Math.min(Math.max(body.maxResults ?? 50, 10), 200);
 
   if (!query || !city) {
     return Response.json({ error: 'query and city are required' }, { status: 400 });
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         searchStringsArray:         [`${query} ${city}`],
-        maxCrawledPlacesPerSearch:  25,
+        maxCrawledPlacesPerSearch:  maxResults,
         language:                   'sk',
         countryCode:                'sk',
       }),
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
 
   // Fetch dataset items
   const dataRes = await fetch(
-    `${APIFY_BASE}/actor-runs/${runId}/dataset/items?token=${token}&limit=50`,
+    `${APIFY_BASE}/actor-runs/${runId}/dataset/items?token=${token}&limit=${maxResults}`,
   );
 
   if (!dataRes.ok) {

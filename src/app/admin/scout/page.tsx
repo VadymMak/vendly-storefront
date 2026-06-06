@@ -86,6 +86,7 @@ export default function ScoutPage() {
   const [toast, setToast]               = useState<string | null>(null);
   const [searched, setSearched]         = useState(false);
   const [page, setPage]                 = useState(1);
+  const [progress, setProgress]         = useState('');
   const perPage = 25;
 
   useEffect(() => {
@@ -97,7 +98,8 @@ export default function ScoutPage() {
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+    const delay = msg.startsWith('Error') || msg.startsWith('⚠️') ? 8000 : 3000;
+    setTimeout(() => setToast(null), delay);
   }, []);
 
   const setStatus = useCallback((id: string, status: LeadStatus) => {
@@ -114,18 +116,63 @@ export default function ScoutPage() {
     setLoading(true);
     setSearched(true);
     setResults([]);
+    setProgress('Starting Apify search...');
+    setPage(1);
+
     try {
-      const res = await fetch('/api/admin/scout', {
-        method: 'POST',
+      // 1. Start run — returns runId immediately
+      const startRes = await fetch('/api/admin/scout', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), city: city.trim(), maxResults }),
+        body:    JSON.stringify({ query: query.trim(), city: city.trim(), maxResults }),
       });
-      const data = await res.json() as { results?: ApifyPlace[]; error?: string };
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      setResults(transformLeads(data.results ?? []));
-      setPage(1);
+      const startData = await startRes.json() as { runId?: string; error?: string };
+      if (!startRes.ok || !startData.runId) {
+        throw new Error(startData.error ?? `Start failed: HTTP ${startRes.status}`);
+      }
+
+      const { runId } = startData;
+      setProgress('Searching Google Places...');
+
+      // 2. Poll status endpoint every 5s — no Vercel timeout risk
+      const MAX_POLLS = 120; // 120 × 5s = 10 min max
+      let polls = 0;
+
+      while (polls < MAX_POLLS) {
+        await new Promise(r => setTimeout(r, 5000));
+        polls++;
+
+        const statusRes  = await fetch(`/api/admin/scout/status?runId=${runId}`);
+        const statusData = await statusRes.json() as {
+          status:    string;
+          results?:  unknown[];
+          itemCount?: number;
+          error?:    string;
+        };
+
+        if (statusData.status === 'running') {
+          setProgress(`Searching... found ${statusData.itemCount ?? 0} places so far (${polls * 5}s)`);
+          continue;
+        }
+
+        if (statusData.status === 'succeeded') {
+          setResults(transformLeads((statusData.results ?? []) as ApifyPlace[]));
+          setProgress('');
+          return;
+        }
+
+        throw new Error(statusData.error ?? 'Search failed');
+      }
+
+      throw new Error('Search timed out after 10 minutes');
     } catch (err) {
-      showToast(`Error: ${err instanceof Error ? err.message : 'Search failed'}`);
+      const msg = err instanceof Error ? err.message : 'Search failed';
+      if (msg.includes('credit') || msg.includes('402')) {
+        showToast('⚠️ Apify credits exhausted. Top up at console.apify.com');
+      } else {
+        showToast(`Error: ${msg}`);
+      }
+      setProgress('');
     } finally {
       setLoading(false);
     }
@@ -240,10 +287,13 @@ export default function ScoutPage() {
         </div>
 
         {loading && (
-          <p className="mt-3 text-xs text-gray-500">
-            Querying Google Places via Apify — searching up to {maxResults} places,
-            may take {maxResults > 50 ? '1–3 minutes' : '20–60 seconds'}...
-          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <svg className="h-4 w-4 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            <p className="text-xs text-gray-400">{progress}</p>
+          </div>
         )}
       </form>
 

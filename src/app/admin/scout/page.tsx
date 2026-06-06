@@ -78,7 +78,7 @@ export default function ScoutPage() {
 
   const [query, setQuery]               = useState('');
   const [city, setCity]                 = useState('Trenčín');
-  const [maxResults, setMaxResults]     = useState(50);
+  const [maxResults, setMaxResults]     = useState(20);
   const [loading, setLoading]           = useState(false);
   const [results, setResults]           = useState<ScoutLead[]>([]);
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
@@ -86,7 +86,6 @@ export default function ScoutPage() {
   const [toast, setToast]               = useState<string | null>(null);
   const [searched, setSearched]         = useState(false);
   const [page, setPage]                 = useState(1);
-  const [progress, setProgress]         = useState('');
   const perPage = 25;
 
   useEffect(() => {
@@ -116,63 +115,19 @@ export default function ScoutPage() {
     setLoading(true);
     setSearched(true);
     setResults([]);
-    setProgress('Starting Apify search...');
     setPage(1);
 
     try {
-      // 1. Start run — returns runId immediately
-      const startRes = await fetch('/api/admin/scout', {
+      const res = await fetch('/api/admin/scout', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ query: query.trim(), city: city.trim(), maxResults }),
       });
-      const startData = await startRes.json() as { runId?: string; error?: string };
-      if (!startRes.ok || !startData.runId) {
-        throw new Error(startData.error ?? `Start failed: HTTP ${startRes.status}`);
-      }
-
-      const { runId } = startData;
-      setProgress('Searching Google Places...');
-
-      // 2. Poll status endpoint every 5s — no Vercel timeout risk
-      const MAX_POLLS = 120; // 120 × 5s = 10 min max
-      let polls = 0;
-
-      while (polls < MAX_POLLS) {
-        await new Promise(r => setTimeout(r, 5000));
-        polls++;
-
-        const statusRes  = await fetch(`/api/admin/scout/status?runId=${runId}`);
-        const statusData = await statusRes.json() as {
-          status:    string;
-          results?:  unknown[];
-          itemCount?: number;
-          error?:    string;
-        };
-
-        if (statusData.status === 'running') {
-          setProgress(`Searching... found ${statusData.itemCount ?? 0} places so far (${polls * 5}s)`);
-          continue;
-        }
-
-        if (statusData.status === 'succeeded') {
-          setResults(transformLeads((statusData.results ?? []) as ApifyPlace[]));
-          setProgress('');
-          return;
-        }
-
-        throw new Error(statusData.error ?? 'Search failed');
-      }
-
-      throw new Error('Search timed out after 10 minutes');
+      const data = await res.json() as { results?: ApifyPlace[]; error?: string; total?: number };
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setResults(transformLeads(data.results ?? []));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Search failed';
-      if (msg.includes('credit') || msg.includes('402')) {
-        showToast('⚠️ Apify credits exhausted. Top up at console.apify.com');
-      } else {
-        showToast(`Error: ${msg}`);
-      }
-      setProgress('');
+      showToast(`Error: ${err instanceof Error ? err.message : 'Search failed'}`);
     } finally {
       setLoading(false);
     }
@@ -213,7 +168,7 @@ export default function ScoutPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Leads Scout</h1>
         <p className="mt-1 text-sm text-gray-400">
-          Find businesses without websites via Google Places (Apify)
+          Find businesses via Google Places · ~$0.035 per search · up to 60 results
         </p>
       </div>
 
@@ -256,10 +211,9 @@ export default function ScoutPage() {
               onChange={e => setMaxResults(Number(e.target.value))}
               className="w-full rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500"
             >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
+              <option value={20}>20</option>
+              <option value={40}>40</option>
+              <option value={60}>60</option>
             </select>
           </div>
           <button
@@ -287,13 +241,9 @@ export default function ScoutPage() {
         </div>
 
         {loading && (
-          <div className="mt-3 flex items-center gap-2">
-            <svg className="h-4 w-4 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            <p className="text-xs text-gray-400">{progress}</p>
-          </div>
+          <p className="mt-3 text-xs text-gray-500">
+            Searching Google Places — usually takes 1–3 seconds...
+          </p>
         )}
       </form>
 

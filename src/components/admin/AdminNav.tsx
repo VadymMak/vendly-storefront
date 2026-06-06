@@ -78,6 +78,16 @@ export default function AdminNav({ userName }: AdminNavProps) {
           >
             Leads
           </Link>
+          <Link href="/admin/scout"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === '/admin/scout' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
+            }`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            Scout
+          </Link>
           <Link href="/dashboard"
             className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:bg-white/60 transition-colors"
           >

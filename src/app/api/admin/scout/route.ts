@@ -1,17 +1,41 @@
 import { auth } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin-auth';
 
-interface ApifyRunData {
-  data: { id: string; status: string };
+const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText';
+
+const FIELD_MASK = [
+  'places.id',
+  'places.displayName',
+  'places.formattedAddress',
+  'places.internationalPhoneNumber',
+  'places.websiteUri',
+  'places.rating',
+  'places.userRatingCount',
+  'places.primaryType',
+  'places.primaryTypeDisplayName',
+  'places.location',
+  'places.businessStatus',
+  'nextPageToken',
+].join(',');
+
+interface GooglePlace {
+  id:                       string;
+  displayName?:             { text: string; languageCode: string };
+  formattedAddress?:        string;
+  internationalPhoneNumber?: string;
+  websiteUri?:              string;
+  rating?:                  number;
+  userRatingCount?:         number;
+  primaryType?:             string;
+  primaryTypeDisplayName?:  { text: string; languageCode: string };
+  location?:                { latitude: number; longitude: number };
+  businessStatus?:          string;
 }
 
-interface ApifyStatusData {
-  data: { status: string };
+interface GooglePlacesResponse {
+  places?:       GooglePlace[];
+  nextPageToken?: string;
 }
-
-const APIFY_BASE = 'https://api.apify.com/v2';
-const ACTOR_ID   = 'compass~crawler-google-places';
-const MAX_POLLS  = 30; // 30 × 3s = 90s max wait
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -19,71 +43,82 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const token = process.env.APIFY_API_TOKEN;
-  if (!token) {
-    return Response.json({ error: 'APIFY_API_TOKEN is not configured' }, { status: 500 });
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) {
+    return Response.json({ error: 'GOOGLE_PLACES_API_KEY is not configured' }, { status: 500 });
   }
 
-  const body = await req.json() as { query?: string; city?: string; maxResults?: number };
+  const body       = await req.json() as { query?: string; city?: string; maxResults?: number };
   const query      = (body.query ?? '').trim();
   const city       = (body.city  ?? '').trim();
-  const maxResults = Math.min(Math.max(body.maxResults ?? 50, 10), 200);
+  const maxResults = Math.min(Math.max(body.maxResults ?? 20, 1), 60);
 
   if (!query || !city) {
     return Response.json({ error: 'query and city are required' }, { status: 400 });
   }
 
-  // Start Apify run
-  const startRes = await fetch(
-    `${APIFY_BASE}/acts/${ACTOR_ID}/runs?token=${token}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        searchStringsArray:         [`${query} ${city}`],
-        maxCrawledPlacesPerSearch:  maxResults,
-        language:                   'sk',
-        countryCode:                'sk',
-      }),
-    },
-  );
+  try {
+    const allPlaces: GooglePlace[] = [];
+    let pageToken: string | undefined;
+    const pagesNeeded = Math.ceil(maxResults / 20);
 
-  if (!startRes.ok) {
-    const text = await startRes.text();
-    return Response.json({ error: `Apify start failed: ${text}` }, { status: 502 });
+    for (let page = 0; page < pagesNeeded; page++) {
+      const requestBody: Record<string, unknown> = {
+        textQuery:    `${query} ${city}`,
+        languageCode: 'sk',
+        regionCode:   'SK',
+        pageSize:     20,
+      };
+      if (pageToken) requestBody.pageToken = pageToken;
+
+      const res = await fetch(PLACES_URL, {
+        method:  'POST',
+        headers: {
+          'Content-Type':    'application/json',
+          'X-Goog-Api-Key':  apiKey,
+          'X-Goog-FieldMask': FIELD_MASK,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[scout] Google Places error:', res.status, errorText);
+
+        if (res.status === 403) {
+          return Response.json(
+            { error: 'Google Places API key is invalid or Places API (New) is not enabled' },
+            { status: 403 },
+          );
+        }
+        if (res.status === 429) {
+          return Response.json(
+            { error: 'Google Places rate limit exceeded. Try again in a minute.' },
+            { status: 429 },
+          );
+        }
+        return Response.json({ error: `Google Places API error (${res.status})` }, { status: 502 });
+      }
+
+      const data = await res.json() as GooglePlacesResponse;
+      allPlaces.push(...(data.places ?? []));
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
+
+    const results = allPlaces.slice(0, maxResults).map(place => ({
+      title:            place.displayName?.text ?? '—',
+      phone:            place.internationalPhoneNumber ?? '',
+      phoneUnformatted: place.internationalPhoneNumber?.replace(/\s+/g, '') ?? '',
+      website:          place.websiteUri ?? null,
+      totalScore:       place.rating ?? 0,
+      address:          place.formattedAddress ?? '—',
+      categoryName:     place.primaryTypeDisplayName?.text ?? place.primaryType ?? '—',
+    }));
+
+    return Response.json({ results, total: results.length });
+  } catch (err) {
+    console.error('[scout] Unexpected error:', err);
+    return Response.json({ error: 'Search failed' }, { status: 500 });
   }
-
-  const { data: run } = await startRes.json() as ApifyRunData;
-  const runId = run.id;
-
-  // Poll until SUCCEEDED or FAILED (every 3s)
-  let status = run.status;
-  let polls  = 0;
-
-  while (['RUNNING', 'READY', 'CREATED'].includes(status) && polls < MAX_POLLS) {
-    await new Promise(r => setTimeout(r, 3000));
-    const statusRes  = await fetch(`${APIFY_BASE}/actor-runs/${runId}?token=${token}`);
-    const statusData = await statusRes.json() as ApifyStatusData;
-    status = statusData.data.status;
-    polls++;
-  }
-
-  if (status !== 'SUCCEEDED') {
-    return Response.json(
-      { error: `Apify run did not complete (status: ${status}, polls: ${polls})` },
-      { status: 502 },
-    );
-  }
-
-  // Fetch dataset items
-  const dataRes = await fetch(
-    `${APIFY_BASE}/actor-runs/${runId}/dataset/items?token=${token}&limit=${maxResults}`,
-  );
-
-  if (!dataRes.ok) {
-    return Response.json({ error: 'Failed to fetch Apify results' }, { status: 502 });
-  }
-
-  const results = await dataRes.json() as unknown[];
-  return Response.json({ results });
 }

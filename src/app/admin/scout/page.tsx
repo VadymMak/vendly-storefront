@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,14 +70,44 @@ function buildCsv(leads: ScoutLead[], statuses: Record<string, LeadStatus>, city
   return [header, ...rows].join('\n');
 }
 
+function CopyCell({ value, children }: { value: string; children: React.ReactNode }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* fallback */ }
+  };
+
+  return (
+    <span
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : `Click to copy: ${value}`}
+      className={`cursor-pointer transition-colors ${copied ? 'text-green-400' : 'hover:text-white'}`}
+    >
+      {copied ? (
+        <span className="inline-flex items-center gap-1 text-green-400">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l4 4L19 6" />
+          </svg>
+          Copied
+        </span>
+      ) : (
+        children
+      )}
+    </span>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScoutPage() {
-  const router = useRouter();
-
   const [query, setQuery]               = useState('');
   const [city, setCity]                 = useState('Trenčín');
-  const [maxResults, setMaxResults]     = useState(50);
+  const [maxResults, setMaxResults]     = useState(20);
   const [loading, setLoading]           = useState(false);
   const [results, setResults]           = useState<ScoutLead[]>([]);
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
@@ -97,7 +126,8 @@ export default function ScoutPage() {
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+    const delay = msg.startsWith('Error') || msg.startsWith('⚠️') ? 8000 : 3000;
+    setTimeout(() => setToast(null), delay);
   }, []);
 
   const setStatus = useCallback((id: string, status: LeadStatus) => {
@@ -114,16 +144,17 @@ export default function ScoutPage() {
     setLoading(true);
     setSearched(true);
     setResults([]);
+    setPage(1);
+
     try {
       const res = await fetch('/api/admin/scout', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), city: city.trim(), maxResults }),
+        body:    JSON.stringify({ query: query.trim(), city: city.trim(), maxResults }),
       });
-      const data = await res.json() as { results?: ApifyPlace[]; error?: string };
+      const data = await res.json() as { results?: ApifyPlace[]; error?: string; total?: number };
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setResults(transformLeads(data.results ?? []));
-      setPage(1);
     } catch (err) {
       showToast(`Error: ${err instanceof Error ? err.message : 'Search failed'}`);
     } finally {
@@ -143,12 +174,14 @@ export default function ScoutPage() {
   }
 
   function handleCreateDemo(lead: ScoutLead) {
-    localStorage.setItem('pendingDemo', JSON.stringify({
-      name: lead.title, phone: lead.phone, city, address: lead.address,
-    }));
-    const params = new URLSearchParams({ name: lead.title, phone: lead.phone, city });
-    showToast('✓ Opening site generator...');
-    setTimeout(() => router.push(`/create?${params.toString()}`), 800);
+    const params = new URLSearchParams({
+      name: lead.title,
+      phone: lead.phone,
+      address: lead.address,
+      city,
+      category: lead.category,
+    });
+    window.open(`/create?${params.toString()}`, '_blank');
   }
 
   const displayResults = filterNoWebsite
@@ -166,7 +199,7 @@ export default function ScoutPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Leads Scout</h1>
         <p className="mt-1 text-sm text-gray-400">
-          Find businesses without websites via Google Places (Apify)
+          Find businesses via Google Places · ~$0.035 per search · up to 60 results
         </p>
       </div>
 
@@ -209,10 +242,9 @@ export default function ScoutPage() {
               onChange={e => setMaxResults(Number(e.target.value))}
               className="w-full rounded-lg border border-[#374151] bg-[#0F172A] px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500"
             >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
+              <option value={20}>20</option>
+              <option value={40}>40</option>
+              <option value={60}>60</option>
             </select>
           </div>
           <button
@@ -241,8 +273,7 @@ export default function ScoutPage() {
 
         {loading && (
           <p className="mt-3 text-xs text-gray-500">
-            Querying Google Places via Apify — searching up to {maxResults} places,
-            may take {maxResults > 50 ? '1–3 minutes' : '20–60 seconds'}...
+            Searching Google Places — usually takes 1–3 seconds...
           </p>
         )}
       </form>
@@ -317,20 +348,17 @@ export default function ScoutPage() {
                         <td className="px-4 py-3 text-xs text-gray-600">{(page - 1) * perPage + i + 1}</td>
 
                         <td className="px-4 py-3">
-                          <p className="font-medium text-white">{lead.title}</p>
+                          <CopyCell value={lead.title}>
+                            <p className="font-medium text-white">{lead.title}</p>
+                          </CopyCell>
                           <p className="text-xs text-gray-500">{lead.category}</p>
                         </td>
 
                         <td className="px-4 py-3">
                           {lead.phone ? (
-                            <a
-                              href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-indigo-400 hover:underline"
-                            >
-                              {lead.phone}
-                            </a>
+                            <CopyCell value={lead.phone}>
+                              <span className="text-xs text-indigo-400 hover:underline">{lead.phone}</span>
+                            </CopyCell>
                           ) : (
                             <span className="text-xs text-gray-600">—</span>
                           )}
@@ -363,8 +391,10 @@ export default function ScoutPage() {
                           )}
                         </td>
 
-                        <td className="max-w-[180px] truncate px-4 py-3 text-xs text-gray-400">
-                          {lead.address}
+                        <td className="max-w-[180px] px-4 py-3">
+                          <CopyCell value={lead.address}>
+                            <span className="text-xs text-gray-400 truncate block">{lead.address}</span>
+                          </CopyCell>
                         </td>
 
                         <td className="px-4 py-3 text-center">

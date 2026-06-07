@@ -49,3 +49,6 @@ next-env.d.ts
 tmp-*.js
 tmp-*.ts
 /tmp/
+
+# Claude prompts (local dev notes)
+prompt-*.md

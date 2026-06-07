@@ -687,6 +687,33 @@ function DeployOverlay({
   );
 }
 
+function mapCategoryToBizType(category: string): string {
+  const c = category.toLowerCase();
+  if (c.includes('auto') || c.includes('car') || c.includes('vehicle') || c.includes('servis') || c.includes('pneu') || c.includes('garage'))
+    return 'auto';
+  if (c.includes('reštaurácia') || c.includes('restaurant') || c.includes('bistro') || c.includes('pizz') || c.includes('café') || c.includes('kaviar') || c.includes('jedál') || c.includes('food') || c.includes('bakery') || c.includes('cukrár'))
+    return 'restaurant';
+  if (c.includes('kaderníc') || c.includes('barber') || c.includes('hair') || c.includes('holičstvo') || c.includes('frizér'))
+    return 'barbershop';
+  if (c.includes('kozmet') || c.includes('beauty') || c.includes('nechtov') || c.includes('nail') || c.includes('salon') || c.includes('spa') || c.includes('masáž') || c.includes('massage'))
+    return 'beauty';
+  if (c.includes('zubár') || c.includes('zubn') || c.includes('dent') || c.includes('lekár') || c.includes('doctor') || c.includes('clinic') || c.includes('klinik'))
+    return 'dentist';
+  if (c.includes('yoga') || c.includes('fitness') || c.includes('gym') || c.includes('šport') || c.includes('sport'))
+    return 'yoga';
+  if (c.includes('foto') || c.includes('photo') || c.includes('studio'))
+    return 'photography';
+  if (c.includes('škol') || c.includes('school') || c.includes('academy') || c.includes('akadém') || c.includes('kurz') || c.includes('course'))
+    return 'education';
+  if (c.includes('elektr') || c.includes('electron') || c.includes('phone') || c.includes('telefón') || c.includes('repair') || c.includes('oprav'))
+    return 'electronics';
+  if (c.includes('voda') || c.includes('water') || c.includes('delivery') || c.includes('doručen'))
+    return 'water';
+  if (c.includes('design') || c.includes('dizajn') || c.includes('agentúr') || c.includes('agency') || c.includes('market'))
+    return 'agency';
+  return 'barbershop';
+}
+
 // ── Main client component ──────────────────────────────────────────────────────
 
 export default function CreatePageClient() {
@@ -696,6 +723,29 @@ export default function CreatePageClient() {
   const [state, setState] = useState<CreateState>(() => {
     if (typeof window === 'undefined') return INITIAL_STATE;
     const params = new URLSearchParams(window.location.search);
+
+    // ── Scout prefill: /create?name=...&phone=...&address=...&city=...&category=...
+    const scoutName     = params.get('name');
+    const scoutPhone    = params.get('phone');
+    const scoutAddress  = params.get('address');
+    const scoutCity     = params.get('city');
+    const scoutCategory = params.get('category');
+
+    if (scoutName) {
+      const bizType = mapCategoryToBizType(scoutCategory ?? '');
+      const matchedBiz = CREATE_BUSINESS_TYPES.find((b) => b.id === bizType) ?? CREATE_BUSINESS_TYPES[0];
+      return {
+        ...INITIAL_STATE,
+        step: 2,
+        business: matchedBiz.id,
+        palette: matchedBiz.palettes[0].id,
+        businessName: scoutName,
+        phone: scoutPhone ?? '',
+        address: scoutAddress ? scoutAddress : scoutCity ?? '',
+      };
+    }
+
+    // ── Existing logic: ?type= and ?plan= ──
     const urlType = params.get('type') ?? '';
     const urlPlan = params.get('plan') as CreatePlan | null;
     // ?type= pre-selects business type (from /templates cards)

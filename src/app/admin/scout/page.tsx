@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,11 +70,41 @@ function buildCsv(leads: ScoutLead[], statuses: Record<string, LeadStatus>, city
   return [header, ...rows].join('\n');
 }
 
+function CopyCell({ value, children }: { value: string; children: React.ReactNode }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* fallback */ }
+  };
+
+  return (
+    <span
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : `Click to copy: ${value}`}
+      className={`cursor-pointer transition-colors ${copied ? 'text-green-400' : 'hover:text-white'}`}
+    >
+      {copied ? (
+        <span className="inline-flex items-center gap-1 text-green-400">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l4 4L19 6" />
+          </svg>
+          Copied
+        </span>
+      ) : (
+        children
+      )}
+    </span>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScoutPage() {
-  const router = useRouter();
-
   const [query, setQuery]               = useState('');
   const [city, setCity]                 = useState('Trenčín');
   const [maxResults, setMaxResults]     = useState(20);
@@ -145,12 +174,14 @@ export default function ScoutPage() {
   }
 
   function handleCreateDemo(lead: ScoutLead) {
-    localStorage.setItem('pendingDemo', JSON.stringify({
-      name: lead.title, phone: lead.phone, city, address: lead.address,
-    }));
-    const params = new URLSearchParams({ name: lead.title, phone: lead.phone, city });
-    showToast('✓ Opening site generator...');
-    setTimeout(() => router.push(`/create?${params.toString()}`), 800);
+    const params = new URLSearchParams({
+      name: lead.title,
+      phone: lead.phone,
+      address: lead.address,
+      city,
+      category: lead.category,
+    });
+    window.open(`/create?${params.toString()}`, '_blank');
   }
 
   const displayResults = filterNoWebsite
@@ -317,20 +348,17 @@ export default function ScoutPage() {
                         <td className="px-4 py-3 text-xs text-gray-600">{(page - 1) * perPage + i + 1}</td>
 
                         <td className="px-4 py-3">
-                          <p className="font-medium text-white">{lead.title}</p>
+                          <CopyCell value={lead.title}>
+                            <p className="font-medium text-white">{lead.title}</p>
+                          </CopyCell>
                           <p className="text-xs text-gray-500">{lead.category}</p>
                         </td>
 
                         <td className="px-4 py-3">
                           {lead.phone ? (
-                            <a
-                              href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-indigo-400 hover:underline"
-                            >
-                              {lead.phone}
-                            </a>
+                            <CopyCell value={lead.phone}>
+                              <span className="text-xs text-indigo-400 hover:underline">{lead.phone}</span>
+                            </CopyCell>
                           ) : (
                             <span className="text-xs text-gray-600">—</span>
                           )}
@@ -363,8 +391,10 @@ export default function ScoutPage() {
                           )}
                         </td>
 
-                        <td className="max-w-[180px] truncate px-4 py-3 text-xs text-gray-400">
-                          {lead.address}
+                        <td className="max-w-[180px] px-4 py-3">
+                          <CopyCell value={lead.address}>
+                            <span className="text-xs text-gray-400 truncate block">{lead.address}</span>
+                          </CopyCell>
                         </td>
 
                         <td className="px-4 py-3 text-center">

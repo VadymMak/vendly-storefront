@@ -138,6 +138,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
   // Auto-collapse: open if Replicate key missing, closed if all saved
   const [keysOpen, setKeysOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
 
   // ── Shared: Wizard ────────────────────────────────────────────────────────
   const [wizardStep,   setWizardStep]   = useState<1 | 2 | null>(null);
@@ -1599,17 +1600,55 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                 ))}
               </div>
 
-              {/* Skills */}
-              <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-                <h2 className="mb-4 text-base font-semibold">Video Skill</h2>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                  {VIDEO_SKILLS.map((skill) => (
-                    <button key={skill.id} onClick={() => setSelectedSkill(skill)} className={cx('cursor-pointer rounded-lg border px-3 py-3 text-left text-sm transition-colors', selectedSkill.id === skill.id ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-white' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40')}>
-                      <div className="font-medium">{skill.label}</div>
-                      <div className="mt-0.5 text-xs opacity-60">{skill.aspectRatio} · {skill.duration}s</div>
-                    </button>
-                  ))}
-                </div>
+              {/* Skills (collapsible) */}
+              <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)]">
+                <button
+                  type="button"
+                  onClick={() => setSkillsOpen((prev) => !prev)}
+                  className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left transition-colors hover:bg-[var(--color-bg)]"
+                >
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-base font-semibold">Video Skill</h2>
+                    <span className="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                      {selectedSkill.label} · {selectedSkill.aspectRatio}
+                    </span>
+                  </div>
+                  <svg
+                    width={16}
+                    height={16}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`text-[var(--color-text-muted)] transition-transform duration-200 ${skillsOpen ? 'rotate-180' : ''}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {skillsOpen && (
+                  <div className="border-t border-[var(--color-border)] px-6 pb-5 pt-4">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                      {VIDEO_SKILLS.map((skill) => (
+                        <button
+                          key={skill.id}
+                          onClick={() => { setSelectedSkill(skill); setSkillsOpen(false); }}
+                          className={cx(
+                            'cursor-pointer rounded-lg border px-3 py-3 text-left text-sm transition-colors',
+                            selectedSkill.id === skill.id
+                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-white'
+                              : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40',
+                          )}
+                        >
+                          <div className="font-medium">{skill.label}</div>
+                          <div className="mt-0.5 text-xs opacity-60">{skill.aspectRatio} · {skill.duration}s</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* Image upload (Image→Video) */}

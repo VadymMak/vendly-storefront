@@ -136,6 +136,8 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const [keyInputs,   setKeyInputs]   = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '' });
   const [keySaving,   setKeySaving]   = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
   const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
+  // Auto-collapse: open if Replicate key missing, closed if all saved
+  const [keysOpen, setKeysOpen] = useState(false);
 
   // ── Shared: Wizard ────────────────────────────────────────────────────────
   const [wizardStep,   setWizardStep]   = useState<1 | 2 | null>(null);
@@ -236,6 +238,14 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }, [helpOpen, helpSection]);
 
+  // Auto-open keys section if Replicate key is missing
+  useEffect(() => {
+    if (keys.length > 0) {
+      const hasReplicate = keys.some((k) => k.provider === 'replicate');
+      setKeysOpen(!hasReplicate);
+    }
+  }, [keys]);
+
   useEffect(() => {
     const handler = () => { setUpgradeType('general'); setShowUpgrade(true); };
     window.addEventListener('studio:showUpgrade', handler);
@@ -245,6 +255,11 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const loadKeys = useCallback(async () => {
     const res = await fetch('/api/user/api-keys');
     if (res.ok) setKeys(await res.json());
+  }, []);
+
+  const switchTab = useCallback((tab: StudioTab) => {
+    setStudioTab(tab);
+    if (tab === 'chat') setKeysOpen(false);
   }, []);
 
   const keyFor = (p: Provider) => keys.find((k) => k.provider === p);
@@ -926,7 +941,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             ] as const).map(({ id, label, desc }) => (
               <button
                 key={id}
-                onClick={() => setStudioTab(id)}
+                onClick={() => switchTab(id)}
                 className={cx(
                   'flex-1 cursor-pointer rounded-lg px-4 py-3 text-left text-sm transition-colors',
                   studioTab === id ? 'bg-[var(--color-card)] text-white shadow-sm' : 'text-[var(--color-text-muted)] hover:text-white',
@@ -938,10 +953,36 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             ))}
           </div>
 
-          {/* ── API Keys (shared) ── */}
-          <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-            <h2 className="mb-5 text-base font-semibold">API Keys</h2>
-            <div className="space-y-5">
+          {/* ── API Keys (shared, collapsible) ── */}
+          <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setKeysOpen((prev) => !prev)}
+              className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left transition-colors hover:bg-[var(--color-bg)]"
+            >
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-semibold">API Keys</h2>
+                <span className="rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                  {keys.length} / 3 connected
+                </span>
+              </div>
+              <svg
+                width={16}
+                height={16}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-[var(--color-text-muted)] transition-transform duration-200 ${keysOpen ? 'rotate-180' : ''}`}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {keysOpen && (
+            <div className="space-y-5 border-t border-[var(--color-border)] px-6 pb-6 pt-5">
               {([
                 { id: 'replicate' as Provider, label: 'Replicate API Key',       placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••',     hs: 'replicate' as HelpSection, note: 'Optional — for unlimited BYOK access' },
                 { id: 'anthropic' as Provider, label: 'Anthropic API Key',       placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic' as HelpSection, note: 'Optional — AI prompt enhancement' },
@@ -986,6 +1027,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                 );
               })}
             </div>
+            )}
           </section>
 
           {/* ══════════════════════════════════════════════════════════════

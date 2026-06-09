@@ -32,8 +32,10 @@ export default function StudioChat({ userId, userEmail }: Props) {
     lastImageUrl: null,
     lastVideoUrl: null,
   });
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -65,6 +67,78 @@ export default function StudioChat({ userId, userEmail }: Props) {
   }, [messages]);
 
   const generateId = () => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || isProcessing || isUploading) return;
+
+    e.target.value = '';
+
+    if (!file.type.startsWith('image/')) {
+      alert('Only image files are allowed');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be under 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    const localUrl = URL.createObjectURL(file);
+    const uploadMsg: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      content: 'Uploaded image',
+      media: { type: 'image', url: localUrl },
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, uploadMsg]);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/api/studio/upload', { method: 'POST', body: formData });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' })) as { error?: string };
+        throw new Error(err.error || 'Upload failed');
+      }
+
+      const data = await res.json() as { url: string };
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === uploadMsg.id
+            ? { ...m, media: { type: 'image' as const, url: data.url } }
+            : m,
+        ),
+      );
+
+      setContext((prev) => ({ ...prev, lastImageUrl: data.url }));
+
+      const ackMsg: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content:
+          'Image uploaded! You can now ask me to: remove background, upscale to 4K, edit it, animate to video, or enhance faces.',
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, ackMsg]);
+    } catch (error) {
+      const errorMsg: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setIsUploading(false);
+      URL.revokeObjectURL(localUrl);
+    }
+  }, [isProcessing, isUploading]);
 
   const pollVideoJob = useCallback(async (jobId: string, messageId: string) => {
     const maxAttempts = 60;
@@ -263,6 +337,32 @@ export default function StudioChat({ userId, userEmail }: Props) {
       {/* Input area */}
       <div className="px-4 py-3 border-t border-[var(--color-border)]">
         <div className="flex gap-2 items-end">
+          {/* Upload button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isProcessing || isUploading}
+            title="Upload image"
+            className="flex-shrink-0 w-10 h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-muted)] flex items-center justify-center hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            {isUploading ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" className="animate-spin" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+              </svg>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+
           <textarea
             ref={inputRef}
             value={input}

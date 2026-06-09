@@ -17,13 +17,27 @@ function collectImageUrls(messages: ChatMessage[]): string[] {
   return urls;
 }
 
-function loadImageElement(url: string): Promise<HTMLImageElement> {
+/**
+ * Load image from URL the SAME WAY as manual mode:
+ * fetch → Blob → objectURL → Image element.
+ *
+ * DO NOT use img.crossOrigin + direct URL — canvas will be tainted
+ * and captureStream() will throw SecurityError.
+ *
+ * Manual mode: File → URL.createObjectURL(file) → img.src = objectUrl
+ * Chat mode:   fetch(url) → blob → URL.createObjectURL(blob) → img.src = objectUrl
+ * Both produce local objectUrls → canvas stays clean.
+ */
+async function loadImageFromUrl(url: string): Promise<{ element: HTMLImageElement; objectUrl: string }> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
+    img.onload  = () => resolve({ element: img, objectUrl });
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
+    img.src     = objectUrl;
   });
 }
 
@@ -248,21 +262,26 @@ export default function StudioChat({ userId, userEmail }: Props) {
       return;
     }
 
-    try {
+  const objectUrlsToCleanup: string[] = [];
+
+  try {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
-            ? { ...m, content: `🎬 Rendering clip from ${imageUrls.length} images... 0%`, isLoading: true }
+            ? { ...m, content: `🎬 Loading ${imageUrls.length} images...`, isLoading: true }
             : m,
         ),
       );
 
-      const elements = await Promise.all(imageUrls.map(loadImageElement));
+      // fetch → blob → objectUrl (identical to manual mode, avoids CORS canvas tainting)
+      const loaded = await Promise.all(imageUrls.map(loadImageFromUrl));
+      loaded.forEach((l) => objectUrlsToCleanup.push(l.objectUrl));
 
-      const items: SlideshowItem[] = elements.map((el, i) => ({
+      const durationPerImage = Number(params.durationPerImage) || 4;
+      const items: SlideshowItem[] = loaded.map((l, i) => ({
         type: 'image' as const,
-        element: el,
-        duration: Number(params.durationPerImage) || 4,
+        element: l.element,
+        duration: durationPerImage,
         motion: DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length],
       }));
 
@@ -328,12 +347,14 @@ export default function StudioChat({ userId, userEmail }: Props) {
           m.id === messageId
             ? {
                 ...m,
-                content: `❌ Clip rendering failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                content: `❌ Clip rendering failed: ${error instanceof Error ? error.message : 'Unknown error'}. Try Chrome for best compatibility.`,
                 isLoading: false,
               }
             : m,
         ),
       );
+    } finally {
+      objectUrlsToCleanup.forEach((u) => URL.revokeObjectURL(u));
     }
   }, []);
 

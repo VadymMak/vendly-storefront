@@ -16,6 +16,23 @@ function LoadingDots() {
   );
 }
 
+const handleDownload = async (url: string, filename: string) => {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    window.open(url, '_blank');
+  }
+};
+
 export default function ChatMessageBubble({ message }: Props) {
   const isUser = message.role === 'user';
 
@@ -56,13 +73,13 @@ export default function ChatMessageBubble({ message }: Props) {
                   loading="lazy"
                 />
                 <div className="flex gap-2 mt-2">
-                  <a
-                    href={message.media.url}
-                    download
-                    className="text-xs px-2 py-1 rounded bg-black/10 hover:bg-black/20 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(message.media!.url, `studio-${Date.now()}.webp`)}
+                    className="text-xs px-2 py-1 rounded bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
                   >
                     Download
-                  </a>
+                  </button>
                 </div>
               </div>
             )}
@@ -76,13 +93,13 @@ export default function ChatMessageBubble({ message }: Props) {
                   playsInline
                 />
                 <div className="flex gap-2 mt-2">
-                  <a
-                    href={message.media.url}
-                    download
-                    className="text-xs px-2 py-1 rounded bg-black/10 hover:bg-black/20 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(message.media!.url, `studio-${Date.now()}.mp4`)}
+                    className="text-xs px-2 py-1 rounded bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
                   >
                     Download MP4
-                  </a>
+                  </button>
                 </div>
               </div>
             )}

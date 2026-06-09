@@ -99,6 +99,12 @@ For ANY tool that takes a prompt (generate_image, image_to_video, edit_image), y
 4. Do NOT just pass the user's text directly or leave it in the original language.
 Example: User says "мыло" → prompt: "Professional product photography of handmade soap, centered on clean white marble surface, soft studio lighting, 8K ultra detail, commercial quality"
 
+COMPOSITION RULES for images with people:
+- If the user mentions "full body", "full height", "в полный рост", "целиком", or any indication they want the whole person visible:
+  Add these EXACT keywords: "extreme wide shot, full length portrait showing entire body from head to feet, legs and shoes fully visible, standing pose, do not crop at waist or knees"
+- For 9:16 vertical format with people — ALWAYS default to full body unless user specifically asks for close-up or portrait
+- NEVER use just "full body" alone — Flux ignores it. Always add "from head to feet, legs fully visible, do not crop"
+
 CRITICAL — Language handling:
 The user may write in ANY language (Russian, Slovak, Czech, German, Ukrainian, etc.)
 - Your "message" field: ALWAYS respond in the SAME language the user wrote in. If they write Russian, reply in Russian. If German, reply in German.

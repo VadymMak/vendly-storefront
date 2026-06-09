@@ -86,6 +86,13 @@ async function executeGenerateVideo(
     return { error: 'No image in context. Please generate or upload an image first.' };
   }
 
+  const rawDuration = Number(params.duration);
+  const duration = rawDuration === 10 ? 10 : 5;
+  const validRatios = ['9:16', '1:1', '16:9'] as const;
+  const aspectRatio = validRatios.includes(params.aspectRatio as typeof validRatios[number])
+    ? (params.aspectRatio as string)
+    : '9:16';
+
   const res = await fetch(`${BASE_URL}/api/generate-video`, {
     method: 'POST',
     headers: {
@@ -95,8 +102,8 @@ async function executeGenerateVideo(
     body: JSON.stringify({
       prompt: params.prompt || 'Smooth cinematic motion',
       skillId: 'agent-video',
-      aspectRatio: params.aspectRatio || '9:16',
-      duration: params.duration || 5,
+      aspectRatio,
+      duration,
       startImage: context.lastImageUrl,
     }),
   });
@@ -109,7 +116,7 @@ async function executeGenerateVideo(
   const data = await res.json() as { jobId?: string };
   return {
     jobId: data.jobId,
-    message: 'Video generation started. This takes 30-60 seconds...',
+    message: 'Video generation started. This takes 2-3 minutes...',
   };
 }
 

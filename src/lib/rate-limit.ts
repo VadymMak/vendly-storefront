@@ -1,3 +1,5 @@
+import { isSuperuser } from './credits';
+
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 interface RateLimitConfig {
@@ -16,6 +18,16 @@ export function checkRateLimit(key: string, config: RateLimitConfig): boolean {
 
   entry.count++;
   return entry.count <= config.maxRequests;
+}
+
+/** Rate limit check with superuser bypass. Superusers skip rate limiting entirely. */
+export async function checkRateLimitWithBypass(
+  key: string,
+  limit: RateLimitConfig,
+  userId: string,
+): Promise<boolean> {
+  if (await isSuperuser(userId)) return true;
+  return checkRateLimit(key, limit);
 }
 
 // Cleanup old entries every 60s to prevent memory leak

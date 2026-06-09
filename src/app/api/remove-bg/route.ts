@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
 
-  if (!checkRateLimit(`rbg:${ip}:${session.user.id}`, RATE_LIMITS.removeBg[planType])) {
+  if (!(await checkRateLimitWithBypass(`rbg:${ip}:${session.user.id}`, RATE_LIMITS.removeBg[planType], session.user.id))) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       { status: 429 },

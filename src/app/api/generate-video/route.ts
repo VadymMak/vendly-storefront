@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 import { checkCredits, getOrCreateCredits, getVideoCreditCost } from '@/lib/credits';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
 
-  if (!checkRateLimit(`vid:${ip}:${session.user.id}`, RATE_LIMITS.generateVideo[planType])) {
+  if (!(await checkRateLimitWithBypass(`vid:${ip}:${session.user.id}`, RATE_LIMITS.generateVideo[planType], session.user.id))) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       { status: 429 },

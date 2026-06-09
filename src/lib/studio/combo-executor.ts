@@ -29,6 +29,16 @@ export async function executeCombo(
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
 
+    // create_clip is client-side only — signal frontend to render from collected images
+    if (step.tool === 'create_clip') {
+      results.push({
+        stepIndex: i,
+        description: step.description,
+        message: '__CREATE_CLIP__',
+      });
+      break;
+    }
+
     const params: Record<string, string | number | boolean> = {
       ...(step.params as Record<string, string | number | boolean>),
     };

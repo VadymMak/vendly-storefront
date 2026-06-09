@@ -89,6 +89,17 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
     inputType: 'text',
     outputType: 'text',
   },
+  {
+    name: 'create_clip',
+    description:
+      'Create an Instagram/TikTok-style video clip from multiple images in the chat session. Applies Ken Burns camera motion (zoom-in, zoom-out, pan), transitions (fade, slide, zoom), and optional visual style (cinematic, golden-hour, vintage). Renders directly in browser — no credits needed. Requires at least 2 images in chat context. Use when user says "make a clip", "slideshow", "montage", "combine images into video".',
+    apiRoute: 'internal:client-render',
+    model: 'Canvas + MediaRecorder',
+    provider: 'replicate',
+    costEstimate: 'Free',
+    inputType: 'image',
+    outputType: 'video',
+  },
 ];
 
 export function toolsToSystemPrompt(): string {

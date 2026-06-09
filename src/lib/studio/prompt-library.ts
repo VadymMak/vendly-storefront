@@ -494,6 +494,43 @@ const COMBO_PRESETS: ComboPreset[] = [
     ],
     defaultParams: {},
   },
+  {
+    id: 'photo_clip',
+    label: 'Photo Clip',
+    emoji: '🎞️',
+    category: 'combo',
+    description: 'Generate 3 images → Compile into clip',
+    platforms: ['instagram_reel', 'tiktok'],
+    steps: [
+      {
+        tool: 'generate_image',
+        description: 'Generating image 1/3',
+        promptTemplate:
+          'Professional product photography of {subject}, close-up detail shot, soft studio lighting, 8K quality, commercial grade',
+        params: { aspect_ratio: '9:16' },
+      },
+      {
+        tool: 'generate_image',
+        description: 'Generating image 2/3',
+        promptTemplate:
+          'Professional lifestyle photography of {subject} in elegant setting, warm natural light, shallow depth of field, editorial quality',
+        params: { aspect_ratio: '9:16' },
+      },
+      {
+        tool: 'generate_image',
+        description: 'Generating image 3/3',
+        promptTemplate:
+          'Professional product photography of {subject}, dramatic moody lighting, dark background, premium brand aesthetic, commercial quality',
+        params: { aspect_ratio: '9:16' },
+      },
+      {
+        tool: 'create_clip',
+        description: 'Compiling into video clip',
+        params: { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' },
+      },
+    ],
+    defaultParams: {},
+  },
 ];
 
 // ========================================

@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
         const captionStep = comboResult.steps.find((s) => s.message && !s.media && !s.jobId);
 
         const progressLines = comboResult.steps.map((s, i) => {
+          if (s.message === '__CREATE_CLIP__') return `${i + 1}. ⏳ ${s.description} (rendering in browser...)`;
           if (s.error) return `${i + 1}. ❌ ${s.description}: ${s.error}`;
           if (s.jobId) return `${i + 1}. ⏳ ${s.description} (generating...)`;
           return `${i + 1}. ✅ ${s.description}`;
@@ -50,6 +51,19 @@ export async function POST(req: NextRequest) {
         let fullMessage = `${decision.message}\n\n${progressLines.join('\n')}`;
         if (captionStep?.message) {
           fullMessage += `\n\n📝 Caption:\n${captionStep.message}`;
+        }
+
+        // Check if combo ends with a client-side clip step
+        const clipStep = comboResult.steps.find((s) => s.message === '__CREATE_CLIP__');
+        if (clipStep) {
+          const clipStepDef = combo.steps.find((s) => s.tool === 'create_clip');
+          return NextResponse.json({
+            message: fullMessage,
+            media: lastMedia ?? undefined,
+            toolUsed: 'create_clip',
+            clipParams: clipStepDef?.params ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' },
+            context: comboResult.finalContext,
+          });
         }
 
         const videoStep = comboResult.steps.find((s) => s.jobId);
@@ -68,6 +82,16 @@ export async function POST(req: NextRequest) {
     let jobId: string | undefined;
     let toolMessage = decision.message;
     const updatedContext: SessionContext = { ...context };
+
+    // create_clip is client-side — return params to frontend without executing on server
+    if (decision.toolCall?.tool === 'create_clip') {
+      return NextResponse.json({
+        message: decision.message,
+        toolUsed: 'create_clip',
+        clipParams: decision.toolCall.params,
+        context,
+      });
+    }
 
     if (decision.toolCall && !decision.comboId) {
       const cookieHeader = req.headers.get('cookie') || '';

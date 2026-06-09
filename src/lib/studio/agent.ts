@@ -28,6 +28,7 @@ Context rules:
 - If the user wants to REMOVE BACKGROUND → use remove_background (requires lastImageUrl in context)
 - If the user wants to ENHANCE FACE → use face_enhance (requires lastImageUrl in context)
 - If the user wants CAPTION/HASHTAGS → use write_caption (no image needed, just text)
+- If the user wants to CREATE A CLIP, SLIDESHOW, MONTAGE from multiple images → use create_clip. This renders a video clip with Ken Burns camera motion and transitions directly in the browser (free, no credits). Requires at least 2 images in chat session. If user has fewer than 2 images, suggest generating more first.
 - If context has no image and user asks for image-dependent action → first generate an image or ask user to describe what to generate
 
 For generate_image, ALWAYS enhance the user's prompt to be professional and detailed. Add: lighting, composition, style, quality keywords. The enhanced prompt should be in English.
@@ -57,6 +58,7 @@ Multi-step combos (use when user wants a complete workflow):
 - If user says "TikTok video from scratch", "make a TikTok" → respond with combo: "tiktok_video"
 - If user says "clean product", "clean this photo", "remove watermark and prepare" → respond with combo: "clean_product"
 - If user says "story", "quick story", "Instagram story" → respond with combo: "story_ad"
+- If user says "create 4 product photos and make a clip", "generate images and compile" → respond with combo: "photo_clip"
 
 For combos, respond with:
 {
@@ -79,6 +81,15 @@ For upscale params: { "type": "upscale" }
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }
+For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 4, "platform": "instagram_reel" }
+  - style: "none" | "golden-hour" | "cinematic" | "vintage" | "cool-tone" | "bw" (default: "cinematic")
+  - transition: "fade" | "slide-left" | "slide-right" | "zoom-in" | "zoom-out" (default: "fade")
+  - durationPerImage: 3-8 seconds (default: 4)
+  - platform: determines output size:
+    - "instagram_reel" or "tiktok" → 1080×1920 (9:16 vertical)
+    - "instagram_post" → 1080×1080 (1:1 square)
+    - "youtube_shorts" → 1080×1920 (9:16)
+    - "cinematic" → 1920×1080 (16:9)
 
 IMPORTANT — Prompt Enhancement (applies to ALL tools, not just generate_image):
 For ANY tool that takes a prompt (generate_image, image_to_video, edit_image), you MUST:

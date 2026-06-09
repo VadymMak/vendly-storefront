@@ -16,15 +16,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image files allowed' }, { status: 400 });
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      return NextResponse.json({ error: 'Only image and video files allowed' }, { status: 400 });
     }
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Image must be under 10MB' }, { status: 400 });
+    const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: `File must be under ${file.type.startsWith('video/') ? '100MB' : '10MB'}` }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : 'jpg';
+    const ext = file.type.includes('mp4') ? 'mp4'
+      : file.type.includes('webm') ? 'webm'
+      : file.type.includes('png') ? 'png'
+      : file.type.includes('webp') ? 'webp'
+      : 'jpg';
 
     const blob = await put(
       `studio/chat/upload/${session.user.id}/${Date.now()}.${ext}`,

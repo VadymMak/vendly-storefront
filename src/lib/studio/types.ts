@@ -48,7 +48,8 @@ export type ToolName =
   | 'upscale'
   | 'remove_background'
   | 'face_enhance'
-  | 'write_caption';
+  | 'write_caption'
+  | 'create_clip';
 
 export interface ToolCall {
   tool: ToolName;

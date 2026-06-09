@@ -2,8 +2,30 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ChatMessage, SessionContext } from '@/lib/studio/types';
+import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
+import type { SlideshowConfig, SlideshowItem, TransitionType, VideoStyle, OnProgress } from '@/lib/slideshow-renderer';
 import ChatMessageBubble from './ChatMessage';
 import SkillPicker from './SkillPicker';
+
+function collectImageUrls(messages: ChatMessage[]): string[] {
+  const urls: string[] = [];
+  for (const msg of messages) {
+    if (msg.media?.type === 'image' && msg.media.url) {
+      urls.push(msg.media.url);
+    }
+  }
+  return urls;
+}
+
+function loadImageElement(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 interface Props {
   userId: string;
@@ -210,6 +232,111 @@ export default function StudioChat({ userId, userEmail }: Props) {
     }
   }, []);
 
+  const renderClipInChat = useCallback(async (
+    imageUrls: string[],
+    params: Record<string, string | number | boolean>,
+    messageId: string,
+  ) => {
+    if (imageUrls.length < 2) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, content: '❌ Need at least 2 images to create a clip. Generate or upload more images first.', isLoading: false }
+            : m,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, content: `🎬 Rendering clip from ${imageUrls.length} images... 0%`, isLoading: true }
+            : m,
+        ),
+      );
+
+      const elements = await Promise.all(imageUrls.map(loadImageElement));
+
+      const items: SlideshowItem[] = elements.map((el, i) => ({
+        type: 'image' as const,
+        element: el,
+        duration: Number(params.durationPerImage) || 4,
+        motion: DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length],
+      }));
+
+      const platform = (params.platform as string) || 'instagram_reel';
+      const outputSize = platform === 'instagram_post'
+        ? { width: 1080, height: 1080 }
+        : platform === 'cinematic'
+          ? { width: 1920, height: 1080 }
+          : { width: 1080, height: 1920 };
+
+      const config: SlideshowConfig = {
+        items,
+        transitionDuration: 0.8,
+        transitionType: (params.transition as TransitionType) || 'fade',
+        outputSize,
+        fps: 30,
+        style: (params.style as VideoStyle) || 'cinematic',
+      };
+
+      const onProgress: OnProgress = (progress) => {
+        const pct = Math.round(progress.percent);
+        const phase = progress.phase === 'audio' ? 'Mixing audio' : 'Rendering';
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, content: `🎬 ${phase}... ${pct}%` }
+              : m,
+          ),
+        );
+      };
+
+      const result = await renderSlideshow(config, onProgress);
+
+      const ext = result.mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const formData = new FormData();
+      formData.append('image', new File([result.blob], `clip.${ext}`, { type: result.mimeType }));
+
+      const uploadRes = await fetch('/api/studio/upload', { method: 'POST', body: formData });
+      let videoUrl: string;
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json() as { url: string };
+        videoUrl = uploadData.url;
+      } else {
+        videoUrl = URL.createObjectURL(result.blob);
+      }
+
+      const totalDuration = items.reduce((sum, it) => sum + it.duration, 0);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                content: `✅ Clip ready! ${imageUrls.length} images, ${totalDuration}s total.`,
+                media: { type: 'video' as const, url: videoUrl },
+                isLoading: false,
+              }
+            : m,
+        ),
+      );
+    } catch (error) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                content: `❌ Clip rendering failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                isLoading: false,
+              }
+            : m,
+        ),
+      );
+    }
+  }, []);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isProcessing) return;
@@ -258,8 +385,24 @@ export default function StudioChat({ userId, userEmail }: Props) {
         media?: ChatMessage['media'];
         toolUsed?: string;
         jobId?: string;
+        clipParams?: Record<string, string | number | boolean>;
         context?: SessionContext;
       };
+
+      // Handle client-side clip rendering
+      if (data.toolUsed === 'create_clip') {
+        if (data.context) setContext(data.context);
+        const imageUrls = collectImageUrls(messages);
+        const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' };
+        // Set the agent message first, then start rendering
+        setMessages((prev) => prev.map((m) =>
+          m.id === loadingMsg.id
+            ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
+            : m,
+        ));
+        renderClipInChat(imageUrls, clipParams, loadingMsg.id);
+        return;
+      }
 
       const agentMsg: ChatMessage = {
         id: loadingMsg.id,

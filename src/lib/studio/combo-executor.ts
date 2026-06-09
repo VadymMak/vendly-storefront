@@ -88,7 +88,7 @@ export async function executeCombo(
     finalMessage += ` Step "${failedStep.description}" failed: ${failedStep.error}`;
   }
   if (hasVideo) {
-    finalMessage += ' Video is generating (30-60s)...';
+    finalMessage += ' Video is generating (2-3 minutes)...';
   }
 
   return {

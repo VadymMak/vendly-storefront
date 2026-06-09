@@ -141,84 +141,73 @@ export default function StudioChat({ userId, userEmail }: Props) {
   }, [isProcessing, isUploading]);
 
   const pollVideoJob = useCallback(async (jobId: string, messageId: string) => {
-    const maxAttempts = 80; // 80 × 3s = 4 min
+    const maxPollTime = 10 * 60 * 1000; // 10 min — matches manual flow
+    const startTime = Date.now();
 
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise((r) => setTimeout(r, 3000));
+    while (true) {
+      if (Date.now() - startTime > maxPollTime) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  content: m.content.replace(
+                    /⏳[^\n]*/,
+                    '⚠️ Video generation timed out. Check /studio for status.',
+                  ),
+                  isLoading: false,
+                }
+              : m,
+          ),
+        );
+        return;
+      }
+
+      await new Promise((r) => setTimeout(r, 4000)); // 4s — matches manual flow
 
       try {
         const res = await fetch(`/api/studio/job/${jobId}`);
-        if (!res.ok) {
-          console.error('[poll] HTTP error:', res.status);
-          continue;
-        }
+        if (!res.ok) continue;
 
-        const data = await res.json() as {
-          status?: string;
-          outputUrl?: string;
-          output?: string | string[];
-          url?: string;
-          error?: string;
-        };
+        const data = await res.json() as { status: string; outputUrl?: string; error?: string };
 
-        const status = (data.status || '').toLowerCase();
-        console.log('[poll]', jobId, `attempt ${i + 1}/${maxAttempts}`, { status, outputUrl: data.outputUrl });
-
-        if (status === 'succeeded' || status === 'completed' || status === 'success') {
-          const videoUrl = data.outputUrl || (Array.isArray(data.output) ? data.output[0] : data.output) || data.url;
-          if (videoUrl) {
+        if (data.status === 'succeeded' || data.status === 'failed' || data.status === 'canceled') {
+          if (data.status === 'succeeded' && data.outputUrl) {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === messageId
                   ? {
                       ...m,
-                      content: m.content.replace(/⏳[^\n]*\(generating\.\.\.\)/, '✅ Video ready!'),
-                      media: { type: 'video' as const, url: videoUrl },
+                      content: m.content.replace(/⏳[^\n]*/, '✅ Video ready!'),
+                      media: { type: 'video' as const, url: data.outputUrl! },
                       isLoading: false,
                     }
                   : m,
               ),
             );
-            setContext((prev) => ({ ...prev, lastVideoUrl: videoUrl }));
-            return;
+            setContext((prev) => ({ ...prev, lastVideoUrl: data.outputUrl! }));
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === messageId
+                  ? {
+                      ...m,
+                      content: m.content.replace(
+                        /⏳[^\n]*/,
+                        `❌ Video failed: ${data.error || data.status}`,
+                      ),
+                      isLoading: false,
+                    }
+                  : m,
+              ),
+            );
           }
-        }
-
-        if (status === 'failed' || status === 'canceled' || status === 'cancelled') {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === messageId
-                ? {
-                    ...m,
-                    content: m.content.replace(
-                      /⏳[^\n]*\(generating\.\.\.\)/,
-                      `❌ Video failed: ${data.error || 'Unknown error'}`,
-                    ),
-                    isLoading: false,
-                  }
-                : m,
-            ),
-          );
           return;
         }
-      } catch (err) {
-        console.error('[poll] fetch error:', err);
-        // Continue polling on network errors
+      } catch {
+        // Network error — retry
       }
     }
-
-    // Timeout
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === messageId
-          ? {
-              ...m,
-              content: m.content.replace(/⏳[^\n]*\(generating\.\.\.\)/, '⚠️ Video generation timed out'),
-              isLoading: false,
-            }
-          : m,
-      ),
-    );
   }, []);
 
   const handleSend = useCallback(async () => {

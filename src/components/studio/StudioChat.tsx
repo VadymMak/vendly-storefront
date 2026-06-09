@@ -153,10 +153,12 @@ export default function StudioChat({ userId, userEmail }: Props) {
         const data = await res.json() as {
           status?: string;
           output?: string | string[];
+          outputUrl?: string;
         };
 
-        if (data.status === 'succeeded' && data.output) {
-          const videoUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+        const videoOutput = data.outputUrl || (Array.isArray(data.output) ? data.output[0] : data.output);
+        if (data.status === 'succeeded' && videoOutput) {
+          const videoUrl = videoOutput;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === messageId

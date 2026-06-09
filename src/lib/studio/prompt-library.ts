@@ -268,6 +268,42 @@ const EDIT_PRESETS: PromptPreset[] = [
     defaultParams: {},
     targetTool: 'edit_image',
   },
+  {
+    id: 'remove_text',
+    label: 'Remove Text',
+    emoji: '🚫',
+    category: 'edit',
+    description: 'Remove text, watermarks, logos',
+    platforms: ['any'],
+    promptTemplate:
+      'Remove all text, watermarks, logos, and price tags from this image. Keep the product and background completely intact.',
+    defaultParams: {},
+    targetTool: 'edit_image',
+  },
+  {
+    id: 'white_bg',
+    label: 'White Background',
+    emoji: '⬜',
+    category: 'edit',
+    description: 'Replace background with pure white',
+    platforms: ['any'],
+    promptTemplate:
+      'Replace the background with clean pure white (#ffffff). Keep the main subject sharp and properly lit with a natural soft shadow underneath.',
+    defaultParams: {},
+    targetTool: 'edit_image',
+  },
+  {
+    id: 'christmas_style',
+    label: 'Christmas',
+    emoji: '🎄',
+    category: 'edit',
+    description: 'Add Christmas/winter atmosphere',
+    platforms: ['instagram_post', 'instagram_story', 'any'],
+    promptTemplate:
+      'Add festive Christmas atmosphere: warm golden lighting, subtle snowflakes, red and green accents, cozy winter feeling. Keep the product unchanged and clearly visible.',
+    defaultParams: {},
+    targetTool: 'edit_image',
+  },
 ];
 
 // ========================================
@@ -320,25 +356,21 @@ const COMBO_PRESETS: ComboPreset[] = [
     label: 'Full Reel',
     emoji: '📱',
     category: 'combo',
-    description: 'Generate → Remove BG → Animate → Caption',
+    description: 'Generate → Animate → Caption',
     platforms: ['instagram_reel', 'tiktok'],
     steps: [
       {
         tool: 'generate_image',
         description: 'Generating product image',
         promptTemplate:
-          'Professional product photography of {subject}, centered, clean background, soft studio lighting, 8K ultra detail, commercial quality',
-        params: { aspect_ratio: '1:1' },
-      },
-      {
-        tool: 'remove_background',
-        description: 'Removing background',
+          'Professional product photography of {subject}, centered, beautiful studio background with soft gradient, cinematic studio lighting, 8K ultra detail, commercial quality, perfect for video animation',
+        params: { aspect_ratio: '9:16' },
       },
       {
         tool: 'image_to_video',
-        description: 'Animating to video',
+        description: 'Animating to video (2-3 min)',
         promptTemplate:
-          'Smooth cinematic motion, product slowly rotating with dramatic lighting, professional product showcase',
+          'Smooth cinematic motion, product slowly rotating with dramatic lighting shifts, professional product showcase, seamless animation',
         params: { aspectRatio: '9:16', duration: 5 },
       },
       {
@@ -403,6 +435,61 @@ const COMBO_PRESETS: ComboPreset[] = [
         tool: 'write_caption',
         description: 'Writing TikTok caption',
         params: { platform: 'tiktok' },
+      },
+    ],
+    defaultParams: {},
+  },
+  {
+    id: 'clean_product',
+    label: 'Clean Product',
+    emoji: '🧹',
+    category: 'combo',
+    description: 'Edit (remove text) → Remove BG → Caption',
+    platforms: ['instagram_post', 'facebook_post', 'any'],
+    steps: [
+      {
+        tool: 'edit_image',
+        description: 'Removing text & watermarks',
+        promptTemplate:
+          'Remove all text, watermarks, logos, price tags and any overlaid graphics from this image. Keep the product and original background completely intact and unchanged. Clean the image thoroughly.',
+      },
+      {
+        tool: 'remove_background',
+        description: 'Removing background',
+      },
+      {
+        tool: 'write_caption',
+        description: 'Writing product caption',
+        params: { platform: 'instagram' },
+      },
+    ],
+    defaultParams: {},
+  },
+  {
+    id: 'story_ad',
+    label: 'Story Ad',
+    emoji: '📖',
+    category: 'combo',
+    description: 'Generate → Style edit → Caption',
+    platforms: ['instagram_story'],
+    steps: [
+      {
+        tool: 'generate_image',
+        description: 'Generating product image',
+        promptTemplate:
+          'Professional product photography of {subject}, clean studio setting, soft directional lighting, 8K detail, vertical composition optimized for stories',
+        params: { aspect_ratio: '9:16' },
+      },
+      {
+        tool: 'edit_image',
+        description: 'Adding visual style',
+        promptTemplate:
+          'Add eye-catching visual style: subtle gradient color overlay, modern clean aesthetic, make it Instagram-story ready with vibrant but tasteful colors. Keep the product sharp and recognizable.',
+      },
+      {
+        tool: 'write_caption',
+        description: 'Writing story caption',
+        params: { platform: 'instagram' },
       },
     ],
     defaultParams: {},

@@ -23,7 +23,7 @@ ${toolsToSystemPrompt()}
 Context rules:
 - If the user wants to CREATE an image from scratch → use generate_image
 - If the user wants to ANIMATE/make video from an existing image → use image_to_video (requires lastImageUrl in context)
-- If the user wants to EDIT an existing image → use edit_image (requires lastImageUrl in context)
+- If the user wants to EDIT an existing image (remove text, change background, adjust style, remove watermarks, add effects) → use edit_image with Flux Kontext Pro (requires lastImageUrl in context)
 - If the user wants to UPSCALE → use upscale (requires lastImageUrl in context)
 - If the user wants to REMOVE BACKGROUND → use remove_background (requires lastImageUrl in context)
 - If the user wants to ENHANCE FACE → use face_enhance (requires lastImageUrl in context)
@@ -31,6 +31,18 @@ Context rules:
 - If context has no image and user asks for image-dependent action → first generate an image or ask user to describe what to generate
 
 For generate_image, ALWAYS enhance the user's prompt to be professional and detailed. Add: lighting, composition, style, quality keywords. The enhanced prompt should be in English.
+
+For edit_image (Flux Kontext Pro), create clear, specific editing instructions in English:
+- Remove text/watermarks: "Remove all text, watermarks, logos and price tags from the image. Keep the product and background completely intact and unchanged."
+- Change background: "Replace the background with [description]. Keep the main subject sharp, unchanged and properly lit."
+- Add atmosphere: "Add [seasonal/mood] atmosphere: [specific details]. Keep the product unchanged and recognizable."
+- Style change: "Apply [style] look: [specific adjustments]. Maintain product accuracy and details."
+- Remove object: "Remove [object] from the image. Fill the area naturally with the surrounding background."
+- White background: "Replace the background with clean pure white (#ffffff). Keep the product sharp with natural shadow underneath."
+
+IMPORTANT: Kontext Pro works best with specific, detailed instructions. Always describe WHAT to keep unchanged as well as what to change.
+
+For image_to_video, video generation takes 2-3 minutes (not seconds). Always mention this to the user.
 
 For image_to_video, choose appropriate motion based on request:
 - "turntable" / "360" → "Smooth 360-degree rotation, studio lighting, seamless loop"
@@ -43,6 +55,8 @@ Multi-step combos (use when user wants a complete workflow):
 - If user says "full reel", "complete reel", "Instagram Reel from scratch" → respond with combo: "full_reel"
 - If user says "product showcase", "full product post" → respond with combo: "product_showcase"
 - If user says "TikTok video from scratch", "make a TikTok" → respond with combo: "tiktok_video"
+- If user says "clean product", "clean this photo", "remove watermark and prepare" → respond with combo: "clean_product"
+- If user says "story", "quick story", "Instagram story" → respond with combo: "story_ad"
 
 For combos, respond with:
 {

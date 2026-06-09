@@ -37,9 +37,9 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
   {
     name: 'edit_image',
     description:
-      'Edit an existing image with text instructions. Use for changing colors, adding/removing elements, style changes. Requires an image in context.',
+      'Edit an existing image using Flux Kontext Pro. Powerful AI editing: remove text/watermarks, change background, adjust style, add/remove elements, change colors, add seasonal atmosphere, replace objects. Requires an image in context. Give clear English instructions of what to change.',
     apiRoute: '/api/ai-edit',
-    model: 'InstructPix2Pix',
+    model: 'Flux Kontext Pro',
     provider: 'replicate',
     costEstimate: '$0.03',
     inputType: 'image+text',

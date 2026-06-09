@@ -7,6 +7,7 @@ import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import SlideshowCreator from '@/components/studio/SlideshowCreator';
+import StudioChat from '@/components/studio/StudioChat';
 import { MediaPreview } from '@/components/studio/MediaPreview';
 import { replicateDirectRun, fetchImageAsBlob } from '@/lib/replicate-client';
 
@@ -77,7 +78,7 @@ interface ByokConfig {
   };
 }
 
-type StudioTab      = 'image' | 'video' | 'slideshow';
+type StudioTab      = 'image' | 'video' | 'slideshow' | 'chat';
 type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
@@ -921,6 +922,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
               { id: 'image' as StudioTab, label: 'Image Generator', desc: 'Flux Schnell · ~$0.003/image' },
               { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.0 · ~$0.30–0.60/video' },
               { id: 'slideshow' as StudioTab, label: 'Photo Slideshow', desc: 'Canvas render · No credits needed' },
+              { id: 'chat' as StudioTab, label: 'AI Chat', desc: 'Multi-tool agent · Smart routing' },
             ] as const).map(({ id, label, desc }) => (
               <button
                 key={id}
@@ -1698,6 +1700,13 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
               SLIDESHOW TAB
           ══════════════════════════════════════════════════════════════ */}
           {studioTab === 'slideshow' && <SlideshowCreator />}
+
+          {/* ══════════════════════════════════════════════════════════════
+              CHAT TAB
+          ══════════════════════════════════════════════════════════════ */}
+          {studioTab === 'chat' && (
+            <StudioChat userId={_userId} userEmail={userEmail} />
+          )}
         </div>
       </div>
 

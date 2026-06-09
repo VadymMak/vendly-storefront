@@ -16,6 +16,7 @@ export interface ChatMessage {
   content: string;
   media?: MediaAttachment;
   toolUsed?: string;
+  isLoading?: boolean;
   timestamp: number;
 }
 

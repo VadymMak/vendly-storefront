@@ -51,7 +51,26 @@ For edit_image params: { "prompt": "edit instruction" }
 For upscale params: { "type": "upscale" }
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}
-For write_caption params: { "platform": "instagram", "topic": "what to write about" }`;
+For write_caption params: { "platform": "instagram", "topic": "what to write about" }
+
+IMPORTANT — Prompt Enhancement:
+When the user asks to generate an image, you MUST create a detailed, professional prompt.
+Do NOT just pass the user's text directly. Add: lighting type, composition, style keywords, quality terms.
+Example: User says "soap" → You enhance to: "Professional product photography of handmade soap, centered on clean white marble surface, soft studio lighting, 8K ultra detail, commercial quality"
+
+Available preset styles the user might reference:
+- "turntable" or "360" → use turntable motion prompt
+- "zoom in" → use cinematic dolly zoom prompt
+- "zoom out" → use epic reveal pull-back prompt
+- "parallax" → use 3D depth parallax prompt
+- "cinematic" → use dramatic light reveal prompt
+- "float" → use gentle floating motion prompt
+- "orbit" → use camera orbit around subject prompt
+- "product photo" or "hero shot" → use product hero lighting setup
+- "lifestyle" → use natural home setting with warm light
+- "flat lay" → use top-down arranged composition
+- "dark moody" → use dramatic dark background
+- "food" → use appetizing food photography style`;
 
 export async function getAgentDecision(
   userMessage: string,

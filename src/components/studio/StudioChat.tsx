@@ -209,7 +209,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     }
   }, [input, isProcessing, messages, context, pollVideoJob]);
 
-  const handleSkillSelect = (skillPrompt: string) => {
+  const handleSkillSelect = (skillPrompt: string, _presetId?: string) => {
     setInput(skillPrompt);
     inputRef.current?.focus();
   };

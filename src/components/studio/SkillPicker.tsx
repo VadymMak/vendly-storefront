@@ -1,42 +1,81 @@
 'use client';
 
-interface Skill {
-  id: string;
-  label: string;
-  emoji: string;
-  prompt: string;
-}
-
-const SKILLS: Skill[] = [
-  { id: 'product',   emoji: '📦', label: 'Product Photo',    prompt: 'Create a professional product photo of ' },
-  { id: 'turntable', emoji: '🔄', label: 'Turntable 360°',   prompt: 'Make a 360° turntable video of my product' },
-  { id: 'zoom-in',   emoji: '🔍', label: 'Zoom In',          prompt: 'Create a dramatic zoom-in video' },
-  { id: 'cinematic', emoji: '🎬', label: 'Cinematic',         prompt: 'Create a cinematic reveal video' },
-  { id: 'remove-bg', emoji: '✂️', label: 'Remove BG',        prompt: 'Remove the background from my image' },
-  { id: 'upscale',   emoji: '🔎', label: 'Upscale 4K',       prompt: 'Upscale my image to 4K resolution' },
-  { id: 'caption',   emoji: '✍️', label: 'Write Caption',    prompt: 'Write an Instagram caption with hashtags for ' },
-  { id: 'reel',      emoji: '📱', label: 'Instagram Reel',   prompt: 'Create a complete Instagram Reel from scratch: ' },
-  { id: 'lifestyle', emoji: '🌅', label: 'Lifestyle Shot',   prompt: 'Create a lifestyle scene with ' },
-  { id: 'flat-lay',  emoji: '📐', label: 'Flat Lay',         prompt: 'Create a flat lay composition of ' },
-];
+import { useState } from 'react';
+import {
+  ALL_PRESETS,
+  PRESETS_BY_CATEGORY,
+  type PromptPreset,
+  type SkillCategory,
+} from '@/lib/studio/prompt-library';
 
 interface Props {
-  onSelect: (prompt: string) => void;
+  onSelect: (prompt: string, presetId?: string) => void;
 }
 
+const CATEGORIES: { key: SkillCategory; label: string; emoji: string }[] = [
+  { key: 'image', label: 'Create', emoji: '🖼️' },
+  { key: 'video', label: 'Animate', emoji: '🎬' },
+  { key: 'edit', label: 'Edit', emoji: '✏️' },
+  { key: 'text', label: 'Text', emoji: '✍️' },
+];
+
 export default function SkillPicker({ onSelect }: Props) {
+  const [activeCategory, setActiveCategory] = useState<SkillCategory | 'all'>('all');
+
+  const presets =
+    activeCategory === 'all' ? ALL_PRESETS : (PRESETS_BY_CATEGORY[activeCategory] ?? []);
+
+  const handleSelect = (preset: PromptPreset) => {
+    if (!preset.promptTemplate || !preset.promptTemplate.includes('{subject}')) {
+      onSelect(preset.label, preset.id);
+    } else {
+      onSelect(`[${preset.label}] `, preset.id);
+    }
+  };
+
   return (
     <div className="px-4 py-2 border-t border-[var(--color-border)]">
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {SKILLS.map((skill) => (
+      {/* Category tabs */}
+      <div className="flex gap-1 mb-2">
+        <button
+          type="button"
+          onClick={() => setActiveCategory('all')}
+          className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+            activeCategory === 'all'
+              ? 'bg-[var(--color-primary)] text-white'
+              : 'text-[var(--color-text-muted)] hover:bg-[var(--color-card)]'
+          }`}
+        >
+          All
+        </button>
+        {CATEGORIES.map((cat) => (
           <button
-            key={skill.id}
+            key={cat.key}
             type="button"
-            onClick={() => onSelect(skill.prompt)}
+            onClick={() => setActiveCategory(cat.key)}
+            className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+              activeCategory === cat.key
+                ? 'bg-[var(--color-primary)] text-white'
+                : 'text-[var(--color-text-muted)] hover:bg-[var(--color-card)]'
+            }`}
+          >
+            {cat.emoji} {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Skill chips */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {presets.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => handleSelect(preset)}
+            title={preset.description}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] text-xs font-medium text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors whitespace-nowrap cursor-pointer"
           >
-            <span>{skill.emoji}</span>
-            {skill.label}
+            <span>{preset.emoji}</span>
+            {preset.label}
           </button>
         ))}
       </div>

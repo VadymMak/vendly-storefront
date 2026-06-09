@@ -66,6 +66,66 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   const generateId = () => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+  const pollVideoJob = useCallback(async (jobId: string, messageId: string) => {
+    const maxAttempts = 60;
+    let attempts = 0;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const res = await fetch(`/api/studio/job/${jobId}`);
+        if (!res.ok) return;
+
+        const data = await res.json() as {
+          status?: string;
+          output?: string | string[];
+        };
+
+        if (data.status === 'succeeded' && data.output) {
+          const videoUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: 'Video is ready! 🎬', media: { type: 'video' as const, url: videoUrl }, isLoading: false }
+                : m,
+            ),
+          );
+          setContext((prev) => ({ ...prev, lastVideoUrl: videoUrl }));
+          return;
+        }
+
+        if (data.status === 'failed') {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: '⚠️ Video generation failed. Please try again.', isLoading: false }
+                : m,
+            ),
+          );
+          return;
+        }
+
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 3000);
+        } else {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: '⚠️ Video generation timed out. Check /studio for status.', isLoading: false }
+                : m,
+            ),
+          );
+        }
+      } catch {
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 3000);
+        }
+      }
+    };
+
+    poll();
+  }, []);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isProcessing) return;
@@ -93,20 +153,61 @@ export default function StudioChat({ userId, userEmail }: Props) {
     setInput('');
     setIsProcessing(true);
 
-    // PHASE 1: Mock response — replaced by /api/studio/chat in Phase 2
-    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch('/api/studio/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          context,
+          history: messages.filter((m) => m.id !== 'welcome').slice(-6),
+        }),
+      });
 
-    const mockResponse: ChatMessage = {
-      id: loadingMsg.id,
-      role: 'assistant',
-      content: getMockResponse(text),
-      timestamp: Date.now(),
-    };
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Request failed' })) as { error?: string };
+        throw new Error(err.error || 'Request failed');
+      }
 
-    setMessages((prev) => prev.map((m) => (m.id === loadingMsg.id ? mockResponse : m)));
-    setIsProcessing(false);
-    inputRef.current?.focus();
-  }, [input, isProcessing, messages.length]);
+      const data = await res.json() as {
+        message?: string;
+        media?: ChatMessage['media'];
+        toolUsed?: string;
+        jobId?: string;
+        context?: SessionContext;
+      };
+
+      const agentMsg: ChatMessage = {
+        id: loadingMsg.id,
+        role: 'assistant',
+        content: data.message || '',
+        media: data.media || undefined,
+        toolUsed: data.toolUsed || undefined,
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => prev.map((m) => (m.id === loadingMsg.id ? agentMsg : m)));
+
+      if (data.context) {
+        setContext(data.context);
+      }
+
+      if (data.jobId) {
+        pollVideoJob(data.jobId, loadingMsg.id);
+      }
+    } catch (error) {
+      const errorMsg: ChatMessage = {
+        id: loadingMsg.id,
+        role: 'assistant',
+        content: `Sorry, something went wrong: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => prev.map((m) => (m.id === loadingMsg.id ? errorMsg : m)));
+    } finally {
+      setIsProcessing(false);
+      inputRef.current?.focus();
+    }
+  }, [input, isProcessing, messages, context, pollVideoJob]);
 
   const handleSkillSelect = (skillPrompt: string) => {
     setInput(skillPrompt);
@@ -199,19 +300,3 @@ export default function StudioChat({ userId, userEmail }: Props) {
   );
 }
 
-function getMockResponse(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('turntable') || lower.includes('360'))
-    return "I'll create a 360° turntable animation. In Phase 2, I'll use Kling v2.1 for this. For now, this is a preview of the chat flow.";
-  if (lower.includes('product') || lower.includes('photo'))
-    return "I'll generate a professional product photo using Flux Schnell. The prompt will be enhanced automatically for best results. (Agent coming in Phase 2)";
-  if (lower.includes('remove') || lower.includes('background'))
-    return "I'll remove the background and give you a clean PNG. Just need an image in context first. (Agent coming in Phase 2)";
-  if (lower.includes('video') || lower.includes('reel') || lower.includes('animate'))
-    return "I'll animate your image into a video. Choose a style: turntable, zoom-in, parallax, or cinematic reveal. (Agent coming in Phase 2)";
-  if (lower.includes('upscale') || lower.includes('4k') || lower.includes('hd'))
-    return "I'll upscale your image to 4x resolution using Real-ESRGAN. (Agent coming in Phase 2)";
-  if (lower.includes('caption') || lower.includes('hashtag') || lower.includes('instagram'))
-    return "I'll write an engaging caption with relevant hashtags optimized for Instagram. (Agent coming in Phase 2)";
-  return `I understand you want: "${input}". In Phase 2, I'll analyze your request and choose the best tool automatically. For now, try: product photo, turntable video, remove background, upscale, or Instagram caption.`;
-}

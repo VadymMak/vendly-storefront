@@ -12,6 +12,7 @@ export interface AgentDecision {
     tool: ToolName;
     params: Record<string, string | number | boolean>;
   };
+  comboId?: string;
 }
 
 const SYSTEM_PROMPT = `You are an AI Content Creator agent for a social media studio. Your job is to understand what the user wants and choose the right tool.
@@ -38,7 +39,19 @@ For image_to_video, choose appropriate motion based on request:
 - "parallax" → "Subtle parallax motion with depth layers, 3D effect"
 - "cinematic" → "Dramatic lighting transition, volumetric light rays"
 
-Respond with JSON only:
+Multi-step combos (use when user wants a complete workflow):
+- If user says "full reel", "complete reel", "Instagram Reel from scratch" → respond with combo: "full_reel"
+- If user says "product showcase", "full product post" → respond with combo: "product_showcase"
+- If user says "TikTok video from scratch", "make a TikTok" → respond with combo: "tiktok_video"
+
+For combos, respond with:
+{
+  "message": "description of what you'll do",
+  "combo": "combo_id",
+  "subject": "what the user wants (extracted from their message)"
+}
+
+Respond with JSON only (for single tools):
 {
   "message": "What you want to tell the user (brief, friendly)",
   "tool": "tool_name or null if just chatting",
@@ -114,13 +127,21 @@ export async function getAgentDecision(
       message?: string;
       tool?: string | null;
       params?: Record<string, string | number | boolean>;
+      combo?: string;
+      subject?: string;
     };
 
     const decision: AgentDecision = {
       message: parsed.message || '',
     };
 
-    if (parsed.tool && parsed.tool !== 'null' && parsed.tool !== null) {
+    if (parsed.combo) {
+      decision.comboId = parsed.combo;
+      decision.toolCall = {
+        tool: 'generate_image' as ToolName,
+        params: { subject: parsed.subject || '' },
+      };
+    } else if (parsed.tool && parsed.tool !== 'null' && parsed.tool !== null) {
       decision.toolCall = {
         tool: parsed.tool as ToolName,
         params: parsed.params || {},

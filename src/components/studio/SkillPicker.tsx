@@ -4,7 +4,9 @@ import { useState } from 'react';
 import {
   ALL_PRESETS,
   PRESETS_BY_CATEGORY,
+  isComboPreset,
   type PromptPreset,
+  type ComboPreset,
   type SkillCategory,
 } from '@/lib/studio/prompt-library';
 
@@ -17,6 +19,7 @@ const CATEGORIES: { key: SkillCategory; label: string; emoji: string }[] = [
   { key: 'video', label: 'Animate', emoji: '🎬' },
   { key: 'edit', label: 'Edit', emoji: '✏️' },
   { key: 'text', label: 'Text', emoji: '✍️' },
+  { key: 'combo', label: 'Auto', emoji: '🚀' },
 ];
 
 export default function SkillPicker({ onSelect }: Props) {
@@ -25,8 +28,11 @@ export default function SkillPicker({ onSelect }: Props) {
   const presets =
     activeCategory === 'all' ? ALL_PRESETS : (PRESETS_BY_CATEGORY[activeCategory] ?? []);
 
-  const handleSelect = (preset: PromptPreset) => {
-    if (!preset.promptTemplate || !preset.promptTemplate.includes('{subject}')) {
+  const handleSelect = (preset: PromptPreset | ComboPreset) => {
+    if (isComboPreset(preset)) {
+      // Combos send label as the message — agent recognises the intent
+      onSelect(preset.label, preset.id);
+    } else if (!preset.promptTemplate || !preset.promptTemplate.includes('{subject}')) {
       onSelect(preset.label, preset.id);
     } else {
       onSelect(`[${preset.label}] `, preset.id);

@@ -23,6 +23,19 @@ export interface PromptPreset {
   targetTool: string;
 }
 
+export interface ComboStep {
+  tool: string;
+  description: string;
+  /** Prompt template for this step. {subject} replaced with user input */
+  promptTemplate?: string;
+  params?: Record<string, string | number>;
+}
+
+export interface ComboPreset extends Omit<PromptPreset, 'targetTool' | 'promptTemplate'> {
+  category: 'combo';
+  steps: ComboStep[];
+}
+
 // ========================================
 // IMAGE PRESETS
 // ========================================
@@ -298,26 +311,134 @@ const TEXT_PRESETS: PromptPreset[] = [
 ];
 
 // ========================================
+// COMBO PRESETS (Multi-step chains)
+// ========================================
+
+const COMBO_PRESETS: ComboPreset[] = [
+  {
+    id: 'full_reel',
+    label: 'Full Reel',
+    emoji: '📱',
+    category: 'combo',
+    description: 'Generate → Remove BG → Animate → Caption',
+    platforms: ['instagram_reel', 'tiktok'],
+    steps: [
+      {
+        tool: 'generate_image',
+        description: 'Generating product image',
+        promptTemplate:
+          'Professional product photography of {subject}, centered, clean background, soft studio lighting, 8K ultra detail, commercial quality',
+        params: { aspect_ratio: '1:1' },
+      },
+      {
+        tool: 'remove_background',
+        description: 'Removing background',
+      },
+      {
+        tool: 'image_to_video',
+        description: 'Animating to video',
+        promptTemplate:
+          'Smooth cinematic motion, product slowly rotating with dramatic lighting, professional product showcase',
+        params: { aspectRatio: '9:16', duration: 5 },
+      },
+      {
+        tool: 'write_caption',
+        description: 'Writing caption',
+        params: { platform: 'instagram' },
+      },
+    ],
+    defaultParams: {},
+  },
+  {
+    id: 'product_showcase',
+    label: 'Product Showcase',
+    emoji: '🏪',
+    category: 'combo',
+    description: 'Generate → Upscale 4K → Caption',
+    platforms: ['instagram_post', 'facebook_post'],
+    steps: [
+      {
+        tool: 'generate_image',
+        description: 'Generating product image',
+        promptTemplate:
+          'Professional product photography of {subject}, clean white marble surface, soft studio lighting, commercial quality, 8K detail',
+        params: { aspect_ratio: '1:1' },
+      },
+      {
+        tool: 'upscale',
+        description: 'Upscaling to 4K',
+        params: { type: 'upscale' },
+      },
+      {
+        tool: 'write_caption',
+        description: 'Writing caption',
+        params: { platform: 'instagram' },
+      },
+    ],
+    defaultParams: {},
+  },
+  {
+    id: 'tiktok_video',
+    label: 'TikTok Video',
+    emoji: '🎵',
+    category: 'combo',
+    description: 'Generate → Animate (zoom) → TikTok caption',
+    platforms: ['tiktok'],
+    steps: [
+      {
+        tool: 'generate_image',
+        description: 'Generating image',
+        promptTemplate:
+          'Eye-catching product shot of {subject}, vibrant colors, dramatic lighting, social media optimized, trending aesthetic',
+        params: { aspect_ratio: '9:16' },
+      },
+      {
+        tool: 'image_to_video',
+        description: 'Animating with zoom effect',
+        promptTemplate:
+          'Slow dramatic zoom into the product, shallow depth of field, cinematic feel, TikTok-ready',
+        params: { aspectRatio: '9:16', duration: 5 },
+      },
+      {
+        tool: 'write_caption',
+        description: 'Writing TikTok caption',
+        params: { platform: 'tiktok' },
+      },
+    ],
+    defaultParams: {},
+  },
+];
+
+// ========================================
 // ALL PRESETS
 // ========================================
 
-export const ALL_PRESETS: PromptPreset[] = [
+export const ALL_PRESETS: (PromptPreset | ComboPreset)[] = [
   ...IMAGE_PRESETS,
   ...VIDEO_PRESETS,
   ...EDIT_PRESETS,
   ...TEXT_PRESETS,
+  ...COMBO_PRESETS,
 ];
 
-export const PRESETS_BY_CATEGORY: Record<SkillCategory, PromptPreset[]> = {
+export const PRESETS_BY_CATEGORY = {
   image: IMAGE_PRESETS,
   video: VIDEO_PRESETS,
   edit: EDIT_PRESETS,
   text: TEXT_PRESETS,
-  combo: [], // Phase 4
+  combo: COMBO_PRESETS,
 };
 
-export function getPreset(id: string): PromptPreset | undefined {
+export function isComboPreset(preset: PromptPreset | ComboPreset): preset is ComboPreset {
+  return preset.category === 'combo';
+}
+
+export function getPreset(id: string): PromptPreset | ComboPreset | undefined {
   return ALL_PRESETS.find((p) => p.id === id);
+}
+
+export function getComboPreset(id: string): ComboPreset | undefined {
+  return COMBO_PRESETS.find((p) => p.id === id);
 }
 
 export function buildPromptFromPreset(preset: PromptPreset, userInput: string): string {
@@ -326,7 +447,7 @@ export function buildPromptFromPreset(preset: PromptPreset, userInput: string): 
 }
 
 export function presetsToAgentContext(): string {
-  return ALL_PRESETS.filter((p) => p.promptTemplate)
+  return ALL_PRESETS.filter((p): p is PromptPreset => !isComboPreset(p) && !!p.promptTemplate)
     .map(
       (p) =>
         `- "${p.id}": ${p.description} → tool: ${p.targetTool}, prompt: "${p.promptTemplate.slice(0, 80)}..."`,

@@ -370,7 +370,7 @@ const COMBO_PRESETS: ComboPreset[] = [
         tool: 'image_to_video',
         description: 'Animating to video (2-3 min)',
         promptTemplate:
-          'Smooth cinematic motion, product slowly rotating with dramatic lighting shifts, professional product showcase, seamless animation',
+          'Slow cinematic camera zoom in, subject remains still in relaxed pose, hair and clothing gently flowing in breeze, environment motion in background, warm light gradually shifting, professional cinematic quality, smooth seamless 5-second loop',
         params: { aspectRatio: '9:16', duration: 5 },
       },
       {
@@ -428,7 +428,7 @@ const COMBO_PRESETS: ComboPreset[] = [
         tool: 'image_to_video',
         description: 'Animating with zoom effect',
         promptTemplate:
-          'Slow dramatic zoom into the product, shallow depth of field, cinematic feel, TikTok-ready',
+          'Dynamic slow camera orbit around subject, subject stays still, environment alive with subtle motion, dramatic lighting shifts, trendy cinematic style, smooth 5-second loop',
         params: { aspectRatio: '9:16', duration: 5 },
       },
       {

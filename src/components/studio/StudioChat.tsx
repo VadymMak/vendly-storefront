@@ -446,8 +446,9 @@ export default function StudioChat({ userId, userEmail }: Props) {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Request failed' })) as { error?: string };
-        throw new Error(err.error || 'Request failed');
+        const err = await res.json().catch(() => ({ error: 'Request failed' })) as { error?: unknown };
+        const errMsg = typeof err.error === 'string' ? err.error : 'Request failed';
+        throw new Error(errMsg);
       }
 
       const data = await res.json() as {
@@ -500,7 +501,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
       const errorMsg: ChatMessage = {
         id: loadingMsg.id,
         role: 'assistant',
-        content: `Sorry, something went wrong: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        content: `Sorry, something went wrong: ${error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error)}. Please try again.`,
         timestamp: Date.now(),
       };
       setMessages((prev) => prev.map((m) => (m.id === loadingMsg.id ? errorMsg : m)));

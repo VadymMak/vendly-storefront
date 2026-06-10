@@ -83,9 +83,12 @@ export default function StudioChat({ userId, userEmail }: Props) {
     lastVideoUrl: null,
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -190,6 +193,30 @@ export default function StudioChat({ userId, userEmail }: Props) {
     }
   }, [isProcessing, isUploading]);
 
+  const handleAudioUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('audio/')) {
+      alert('Please upload an audio file (MP3, WAV, OGG, M4A)');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Audio file must be under 20MB');
+      return;
+    }
+    setAudioFile(file);
+    setAudioUrl(URL.createObjectURL(file));
+  }, []);
+
+  const removeAudio = useCallback(() => {
+    setAudioUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setAudioFile(null);
+    if (audioInputRef.current) audioInputRef.current.value = '';
+  }, []);
+
   const pollVideoJob = useCallback(async (jobId: string, messageId: string) => {
     const maxPollTime = 10 * 60 * 1000; // 10 min — matches manual flow
     const startTime = Date.now();
@@ -264,6 +291,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     imageUrls: string[],
     params: Record<string, string | number | boolean>,
     messageId: string,
+    audio?: File | null,
   ) => {
     if (imageUrls.length < 2) {
       setMessages((prev) =>
@@ -312,6 +340,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         transitionType: (params.transition as TransitionType) || 'fade',
         outputSize,
         fps: 30,
+        audioFile: audio ?? undefined,
         style: (params.style as VideoStyle) || 'cinematic',
       };
 
@@ -355,6 +384,13 @@ export default function StudioChat({ userId, userEmail }: Props) {
             : m,
         ),
       );
+      // Clear audio after successful render
+      setAudioFile(null);
+      setAudioUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      if (audioInputRef.current) audioInputRef.current.value = '';
     } catch (error) {
       setMessages((prev) =>
         prev.map((m) =>
@@ -431,7 +467,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
             ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
             : m,
         ));
-        renderClipInChat(imageUrls, clipParams, loadingMsg.id);
+        renderClipInChat(imageUrls, clipParams, loadingMsg.id, audioFile);
         return;
       }
 
@@ -465,7 +501,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setIsProcessing(false);
       inputRef.current?.focus();
     }
-  }, [isProcessing, messages, context, pollVideoJob, renderClipInChat]);
+  }, [audioFile, isProcessing, messages, context, pollVideoJob, renderClipInChat]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -571,6 +607,28 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       {/* Input area */}
       <div className="px-4 py-3 border-t border-[var(--color-border)]">
+        {audioFile && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-1.5 text-xs text-[var(--color-text-muted)]">
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+            <span className="max-w-[150px] truncate">{audioFile.name}</span>
+            <span className="opacity-60">({(audioFile.size / 1024 / 1024).toFixed(1)}MB)</span>
+            <button
+              type="button"
+              onClick={removeAudio}
+              className="ml-1 text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
+              title="Remove audio"
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 items-end">
           {/* Upload button */}
           <button
@@ -595,6 +653,32 @@ export default function StudioChat({ userId, userEmail }: Props) {
             type="file"
             accept="image/*"
             onChange={handleImageUpload}
+            className="hidden"
+          />
+
+          {/* Music upload button */}
+          <button
+            type="button"
+            onClick={() => audioInputRef.current?.click()}
+            disabled={isProcessing}
+            title="Add music for clip"
+            className={`flex-shrink-0 w-10 h-10 rounded-xl border transition-colors cursor-pointer ${
+              audioFile
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                : 'border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+            } flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+          </button>
+          <input
+            ref={audioInputRef}
+            type="file"
+            accept=".mp3,.wav,.ogg,.m4a,audio/*"
+            onChange={handleAudioUpload}
             className="hidden"
           />
 

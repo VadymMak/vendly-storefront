@@ -1,6 +1,6 @@
 export type MessageRole = 'user' | 'assistant' | 'system';
 
-export type MediaType = 'image' | 'video';
+export type MediaType = 'image' | 'video' | 'audio';
 
 export interface MediaAttachment {
   type: MediaType;

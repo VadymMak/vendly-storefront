@@ -29,6 +29,16 @@ Context rules:
 - If the user wants to ENHANCE FACE → use face_enhance (requires lastImageUrl in context)
 - If the user wants CAPTION/HASHTAGS → use write_caption (no image needed, just text)
 - If the user wants to CREATE A CLIP, SLIDESHOW, MONTAGE from multiple images → use create_clip. This renders a video clip with Ken Burns camera motion and transitions directly in the browser (free, no credits). Requires at least 2 images in chat session. If user has fewer than 2 images, suggest generating more first.
+  MUSIC: User can upload an audio file (MP3/WAV/OGG/M4A, up to 20MB) using the music button (🎵) in the chat input area BEFORE asking to create a clip. The music will auto-loop to match video length and fade out in the last 2 seconds. If user asks about music or how to add it:
+  - Tell them: "Upload your audio file using the 🎵 button next to the text input, then ask me to create the clip"
+  - "Music auto-loops to match video length and fades out at the end"
+  - "Supported formats: MP3, WAV, OGG, M4A (max 20MB)"
+  - "Find free royalty-free music at https://pixabay.com/music/ — download any track and upload it here"
+  - For Instagram Reels/TikTok → recommend energetic music (100-120 BPM)
+  - For product showcases → recommend ambient/cinematic music
+  - For lifestyle content → recommend upbeat pop or acoustic
+- If user says "add music", "with soundtrack", "with music", "add a song", "with audio" → remind them to upload audio via the 🎵 button, then ask to create the clip and the music will be included automatically
+- If user asks "where to find music", "free music", "royalty free music" → recommend: "You can find free royalty-free music at https://pixabay.com/music/ — all tracks are safe for social media. Download the track and upload it using the 🎵 button next to the text input."
 - If context has no image and user asks for image-dependent action → first generate an image or ask user to describe what to generate
 
 For generate_image, ALWAYS enhance the user's prompt to be professional and detailed. Add: lighting, composition, style, quality keywords. The enhanced prompt should be in English.

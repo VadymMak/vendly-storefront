@@ -7,6 +7,20 @@ import type { SlideshowConfig, SlideshowItem, TransitionType, VideoStyle, OnProg
 import ChatMessageBubble from './ChatMessage';
 import SkillPicker from './SkillPicker';
 
+function isErrorMessage(content: string): boolean {
+  if (!content) return false;
+  const lower = content.toLowerCase();
+  return (
+    content.includes('⚠️') ||
+    content.includes('❌') ||
+    lower.includes('sorry, something went wrong') ||
+    lower.includes('too many requests') ||
+    lower.includes('timed out') ||
+    lower.includes('upload failed') ||
+    lower.includes('failed:')
+  );
+}
+
 function collectImageUrls(messages: ChatMessage[]): string[] {
   const urls: string[] = [];
   for (const msg of messages) {
@@ -358,8 +372,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     }
   }, []);
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
+  const sendText = useCallback(async (text: string) => {
     if (!text || isProcessing) return;
     if (messages.length >= MAX_MESSAGES) {
       alert('Session limit reached (30 messages). Please start a new session.');
@@ -382,7 +395,6 @@ export default function StudioChat({ userId, userEmail }: Props) {
     };
 
     setMessages((prev) => [...prev, userMsg, loadingMsg]);
-    setInput('');
     setIsProcessing(true);
 
     try {
@@ -410,12 +422,10 @@ export default function StudioChat({ userId, userEmail }: Props) {
         context?: SessionContext;
       };
 
-      // Handle client-side clip rendering
       if (data.toolUsed === 'create_clip') {
         if (data.context) setContext(data.context);
         const imageUrls = collectImageUrls(messages);
         const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' };
-        // Set the agent message first, then start rendering
         setMessages((prev) => prev.map((m) =>
           m.id === loadingMsg.id
             ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
@@ -455,7 +465,38 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setIsProcessing(false);
       inputRef.current?.focus();
     }
-  }, [input, isProcessing, messages, context, pollVideoJob]);
+  }, [isProcessing, messages, context, pollVideoJob, renderClipInChat]);
+
+  const handleSend = useCallback(() => {
+    const text = input.trim();
+    if (!text) return;
+    setInput('');
+    void sendText(text);
+  }, [input, sendText]);
+
+  const handleRetry = useCallback(
+    (messageIndex: number) => {
+      let userText = '';
+      let userIdx = -1;
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+          userText = messages[i].content;
+          userIdx = i;
+          break;
+        }
+      }
+      if (!userText || userIdx === -1) return;
+
+      // Remove failed exchange (user message + error response)
+      setMessages((prev) => prev.slice(0, userIdx));
+
+      // Re-send after state update flushes
+      setTimeout(() => {
+        void sendText(userText);
+      }, 50);
+    },
+    [messages, sendText],
+  );
 
   const handleSkillSelect = (skillPrompt: string, _presetId?: string) => {
     setInput(skillPrompt);
@@ -499,8 +540,28 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.map((msg) => (
-          <ChatMessageBubble key={msg.id} message={msg} />
+        {messages.map((msg, index) => (
+          <div key={msg.id}>
+            <ChatMessageBubble message={msg} />
+            {msg.role === 'assistant' && !msg.isLoading && isErrorMessage(msg.content) && (
+              <div className="flex justify-start mt-1.5 pl-1">
+                <button
+                  type="button"
+                  onClick={() => handleRetry(index)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                  title="Retry this request"
+                >
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 2v6h-6" />
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                    <path d="M3 22v-6h6" />
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                  </svg>
+                  Retry
+                </button>
+              </div>
+            )}
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>

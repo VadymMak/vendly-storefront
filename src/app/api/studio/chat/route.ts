@@ -131,6 +131,9 @@ export async function POST(req: NextRequest) {
       media,
       jobId,
       toolUsed: decision.toolCall?.tool ?? null,
+      enhancedPrompt: (decision.toolCall?.params?.prompt as string) || '',
+      model: '',
+      params: decision.toolCall?.params ?? null,
       context: updatedContext,
     });
   } catch (error) {

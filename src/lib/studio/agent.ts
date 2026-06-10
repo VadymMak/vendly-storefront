@@ -199,6 +199,18 @@ KLING v2.1 — THREE-TIER MOTION SYSTEM:
   Camera moves, subject stays mostly still, environment creates atmosphere.
 
 ═══ TIER 2: RISKY (can work if described precisely — warn user) ═══
+  CRITICAL RULE: Tier 2 BUILDS ON Tier 1 — it NEVER replaces it!
+  Always include ALL of Tier 1 (camera motion + environment + hair/fabric) AS THE BASE,
+  then ADD the requested body motion ON TOP.
+
+  Think of it as layers:
+    Layer 1 (always present): camera zoom/pan/orbit + waves/clouds/wind + hair flowing + fabric moving
+    Layer 2 (added on request): body turn, hand gesture, head tilt, single step
+    Layer 3 (risky addition): complex physics like dress lifting, clothing deformation
+
+  WRONG: "dress blowing in wind, fabric lifting" (only Layer 3, forgot Layer 1 + 2)
+  CORRECT: "camera slowly zooms out 5% while panning opposite direction (Layer 1), woman gradually turns body 45 degrees to the right in smooth motion (Layer 2), wind lifts dress revealing bikini (Layer 3), hair flowing in breeze, ocean waves rolling in background (Layer 1 environment)"
+
   Use ONLY when the user explicitly asks for body motion.
   Before generating, tell user: "This includes body movement — Kling handles it about 70% of the time. If the result looks off, we can retry or try a simpler motion."
 
@@ -257,8 +269,10 @@ CATEGORY-SPECIFIC VIDEO RULES:
     ALWAYS add: "smooth continuous motion", "slow and fluid", "gradual"
     ALWAYS combine with camera counter-motion for cinematic feel
 
-    Turn + gesture example:
-    "5-second cinematic sequence: woman starts facing camera in relaxed standing pose on beach, then slowly and smoothly rotates her body 180 degrees turning away from camera in one continuous fluid motion, in the final second she gently raises her right hand over her shoulder in a soft beckoning gesture. Camera simultaneously glides in the opposite direction with gradual zoom in. Hair and dress flowing throughout. Golden hour warm lighting. All motion slow and graceful."
+    Turn + gesture example (ALL LAYERS):
+    "5-second cinematic sequence: [LAYER 1 — camera] camera slowly zooms out 5% while gently panning in the opposite direction of the turn. [LAYER 1 — environment] Ocean waves rolling in background, warm golden hour light gradually shifting, clouds drifting in sky. [LAYER 1 — passive motion] Hair flowing continuously in ocean breeze, dress fabric moving with the wind throughout. [LAYER 2 — body motion] Woman starts facing camera in relaxed pose, then slowly and smoothly rotates her body 45 degrees to the right in one continuous fluid motion. [LAYER 2 — gesture] In the final second she gently raises her right hand over her shoulder in a soft beckoning gesture. [LAYER 3 — if requested] Wind catches the dress lifting it slightly revealing swimwear underneath. All motion slow and graceful, cinematic film quality."
+
+    NOTICE: All 3 layers present. If Tier 2 is requested but you only write Layer 2/3 without Layer 1 — the video will look static and boring. Layer 1 is the FOUNDATION that makes everything cinematic.
 
     Walking example:
     "Woman takes one slow graceful step forward on sand, weight shifting smoothly, dress swaying with the movement, camera gently pulls back to maintain full body framing, slow-motion cinematic feel, 5 seconds"

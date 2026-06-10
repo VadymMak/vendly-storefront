@@ -85,6 +85,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [ratedMessages, setRatedMessages] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -453,6 +454,9 @@ export default function StudioChat({ userId, userEmail }: Props) {
         message?: string;
         media?: ChatMessage['media'];
         toolUsed?: string;
+        enhancedPrompt?: string;
+        model?: string;
+        params?: Record<string, unknown>;
         jobId?: string;
         clipParams?: Record<string, string | number | boolean>;
         context?: SessionContext;
@@ -477,6 +481,9 @@ export default function StudioChat({ userId, userEmail }: Props) {
         content: data.message || '',
         media: data.media || undefined,
         toolUsed: data.toolUsed || undefined,
+        enhancedPrompt: data.enhancedPrompt || undefined,
+        model: data.model || undefined,
+        toolParams: data.params || undefined,
         timestamp: Date.now(),
       };
 
@@ -533,6 +540,48 @@ export default function StudioChat({ userId, userEmail }: Props) {
     },
     [messages, sendText],
   );
+
+  const handleFeedback = useCallback(async (
+    messageId: string,
+    rating: 'up' | 'down',
+    message: ChatMessage,
+  ) => {
+    const msgIndex = messages.findIndex((m) => m.id === messageId);
+    let userPrompt = '';
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userPrompt = messages[i].content;
+        break;
+      }
+    }
+
+    setRatedMessages((prev) => new Set(prev).add(messageId));
+
+    let issue: string | undefined;
+    if (rating === 'down') {
+      const answer = window.prompt('What went wrong? (optional — helps improve future results)');
+      issue = answer || undefined;
+    }
+
+    try {
+      await fetch('/api/studio/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userPrompt,
+          enhancedPrompt: message.enhancedPrompt || '',
+          tool: message.toolUsed || '',
+          model: message.model || '',
+          params: message.toolParams || {},
+          resultUrl: message.media?.url || '',
+          rating,
+          issue,
+        }),
+      });
+    } catch {
+      // feedback is best-effort, don't un-rate
+    }
+  }, [messages]);
 
   const handleSkillSelect = (skillPrompt: string, _presetId?: string) => {
     setInput(skillPrompt);
@@ -595,6 +644,40 @@ export default function StudioChat({ userId, userEmail }: Props) {
                   </svg>
                   Retry
                 </button>
+              </div>
+            )}
+            {msg.role === 'assistant' && msg.media?.url && !msg.isLoading && !isErrorMessage(msg.content) && (
+              <div className="flex justify-start mt-1.5 pl-1 gap-1">
+                {ratedMessages.has(msg.id) ? (
+                  <span className="text-xs text-[var(--color-text-muted)] opacity-60 py-1">
+                    Thanks for feedback!
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleFeedback(msg.id, 'up', msg)}
+                      className="rounded-md p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-green-500/10 hover:text-green-500"
+                      title="Good result"
+                    >
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 10v12" />
+                        <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFeedback(msg.id, 'down', msg)}
+                      className="rounded-md p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                      title="Bad result — tell us what went wrong"
+                    >
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 14V2" />
+                        <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z" />
+                      </svg>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

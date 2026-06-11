@@ -38,8 +38,9 @@ export async function POST(req: NextRequest) {
           : file.type.includes('webp') ? 'webp'
           : 'jpg';
 
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const blob = await put(
-      `studio/chat/upload/${session.user.id}/${Date.now()}.${ext}`,
+      `studio/chat/upload/${session.user.id}/${uniqueId}.${ext}`,
       buffer,
       { access: 'public', contentType: file.type },
     );

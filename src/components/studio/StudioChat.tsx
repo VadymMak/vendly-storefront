@@ -45,6 +45,13 @@ function collectMediaItems(messages: ChatMessage[]): MediaItem[] {
     }
   }
   console.log(`[collectMedia] Found ${items.length} media items from ${messages.length} messages`);
+  items.forEach((item, i) => console.log(`  [${i}] ${item.type}: ${item.url}`));
+
+  const uniqueUrls = new Set(items.map((i) => i.url));
+  if (uniqueUrls.size < items.length) {
+    console.warn(`[collectMedia] ⚠️ DUPLICATE URLs detected! ${items.length} items but only ${uniqueUrls.size} unique URLs`);
+  }
+
   return items;
 }
 
@@ -544,6 +551,14 @@ export default function StudioChat({ userId, userEmail }: Props) {
         );
       };
 
+      console.log(`[clip] Rendering ${config.items.length} items:`, config.items.map((item, i) => ({
+        index: i,
+        type: item.type,
+        duration: item.duration,
+        hasElement: !!item.element,
+        motion: 'motion' in item ? (item as { motion?: unknown }).motion : undefined,
+      })));
+
       const result = await renderSlideshow(config, onProgress);
 
       const ext = result.mimeType.includes('mp4') ? 'mp4' : 'webm';
@@ -672,12 +687,35 @@ export default function StudioChat({ userId, userEmail }: Props) {
         }
 
         const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 3, platform: 'instagram_reel' };
+
+        // Cap durationPerImage: Haiku often sends 7 — force max 5 unless user clearly wants more
+        const rawDuration = Number(clipParams.durationPerImage) || 3;
+        if (rawDuration > 5) {
+          console.warn(`[clip] Agent sent durationPerImage=${rawDuration}, capping to 3`);
+          clipParams.durationPerImage = 3;
+        }
+
+        // Deduplicate: if same URL appears multiple times, keep only unique (upload race condition)
+        const seenUrls = new Set<string>();
+        const uniqueMediaItems = clipMediaItems.filter((item) => {
+          if (seenUrls.has(item.url)) {
+            console.warn(`[clip] Duplicate URL removed: ${item.url.slice(-40)}`);
+            return false;
+          }
+          seenUrls.add(item.url);
+          return true;
+        });
+
+        if (uniqueMediaItems.length < clipMediaItems.length) {
+          console.warn(`[clip] Removed ${clipMediaItems.length - uniqueMediaItems.length} duplicate(s). Using ${uniqueMediaItems.length} unique items.`);
+        }
+
         setMessages((prev) => prev.map((m) =>
           m.id === loadingMsg.id
             ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
             : m,
         ));
-        renderClipInChat(clipMediaItems, clipParams, loadingMsg.id, audioFile);
+        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, audioFile);
         return;
       }
 

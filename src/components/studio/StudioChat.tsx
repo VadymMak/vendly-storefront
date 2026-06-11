@@ -44,6 +44,7 @@ function collectMediaItems(messages: ChatMessage[]): MediaItem[] {
       items.push({ type: msg.media.type, url: msg.media.url, duration: msg.media.duration });
     }
   }
+  console.log(`[collectMedia] Found ${items.length} media items from ${messages.length} messages`);
   return items;
 }
 
@@ -184,100 +185,116 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const generateId = () => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || isProcessing || isUploading) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0 || isProcessing || isUploading) return;
 
     e.target.value = '';
 
-    const isVideo = file.type.startsWith('video/');
-    const isImage = file.type.startsWith('image/');
+    const validFiles: { file: File; isVideo: boolean; duration?: number }[] = [];
 
-    if (!isImage && !isVideo) {
-      alert('Only image and video files are allowed');
-      return;
-    }
+    for (const file of files) {
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
 
-    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert(isVideo ? 'Video must be under 100MB' : 'Image must be under 10MB');
-      return;
-    }
-
-    let videoDuration: number | undefined;
-    if (isVideo) {
-      try {
-        videoDuration = await getVideoDuration(file);
-        if (videoDuration > 15) {
-          alert('Video must be 15 seconds or shorter for clips. Trim your video and try again.');
-          return;
-        }
-      } catch {
-        alert('Could not read video file. Please try another video.');
-        return;
+      if (!isImage && !isVideo) {
+        alert(`Skipped "${file.name}": only image and video files are allowed`);
+        continue;
       }
+
+      const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert(`Skipped "${file.name}": ${isVideo ? 'video must be under 100MB' : 'image must be under 10MB'}`);
+        continue;
+      }
+
+      let videoDuration: number | undefined;
+      if (isVideo) {
+        try {
+          videoDuration = await getVideoDuration(file);
+          if (videoDuration > 15) {
+            alert(`Skipped "${file.name}": video must be 15 seconds or shorter`);
+            continue;
+          }
+        } catch {
+          alert(`Skipped "${file.name}": could not read video`);
+          continue;
+        }
+      }
+
+      validFiles.push({ file, isVideo, duration: videoDuration });
     }
+
+    if (validFiles.length === 0) return;
 
     setIsUploading(true);
 
-    const mediaType = isVideo ? 'video' as const : 'image' as const;
-    const localUrl = URL.createObjectURL(file);
-    const uploadMsg: ChatMessage = {
-      id: generateId(),
-      role: 'user',
-      content: isVideo ? 'Uploaded video' : 'Uploaded image',
-      media: { type: mediaType, url: localUrl, ...(videoDuration !== undefined ? { duration: videoDuration } : {}) },
-      timestamp: Date.now(),
-    };
-    setMessages((prev) => [...prev, uploadMsg]);
+    for (const { file, isVideo, duration } of validFiles) {
+      const mediaType = isVideo ? 'video' as const : 'image' as const;
+      const localUrl = URL.createObjectURL(file);
+      const uploadMsg: ChatMessage = {
+        id: generateId(),
+        role: 'user',
+        content: isVideo ? 'Uploaded video' : 'Uploaded image',
+        media: { type: mediaType, url: localUrl, ...(duration !== undefined ? { duration } : {}) },
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, uploadMsg]);
 
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
 
-      const res = await fetch('/api/studio/upload', { method: 'POST', body: formData });
+        const res = await fetch('/api/studio/upload', { method: 'POST', body: formData });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Upload failed' })) as { error?: string };
-        throw new Error(err.error || 'Upload failed');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Upload failed' })) as { error?: string };
+          throw new Error(err.error || 'Upload failed');
+        }
+
+        const data = await res.json() as { url: string };
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === uploadMsg.id
+              ? { ...m, media: { type: mediaType, url: data.url, ...(duration !== undefined ? { duration } : {}) } }
+              : m,
+          ),
+        );
+
+        if (isVideo) {
+          setContext((prev) => ({ ...prev, lastVideoUrl: data.url }));
+        } else {
+          setContext((prev) => ({ ...prev, lastImageUrl: data.url }));
+        }
+      } catch (err) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === uploadMsg.id
+              ? { ...m, content: `❌ Upload failed: ${err instanceof Error ? err.message : 'error'}`, media: undefined }
+              : m,
+          ),
+        );
       }
+    }
 
-      const data = await res.json() as { url: string };
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === uploadMsg.id
-            ? { ...m, media: { type: mediaType, url: data.url, ...(videoDuration !== undefined ? { duration: videoDuration } : {}) } }
-            : m,
-        ),
-      );
-
-      if (isVideo) {
-        setContext((prev) => ({ ...prev, lastVideoUrl: data.url }));
-      } else {
-        setContext((prev) => ({ ...prev, lastImageUrl: data.url }));
-      }
+    if (validFiles.length > 1) {
+      const imgCount = validFiles.filter((f) => !f.isVideo).length;
+      const vidCount = validFiles.filter((f) => f.isVideo).length;
+      const desc = [
+        imgCount > 0 ? `${imgCount} image${imgCount > 1 ? 's' : ''}` : '',
+        vidCount > 0 ? `${vidCount} video${vidCount > 1 ? 's' : ''}` : '',
+      ].filter(Boolean).join(' + ');
 
       const ackMsg: ChatMessage = {
         id: generateId(),
         role: 'assistant',
-        content: isVideo
-          ? `Video uploaded! (${Math.round(videoDuration ?? 0)}s) You can now create a clip combining your photos and videos.`
-          : 'Image uploaded! You can now ask me to: remove background, upscale to 4K, edit it, animate to video, or enhance faces.',
+        content: `📎 ${desc} uploaded! You can now create a clip, edit them, or ask me anything.`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, ackMsg]);
-    } catch (error) {
-      const errorMsg: ChatMessage = {
-        id: generateId(),
-        role: 'assistant',
-        content: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsUploading(false);
-      URL.revokeObjectURL(localUrl);
     }
+
+    setIsUploading(false);
   }, [isProcessing, isUploading]);
 
   const handleAudioUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,10 +456,19 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const objectUrlsToCleanup: string[] = [];
 
   try {
+      const imageCount = mediaItems.filter((m) => m.type === 'image').length;
+      const videoCount = mediaItems.filter((m) => m.type === 'video').length;
+      const itemDesc = [
+        imageCount > 0 ? `${imageCount} image${imageCount > 1 ? 's' : ''}` : '',
+        videoCount > 0 ? `${videoCount} video${videoCount > 1 ? 's' : ''}` : '',
+      ].filter(Boolean).join(' + ');
+
+      console.log(`[clip] Found ${mediaItems.length} media items:`, mediaItems.map((m) => ({ type: m.type, url: m.url.slice(0, 60) })));
+
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
-            ? { ...m, content: `🎬 Loading ${mediaItems.length} item${mediaItems.length === 1 ? '' : 's'}...`, isLoading: true }
+            ? { ...m, content: `🎬 Loading ${itemDesc}...`, isLoading: true }
             : m,
         ),
       );
@@ -634,7 +660,18 @@ export default function StudioChat({ userId, userEmail }: Props) {
       if (data.toolUsed === 'create_clip') {
         if (data.context) setContext(data.context);
         const clipMediaItems = collectMediaItems(messages);
-        const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' };
+
+        if (clipMediaItems.length === 0) {
+          setMessages((prev) => prev.map((m) =>
+            m.id === loadingMsg.id
+              ? { ...m, content: '❌ No images or videos found in chat. Generate or upload media first.', isLoading: false }
+              : m
+          ));
+          setIsProcessing(false);
+          return;
+        }
+
+        const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 3, platform: 'instagram_reel' };
         setMessages((prev) => prev.map((m) =>
           m.id === loadingMsg.id
             ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
@@ -1050,6 +1087,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
             ref={fileInputRef}
             type="file"
             accept="image/*,video/mp4,video/quicktime"
+            multiple
             onChange={handleImageUpload}
             className="hidden"
           />

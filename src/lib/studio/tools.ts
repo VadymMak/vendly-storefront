@@ -5,7 +5,7 @@ export interface ToolDefinition {
   description: string;
   apiRoute: string;
   model: string;
-  provider: 'replicate' | 'anthropic' | 'openai';
+  provider: 'replicate' | 'anthropic' | 'openai' | 'brain';
   costEstimate: string;
   inputType: 'text' | 'image' | 'image+text' | 'media';
   outputType: 'image' | 'video' | 'text';
@@ -88,6 +88,17 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
     costEstimate: '$0.001',
     inputType: 'text',
     outputType: 'text',
+  },
+  {
+    name: 'transform_image',
+    description:
+      'Resize, compress, convert format, or apply social media preset to an image. FREE — no credits used. Presets: instagram_square, instagram_portrait, instagram_story, instagram_landscape, tiktok, youtube_thumbnail, youtube_banner, facebook_post, facebook_cover, facebook_story, twitter_post, twitter_header, linkedin_post, linkedin_cover, pinterest, thumbnail, og_image.',
+    apiRoute: '/api/studio/transform-image',
+    model: 'Pillow (Python)',
+    provider: 'brain',
+    costEstimate: 'Free',
+    inputType: 'image',
+    outputType: 'image',
   },
   {
     name: 'create_clip',

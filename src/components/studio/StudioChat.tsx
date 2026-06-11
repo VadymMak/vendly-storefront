@@ -583,6 +583,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         params?: Record<string, unknown>;
         jobId?: string;
         clipParams?: Record<string, string | number | boolean>;
+        transformParams?: Record<string, string | number | boolean>;
         context?: SessionContext;
       };
 
@@ -596,6 +597,79 @@ export default function StudioChat({ userId, userEmail }: Props) {
             : m,
         ));
         renderClipInChat(clipMediaItems, clipParams, loadingMsg.id, audioFile);
+        return;
+      }
+
+      if (data.toolUsed === 'transform_image') {
+        if (data.context) setContext(data.context);
+        const sourceUrl = context.lastImageUrl;
+        if (!sourceUrl) {
+          setMessages((prev) => prev.map((m) =>
+            m.id === loadingMsg.id
+              ? { ...m, content: '❌ No image in session. Upload or generate an image first.', isLoading: false }
+              : m,
+          ));
+          setIsProcessing(false);
+          return;
+        }
+        const tParams = data.transformParams ?? {};
+        setMessages((prev) => prev.map((m) =>
+          m.id === loadingMsg.id ? { ...m, content: '🔄 Transforming image...', isLoading: true } : m,
+        ));
+        void (async () => {
+          try {
+            const imgResponse = await fetch(sourceUrl);
+            if (!imgResponse.ok) throw new Error('Failed to fetch source image');
+            const imgBlob = await imgResponse.blob();
+
+            const formData = new FormData();
+            formData.append('image', imgBlob, 'image.png');
+            if (tParams.preset) formData.append('preset', String(tParams.preset));
+            if (tParams.width) formData.append('width', String(tParams.width));
+            if (tParams.height) formData.append('height', String(tParams.height));
+            if (tParams.quality) formData.append('quality', String(tParams.quality));
+            if (tParams.format) formData.append('format', String(tParams.format));
+            if (tParams.crop) formData.append('crop', String(tParams.crop));
+
+            const res2 = await fetch('/api/studio/transform-image', { method: 'POST', body: formData });
+            if (!res2.ok) {
+              const err = await res2.json().catch(() => ({ error: 'Transform failed' })) as { error?: string };
+              throw new Error(err.error || 'Transform failed');
+            }
+
+            const compressionRatio = res2.headers.get('X-Compression-Ratio');
+            const dimensions = res2.headers.get('X-Dimensions');
+            const originalSizeBytes = Number(res2.headers.get('X-Original-Size') || 0);
+            const outputSizeBytes = Number(res2.headers.get('X-Output-Size') || 0);
+
+            const resultBlob = await res2.blob();
+            const resultUrl = URL.createObjectURL(resultBlob);
+
+            const infoLines: string[] = [];
+            if (dimensions) infoLines.push(`📐 ${dimensions}`);
+            if (originalSizeBytes && outputSizeBytes) {
+              infoLines.push(`📦 ${(originalSizeBytes / 1024).toFixed(0)}KB → ${(outputSizeBytes / 1024).toFixed(0)}KB`);
+            }
+            if (compressionRatio) infoLines.push(`🗜️ ${compressionRatio} smaller`);
+            if (tParams.preset) infoLines.push(`📱 ${String(tParams.preset).replace(/_/g, ' ')}`);
+            const infoText = infoLines.length > 0 ? `\n${infoLines.join(' | ')}` : '';
+
+            setMessages((prev) => prev.map((m) =>
+              m.id === loadingMsg.id
+                ? { ...m, content: `✅ Image transformed!${infoText}`, media: { type: 'image' as const, url: resultUrl }, isLoading: false }
+                : m,
+            ));
+            setContext((c) => ({ ...c, lastImageUrl: resultUrl }));
+          } catch (err) {
+            setMessages((prev) => prev.map((m) =>
+              m.id === loadingMsg.id
+                ? { ...m, content: `❌ Transform failed: ${err instanceof Error ? err.message : 'Unknown error'}`, isLoading: false }
+                : m,
+            ));
+          } finally {
+            setIsProcessing(false);
+          }
+        })();
         return;
       }
 

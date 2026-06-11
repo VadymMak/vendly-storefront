@@ -99,6 +99,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // transform_image is client-side — frontend fetches image and calls Brain proxy
+    if (decision.toolCall?.tool === 'transform_image') {
+      return NextResponse.json({
+        message: decision.message,
+        toolUsed: 'transform_image',
+        transformParams: decision.toolCall.params,
+        context,
+      });
+    }
+
     if (decision.toolCall && !decision.comboId) {
       const cookieHeader = req.headers.get('cookie') || '';
 

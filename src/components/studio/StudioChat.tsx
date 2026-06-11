@@ -798,6 +798,29 @@ export default function StudioChat({ userId, userEmail }: Props) {
     [messages, sendText],
   );
 
+  const handleDeleteMedia = useCallback((messageId: string) => {
+    setMessages((prev) => {
+      const updated = prev.map((m) =>
+        m.id === messageId ? { ...m, media: undefined } : m,
+      );
+
+      // Recalculate context: find the last remaining image and video
+      let newLastImageUrl: string | null = null;
+      let newLastVideoUrl: string | null = null;
+
+      for (let i = updated.length - 1; i >= 0; i--) {
+        const msg = updated[i];
+        if (msg.media?.type === 'image' && !newLastImageUrl) newLastImageUrl = msg.media.url;
+        if (msg.media?.type === 'video' && !newLastVideoUrl) newLastVideoUrl = msg.media.url;
+        if (newLastImageUrl && newLastVideoUrl) break;
+      }
+
+      setContext((c) => ({ ...c, lastImageUrl: newLastImageUrl, lastVideoUrl: newLastVideoUrl }));
+
+      return updated;
+    });
+  }, []);
+
   const handleFeedback = useCallback(async (
     messageId: string,
     rating: 'up' | 'down',
@@ -884,7 +907,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((msg, index) => (
           <div key={msg.id}>
-            <ChatMessageBubble message={msg} />
+            <ChatMessageBubble message={msg} onDeleteMedia={handleDeleteMedia} />
             {msg.role === 'assistant' && !msg.isLoading && isErrorMessage(msg.content) && (
               <div className="flex justify-start mt-1.5 pl-1">
                 <button

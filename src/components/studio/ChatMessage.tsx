@@ -4,6 +4,7 @@ import type { ChatMessage } from '@/lib/studio/types';
 
 interface Props {
   message: ChatMessage;
+  onDeleteMedia?: (messageId: string) => void;
 }
 
 function LoadingDots() {
@@ -33,7 +34,7 @@ const handleDownload = async (url: string, filename: string) => {
   }
 };
 
-export default function ChatMessageBubble({ message }: Props) {
+export default function ChatMessageBubble({ message, onDeleteMedia }: Props) {
   const isUser = message.role === 'user';
 
   return (
@@ -80,6 +81,15 @@ export default function ChatMessageBubble({ message }: Props) {
                   >
                     Download
                   </button>
+                  {onDeleteMedia && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMedia(message.id)}
+                      className="text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -108,6 +118,15 @@ export default function ChatMessageBubble({ message }: Props) {
                   >
                     Download MP4
                   </button>
+                  {onDeleteMedia && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMedia(message.id)}
+                      className="text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             )}

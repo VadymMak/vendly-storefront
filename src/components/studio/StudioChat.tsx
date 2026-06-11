@@ -625,53 +625,100 @@ export default function StudioChat({ userId, userEmail }: Props) {
           return;
         }
         const tParams = data.transformParams ?? {};
+        const generateBoth = tParams.generate_both === true || tParams.fit_mode === 'both';
+
         setMessages((prev) => prev.map((m) =>
-          m.id === loadingMsg.id ? { ...m, content: '🔄 Transforming image...', isLoading: true } : m,
+          m.id === loadingMsg.id
+            ? { ...m, content: generateBoth ? '🔄 Creating Fill & Fit versions...' : '🔄 Transforming image...', isLoading: true }
+            : m,
         ));
+
+        const buildFormData = (blob: Blob, fitMode?: string): FormData => {
+          const fd = new FormData();
+          fd.append('image', blob, 'image.png');
+          if (tParams.preset) fd.append('preset', String(tParams.preset));
+          if (tParams.width) fd.append('width', String(tParams.width));
+          if (tParams.height) fd.append('height', String(tParams.height));
+          if (tParams.quality) fd.append('quality', String(tParams.quality));
+          if (tParams.format) fd.append('format', String(tParams.format));
+          if (tParams.crop) fd.append('crop', String(tParams.crop));
+          if (fitMode) fd.append('fit_mode', fitMode);
+          else if (tParams.fit_mode && tParams.fit_mode !== 'both') fd.append('fit_mode', String(tParams.fit_mode));
+          return fd;
+        };
+
+        const parseInfo = (res: Response, blob: Blob, label?: string): string => {
+          const compressionRatio = res.headers.get('X-Compression-Ratio');
+          const dimensions = res.headers.get('X-Dimensions');
+          const originalSizeBytes = Number(res.headers.get('X-Original-Size') || 0);
+          const outputSizeBytes = Number(res.headers.get('X-Output-Size') || 0);
+          const lines: string[] = [];
+          if (label) lines.push(label);
+          if (dimensions) lines.push(`📐 ${dimensions}`);
+          if (originalSizeBytes && outputSizeBytes) lines.push(`📦 ${(originalSizeBytes / 1024).toFixed(0)}KB → ${(outputSizeBytes / 1024).toFixed(0)}KB`);
+          if (compressionRatio) lines.push(`🗜️ ${compressionRatio} smaller`);
+          if (tParams.preset && !label) lines.push(`📱 ${String(tParams.preset).replace(/_/g, ' ')}`);
+          void blob;
+          return lines.length > 0 ? `\n${lines.join(' | ')}` : '';
+        };
+
         void (async () => {
           try {
             const imgResponse = await fetch(sourceUrl);
             if (!imgResponse.ok) throw new Error('Failed to fetch source image');
             const imgBlob = await imgResponse.blob();
 
-            const formData = new FormData();
-            formData.append('image', imgBlob, 'image.png');
-            if (tParams.preset) formData.append('preset', String(tParams.preset));
-            if (tParams.width) formData.append('width', String(tParams.width));
-            if (tParams.height) formData.append('height', String(tParams.height));
-            if (tParams.quality) formData.append('quality', String(tParams.quality));
-            if (tParams.format) formData.append('format', String(tParams.format));
-            if (tParams.crop) formData.append('crop', String(tParams.crop));
+            if (generateBoth) {
+              const [resCrop, resFit] = await Promise.all([
+                fetch('/api/studio/transform-image', { method: 'POST', body: buildFormData(imgBlob, 'crop') }),
+                fetch('/api/studio/transform-image', { method: 'POST', body: buildFormData(imgBlob, 'fit_blur') }),
+              ]);
+              if (!resCrop.ok || !resFit.ok) throw new Error('One or both transforms failed');
 
-            const res2 = await fetch('/api/studio/transform-image', { method: 'POST', body: formData });
-            if (!res2.ok) {
-              const err = await res2.json().catch(() => ({ error: 'Transform failed' })) as { error?: string };
-              throw new Error(err.error || 'Transform failed');
+              const [blobCrop, blobFit] = await Promise.all([resCrop.blob(), resFit.blob()]);
+              const urlCrop = URL.createObjectURL(blobCrop);
+              const urlFit = URL.createObjectURL(blobFit);
+
+              const infoCrop = parseInfo(resCrop, blobCrop, '🔲 Fill');
+              const infoFit = parseInfo(resFit, blobFit, '🖼️ Fit');
+
+              // Replace loading msg with Fill version, append Fit version as a new message
+              setMessages((prev) => {
+                const withCrop = prev.map((m) =>
+                  m.id === loadingMsg.id
+                    ? { ...m, content: `${data.message || '✅ Here\'s the Fill version:'}${infoCrop}`, media: { type: 'image' as const, url: urlCrop }, isLoading: false }
+                    : m,
+                );
+                const fitMsg: ChatMessage = {
+                  id: generateId(),
+                  role: 'assistant' as const,
+                  content: `🖼️ Here\'s the Fit version (nothing cropped):${infoFit}`,
+                  media: { type: 'image' as const, url: urlFit },
+                  toolUsed: 'transform_image',
+                  timestamp: Date.now(),
+                };
+                return [...withCrop, fitMsg];
+              });
+              setContext((c) => ({ ...c, lastImageUrl: urlFit }));
+            } else {
+              const fitMode = tParams.fit_mode && tParams.fit_mode !== 'both' ? String(tParams.fit_mode) : undefined;
+              const res2 = await fetch('/api/studio/transform-image', { method: 'POST', body: buildFormData(imgBlob, fitMode) });
+              if (!res2.ok) {
+                const err = await res2.json().catch(() => ({ error: 'Transform failed' })) as { error?: string };
+                throw new Error(err.error || 'Transform failed');
+              }
+
+              const resultBlob = await res2.blob();
+              const resultUrl = URL.createObjectURL(resultBlob);
+              const infoText = parseInfo(res2, resultBlob);
+
+              setMessages((prev) => prev.map((m) =>
+                m.id === loadingMsg.id
+                  ? { ...m, content: `${data.message || '✅ Image transformed!'}${infoText}`, media: { type: 'image' as const, url: resultUrl }, isLoading: false }
+                  : m,
+              ));
+              setContext((c) => ({ ...c, lastImageUrl: resultUrl }));
             }
-
-            const compressionRatio = res2.headers.get('X-Compression-Ratio');
-            const dimensions = res2.headers.get('X-Dimensions');
-            const originalSizeBytes = Number(res2.headers.get('X-Original-Size') || 0);
-            const outputSizeBytes = Number(res2.headers.get('X-Output-Size') || 0);
-
-            const resultBlob = await res2.blob();
-            const resultUrl = URL.createObjectURL(resultBlob);
-
-            const infoLines: string[] = [];
-            if (dimensions) infoLines.push(`📐 ${dimensions}`);
-            if (originalSizeBytes && outputSizeBytes) {
-              infoLines.push(`📦 ${(originalSizeBytes / 1024).toFixed(0)}KB → ${(outputSizeBytes / 1024).toFixed(0)}KB`);
-            }
-            if (compressionRatio) infoLines.push(`🗜️ ${compressionRatio} smaller`);
-            if (tParams.preset) infoLines.push(`📱 ${String(tParams.preset).replace(/_/g, ' ')}`);
-            const infoText = infoLines.length > 0 ? `\n${infoLines.join(' | ')}` : '';
-
-            setMessages((prev) => prev.map((m) =>
-              m.id === loadingMsg.id
-                ? { ...m, content: `✅ Image transformed!${infoText}`, media: { type: 'image' as const, url: resultUrl }, isLoading: false }
-                : m,
-            ));
-            setContext((c) => ({ ...c, lastImageUrl: resultUrl }));
           } catch (err) {
             setMessages((prev) => prev.map((m) =>
               m.id === loadingMsg.id

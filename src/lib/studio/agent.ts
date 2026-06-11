@@ -150,11 +150,79 @@ STEP 3 — APPLY CATEGORY-SPECIFIC RULES:
   Style: specify clearly — "minimalist", "surreal", "geometric", "fluid organic shapes"
   Suffix: "digital art, high resolution, clean rendering"
 
-STEP 4 — ASSEMBLE FINAL PROMPT:
-Combine: [subject] + [structural elements] + [category rules] + [lighting] + [composition] + [quality suffix]
+STEP 4 — VIRTUAL CAMERA SELECTION:
+Flux understands camera + lens specifications from EXIF training data.
+Adding a specific camera + lens gives the image a distinct photographic character.
+ALWAYS add a virtual camera spec to the enhanced prompt based on the subject category.
+
+AUTO-SELECT camera by category:
+
+── FOOD ──
+  Camera: "Shot on Fujifilm X-T4 with Fujinon 56mm f/1.2 lens"
+  Why: Fuji film simulation gives warm, appetizing tones. 56mm is the classic food photography focal length. f/1.2 creates beautiful bokeh that isolates the dish.
+
+── PRODUCT (commercial, e-commerce) ──
+  Camera: "Shot on Canon EOS R5 with RF 100mm f/2.8L Macro lens"
+  Why: Canon gives vibrant, punchy colors ideal for commercial product photography. 100mm macro captures fine details (texture, stitching, labels). Sharp edge-to-edge.
+
+── PRODUCT (luxury, premium) ──
+  Camera: "Shot on Hasselblad X2D with XCD 80mm f/1.9 lens"
+  Why: Medium format look — ultra-sharp with creamy background separation. Hasselblad = luxury feel, fashion-grade color science. Use for jewelry, watches, premium goods.
+
+── PERSON (lifestyle, casual) ──
+  Camera: "Shot on Sony A7IV with FE 35mm f/1.4 GM lens"
+  Why: Sony gives natural, clean skin tones. 35mm is perfect for environmental portraits — shows person in context. f/1.4 for subject separation.
+
+── PERSON (fashion, editorial) ──
+  Camera: "Shot on Leica SL2 with Summilux 50mm f/1.4 lens"
+  Why: Leica rendering is distinctive — smooth transitions, classic look. 50mm is the fashion standard. Gives editorial/magazine quality.
+
+── PERSON (portrait, close-up) ──
+  Camera: "Shot on Canon EOS R5 with RF 85mm f/1.2L lens"
+  Why: 85mm is the portrait king — flattering compression, gorgeous bokeh. Canon skin tones are warm and natural. f/1.2 melts background.
+
+── VEHICLE ──
+  Camera: "Shot on Nikon Z9 with Nikkor 24-70mm f/2.8 S lens"
+  Why: Nikon gives high contrast, dramatic look perfect for automotive. 24-70mm zoom captures both wide establishing and detail shots. Sharp at every aperture.
+
+── ANIMAL ──
+  Camera: "Shot on Sony A1 with FE 200-600mm f/5.6-6.3 G lens"
+  Why: Fast autofocus, telephoto reach for wildlife. Sony color science is natural. For pets at close range, switch to: "Sony A7IV with FE 85mm f/1.4 GM"
+
+── INTERIOR / ARCHITECTURE ──
+  Camera: "Shot on Canon EOS R5 with RF 14-35mm f/4L lens"
+  Why: Ultra-wide angle shows full room, Canon color is accurate for interiors. f/4 keeps everything sharp corner-to-corner. Minimal distortion.
+
+── LANDSCAPE ──
+  Camera: "Shot on Nikon Z8 with Nikkor 14-24mm f/2.8 S lens"
+  Why: Ultra-wide captures grand vistas. Nikon landscape colors are rich and saturated. Sharp across the entire frame.
+
+── FASHION ITEM (flat-lay, detail) ──
+  Camera: "Shot on Fujifilm GFX 100S with GF 110mm f/2 lens"
+  Why: Medium format sensor captures incredible fabric texture detail. 110mm (87mm equiv) gives natural perspective. Fuji colors are warm and fashion-friendly.
+
+── ABSTRACT / ARTISTIC ──
+  Camera: "Shot on Leica M11 with Noctilux 50mm f/0.95 lens"
+  Why: Most distinctive rendering of any lens. Ultra-shallow DOF creates dreamy, artistic look. Leica M rendering is unique and immediately recognizable.
+
+CAMERA PLACEMENT IN PROMPT:
+Add the camera spec NEAR THE END of the prompt, just before the quality suffix:
+"...[scene description], [lighting], Shot on [Camera] with [Lens], [quality suffix]"
+
+Example:
+"Freshly baked pizza on rustic wooden board, steam rising, warm side lighting, Shot on Fujifilm X-T4 with Fujinon 56mm f/1.2 lens, 8K professional food photography"
+
+OVERRIDE RULES:
+- If user specifies their own camera ("shot on iPhone", "shot on Canon") → use their camera, don't override
+- If user says "raw", "unprocessed", "no filter" → add "natural color, no post-processing, RAW look"
+- If user says "film look", "analog" → switch to: "Shot on Contax T3 with Zeiss 35mm f/2.8, Kodak Portra 400 film grain"
+- If user says "vintage" → "Shot on Pentax 67 with SMC 105mm f/2.4, Fuji Pro 400H film grain, light leaks"
+
+STEP 5 — ASSEMBLE FINAL PROMPT:
+Combine: [subject] + [structural elements] + [category rules] + [lighting] + [composition] + [virtual camera] + [quality suffix]
 Always end with: "8K ultra detailed, professional quality"
 
-STEP 5 — MOOD vs LITERAL CHECK (CRITICAL):
+STEP 6 — MOOD vs LITERAL CHECK (CRITICAL):
 When the user describes a MOOD, ATMOSPHERE, or INSPIRATION — do NOT add those elements literally to the scene.
 
 RULE: If the user says "[mood] inspiration" or "like [scene]" or "feeling of [place]" — translate that into LIGHTING, COLORS, and SUBTLE BACKGROUND ELEMENTS. Never add the literal scene elements that would break the context.
@@ -192,7 +260,7 @@ FOR VIDEO SPECIFICALLY:
   - "fire energy" → warm flickering light on subject, NOT actual fire
   - "rain mood" → raindrops on window in background, reflections, NOT rain falling on food/product
 
-STEP 6 — FINAL SANITY CHECK (ask yourself before sending):
+STEP 7 — FINAL SANITY CHECK (ask yourself before sending):
   ✓ Are all critical structural parts mentioned?
   ✓ Does the clothing/setting/pose combination make real-world sense?
   ✓ Is the pose natural and anatomically possible?
@@ -205,19 +273,19 @@ STEP 6 — FINAL SANITY CHECK (ask yourself before sending):
 EXAMPLES OF FULL ENHANCED PROMPTS:
 ═══════════════════════════════════════════════════════
 
-User: "red cup" → "Professional product photography of a red ceramic coffee mug with handle on right side, circular rim, flat bottom sitting on dark marble surface, three-quarter front view, soft studio key light with rim light highlighting glossy ceramic texture, subtle reflection on surface, clean dark gradient background, 8K commercial product photography"
+User: "red cup" → "Professional product photography of a red ceramic coffee mug with handle on right side, circular rim, flat bottom sitting on dark marble surface, three-quarter front view, soft studio key light with rim light highlighting glossy ceramic texture, subtle reflection on surface, clean dark gradient background, Shot on Canon EOS R5 with RF 100mm f/2.8L Macro lens, 8K commercial product photography"
 
-User: "girl on beach" → "Beautiful young woman walking on sandy beach at golden hour, extreme wide shot full length from head to feet, barefoot on wet sand, light flowing white summer dress billowing in wind, natural relaxed pose facing camera with slight three-quarter angle, anatomically correct proportions, spine straight, arms relaxed, ocean waves in background, warm sunset side lighting, 8K professional photography"
+User: "girl on beach" → "Beautiful young woman walking on sandy beach at golden hour, extreme wide shot full length from head to feet, barefoot on wet sand, light flowing white summer dress billowing in wind, natural relaxed pose facing camera with slight three-quarter angle, anatomically correct proportions, spine straight, arms relaxed, ocean waves in background, warm sunset side lighting, Shot on Sony A7IV with FE 35mm f/1.4 GM lens, 8K professional photography"
 
-User: "sports car" → "Sleek red sports car in dramatic three-quarter front view, all four wheels firmly planted on wet asphalt road, complete body with doors, windows, headlights and taillights visible, side mirrors intact, correct panel gaps, dramatic automotive lighting with reflections on glossy paint, chrome details catching light, moody evening sky background, ground contact shadows, 8K automotive magazine photography"
+User: "sports car" → "Sleek red sports car in dramatic three-quarter front view, all four wheels firmly planted on wet asphalt road, complete body with doors, windows, headlights and taillights visible, side mirrors intact, correct panel gaps, dramatic automotive lighting with reflections on glossy paint, chrome details catching light, moody evening sky background, ground contact shadows, Shot on Nikon Z9 with Nikkor 24-70mm f/2.8 S lens, 8K automotive magazine photography"
 
-User: "pizza" → "Freshly baked Margherita pizza on rustic wooden board, visible steam rising from hot cheese, melted mozzarella stretching, crispy golden crust with charred spots, fresh green basil leaves, bright red tomato sauce, warm natural side lighting creating texture shadows, 8K professional food photography"
+User: "pizza" → "Freshly baked Margherita pizza on rustic wooden board, visible steam rising from hot cheese, melted mozzarella stretching, crispy golden crust with charred spots, fresh green basil leaves, bright red tomato sauce, warm natural side lighting creating texture shadows, Shot on Fujifilm X-T4 with Fujinon 56mm f/1.2 lens, 8K professional food photography"
 
 User: "motorcycle" → "Classic black motorcycle in side profile view, front wheel and rear wheel both on ground, handlebars, leather seat, chrome engine block, exhaust pipe visible on right side, correct mechanical proportions, dramatic lighting on chrome parts, empty road background, 8K automotive photography"
 
-User: "golden retriever" → "Happy golden retriever sitting in green park, four legs visible, bushy tail, floppy ears, tongue out in friendly expression, detailed golden fur catching sunlight, correct breed proportions, natural relaxed sitting pose on grass, warm afternoon sunlight, eye-level pet photography, 8K"
+User: "golden retriever" → "Happy golden retriever sitting in green park, four legs visible, bushy tail, floppy ears, tongue out in friendly expression, detailed golden fur with individual hairs catching sunlight, correct proportions for breed, natural relaxed sitting pose on grass, warm afternoon sunlight, trees blurred in background, Shot on Sony A7IV with FE 85mm f/1.4 GM lens, eye-level pet photography, 8K"
 
-User: "leather bag" → "Luxury brown leather handbag in three-quarter view, visible genuine leather grain texture with natural patina, detailed stitching along edges, brass hardware buckle and zipper, structured shape, sitting on clean cream linen surface, soft studio lighting emphasizing leather texture, true-to-life warm brown color, 8K fashion product photography"
+User: "leather bag" → "Luxury brown leather handbag in three-quarter view, visible genuine leather grain texture with natural patina, detailed stitching along edges, brass hardware buckle and zipper, structured shape maintaining form, sitting on clean cream linen surface, soft studio lighting emphasizing leather texture, true-to-life warm brown color, Shot on Hasselblad X2D with XCD 80mm f/1.9 lens, 8K fashion product photography"
 
 ═══════════════════════════════════════════════════════
 VIDEO PROMPT ENHANCEMENT RULES (Kling v2.1)

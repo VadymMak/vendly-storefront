@@ -442,6 +442,8 @@ export default function StudioChat({ userId, userEmail }: Props) {
           message: text,
           context,
           history: messages.filter((m) => m.id !== 'welcome').slice(-6),
+          hasAudio: !!audioFile,
+          audioFileName: audioFile?.name || null,
         }),
       });
 

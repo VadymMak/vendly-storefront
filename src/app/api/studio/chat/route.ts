@@ -10,6 +10,8 @@ interface ChatRequest {
   message: string;
   context: SessionContext;
   history: ChatMessage[];
+  hasAudio?: boolean;
+  audioFileName?: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -20,13 +22,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = (await req.json()) as ChatRequest;
-    const { message, context, history } = body;
+    const { message, context, history, hasAudio, audioFileName } = body;
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    const decision = await getAgentDecision(message, context, history);
+    const audioContext = hasAudio
+      ? `\n[AUDIO STATUS: Music file "${audioFileName}" is uploaded and ready. It will be automatically added to any clip. Do NOT ask user to upload music — it's already done.]`
+      : `\n[AUDIO STATUS: No music uploaded. If user wants music in clip, remind them to use the 🎵 button.]`;
+
+    const decision = await getAgentDecision(message + audioContext, context, history);
 
     // Handle combo (multi-step chain)
     if (decision.comboId) {

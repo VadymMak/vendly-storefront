@@ -71,15 +71,37 @@ function getLatestImageUrl(messages: ChatMessage[]): string | null {
  * Chat mode:   fetch(url) → blob → URL.createObjectURL(blob) → img.src = objectUrl
  * Both produce local objectUrls → canvas stays clean.
  */
+async function fetchWithRetry(url: string, retries = 3, delay = 1000): Promise<Response> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      if (response.status >= 500 && attempt < retries) {
+        console.warn(`[clip] Fetch attempt ${attempt}/${retries} failed (${response.status}), retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`[clip] Fetch attempt ${attempt}/${retries} failed: ${err instanceof Error ? err.message : 'Network error'}, retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Failed to fetch after all retries');
+}
+
 async function loadImageFromUrl(url: string): Promise<{ element: HTMLImageElement; objectUrl: string }> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+  const response = await fetchWithRetry(url);
   const blob = await response.blob();
   const objectUrl = URL.createObjectURL(blob);
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload  = () => resolve({ element: img, objectUrl });
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to decode image')); };
     img.src     = objectUrl;
   });
 }
@@ -420,8 +442,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
       const items: SlideshowItem[] = await Promise.all(
         mediaItems.map(async (media, i) => {
           if (media.type === 'video') {
-            const response = await fetch(media.url);
-            if (!response.ok) throw new Error(`Failed to fetch video: ${response.status}`);
+            const response = await fetchWithRetry(media.url);
             const blob = await response.blob();
             const objectUrl = URL.createObjectURL(blob);
             objectUrlsToCleanup.push(objectUrl);
@@ -523,12 +544,16 @@ export default function StudioChat({ userId, userEmail }: Props) {
       });
       if (audioInputRef.current) audioInputRef.current.value = '';
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      const hint = errMsg.includes('fetch')
+        ? 'Network issue — please retry. If it keeps failing, try generating the images again.'
+        : 'Try Chrome for best compatibility.';
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
             ? {
                 ...m,
-                content: `❌ Clip rendering failed: ${error instanceof Error ? error.message : 'Unknown error'}. Try Chrome for best compatibility.`,
+                content: `❌ Clip rendering failed: ${errMsg}. ${hint}`,
                 isLoading: false,
               }
             : m,

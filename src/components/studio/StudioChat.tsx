@@ -51,6 +51,15 @@ function collectImageUrls(messages: ChatMessage[]): string[] {
   return collectMediaItems(messages).filter((i) => i.type === 'image').map((i) => i.url);
 }
 
+function getLatestImageUrl(messages: ChatMessage[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].media?.type === 'image' && messages[i].media?.url) {
+      return messages[i].media!.url;
+    }
+  }
+  return null;
+}
+
 /**
  * Load image from URL the SAME WAY as manual mode:
  * fetch → Blob → objectURL → Image element.
@@ -602,7 +611,10 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       if (data.toolUsed === 'transform_image') {
         if (data.context) setContext(data.context);
-        const sourceUrl = context.lastImageUrl;
+        console.log('[transform_image] context:', JSON.stringify(context));
+        console.log('[transform_image] lastImageUrl:', context?.lastImageUrl);
+        const sourceUrl = context?.lastImageUrl || getLatestImageUrl(messages);
+        console.log('[transform_image] sourceUrl (after fallback):', sourceUrl);
         if (!sourceUrl) {
           setMessages((prev) => prev.map((m) =>
             m.id === loadingMsg.id

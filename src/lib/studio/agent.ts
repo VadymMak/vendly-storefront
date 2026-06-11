@@ -719,39 +719,52 @@ export async function getAgentDecision(
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [
+        { role: 'user', content: userPrompt },
+        { role: 'assistant', content: '{' },
+      ],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      // Fallback: Haiku sometimes responds with XML <function_calls> instead of JSON
-      const xmlToolMatch = text.match(/<invoke\s+name="([^"]+)"[^>]*>/);
-      if (xmlToolMatch) {
-        const toolName = xmlToolMatch[1];
-        const messageText = text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-        console.warn('[studio agent] Haiku responded with XML instead of JSON, extracted tool:', toolName);
-        return {
-          message: messageText || `Using ${toolName}...`,
-          toolCall: {
-            tool: toolName as ToolName,
-            params: {},
-          },
-        };
-      }
-      return {
-        message: text || "I'm not sure what you'd like. Could you describe what you want to create?",
-      };
-    }
+    // Prefill was '{', so prepend it back to form complete JSON
+    const text = '{' + rawText;
 
-    const parsed = JSON.parse(jsonMatch[0]) as {
+    let parsed: {
       message?: string;
       tool?: string | null;
       params?: Record<string, string | number | boolean>;
       combo?: string;
       subject?: string;
     };
+
+    try {
+      parsed = JSON.parse(text) as typeof parsed;
+    } catch {
+      // Fallback: extract JSON object from text (model may have added extra text)
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]) as typeof parsed;
+        } catch {
+          console.warn('[studio agent] Failed to parse JSON even with regex extraction:', text.slice(0, 200));
+          const xmlToolMatch = rawText.match(/<invoke\s+name="([^"]+)"[^>]*>/);
+          if (xmlToolMatch) {
+            const toolName = xmlToolMatch[1];
+            const messageText = rawText.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+            console.warn('[studio agent] XML fallback extracted tool:', toolName);
+            return {
+              message: messageText || `Using ${toolName}...`,
+              toolCall: { tool: toolName as ToolName, params: {} },
+            };
+          }
+          return { message: "I'm not sure what you'd like. Could you describe what you want to create?" };
+        }
+      } else {
+        console.warn('[studio agent] No JSON found in response:', text.slice(0, 200));
+        return { message: rawText || "I'm not sure what you'd like. Could you describe what you want to create?" };
+      }
+    }
 
     // Strip any XML artifacts that might leak into the message field
     const cleanMessage = (parsed.message || '').replace(/<[^>]+>/g, '').trim();

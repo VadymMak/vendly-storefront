@@ -547,7 +547,7 @@ const COMBO_PRESETS: ComboPreset[] = [
       {
         tool: 'create_clip',
         description: 'Compiling into video clip',
-        params: { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' },
+        params: { style: 'cinematic', transition: 'fade', durationPerImage: 3, platform: 'instagram_reel' },
       },
     ],
     defaultParams: {},

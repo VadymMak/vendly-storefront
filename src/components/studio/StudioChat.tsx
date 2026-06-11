@@ -478,7 +478,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
             objectUrlsToCleanup.push(loaded.objectUrl);
             const imgDuration = isSingle
               ? (Number(params.duration) || 5)
-              : (Number(params.durationPerImage) || 4);
+              : (Number(params.durationPerImage) || 3);
             return {
               type: 'image' as const,
               element: loaded.element,

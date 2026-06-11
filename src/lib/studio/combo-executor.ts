@@ -26,7 +26,45 @@ export async function executeCombo(
   const results: StepResult[] = [];
   let currentContext = { ...context };
 
-  for (let i = 0; i < steps.length; i++) {
+  // If user already has an image, skip generate_image steps at the beginning
+  // This allows combos to work with uploaded images instead of always generating new ones
+  let startIndex = 0;
+  if (currentContext.lastImageUrl) {
+    while (
+      startIndex < steps.length &&
+      steps[startIndex].tool === 'generate_image'
+    ) {
+      results.push({
+        stepIndex: startIndex,
+        description: steps[startIndex].description,
+        message: 'Skipped — using your uploaded image',
+      });
+      startIndex++;
+    }
+    if (startIndex > 0) {
+      console.log(`[combo-executor] Skipped ${startIndex} generate_image step(s) — user has image in context`);
+    }
+  }
+
+  // For enhance_for_platform: override transform_image preset based on user's subject (platform)
+  const platformPresetMap: Record<string, string> = {
+    instagram_reel: 'instagram_story',
+    instagram_post: 'instagram_square',
+    instagram_story: 'instagram_story',
+    tiktok: 'tiktok',
+    youtube_shorts: 'tiktok',
+    facebook_post: 'facebook_post',
+  };
+  const targetPreset = platformPresetMap[userInput] ?? null;
+  if (targetPreset) {
+    for (const step of steps) {
+      if (step.tool === 'transform_image' && step.params) {
+        step.params.preset = targetPreset;
+      }
+    }
+  }
+
+  for (let i = startIndex; i < steps.length; i++) {
     const step = steps[i];
 
     // create_clip is client-side only — signal frontend to render from collected images

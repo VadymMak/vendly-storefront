@@ -622,6 +622,16 @@ VIDEO SANITY CHECK (before sending):
 ═══════════════════════════════════════════════════════
 
 Multi-step combos (use when user wants a complete workflow):
+- If user says "enhance and fit for Instagram", "upscale and prepare for [platform]", "improve quality and make for Instagram", "4K for Instagram", "enhance for Reel", "4K for TikTok" → respond with combo: "enhance_for_platform"
+  IMPORTANT: Extract platform from user message for subject:
+  - "enhance for Instagram Reel" / "for Reel" → subject: "instagram_reel"
+  - "enhance for TikTok" → subject: "tiktok"
+  - "4K for Instagram post" → subject: "instagram_post"
+  - "for Story" / "enhance for Instagram Story" → subject: "instagram_story"
+  - "for YouTube Shorts" → subject: "youtube_shorts"
+  - "for Facebook" → subject: "facebook_post"
+  Default if no platform specified: subject: "instagram_story"
+
 - If user says "full reel", "complete reel", "Instagram Reel from scratch" → respond with combo: "full_reel"
 - If user says "product showcase", "full product post" → respond with combo: "product_showcase"
 - If user says "TikTok video from scratch", "make a TikTok" → respond with combo: "tiktok_video"

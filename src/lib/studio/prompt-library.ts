@@ -466,6 +466,27 @@ const COMBO_PRESETS: ComboPreset[] = [
     defaultParams: {},
   },
   {
+    id: 'enhance_for_platform',
+    label: 'Enhance & Fit',
+    emoji: '✨',
+    category: 'combo',
+    description: 'Upscale 4K → Fit for platform',
+    platforms: ['instagram_reel', 'instagram_post', 'instagram_story', 'tiktok', 'youtube_shorts', 'facebook_post'],
+    steps: [
+      {
+        tool: 'upscale',
+        description: 'Upscaling to 4K quality',
+        params: { type: 'upscale' },
+      },
+      {
+        tool: 'transform_image',
+        description: 'Fitting for platform',
+        params: { preset: 'instagram_story', fit_mode: 'fit_blur', quality: 90 },
+      },
+    ],
+    defaultParams: {},
+  },
+  {
     id: 'story_ad',
     label: 'Story Ad',
     emoji: '📖',

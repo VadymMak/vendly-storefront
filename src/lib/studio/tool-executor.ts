@@ -118,6 +118,8 @@ export async function executeTool(
         return await executeEnhanceImage(tool, params, context, cookieHeader);
       case 'remove_background':
         return await executeRemoveBg(context, cookieHeader);
+      case 'transform_image':
+        return await executeTransformImage(params, context, cookieHeader);
       case 'write_caption':
         return await executeWriteCaption(params);
       default:
@@ -346,4 +348,49 @@ async function executeWriteCaption(
   } catch {
     return { error: 'Caption generation failed. Check OPENAI_API_KEY.' };
   }
+}
+
+async function executeTransformImage(
+  params: Record<string, string | number | boolean>,
+  context: { lastImageUrl: string | null },
+  _cookieHeader: string,
+): Promise<ToolResult> {
+  if (!context.lastImageUrl) {
+    return { error: 'No image in context. Please upload or generate an image first.' };
+  }
+
+  const imageRes = await fetch(context.lastImageUrl);
+  const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
+  const contentType = imageRes.headers.get('content-type') || 'image/webp';
+
+  const formData = new FormData();
+  formData.append('image', new Blob([new Uint8Array(imageBuffer)], { type: contentType }), 'input.webp');
+  if (params.preset) formData.append('preset', String(params.preset));
+  if (params.width) formData.append('width', String(params.width));
+  if (params.height) formData.append('height', String(params.height));
+  if (params.quality) formData.append('quality', String(params.quality));
+  if (params.format) formData.append('format', String(params.format));
+  if (params.fit_mode) formData.append('fit_mode', String(params.fit_mode));
+  if (params.crop) formData.append('crop', String(params.crop));
+
+  const res = await fetch(`${BRAIN_URL}/api/transform-image`, { method: 'POST', body: formData });
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('[tool-executor] transform_image failed:', res.status, errorText);
+    return { error: `Transform failed: ${res.statusText}` };
+  }
+
+  const resultBuffer = Buffer.from(await res.arrayBuffer());
+  const resultContentType = res.headers.get('content-type') || 'image/webp';
+  const ext = resultContentType.includes('png') ? 'png' : resultContentType.includes('jpeg') ? 'jpg' : 'webp';
+
+  const dimensions = res.headers.get('X-Dimensions');
+  console.log(`[tool-executor] transform_image done${dimensions ? ` (${dimensions})` : ''}`);
+
+  const resultBlob = await put(`studio/chat/${Date.now()}-transformed.${ext}`, resultBuffer, {
+    access: 'public',
+    contentType: resultContentType,
+  });
+
+  return { media: { type: 'image', url: resultBlob.url } };
 }

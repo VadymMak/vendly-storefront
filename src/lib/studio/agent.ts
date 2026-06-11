@@ -628,12 +628,26 @@ For combos, respond with:
   "subject": "what the user wants (extracted from their message)"
 }
 
-Respond with JSON only (for single tools):
+RESPONSE FORMAT — STRICT RULES:
+You MUST respond with a single JSON object. Nothing else. No text before or after the JSON.
+NEVER use XML tags like <function_calls>, <invoke>, <tool_use>, or any other markup.
+NEVER write text outside the JSON object.
+Your ENTIRE response must be EXACTLY ONE valid JSON object:
+
 {
   "message": "What you want to tell the user (brief, friendly)",
   "tool": "tool_name or null if just chatting",
   "params": { ... tool-specific params }
 }
+
+INVALID formats (NEVER do this):
+❌ Text before JSON: "Sure! {"message": ...}"
+❌ XML format: "<function_calls><invoke name="tool">..."
+❌ Markdown: "\`\`\`json {...}\`\`\`"
+❌ Multiple objects: "{...} {...}"
+
+VALID format (ALWAYS do this):
+✅ {"message": "I'll upscale your image to 4K!", "tool": "upscale", "params": {"type": "upscale"}}
 
 For generate_image params: { "prompt": "enhanced prompt", "aspect_ratio": "1:1" }
 For image_to_video params: { "prompt": "motion description", "aspectRatio": "9:16", "duration": 5 }
@@ -712,6 +726,20 @@ export async function getAgentDecision(
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      // Fallback: Haiku sometimes responds with XML <function_calls> instead of JSON
+      const xmlToolMatch = text.match(/<invoke\s+name="([^"]+)"[^>]*>/);
+      if (xmlToolMatch) {
+        const toolName = xmlToolMatch[1];
+        const messageText = text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        console.warn('[studio agent] Haiku responded with XML instead of JSON, extracted tool:', toolName);
+        return {
+          message: messageText || `Using ${toolName}...`,
+          toolCall: {
+            tool: toolName as ToolName,
+            params: {},
+          },
+        };
+      }
       return {
         message: text || "I'm not sure what you'd like. Could you describe what you want to create?",
       };
@@ -725,8 +753,11 @@ export async function getAgentDecision(
       subject?: string;
     };
 
+    // Strip any XML artifacts that might leak into the message field
+    const cleanMessage = (parsed.message || '').replace(/<[^>]+>/g, '').trim();
+
     const decision: AgentDecision = {
-      message: parsed.message || '',
+      message: cleanMessage,
     };
 
     if (parsed.combo) {

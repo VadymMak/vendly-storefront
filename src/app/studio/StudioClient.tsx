@@ -7,6 +7,7 @@ import type { VideoSkill, ApiKeyInfo } from '@/lib/types';
 import CreditCounter from '@/components/studio/CreditCounter';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import SlideshowCreator from '@/components/studio/SlideshowCreator';
+import StudioChat from '@/components/studio/StudioChat';
 import { MediaPreview } from '@/components/studio/MediaPreview';
 import { replicateDirectRun, fetchImageAsBlob } from '@/lib/replicate-client';
 
@@ -77,7 +78,7 @@ interface ByokConfig {
   };
 }
 
-type StudioTab      = 'image' | 'video' | 'slideshow';
+type StudioTab      = 'image' | 'video' | 'slideshow' | 'chat';
 type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
@@ -135,6 +136,9 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const [keyInputs,   setKeyInputs]   = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '' });
   const [keySaving,   setKeySaving]   = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
   const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
+  // Auto-collapse: open if Replicate key missing, closed if all saved
+  const [keysOpen, setKeysOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
 
   // ── Shared: Wizard ────────────────────────────────────────────────────────
   const [wizardStep,   setWizardStep]   = useState<1 | 2 | null>(null);
@@ -235,6 +239,14 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
     if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }, [helpOpen, helpSection]);
 
+  // Auto-open keys section if Replicate key is missing
+  useEffect(() => {
+    if (keys.length > 0) {
+      const hasReplicate = keys.some((k) => k.provider === 'replicate');
+      setKeysOpen(!hasReplicate);
+    }
+  }, [keys]);
+
   useEffect(() => {
     const handler = () => { setUpgradeType('general'); setShowUpgrade(true); };
     window.addEventListener('studio:showUpgrade', handler);
@@ -244,6 +256,11 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   const loadKeys = useCallback(async () => {
     const res = await fetch('/api/user/api-keys');
     if (res.ok) setKeys(await res.json());
+  }, []);
+
+  const switchTab = useCallback((tab: StudioTab) => {
+    setStudioTab(tab);
+    if (tab === 'chat') setKeysOpen(false);
   }, []);
 
   const keyFor = (p: Provider) => keys.find((k) => k.provider === p);
@@ -921,10 +938,11 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
               { id: 'image' as StudioTab, label: 'Image Generator', desc: 'Flux Schnell · ~$0.003/image' },
               { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.0 · ~$0.30–0.60/video' },
               { id: 'slideshow' as StudioTab, label: 'Photo Slideshow', desc: 'Canvas render · No credits needed' },
+              { id: 'chat' as StudioTab, label: 'AI Chat', desc: 'Multi-tool agent · Smart routing' },
             ] as const).map(({ id, label, desc }) => (
               <button
                 key={id}
-                onClick={() => setStudioTab(id)}
+                onClick={() => switchTab(id)}
                 className={cx(
                   'flex-1 cursor-pointer rounded-lg px-4 py-3 text-left text-sm transition-colors',
                   studioTab === id ? 'bg-[var(--color-card)] text-white shadow-sm' : 'text-[var(--color-text-muted)] hover:text-white',
@@ -936,10 +954,36 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             ))}
           </div>
 
-          {/* ── API Keys (shared) ── */}
-          <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-            <h2 className="mb-5 text-base font-semibold">API Keys</h2>
-            <div className="space-y-5">
+          {/* ── API Keys (shared, collapsible) ── */}
+          <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setKeysOpen((prev) => !prev)}
+              className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left transition-colors hover:bg-[var(--color-bg)]"
+            >
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-semibold">API Keys</h2>
+                <span className="rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                  {keys.length} / 3 connected
+                </span>
+              </div>
+              <svg
+                width={16}
+                height={16}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-[var(--color-text-muted)] transition-transform duration-200 ${keysOpen ? 'rotate-180' : ''}`}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {keysOpen && (
+            <div className="space-y-5 border-t border-[var(--color-border)] px-6 pb-6 pt-5">
               {([
                 { id: 'replicate' as Provider, label: 'Replicate API Key',       placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••',     hs: 'replicate' as HelpSection, note: 'Optional — for unlimited BYOK access' },
                 { id: 'anthropic' as Provider, label: 'Anthropic API Key',       placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic' as HelpSection, note: 'Optional — AI prompt enhancement' },
@@ -984,6 +1028,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                 );
               })}
             </div>
+            )}
           </section>
 
           {/* ══════════════════════════════════════════════════════════════
@@ -1555,17 +1600,55 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                 ))}
               </div>
 
-              {/* Skills */}
-              <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-                <h2 className="mb-4 text-base font-semibold">Video Skill</h2>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                  {VIDEO_SKILLS.map((skill) => (
-                    <button key={skill.id} onClick={() => setSelectedSkill(skill)} className={cx('cursor-pointer rounded-lg border px-3 py-3 text-left text-sm transition-colors', selectedSkill.id === skill.id ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-white' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40')}>
-                      <div className="font-medium">{skill.label}</div>
-                      <div className="mt-0.5 text-xs opacity-60">{skill.aspectRatio} · {skill.duration}s</div>
-                    </button>
-                  ))}
-                </div>
+              {/* Skills (collapsible) */}
+              <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)]">
+                <button
+                  type="button"
+                  onClick={() => setSkillsOpen((prev) => !prev)}
+                  className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left transition-colors hover:bg-[var(--color-bg)]"
+                >
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-base font-semibold">Video Skill</h2>
+                    <span className="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                      {selectedSkill.label} · {selectedSkill.aspectRatio}
+                    </span>
+                  </div>
+                  <svg
+                    width={16}
+                    height={16}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`text-[var(--color-text-muted)] transition-transform duration-200 ${skillsOpen ? 'rotate-180' : ''}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {skillsOpen && (
+                  <div className="border-t border-[var(--color-border)] px-6 pb-5 pt-4">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                      {VIDEO_SKILLS.map((skill) => (
+                        <button
+                          key={skill.id}
+                          onClick={() => { setSelectedSkill(skill); setSkillsOpen(false); }}
+                          className={cx(
+                            'cursor-pointer rounded-lg border px-3 py-3 text-left text-sm transition-colors',
+                            selectedSkill.id === skill.id
+                              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-white'
+                              : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40',
+                          )}
+                        >
+                          <div className="font-medium">{skill.label}</div>
+                          <div className="mt-0.5 text-xs opacity-60">{skill.aspectRatio} · {skill.duration}s</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* Image upload (Image→Video) */}
@@ -1698,6 +1781,13 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
               SLIDESHOW TAB
           ══════════════════════════════════════════════════════════════ */}
           {studioTab === 'slideshow' && <SlideshowCreator />}
+
+          {/* ══════════════════════════════════════════════════════════════
+              CHAT TAB
+          ══════════════════════════════════════════════════════════════ */}
+          {studioTab === 'chat' && (
+            <StudioChat userId={_userId} userEmail={userEmail} />
+          )}
         </div>
       </div>
 

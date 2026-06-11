@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokGenerate } from '@/lib/xai-client';
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
 
-  if (!checkRateLimit(`img:${ip}:${session.user.id}`, RATE_LIMITS.generateImage[planType])) {
+  if (!(await checkRateLimitWithBypass(`img:${ip}:${session.user.id}`, RATE_LIMITS.generateImage[planType], session.user.id))) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       { status: 429 },

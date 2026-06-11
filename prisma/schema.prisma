@@ -27,6 +27,7 @@ model User {
   apiKeys         UserApiKey[]
   studioCredits   StudioCredits?
   studioJobs      StudioJob[]
+  studioFeedback  StudioFeedback[]
   createdAt       DateTime @default(now())
 }
 
@@ -143,6 +144,27 @@ model BlogPost {
   store       Store?    @relation(fields: [storeId], references: [id], onDelete: SetNull)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
+}
+
+// AI Studio generation feedback (👍/👎) for self-learning
+model StudioFeedback {
+  id             String   @id @default(cuid())
+  userId         String
+  userPrompt     String
+  enhancedPrompt String   @db.Text
+  tool           String
+  model          String
+  params         Json?
+  resultUrl      String?
+  rating         String   // "up" | "down"
+  issue          String?
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tool])
+  @@index([rating])
+  @@index([userId])
 }
 
 // AI использование

@@ -13,6 +13,92 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
+const BRAIN_URL = process.env.BRAIN_API_URL || 'https://multi-ai-chat-production.up.railway.app';
+const MAX_UPSCALE_PIXELS = 2_000_000; // Real-ESRGAN GPU limit ~2.09M, use 2M as safe margin
+
+function getImageDimensions(buffer: Buffer): { width: number; height: number } | null {
+  // PNG: bytes 16-23 contain width/height as 4-byte big-endian
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+
+  // JPEG: scan for SOF0 (0xFF 0xC0) or SOF2 (0xFF 0xC2) marker
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+    let offset = 2;
+    while (offset < buffer.length - 8) {
+      if (buffer[offset] !== 0xff) { offset++; continue; }
+      const marker = buffer[offset + 1];
+      if (marker === 0xc0 || marker === 0xc2) {
+        return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+      }
+      offset += 2 + buffer.readUInt16BE(offset + 2);
+    }
+  }
+
+  // WebP: RIFF....WEBPVP8x
+  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer[12] === 0x56 && buffer[13] === 0x50 && buffer[14] === 0x38) {
+    const sub = buffer[15];
+    if (sub === 0x20) { // VP8 lossy
+      return { width: buffer.readUInt16LE(26) & 0x3fff, height: buffer.readUInt16LE(28) & 0x3fff };
+    }
+    if (sub === 0x4c) { // VP8L lossless
+      const bits = buffer.readUInt32LE(21);
+      return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+    }
+    if (sub === 0x58) { // VP8X extended
+      return {
+        width: 1 + (buffer[24] | (buffer[25] << 8) | (buffer[26] << 16)),
+        height: 1 + (buffer[27] | (buffer[28] << 8) | (buffer[29] << 16)),
+      };
+    }
+  }
+
+  return null;
+}
+
+async function ensureWithinPixelLimit(
+  imageBuffer: Buffer,
+  contentType: string,
+): Promise<{ buffer: Buffer; contentType: string; wasResized: boolean }> {
+  const dimensions = getImageDimensions(imageBuffer);
+  if (!dimensions) {
+    return { buffer: imageBuffer, contentType, wasResized: false };
+  }
+
+  const totalPixels = dimensions.width * dimensions.height;
+  if (totalPixels <= MAX_UPSCALE_PIXELS) {
+    return { buffer: imageBuffer, contentType, wasResized: false };
+  }
+
+  const scale = Math.sqrt(MAX_UPSCALE_PIXELS / totalPixels);
+  const newWidth = Math.floor(dimensions.width * scale);
+  const newHeight = Math.floor(dimensions.height * scale);
+
+  console.log(
+    `[tool-executor] Image ${dimensions.width}x${dimensions.height} (${totalPixels}px) exceeds limit. Resizing to ${newWidth}x${newHeight}`,
+  );
+
+  const formData = new FormData();
+  formData.append('image', new Blob([new Uint8Array(imageBuffer)], { type: contentType }), 'input.webp');
+  formData.append('width', String(newWidth));
+  formData.append('height', String(newHeight));
+  formData.append('format', 'webp');
+  formData.append('quality', '95');
+
+  const res = await fetch(`${BRAIN_URL}/api/transform-image`, { method: 'POST', body: formData });
+  if (!res.ok) {
+    console.error('[tool-executor] Brain resize failed:', res.status);
+    return { buffer: imageBuffer, contentType, wasResized: false };
+  }
+
+  return {
+    buffer: Buffer.from(await res.arrayBuffer()),
+    contentType: res.headers.get('content-type') || 'image/webp',
+    wasResized: true,
+  };
+}
+
 export async function executeTool(
   tool: ToolName,
   params: Record<string, string | number | boolean>,
@@ -163,11 +249,17 @@ async function executeEnhanceImage(
   }
 
   const imageRes = await fetch(context.lastImageUrl);
-  const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
-  const imageBlob = new Blob([imageBuffer], { type: 'image/webp' });
+  const originalBuffer = Buffer.from(await imageRes.arrayBuffer());
+  const originalContentType = imageRes.headers.get('content-type') || 'image/webp';
+
+  // Auto-resize if image exceeds Real-ESRGAN GPU pixel limit
+  const { buffer: imageBuffer, contentType } = await ensureWithinPixelLimit(
+    originalBuffer,
+    originalContentType,
+  );
 
   const formData = new FormData();
-  formData.append('image', imageBlob, 'input.webp');
+  formData.append('image', new Blob([new Uint8Array(imageBuffer)], { type: contentType }), 'input.webp');
   formData.append('type', tool === 'face_enhance' ? 'portrait' : String(params.type || 'upscale'));
 
   const res = await fetch(`${BASE_URL}/api/enhance-image`, {

@@ -74,17 +74,26 @@ function getLatestImageUrl(messages: ChatMessage[]): string | null {
 async function fetchWithRetry(url: string, retries = 3, delay = 1000): Promise<Response> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(url);
+      if (attempt === 1) {
+        const response = await fetch(url);
+        if (response.ok) return response;
+        if (response.status < 500) throw new Error(`Failed to fetch: ${response.status}`);
+      }
+
+      // On retry or 5xx: use proxy to bypass CORS
+      const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
       if (response.ok) return response;
-      if (response.status >= 500 && attempt < retries) {
-        console.warn(`[clip] Fetch attempt ${attempt}/${retries} failed (${response.status}), retrying in ${delay}ms...`);
+
+      if (attempt < retries) {
+        console.warn(`[clip] Fetch attempt ${attempt}/${retries} failed, retrying in ${delay}ms...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
-      throw new Error(`Failed to fetch image: ${response.status}`);
+      throw new Error(`Failed to fetch image after ${retries} attempts`);
     } catch (err) {
       if (attempt < retries) {
-        console.warn(`[clip] Fetch attempt ${attempt}/${retries} failed: ${err instanceof Error ? err.message : 'Network error'}, retrying in ${delay}ms...`);
+        console.warn(`[clip] Fetch attempt ${attempt}/${retries}: ${err instanceof Error ? err.message : 'error'}, trying proxy...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }

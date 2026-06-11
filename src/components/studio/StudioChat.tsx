@@ -72,28 +72,29 @@ function getLatestImageUrl(messages: ChatMessage[]): string | null {
  * Both produce local objectUrls → canvas stays clean.
  */
 async function fetchWithRetry(url: string, retries = 3, delay = 1000): Promise<Response> {
+  // Always use proxy to avoid CORS issues with Vercel Blob / Replicate URLs
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      if (attempt === 1) {
-        const response = await fetch(url);
-        if (response.ok) return response;
-        if (response.status < 500) throw new Error(`Failed to fetch: ${response.status}`);
-      }
-
-      // On retry or 5xx: use proxy to bypass CORS
       const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(url)}`;
       const response = await fetch(proxyUrl);
+
       if (response.ok) return response;
 
+      const errorBody = await response.text().catch(() => '');
+      console.warn(`[clip] Proxy attempt ${attempt}/${retries} returned ${response.status}: ${errorBody}`);
+
+      if (response.status < 500 && response.status !== 408) {
+        throw new Error(`Proxy error ${response.status}: ${errorBody || response.statusText}`);
+      }
+
       if (attempt < retries) {
-        console.warn(`[clip] Fetch attempt ${attempt}/${retries} failed, retrying in ${delay}ms...`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
-      throw new Error(`Failed to fetch image after ${retries} attempts`);
+      throw new Error(`Failed after ${retries} proxy attempts (last: ${response.status})`);
     } catch (err) {
-      if (attempt < retries) {
-        console.warn(`[clip] Fetch attempt ${attempt}/${retries}: ${err instanceof Error ? err.message : 'error'}, trying proxy...`);
+      if (attempt < retries && (err instanceof TypeError || (err instanceof Error && err.message.includes('500')))) {
+        console.warn(`[clip] Attempt ${attempt}/${retries}: ${err instanceof Error ? err.message : 'error'}`);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }

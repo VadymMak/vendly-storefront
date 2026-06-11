@@ -1,51 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const url = request.nextUrl.searchParams.get('url');
   if (!url) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
-  const allowed = [
-    'blob.vercel-storage.com',
-    'public.blob.vercel-storage.com',
-    'replicate.delivery',
-    'replicate.com',
-    'pbxt.replicate.delivery',
-  ];
-
+  let parsedUrl: URL;
   try {
-    const parsedUrl = new URL(url);
-    const isAllowed = allowed.some((domain) => parsedUrl.hostname.endsWith(domain));
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Domain not allowed' }, { status: 403 });
-    }
+    parsedUrl = new URL(url);
   } catch {
     return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
   }
 
+  if (parsedUrl.protocol !== 'https:') {
+    return NextResponse.json({ error: 'Only HTTPS allowed' }, { status: 403 });
+  }
+
+  const allowed = [
+    'vercel-storage.com',
+    'replicate.delivery',
+    'replicate.com',
+    'oaidalleapiprodscus.blob.core.windows.net',
+  ];
+
+  const isAllowed = allowed.some((d) => parsedUrl.hostname.endsWith(d));
+  if (!isAllowed) {
+    console.error(`[proxy-image] Blocked domain: ${parsedUrl.hostname}`);
+    return NextResponse.json({ error: `Domain not allowed: ${parsedUrl.hostname}` }, { status: 403 });
+  }
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: { 'Accept': 'image/*,video/*,*/*' },
+    });
+
     if (!response.ok) {
-      return NextResponse.json({ error: `Upstream error: ${response.status}` }, { status: response.status });
+      console.error(`[proxy-image] Upstream ${response.status} for ${parsedUrl.hostname}${parsedUrl.pathname.slice(0, 50)}`);
+      return NextResponse.json(
+        { error: `Upstream error: ${response.status}` },
+        { status: response.status },
+      );
     }
 
-    const blob = await response.blob();
+    const buffer = await response.arrayBuffer();
 
-    return new NextResponse(blob, {
+    return new NextResponse(buffer, {
       headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'image/webp',
+        'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream',
         'Cache-Control': 'public, max-age=3600',
+        'Content-Length': String(buffer.byteLength),
       },
     });
   } catch (error) {
-    console.error('[proxy-image] Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch image' }, { status: 500 });
+    console.error('[proxy-image] Fetch error:', error);
+    return NextResponse.json({ error: 'Failed to proxy image' }, { status: 502 });
   }
 }

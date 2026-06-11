@@ -21,14 +21,34 @@ function isErrorMessage(content: string): boolean {
   );
 }
 
-function collectImageUrls(messages: ChatMessage[]): string[] {
-  const urls: string[] = [];
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => { URL.revokeObjectURL(video.src); resolve(video.duration); };
+    video.onerror = () => { URL.revokeObjectURL(video.src); reject(new Error('Could not load video')); };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
+interface MediaItem {
+  type: 'image' | 'video';
+  url: string;
+  duration?: number;
+}
+
+function collectMediaItems(messages: ChatMessage[]): MediaItem[] {
+  const items: MediaItem[] = [];
   for (const msg of messages) {
-    if (msg.media?.type === 'image' && msg.media.url) {
-      urls.push(msg.media.url);
+    if (msg.media?.url && (msg.media.type === 'image' || msg.media.type === 'video')) {
+      items.push({ type: msg.media.type, url: msg.media.url, duration: msg.media.duration });
     }
   }
-  return urls;
+  return items;
+}
+
+function collectImageUrls(messages: ChatMessage[]): string[] {
+  return collectMediaItems(messages).filter((i) => i.type === 'image').map((i) => i.url);
 }
 
 /**
@@ -128,23 +148,43 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
     e.target.value = '';
 
-    if (!file.type.startsWith('image/')) {
-      alert('Only image files are allowed');
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+
+    if (!isImage && !isVideo) {
+      alert('Only image and video files are allowed');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be under 10MB');
+
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(isVideo ? 'Video must be under 100MB' : 'Image must be under 10MB');
       return;
+    }
+
+    let videoDuration: number | undefined;
+    if (isVideo) {
+      try {
+        videoDuration = await getVideoDuration(file);
+        if (videoDuration > 15) {
+          alert('Video must be 15 seconds or shorter for clips. Trim your video and try again.');
+          return;
+        }
+      } catch {
+        alert('Could not read video file. Please try another video.');
+        return;
+      }
     }
 
     setIsUploading(true);
 
+    const mediaType = isVideo ? 'video' as const : 'image' as const;
     const localUrl = URL.createObjectURL(file);
     const uploadMsg: ChatMessage = {
       id: generateId(),
       role: 'user',
-      content: 'Uploaded image',
-      media: { type: 'image', url: localUrl },
+      content: isVideo ? 'Uploaded video' : 'Uploaded image',
+      media: { type: mediaType, url: localUrl, ...(videoDuration !== undefined ? { duration: videoDuration } : {}) },
       timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, uploadMsg]);
@@ -165,18 +205,23 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === uploadMsg.id
-            ? { ...m, media: { type: 'image' as const, url: data.url } }
+            ? { ...m, media: { type: mediaType, url: data.url, ...(videoDuration !== undefined ? { duration: videoDuration } : {}) } }
             : m,
         ),
       );
 
-      setContext((prev) => ({ ...prev, lastImageUrl: data.url }));
+      if (isVideo) {
+        setContext((prev) => ({ ...prev, lastVideoUrl: data.url }));
+      } else {
+        setContext((prev) => ({ ...prev, lastImageUrl: data.url }));
+      }
 
       const ackMsg: ChatMessage = {
         id: generateId(),
         role: 'assistant',
-        content:
-          'Image uploaded! You can now ask me to: remove background, upscale to 4K, edit it, animate to video, or enhance faces.',
+        content: isVideo
+          ? `Video uploaded! (${Math.round(videoDuration ?? 0)}s) You can now create a clip combining your photos and videos.`
+          : 'Image uploaded! You can now ask me to: remove background, upscale to 4K, edit it, animate to video, or enhance faces.',
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, ackMsg]);
@@ -334,16 +379,16 @@ export default function StudioChat({ userId, userEmail }: Props) {
   }, [muxAudioWithVideo, removeAudio]);
 
   const renderClipInChat = useCallback(async (
-    imageUrls: string[],
+    mediaItems: MediaItem[],
     params: Record<string, string | number | boolean>,
     messageId: string,
     audio?: File | null,
   ) => {
-    if (imageUrls.length < 1) {
+    if (mediaItems.length < 1) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
-            ? { ...m, content: '❌ Upload or generate at least 1 image first to create a clip.', isLoading: false }
+            ? { ...m, content: '❌ Upload or generate at least 1 image or video first to create a clip.', isLoading: false }
             : m,
         ),
       );
@@ -356,25 +401,53 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
-            ? { ...m, content: `🎬 Loading ${imageUrls.length} images...`, isLoading: true }
+            ? { ...m, content: `🎬 Loading ${mediaItems.length} item${mediaItems.length === 1 ? '' : 's'}...`, isLoading: true }
             : m,
         ),
       );
 
-      // fetch → blob → objectUrl (identical to manual mode, avoids CORS canvas tainting)
-      const loaded = await Promise.all(imageUrls.map(loadImageFromUrl));
-      loaded.forEach((l) => objectUrlsToCleanup.push(l.objectUrl));
+      const isSingle = mediaItems.length === 1;
 
-      const isSingle = imageUrls.length === 1;
-      const durationPerImage = isSingle
-        ? (Number(params.duration) || 5)
-        : (Number(params.durationPerImage) || 4);
-      const items: SlideshowItem[] = loaded.map((l, i) => ({
-        type: 'image' as const,
-        element: l.element,
-        duration: durationPerImage,
-        motion: DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length],
-      }));
+      const items: SlideshowItem[] = await Promise.all(
+        mediaItems.map(async (media, i) => {
+          if (media.type === 'video') {
+            const response = await fetch(media.url);
+            if (!response.ok) throw new Error(`Failed to fetch video: ${response.status}`);
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            objectUrlsToCleanup.push(objectUrl);
+
+            const video = document.createElement('video');
+            video.preload = 'auto';
+            video.muted = true;
+            video.playsInline = true;
+
+            await new Promise<void>((resolve, reject) => {
+              video.onloadedmetadata = () => resolve();
+              video.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load video')); };
+              video.src = objectUrl;
+            });
+
+            return {
+              type: 'video' as const,
+              element: video,
+              duration: media.duration || video.duration || 5,
+            };
+          } else {
+            const loaded = await loadImageFromUrl(media.url);
+            objectUrlsToCleanup.push(loaded.objectUrl);
+            const imgDuration = isSingle
+              ? (Number(params.duration) || 5)
+              : (Number(params.durationPerImage) || 4);
+            return {
+              type: 'image' as const,
+              element: loaded.element,
+              duration: imgDuration,
+              motion: DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length],
+            };
+          }
+        })
+      );
 
       const platform = (params.platform as string) || 'instagram_reel';
       const outputSize = platform === 'instagram_post'
@@ -385,7 +458,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       const config: SlideshowConfig = {
         items,
-        transitionDuration: isSingle ? 0 : 0.8,
+        transitionDuration: items.length === 1 ? 0 : 0.8,
         transitionType: (params.transition as TransitionType) || 'fade',
         outputSize,
         fps: 30,
@@ -426,7 +499,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
           m.id === messageId
             ? {
                 ...m,
-                content: `✅ Clip ready! ${imageUrls.length} images, ${totalDuration}s total.`,
+                content: `✅ Clip ready! ${mediaItems.length} item${mediaItems.length === 1 ? '' : 's'}, ${totalDuration}s total.`,
                 media: { type: 'video' as const, url: videoUrl },
                 isLoading: false,
               }
@@ -515,14 +588,14 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       if (data.toolUsed === 'create_clip') {
         if (data.context) setContext(data.context);
-        const imageUrls = collectImageUrls(messages);
+        const clipMediaItems = collectMediaItems(messages);
         const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' };
         setMessages((prev) => prev.map((m) =>
           m.id === loadingMsg.id
             ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
             : m,
         ));
-        renderClipInChat(imageUrls, clipParams, loadingMsg.id, audioFile);
+        renderClipInChat(clipMediaItems, clipParams, loadingMsg.id, audioFile);
         return;
       }
 
@@ -785,7 +858,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4,video/quicktime"
             onChange={handleImageUpload}
             className="hidden"
           />

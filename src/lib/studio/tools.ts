@@ -7,7 +7,7 @@ export interface ToolDefinition {
   model: string;
   provider: 'replicate' | 'anthropic' | 'openai';
   costEstimate: string;
-  inputType: 'text' | 'image' | 'image+text';
+  inputType: 'text' | 'image' | 'image+text' | 'media';
   outputType: 'image' | 'video' | 'text';
 }
 
@@ -92,12 +92,12 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
   {
     name: 'create_clip',
     description:
-      'Create an Instagram/TikTok-style video clip from multiple images in the chat session. Applies Ken Burns camera motion (zoom-in, zoom-out, pan), transitions (fade, slide, zoom), and optional visual style (cinematic, golden-hour, vintage). Renders directly in browser — no credits needed. Requires at least 2 images in chat context. Use when user says "make a clip", "slideshow", "montage", "combine images into video".',
+      'Create an Instagram/TikTok-style video clip from images and/or videos with Ken Burns motion, transitions, and optional music. Images get Ken Burns camera motion; videos play as-is. Renders directly in browser — no credits needed. Requires at least 1 image or video in chat context. Use when user says "make a clip", "slideshow", "montage", "combine images into video".',
     apiRoute: 'internal:client-render',
     model: 'Canvas + MediaRecorder',
     provider: 'replicate',
     costEstimate: 'Free',
-    inputType: 'image',
+    inputType: 'media',
     outputType: 'video',
   },
 ];

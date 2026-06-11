@@ -86,12 +86,20 @@ export default function ChatMessageBubble({ message }: Props) {
 
             {message.media?.type === 'video' && (
               <div className="mt-2 rounded-lg overflow-hidden">
-                <video
-                  src={message.media.url}
-                  controls
-                  className="max-w-full rounded-lg"
-                  playsInline
-                />
+                <div className="relative">
+                  <video
+                    src={message.media.url}
+                    controls
+                    className="max-w-full rounded-lg"
+                    playsInline
+                    preload="metadata"
+                  />
+                  {message.media.duration && (
+                    <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white pointer-events-none">
+                      ▶ {Math.round(message.media.duration)}s
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-2 mt-2">
                   <button
                     type="button"

@@ -46,6 +46,24 @@ export async function executeCombo(
     }
   }
 
+  // For enhance_for_platform: override transform_image preset based on user's subject (platform)
+  const platformPresetMap: Record<string, string> = {
+    instagram_reel: 'instagram_story',
+    instagram_post: 'instagram_square',
+    instagram_story: 'instagram_story',
+    tiktok: 'tiktok',
+    youtube_shorts: 'tiktok',
+    facebook_post: 'facebook_post',
+  };
+  const targetPreset = platformPresetMap[userInput] ?? null;
+  if (targetPreset) {
+    for (const step of steps) {
+      if (step.tool === 'transform_image' && step.params) {
+        step.params.preset = targetPreset;
+      }
+    }
+  }
+
   for (let i = startIndex; i < steps.length; i++) {
     const step = steps[i];
 

@@ -218,7 +218,29 @@ export default function StudioChat({ userId, userEmail }: Props) {
     if (audioInputRef.current) audioInputRef.current.value = '';
   }, []);
 
-  const pollVideoJob = useCallback(async (jobId: string, messageId: string) => {
+  const muxAudioWithVideo = useCallback(async (
+    videoUrl: string,
+    audioTrack: File,
+  ): Promise<string> => {
+    const videoResponse = await fetch(videoUrl);
+    if (!videoResponse.ok) throw new Error('Failed to fetch video for muxing');
+    const videoBlob = await videoResponse.blob();
+
+    const formData = new FormData();
+    formData.append('video', videoBlob, 'video.mp4');
+    formData.append('audio', audioTrack, audioTrack.name);
+
+    const response = await fetch('/api/studio/mux-audio', { method: 'POST', body: formData });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Mux failed' })) as { error?: string };
+      throw new Error(err.error || 'Failed to add music to video');
+    }
+
+    const resultBlob = await response.blob();
+    return URL.createObjectURL(resultBlob);
+  }, []);
+
+  const pollVideoJob = useCallback(async (jobId: string, messageId: string, audioForMux?: File | null) => {
     const maxPollTime = 10 * 60 * 1000; // 10 min — matches manual flow
     const startTime = Date.now();
 
@@ -251,19 +273,42 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
         if (data.status === 'succeeded' || data.status === 'failed' || data.status === 'canceled') {
           if (data.status === 'succeeded' && data.outputUrl) {
+            let finalVideoUrl = data.outputUrl!;
+
+            if (audioForMux) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === messageId ? { ...m, content: '🎵 Adding music to video...' } : m,
+                ),
+              );
+              try {
+                finalVideoUrl = await muxAudioWithVideo(data.outputUrl!, audioForMux);
+                removeAudio();
+              } catch (muxErr) {
+                console.error('[pollVideoJob] Audio mux failed:', muxErr);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === messageId
+                      ? { ...m, content: '⚠️ Video ready, but music merge failed. Showing video without audio.' }
+                      : m,
+                  ),
+                );
+              }
+            }
+
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === messageId
                   ? {
                       ...m,
-                      content: m.content.replace(/⏳[^\n]*/, '✅ Video ready!'),
-                      media: { type: 'video' as const, url: data.outputUrl! },
+                      content: m.content.replace(/⏳[^\n]*|🎵[^\n]*|⚠️[^\n]*/, '✅ Video ready!'),
+                      media: { type: 'video' as const, url: finalVideoUrl },
                       isLoading: false,
                     }
                   : m,
               ),
             );
-            setContext((prev) => ({ ...prev, lastVideoUrl: data.outputUrl! }));
+            setContext((prev) => ({ ...prev, lastVideoUrl: finalVideoUrl }));
           } else {
             setMessages((prev) =>
               prev.map((m) =>
@@ -286,7 +331,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         // Network error — retry
       }
     }
-  }, []);
+  }, [muxAudioWithVideo, removeAudio]);
 
   const renderClipInChat = useCallback(async (
     imageUrls: string[],
@@ -294,11 +339,11 @@ export default function StudioChat({ userId, userEmail }: Props) {
     messageId: string,
     audio?: File | null,
   ) => {
-    if (imageUrls.length < 2) {
+    if (imageUrls.length < 1) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === messageId
-            ? { ...m, content: '❌ Need at least 2 images to create a clip. Generate or upload more images first.', isLoading: false }
+            ? { ...m, content: '❌ Upload or generate at least 1 image first to create a clip.', isLoading: false }
             : m,
         ),
       );
@@ -320,7 +365,10 @@ export default function StudioChat({ userId, userEmail }: Props) {
       const loaded = await Promise.all(imageUrls.map(loadImageFromUrl));
       loaded.forEach((l) => objectUrlsToCleanup.push(l.objectUrl));
 
-      const durationPerImage = Number(params.durationPerImage) || 4;
+      const isSingle = imageUrls.length === 1;
+      const durationPerImage = isSingle
+        ? (Number(params.duration) || 5)
+        : (Number(params.durationPerImage) || 4);
       const items: SlideshowItem[] = loaded.map((l, i) => ({
         type: 'image' as const,
         element: l.element,
@@ -337,7 +385,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       const config: SlideshowConfig = {
         items,
-        transitionDuration: 0.8,
+        transitionDuration: isSingle ? 0 : 0.8,
         transitionType: (params.transition as TransitionType) || 'fade',
         outputSize,
         fps: 30,
@@ -497,7 +545,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
       }
 
       if (data.jobId) {
-        pollVideoJob(data.jobId, loadingMsg.id);
+        pollVideoJob(data.jobId, loadingMsg.id, audioFile);
       }
     } catch (error) {
       const errorMsg: ChatMessage = {

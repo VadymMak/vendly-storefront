@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import type { ChatMessage, SessionContext } from '@/lib/studio/types';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowConfig, SlideshowItem, TransitionType, VideoStyle, OnProgress } from '@/lib/slideshow-renderer';
@@ -40,8 +41,17 @@ interface MediaItem {
 function collectMediaItems(messages: ChatMessage[]): MediaItem[] {
   const items: MediaItem[] = [];
   for (const msg of messages) {
-    if (msg.media?.url && (msg.media.type === 'image' || msg.media.type === 'video')) {
-      items.push({ type: msg.media.type, url: msg.media.url, duration: msg.media.duration });
+    if (!msg.media?.url) continue;
+    const { type, url, duration } = msg.media;
+
+    // Skip rendered clip videos — only collect source media (images + AI-generated videos)
+    if (type === 'video' && msg.toolUsed === 'create_clip') {
+      console.log(`[collectMedia] Skipping clip video: ${url.slice(0, 60)}`);
+      continue;
+    }
+
+    if (type === 'image' || type === 'video') {
+      items.push({ type, url, duration });
     }
   }
   console.log(`[collectMedia] Found ${items.length} media items from ${messages.length} messages`);
@@ -153,7 +163,17 @@ function fitImageToCanvas(
  * Both produce local objectUrls → canvas stays clean.
  */
 async function fetchWithRetry(url: string, retries = 3, delay = 1000): Promise<Response> {
-  // Always use proxy to avoid CORS issues with Vercel Blob / Replicate URLs
+  // blob:/data: URLs are local — fetch directly, no proxy needed
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    return fetch(url);
+  }
+
+  // Relative URLs (same-origin) — fetch directly
+  if (url.startsWith('/')) {
+    return fetch(url);
+  }
+
+  // External HTTPS URLs — use proxy to avoid CORS
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(url)}`;
@@ -545,16 +565,18 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       console.log(`[clip] Found ${mediaItems.length} media items:`, mediaItems.map((m) => ({ type: m.type, url: m.url.slice(0, 60) })));
 
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId
-            ? { ...m, content: `🎬 Loading ${itemDesc}...`, isLoading: true }
-            : m,
-        ),
-      );
-
-      // Yield to browser — let React paint the loading state before heavy work
-      await new Promise<void>((r) => setTimeout(r, 0));
+      // flushSync forces React to commit DOM synchronously — user sees loading state before heavy work
+      flushSync(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, content: `🎬 Loading ${itemDesc}...`, isLoading: true }
+              : m,
+          ),
+        );
+      });
+      // rAF + setTimeout: wait for browser to actually paint the updated DOM
+      await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 
       const isSingle = mediaItems.length === 1;
 
@@ -622,15 +644,17 @@ export default function StudioChat({ userId, userEmail }: Props) {
           });
         }
 
-        // Show per-item progress and yield so React can paint it
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === messageId
-              ? { ...m, content: `🎬 Loading ${itemDesc}... (${i + 1}/${mediaItems.length})` }
-              : m,
-          ),
-        );
-        await new Promise<void>((r) => setTimeout(r, 0));
+        // Force React to paint progress, then yield for browser to render
+        flushSync(() => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: `🎬 Loading ${itemDesc}... (${i + 1}/${mediaItems.length})` }
+                : m,
+            ),
+          );
+        });
+        await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       }
 
       const config: SlideshowConfig = {
@@ -690,6 +714,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
                 ...m,
                 content: `✅ Clip ready! ${mediaItems.length} item${mediaItems.length === 1 ? '' : 's'}, ${totalDuration}s total.`,
                 media: { type: 'video' as const, url: videoUrl },
+                toolUsed: 'create_clip',
                 isLoading: false,
               }
             : m,

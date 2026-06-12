@@ -674,10 +674,13 @@ For upscale params: { "type": "upscale" }
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }
-For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 4, "platform": "instagram_reel" }
+For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel" }
+  DEFAULT: durationPerImage = 3 seconds (optimal for social media engagement: 3 images = ~10s, 4 images = ~13s)
+  Only increase if user EXPLICITLY asks for longer duration ("make it longer", "5 seconds per image", "30 second video")
+  If user says "short clip" or "quick clip" → durationPerImage: 2
   - style: "none" | "golden-hour" | "cinematic" | "vintage" | "cool-tone" | "bw" (default: "cinematic")
   - transition: "fade" | "slide-left" | "slide-right" | "zoom-in" | "zoom-out" (default: "fade")
-  - durationPerImage: 3-8 seconds (default: 4)
+  - durationPerImage: 3-8 seconds (default: 3)
   - platform: determines output size:
     - "instagram_reel" or "tiktok" → 1080×1920 (9:16 vertical)
     - "instagram_post" → 1080×1080 (1:1 square)

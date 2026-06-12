@@ -8,69 +8,65 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
-// Пользователь платформы (владелец магазина)
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  passwordHash    String?
-  name            String?
-  uiLanguage      String   @default("sk")
-  plan            Plan     @default(FREE)
-  stripeAccountId String?
-  aiUsageCount    Int      @default(0)
-  aiUsageMonth    String?
-  aiAdvisorCount  Int      @default(0)
-  aiAdvisorMonth  String?
+  id                String           @id @default(cuid())
+  email             String           @unique
+  passwordHash      String?
+  name              String?
+  uiLanguage        String           @default("sk")
+  plan              Plan             @default(FREE)
+  stripeAccountId   String?
+  aiUsageCount      Int              @default(0)
+  aiUsageMonth      String?
+  createdAt         DateTime         @default(now())
+  aiAdvisorCount    Int              @default(0)
   aiAdvisorLastUsed DateTime?
-  studioPaid      Boolean  @default(false)
-  stores          Store[]
-  apiKeys         UserApiKey[]
-  studioCredits   StudioCredits?
-  studioJobs      StudioJob[]
-  studioFeedback  StudioFeedback[]
-  createdAt       DateTime @default(now())
+  aiAdvisorMonth    String?
+  studioPaid        Boolean          @default(false)
+  stores            Store[]
+  studioCredits     StudioCredits?
+  studioFeedback    StudioFeedback[]
+  studioJobs        StudioJob[]
+  apiKeys           UserApiKey[]
 }
 
 model UserApiKey {
   id           String   @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider     String   // "replicate" | "anthropic"
+  provider     String
   encryptedKey String
-  keyHint      String   // last 4 chars: "••••ab3f"
+  keyHint      String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
 }
 
-// Магазин (один пользователь может иметь несколько)
 model Store {
-  id           String    @id @default(cuid())
-  slug         String    @unique
-  customDomain String?   @unique
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  customDomain String?    @unique
   templateId   String
-  shopLanguage String    @default("sk")
+  shopLanguage String     @default("sk")
   name         String
   description  String?
   logo         String?
   settings     Json
-  isPublished  Boolean   @default(false)
+  isPublished  Boolean    @default(false)
   userId       String
-  user         User      @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now())
+  blogPosts    BlogPost[]
+  bookings     Booking[]
   items        Item[]
   orders       Order[]
-  bookings     Booking[]
   reviews      Review[]
-  blogPosts    BlogPost[]
-  createdAt    DateTime  @default(now())
+  user         User       @relation(fields: [userId], references: [id])
 }
 
-// Гибкая сущность (продукт / услуга / пункт меню / проект)
 model Item {
   id          String   @id @default(cuid())
   storeId     String
-  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   type        ItemType
   name        String
   description String?
@@ -82,13 +78,12 @@ model Item {
   sortOrder   Int      @default(0)
   metadata    Json?
   createdAt   DateTime @default(now())
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
-// Заказ
 model Order {
   id              String      @id @default(cuid())
   storeId         String
-  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customerName    String
   customerEmail   String
   customerPhone   String?
@@ -98,13 +93,12 @@ model Order {
   stripeSessionId String?
   status          OrderStatus @default(PENDING)
   createdAt       DateTime    @default(now())
+  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
-// Бронирование / заявка
 model Booking {
   id        String        @id @default(cuid())
   storeId   String
-  store     Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   service   String?
   name      String
   phone     String
@@ -113,24 +107,23 @@ model Booking {
   message   String?
   status    BookingStatus @default(NEW)
   createdAt DateTime      @default(now())
+  store     Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
-// Отзыв
 model Review {
   id          String       @id @default(cuid())
   storeId     String
-  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   author      String
-  authorEmail String?
   rating      Int
   text        String
-  status      ReviewStatus @default(PENDING)
-  ownerReply  String?
-  ipAddress   String?
   createdAt   DateTime     @default(now())
+  authorEmail String?
+  ipAddress   String?
+  ownerReply  String?
+  status      ReviewStatus @default(PENDING)
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
-// Блог платформы
 model BlogPost {
   id          String    @id @default(cuid())
   slug        String    @unique
@@ -141,35 +134,33 @@ model BlogPost {
   language    String    @default("sk")
   isPublished Boolean   @default(false)
   storeId     String?
-  store       Store?    @relation(fields: [storeId], references: [id], onDelete: SetNull)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
+  store       Store?    @relation(fields: [storeId], references: [id])
 }
 
-// AI Studio generation feedback (👍/👎) for self-learning
 model StudioFeedback {
-  id             String   @id @default(cuid())
+  id             String                 @id @default(cuid())
   userId         String
   userPrompt     String
-  enhancedPrompt String   @db.Text
+  enhancedPrompt String
   tool           String
   model          String
   params         Json?
   resultUrl      String?
-  rating         String   // "up" | "down"
+  rating         String
   issue          String?
-  category       String?  // "food" | "portrait" | "product" | "landscape" | "architecture" | "fashion" | "general"
-  embedding      Unsupported("vector(1536)")?
-  createdAt      DateTime @default(now())
-
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime               @default(now())
+  embedding      Unsupported("vector")?
+  category       String?
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tool])
   @@index([rating])
   @@index([userId])
+  @@index([embedding])
 }
 
-// AI использование
 model AiUsage {
   id        String   @id @default(cuid())
   userId    String
@@ -179,6 +170,109 @@ model AiUsage {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, month])
+}
+
+model Lead {
+  id                 String    @id @default(cuid())
+  businessType       String
+  services           String
+  contact            String
+  language           String
+  demoUrl            String?
+  status             String    @default("new")
+  notes              String?
+  siteUrl            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  businessName       String?
+  contactName        String?
+  customDomain       String?
+  email              String?
+  githubRepo         String?
+  nextPaymentDate    DateTime?
+  package            String?
+  paidOneTime        Boolean   @default(false)
+  paidOneTimeDate    DateTime?
+  priceMonthly       Float?
+  priceOneTime       Float?
+  templateUsed       String?
+  vercelProject      String?
+  address            String?
+  briefSubmitted     Boolean   @default(false)
+  briefSubmittedAt   DateTime?
+  logoUrl            String?
+  photoUrls          String?
+  priceListUrl       String?
+  referenceUrl       String?
+  selectedHero       String?
+  selectedMood       String?
+  selectedPalette    String?
+  socialFacebook     String?
+  socialInstagram    String?
+  wishes             String?
+  workingHours       String?
+  briefServicesJson  String?
+  siteCreatedAt      DateTime?
+  siteError          String?
+  siteQaReport       String?
+  siteRepoName       String?
+  siteRepoUrl        String?
+  siteStatus         String?   @default("none")
+  siteVercelUrl      String?
+  heroImageIndex     Int?
+  description        String?
+  galleryUrls        String[]
+  heroPhotoUrl       String?
+  plan               String?
+  photos             Json?
+  heroLayout         String?
+  ownerFullName      String?
+  companyLegalForm   String?
+  vatId              String?
+  registrationNumber String?
+  impressumEmail     String?
+}
+
+model StudioCredits {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  monthlyImages         Int       @default(5)
+  monthlyVideos         Int       @default(1)
+  bonusImages           Int       @default(0)
+  bonusVideos           Int       @default(0)
+  lastReset             DateTime  @default(now())
+  planType              String    @default("free")
+  byokEnabled           Boolean   @default(false)
+  replicateKey          String?
+  totalGeneratedImages  Int       @default(0)
+  totalGeneratedVideos  Int       @default(0)
+  phoneVerified         Boolean   @default(false)
+  phoneNumber           String?   @unique
+  existingUserMigration Boolean   @default(false)
+  migrationExpiresAt    DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudioJob {
+  id             String   @id @default(cuid())
+  userId         String
+  predictionId   String   @unique
+  type           String
+  status         String   @default("starting")
+  outputUrl      String?
+  error          String?
+  creditType     String?
+  creditAmount   Int      @default(1)
+  creditDeducted Boolean  @default(false)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
 }
 
 enum Plan {
@@ -213,134 +307,4 @@ enum ReviewStatus {
   PENDING
   PUBLISHED
   REJECTED
-}
-
-// Лид из чат-бота OnboardingChat
-model Lead {
-  id              String    @id @default(cuid())
-
-  // Контакт
-  contactName     String?
-  businessName    String?
-  businessType    String
-  contact         String
-  email           String?
-  language        String
-  ownerFullName      String?
-  companyLegalForm   String?
-  vatId              String?
-  registrationNumber String?
-  impressumEmail     String?
-
-  // Сайт
-  services        String
-  siteUrl         String?
-  githubRepo      String?
-  vercelProject   String?
-  customDomain    String?
-  templateUsed    String?
-  demoUrl         String?
-
-  // Статус и финансы
-  status          String    @default("new")    // new, in_progress, site_ready, sent, paid, active, blocked, deleted
-  package         String?                       // landing, premium, individual
-  priceOneTime    Float?                        // 249, 399, 799
-  priceMonthly    Float?                        // 29, 39, 49
-  paidOneTime     Boolean   @default(false)
-  paidOneTimeDate DateTime?
-  nextPaymentDate DateTime?
-
-  // Brief данные
-  address            String?
-  workingHours       String?
-  socialInstagram    String?
-  socialFacebook     String?
-  referenceUrl       String?
-  wishes             String?
-  priceListUrl       String?
-  logoUrl            String?
-  photoUrls          String?   // JSON строка: ["url1","url2","url3"]
-  briefServicesJson  String?   // JSON: [{name,price,duration,note}]
-
-  // Визуальный стиль
-  selectedPalette String?   // dark, light, warm, professional, natural, custom
-  selectedHero    String?   // fullscreen, split, centered
-  selectedMood    String?   // modern, cozy, strict
-
-  // Brief статус
-  briefSubmitted   Boolean   @default(false)
-  briefSubmittedAt DateTime?
-
-  // Заметки
-  notes           String?
-
-  // /create wizard fields
-  description      String?
-  plan             String?   // free | starter | pro
-  heroPhotoUrl     String?
-  galleryUrls      String[]
-  heroLayout       String?   // 'auto' | 'split' | 'full' — null for legacy leads
-
-  // Unified photo storage (replaces heroPhotoUrl/galleryUrls/photoUrls).
-  // Shape: { hero: string | null, gallery: string[] }.
-  // Old fields kept for backward compat during transition; can be dropped later.
-  photos           Json?
-
-  // Site Automation
-  siteRepoUrl     String?
-  siteRepoName    String?
-  siteVercelUrl   String?
-  siteStatus      String?   @default("none")  // none | creating | created | qa_pending | qa_passed | qa_failed | error
-  siteError       String?
-  siteCreatedAt   DateTime?
-  siteQaReport    String?
-  heroImageIndex  Int?      // индекс hero-фото в массиве photoUrls (0-based)
-
-  // Даты
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
-
-// AI Studio кредитная система
-model StudioCredits {
-  id                    String    @id @default(cuid())
-  userId                String    @unique
-  monthlyImages         Int       @default(5)
-  monthlyVideos         Int       @default(1)
-  bonusImages           Int       @default(0)
-  bonusVideos           Int       @default(0)
-  lastReset             DateTime  @default(now())
-  planType              String    @default("free")  // free | starter | pro
-  byokEnabled           Boolean   @default(false)
-  replicateKey          String?
-  totalGeneratedImages  Int       @default(0)
-  totalGeneratedVideos  Int       @default(0)
-  phoneVerified         Boolean   @default(false)
-  phoneNumber           String?   @unique
-  existingUserMigration Boolean   @default(false)
-  migrationExpiresAt    DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// Async AI generation job tracking
-model StudioJob {
-  id             String   @id @default(cuid())
-  userId         String
-  predictionId   String   @unique   // Replicate prediction ID
-  type           String             // 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit'
-  status         String   @default("starting") // starting | processing | succeeded | failed | canceled
-  outputUrl      String?            // Replicate CDN URL when completed
-  error          String?            // Error message if failed
-  creditType     String?            // 'image' | 'video' — for deduction on success
-  creditAmount   Int      @default(1)
-  creditDeducted Boolean  @default(false)
-  metadata       Json?              // prompt, model, params for debugging
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([status])
 }

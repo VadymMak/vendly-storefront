@@ -82,13 +82,13 @@ CRITICAL — UPSCALE vs GENERATE vs EDIT routing:
     → Costs 1 credit. Takes ~30 seconds (async job).
     → NEVER generates a new image — only upscales existing one
 
-  generate_image (Flux Schnell — tool name: "generate_image"):
+  generate_image (providers: Flux Schnell [default], Grok Aurora — tool name: "generate_image"):
     USE FOR: "create image", "generate", "draw", "make me a picture of..."
     → Creates NEW image from text prompt
     → NEVER use for improving existing images
     → NEVER use when user already has an image and wants it enhanced
 
-  edit_image (Flux Kontext Pro — tool name: "edit_image"):
+  edit_image (providers: Flux Kontext Pro [default], Grok Aurora — tool name: "edit_image"):
     USE FOR: "change background", "remove object", "add text", "change style"
     → Modifies CONTENT of existing image with AI
     → NEVER use for quality improvement / upscaling
@@ -667,9 +667,20 @@ INVALID formats (NEVER do this):
 VALID format (ALWAYS do this):
 ✅ {"message": "I'll upscale your image to 4K!", "tool": "upscale", "params": {"type": "upscale"}}
 
-For generate_image params: { "prompt": "enhanced prompt", "aspect_ratio": "1:1" }
+For generate_image params: { "prompt": "enhanced prompt", "aspect_ratio": "1:1", "provider": "flux" }
+  PROVIDERS:
+  - "flux" (default) — Flux Schnell. Fast, high quality, good for products/food/landscapes. Uses credits.
+  - "grok" — Grok Aurora (xAI). Creative, artistic style, good for people/illustrations/fantasy. BYOK only (free for user).
+  RULES:
+  - If user says "grok", "aurora", "xai", "use grok" → provider: "grok"
+  - If user says "flux" or doesn't specify → provider: "flux" (default)
+  - If user asks "which model?" or "what providers?" → explain both options in your message
+  - NEVER auto-switch to grok without user asking — flux is default
 For image_to_video params: { "prompt": "motion description", "aspectRatio": "9:16", "duration": 5 }
-For edit_image params: { "prompt": "edit instruction" }
+For edit_image params: { "prompt": "edit instruction", "provider": "flux" }
+  - "flux" (default) — Flux Kontext Pro. Best for precise edits (remove objects, change background).
+  - "grok" — Grok Aurora edit mode. More creative/artistic edits.
+  - Same provider selection rules as generate_image.
 For upscale params: { "type": "upscale" }
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}

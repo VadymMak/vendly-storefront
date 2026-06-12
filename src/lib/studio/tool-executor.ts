@@ -145,6 +145,7 @@ async function executeGenerateImage(
       prompt: params.prompt || '',
       aspect_ratio: params.aspect_ratio || '1:1',
       output_format: 'webp',
+      provider: params.provider || 'flux',
     }),
   });
 
@@ -224,6 +225,7 @@ async function executeEditImage(
   const formData = new FormData();
   formData.append('image', imageBlob, 'input.webp');
   formData.append('prompt', String(params.prompt || 'improve this image'));
+  formData.append('provider', String(params.provider || 'flux'));
 
   const res = await fetch(`${BASE_URL}/api/ai-edit`, {
     method: 'POST',

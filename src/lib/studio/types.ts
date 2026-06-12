@@ -66,3 +66,30 @@ export interface AgentResponse {
   media?: MediaAttachment;
   context: SessionContext;
 }
+
+export interface FeedbackExample {
+  userPrompt: string;
+  enhancedPrompt: string;
+  tool: string;
+  model: string;
+  rating: string;
+  issue: string | null;
+  similarity: number;
+}
+
+export interface ModelStat {
+  tool: string;
+  model: string;
+  upCount: number;
+  downCount: number;
+  total: number;
+  winRate: number;
+}
+
+export interface LearningContext {
+  isActive: boolean;
+  totalFeedback: number;
+  goodExamples: FeedbackExample[];
+  badExamples: FeedbackExample[];
+  modelStats: ModelStat[];
+}

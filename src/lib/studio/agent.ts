@@ -795,6 +795,7 @@ export async function getAgentDecision(
   userMessage: string,
   context: SessionContext,
   recentHistory: ChatMessage[],
+  learningContext?: string,
 ): Promise<AgentDecision> {
   const contextInfo = [
     context.lastImageUrl
@@ -813,10 +814,14 @@ export async function getAgentDecision(
   const userPrompt = `${contextInfo}\n\nRecent conversation:\n${historyText}\n\nUser: ${userMessage}`;
 
   try {
+    const systemPrompt = learningContext
+      ? SYSTEM_PROMPT + learningContext
+      : SYSTEM_PROMPT;
+
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         { role: 'user', content: userPrompt },
         { role: 'assistant', content: '{' },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getAgentDecision } from '@/lib/studio/agent';
 import { executeTool } from '@/lib/studio/tool-executor';
+import { buildLearningContext, formatLearningContext } from '@/lib/studio/learning';
 import { getComboPreset } from '@/lib/studio/prompt-library';
 import { executeCombo } from '@/lib/studio/combo-executor';
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
@@ -32,7 +33,11 @@ export async function POST(req: NextRequest) {
       ? `\n[AUDIO STATUS: Music file "${audioFileName}" is uploaded and ready. It will be automatically added to any clip. Do NOT ask user to upload music — it's already done.]`
       : `\n[AUDIO STATUS: No music uploaded. If user wants music in clip, remind them to use the 🎵 button.]`;
 
-    const decision = await getAgentDecision(message + audioContext, context, history);
+    // Build learning context from feedback history (auto-activates at 50+ records)
+    const learning = await buildLearningContext(message, null);
+    const learningPrompt = formatLearningContext(learning);
+
+    const decision = await getAgentDecision(message + audioContext, context, history, learningPrompt || undefined);
 
     // Handle combo (multi-step chain)
     if (decision.comboId) {

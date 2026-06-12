@@ -158,6 +158,8 @@ model StudioFeedback {
   resultUrl      String?
   rating         String   // "up" | "down"
   issue          String?
+  category       String?  // "food" | "portrait" | "product" | "landscape" | "architecture" | "fashion" | "general"
+  embedding      Unsupported("vector(1536)")?
   createdAt      DateTime @default(now())
 
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)

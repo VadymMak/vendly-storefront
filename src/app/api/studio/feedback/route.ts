@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { saveEmbeddingForFeedback } from '@/lib/studio/learning';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
       issue: issue || null,
     },
   });
+
+  // Generate embedding asynchronously — don't block the response
+  saveEmbeddingForFeedback(feedback.id, userPrompt, enhancedPrompt || '')
+    .catch(err => console.error('[feedback] Embedding save failed:', err));
 
   return NextResponse.json({ id: feedback.id, status: 'saved' });
 }

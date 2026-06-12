@@ -61,6 +61,67 @@ function getLatestImageUrl(messages: ChatMessage[]): string | null {
 }
 
 /**
+ * Fit image into target dimensions with blurred background fill.
+ * Preserves original aspect ratio (contain fit).
+ * Empty space is filled with a blurred+darkened version of the same image.
+ */
+function fitImageToCanvas(
+  img: HTMLImageElement,
+  targetWidth: number,
+  targetHeight: number,
+): HTMLImageElement {
+  const imgAspect = img.naturalWidth / img.naturalHeight;
+  const targetAspect = targetWidth / targetHeight;
+
+  if (Math.abs(imgAspect - targetAspect) / targetAspect < 0.1) {
+    return img;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.save();
+  let bgW: number, bgH: number, bgX: number, bgY: number;
+  if (imgAspect > targetAspect) {
+    bgH = targetHeight;
+    bgW = targetHeight * imgAspect;
+    bgX = (targetWidth - bgW) / 2;
+    bgY = 0;
+  } else {
+    bgW = targetWidth;
+    bgH = targetWidth / imgAspect;
+    bgX = 0;
+    bgY = (targetHeight - bgH) / 2;
+  }
+  ctx.filter = 'blur(30px) brightness(0.4)';
+  ctx.drawImage(img, bgX, bgY, bgW, bgH);
+  ctx.restore();
+
+  let drawW: number, drawH: number, drawX: number, drawY: number;
+  if (imgAspect > targetAspect) {
+    drawW = targetWidth;
+    drawH = targetWidth / imgAspect;
+    drawX = 0;
+    drawY = (targetHeight - drawH) / 2;
+  } else {
+    drawH = targetHeight;
+    drawW = targetHeight * imgAspect;
+    drawX = (targetWidth - drawW) / 2;
+    drawY = 0;
+  }
+  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+  const fitted = new Image();
+  fitted.src = canvas.toDataURL('image/jpeg', 0.92);
+  fitted.width = targetWidth;
+  fitted.height = targetHeight;
+
+  return fitted;
+}
+
+/**
  * Load image from URL the SAME WAY as manual mode:
  * fetch → Blob → objectURL → Image element.
  *
@@ -417,6 +478,13 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       const isSingle = mediaItems.length === 1;
 
+      const platform = (params.platform as string) || 'instagram_reel';
+      const outputSize = platform === 'instagram_post'
+        ? { width: 1080, height: 1080 }
+        : platform === 'cinematic'
+          ? { width: 1920, height: 1080 }
+          : { width: 1080, height: 1920 };
+
       const items: SlideshowItem[] = await Promise.all(
         mediaItems.map(async (media, i) => {
           if (media.type === 'video') {
@@ -445,25 +513,32 @@ export default function StudioChat({ userId, userEmail }: Props) {
           } else {
             const loaded = await loadImageFromUrl(media.url);
             objectUrlsToCleanup.push(loaded.objectUrl);
+
+            const fittedImg = fitImageToCanvas(loaded.element, outputSize.width, outputSize.height);
+
+            const readyImg = fittedImg === loaded.element
+              ? fittedImg
+              : await new Promise<HTMLImageElement>((resolve, reject) => {
+                  if (fittedImg.complete && fittedImg.naturalWidth > 0) {
+                    resolve(fittedImg);
+                  } else {
+                    fittedImg.onload = () => resolve(fittedImg);
+                    fittedImg.onerror = () => reject(new Error('Failed to create fitted image'));
+                  }
+                });
+
             const imgDuration = isSingle
               ? (Number(params.duration) || 5)
-              : (Number(params.durationPerImage) || 4);
+              : (Number(params.durationPerImage) || 3);
             return {
               type: 'image' as const,
-              element: loaded.element,
+              element: readyImg,
               duration: imgDuration,
               motion: DEFAULT_SEQUENCE[i % DEFAULT_SEQUENCE.length],
             };
           }
         })
       );
-
-      const platform = (params.platform as string) || 'instagram_reel';
-      const outputSize = platform === 'instagram_post'
-        ? { width: 1080, height: 1080 }
-        : platform === 'cinematic'
-          ? { width: 1920, height: 1080 }
-          : { width: 1080, height: 1920 };
 
       const config: SlideshowConfig = {
         items,

@@ -41,9 +41,22 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const file     = formData.get('image') as File | null;
-  const prompt   = (formData.get('prompt') as string | null)?.trim() ?? '';
-  const provider = (formData.get('provider') as string | null) ?? 'flux';
+  const file         = formData.get('image') as File | null;
+  const prompt       = (formData.get('prompt') as string | null)?.trim() ?? '';
+  const provider     = (formData.get('provider') as string | null) ?? 'flux';
+  const aspect_ratio = (formData.get('aspect_ratio') as string | null) ?? '1:1';
+
+  const ASPECT_TO_SIZE: Record<string, string> = {
+    '1:1':  '1024x1024',
+    '9:16': '1024x1792',
+    '16:9': '1792x1024',
+    '4:5':  '1024x1280',
+    '3:2':  '1536x1024',
+    '2:3':  '1024x1536',
+    '4:3':  '1365x1024',
+    '3:4':  '1024x1365',
+  };
+  const grokSize = ASPECT_TO_SIZE[aspect_ratio] || '1024x1024';
 
   if (!file)   return NextResponse.json({ error: 'No image provided' }, { status: 400 });
   if (!prompt) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
@@ -94,7 +107,7 @@ export async function POST(req: Request) {
         { access: 'public', contentType: 'image/png' },
       );
 
-      const imageUrl = await grokEdit(xaiKey, blob.url, prompt);
+      const imageUrl = await grokEdit(xaiKey, blob.url, prompt, grokSize);
       return NextResponse.json({ url: imageUrl });
     } catch (err) {
       console.error('[ai-edit grok]', err);

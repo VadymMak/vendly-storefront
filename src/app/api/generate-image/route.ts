@@ -74,6 +74,18 @@ export async function POST(request: Request) {
 
   // ── Grok Imagine path (BYOK — no credit deduction) ────────────────────────────
   if (body.provider === 'grok') {
+    const ASPECT_TO_SIZE: Record<string, string> = {
+      '1:1':  '1024x1024',
+      '9:16': '1024x1792',
+      '16:9': '1792x1024',
+      '4:5':  '1024x1280',
+      '3:2':  '1536x1024',
+      '2:3':  '1024x1536',
+      '4:3':  '1365x1024',
+      '3:4':  '1024x1365',
+    };
+    const grokSize = ASPECT_TO_SIZE[aspect_ratio] || '1024x1024';
+
     const xaiKeyRecord = await db.userApiKey.findUnique({
       where: { userId_provider: { userId: session.user.id, provider: 'xai' } },
       select: { encryptedKey: true },
@@ -90,13 +102,13 @@ export async function POST(request: Request) {
     }
 
     try {
-      const grokUrl  = await grokGenerate(xaiKey, prompt);
+      const grokUrl  = await grokGenerate(xaiKey, prompt, grokSize);
       const grokRes  = await fetch(grokUrl);
       const inputBuf = Buffer.from(await grokRes.arrayBuffer());
       const pipeline = sharp(inputBuf);
 
       if (targetW && targetH) {
-        pipeline.resize(targetW, targetH, { fit: 'fill' });
+        pipeline.resize(targetW, targetH, { fit: 'cover' });
       }
 
       let resized: Buffer;

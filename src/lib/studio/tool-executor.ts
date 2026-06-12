@@ -115,6 +115,9 @@ export async function executeTool(
         return await executeEditImage(params, context, cookieHeader);
       case 'upscale':
       case 'face_enhance':
+        if (String(params.model) === 'supir') {
+          return await executeSupirUpscale(params, context, cookieHeader);
+        }
         return await executeEnhanceImage(tool, params, context, cookieHeader);
       case 'remove_background':
         return await executeRemoveBg(context, cookieHeader);
@@ -279,6 +282,47 @@ async function executeEnhanceImage(
 
   const data = await res.json() as { url?: string };
   return { media: { type: 'image', url: data.url! } };
+}
+
+async function executeSupirUpscale(
+  params: Record<string, string | number | boolean>,
+  context: { lastImageUrl: string | null },
+  cookieHeader: string,
+): Promise<ToolResult> {
+  if (!context.lastImageUrl) {
+    return { error: 'No image in session. Upload or generate an image first.' };
+  }
+
+  const imageRes = await fetch(context.lastImageUrl);
+  const originalBuffer = Buffer.from(await imageRes.arrayBuffer());
+  const originalContentType = imageRes.headers.get('content-type') || 'image/webp';
+
+  const { buffer: imageBuffer, contentType } = await ensureWithinPixelLimit(
+    originalBuffer,
+    originalContentType,
+  );
+
+  const formData = new FormData();
+  formData.append('image', new Blob([new Uint8Array(imageBuffer)], { type: contentType }), 'input.webp');
+  formData.append('type', 'supir');
+  formData.append('scale', String(params.scale || 2));
+
+  const res = await fetch(`${BASE_URL}/api/enhance-image`, {
+    method: 'POST',
+    headers: { Cookie: cookieHeader },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'SUPIR enhancement failed' })) as { error?: string };
+    return { error: err.error || 'SUPIR enhancement failed' };
+  }
+
+  const data = await res.json() as { url?: string };
+  return {
+    message: '✨ SUPIR restoration complete! Premium AI-powered enhancement with maximum detail preservation.',
+    media: { type: 'image', url: data.url! },
+  };
 }
 
 async function executeRemoveBg(

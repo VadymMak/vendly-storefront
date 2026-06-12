@@ -1,4 +1,5 @@
 import Replicate from 'replicate';
+import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -6,7 +7,7 @@ import { decrypt } from '@/lib/encryption';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const ENHANCE_TYPES = {
   upscale:  { scale: 4, face_enhance: false },
@@ -80,6 +81,59 @@ export async function POST(req: Request) {
     ? decrypt(keyRecord.encryptedKey)
     : (process.env.REPLICATE_API_TOKEN ?? '');
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+
+  const rawScale = Number(formData.get('scale')) || 2;
+
+  // ── SUPIR Premium path ────────────────────────────────────────────────────
+  if (rawType === 'supir') {
+    try {
+      const bytes    = await file.arrayBuffer();
+      const base64   = Buffer.from(bytes).toString('base64');
+      const mimeType = file.type || 'image/jpeg';
+      const dataUrl  = `data:${mimeType};base64,${base64}`;
+
+      const replicate = new Replicate({ auth: replicateKey });
+
+      const output = await replicate.run(
+        'cjwbw/supir-v0q',
+        {
+          input: {
+            image:          dataUrl,
+            upscale:        Math.min(rawScale, 4),
+            edm_steps:      50,
+            s_stage1:       -1,
+            s_stage2:       1,
+            s_cfg:          7.5,
+            a_prompt:       'high quality, detailed, sharp focus, professional photo',
+            n_prompt:       'blurry, noise, artifacts, distortion, low quality, pixelated',
+            color_fix_type: 'Wavelet',
+            min_size:       1024,
+          },
+        },
+      );
+
+      const supirUrl = extractUrl(output);
+      const supirRes = await fetch(supirUrl);
+      const supirBuf = Buffer.from(await supirRes.arrayBuffer());
+      const blob     = await put(
+        `studio/supir/${session.user.id}/${Date.now()}.png`,
+        supirBuf,
+        { access: 'public', contentType: 'image/png' },
+      );
+
+      if (!creditCheck.byok) {
+        await deductCredit(session.user.id, 'image');
+      }
+
+      return NextResponse.json({ url: blob.url });
+    } catch (err) {
+      console.error('[enhance-image supir]', err);
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : 'SUPIR enhancement failed' },
+        { status: 500 },
+      );
+    }
+  }
 
   try {
     const bytes    = await file.arrayBuffer();

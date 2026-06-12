@@ -76,10 +76,13 @@ If audio mux fails (rare):
 
 CRITICAL — UPSCALE vs GENERATE vs EDIT routing:
 
-  upscale (Real-ESRGAN — tool name: "upscale"):
+  upscale (models: Real-ESRGAN [fast], SUPIR [premium] — tool name: "upscale"):
     USE FOR: "improve quality", "enhance", "upscale", "make sharper", "better resolution", "4K", "HD", "higher quality"
-    → Takes existing image → outputs SAME image at 4x higher resolution
-    → Costs 1 credit. Takes ~30 seconds (async job).
+    USE SUPIR FOR: "restore", "restoration", "реставрация", "best quality", "maximum quality", "supir", "premium upscale", "fix old photo"
+    → Takes existing image → outputs SAME image at higher resolution
+    → Real-ESRGAN: ~30 seconds. Good for: quick upscale, products, banners.
+    → SUPIR: 3-5 minutes. Best for: photo restoration, portraits, faces, old photos, maximum detail.
+    → ALWAYS warn user when using SUPIR: "This will take 3-5 minutes but delivers the best quality restoration"
     → NEVER generates a new image — only upscales existing one
 
   generate_image (providers: Flux Schnell [default], Grok Aurora — tool name: "generate_image"):
@@ -192,6 +195,7 @@ MULTI-STEP COMBO:
 
 COST TRANSPARENCY (always include in response when using tools):
   - upscale / face_enhance = uses credits (AI)
+  - upscale (supir model) = uses credits (premium AI, ~40x cost of standard)
   - transform_image = FREE
   - remove_background = uses credits (AI)
   - edit_image = uses credits (AI)
@@ -681,7 +685,15 @@ For edit_image params: { "prompt": "edit instruction", "provider": "flux" }
   - "flux" (default) — Flux Kontext Pro. Best for precise edits (remove objects, change background).
   - "grok" — Grok Aurora edit mode. More creative/artistic edits.
   - Same provider selection rules as generate_image.
-For upscale params: { "type": "upscale" }
+For upscale params: { "type": "upscale", "model": "esrgan" }
+  MODELS:
+  - "esrgan" (default) — Real-ESRGAN 4x. Fast (~30s), good quality. Best for: quick upscale, banners, products.
+  - "supir" — SUPIR Premium. Slow (~3-5 min), best quality 9/10. Best for: photo restoration, portraits, faces, old photos, maximum detail.
+  RULES:
+  - Default is always "esrgan" (fast and cheap)
+  - Use "supir" ONLY when user explicitly asks: "best quality", "maximum quality", "restore", "restoration", "реставрация", "supir", "premium upscale", "fix old photo"
+  - ALWAYS warn user about time: "SUPIR takes 3-5 minutes but delivers the best quality restoration"
+  - For supir, optional: "scale": 2 (default, max 4)
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }

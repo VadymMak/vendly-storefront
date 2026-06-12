@@ -86,6 +86,8 @@ export async function POST(req: Request) {
 
   // ── SUPIR Premium path ────────────────────────────────────────────────────
   if (rawType === 'supir') {
+    const qualityPrompt = (formData.get('quality_prompt') as string) || '';
+
     try {
       const bytes    = await file.arrayBuffer();
       const base64   = Buffer.from(bytes).toString('base64');
@@ -104,7 +106,7 @@ export async function POST(req: Request) {
             s_stage1:       -1,
             s_stage2:       1,
             s_cfg:          7.5,
-            a_prompt:       'high quality, detailed, sharp focus, professional photo',
+            a_prompt:       qualityPrompt || 'high quality, detailed, sharp focus, professional photo',
             n_prompt:       'blurry, noise, artifacts, distortion, low quality, pixelated',
             color_fix_type: 'Wavelet',
             min_size:       1024,

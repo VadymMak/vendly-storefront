@@ -306,6 +306,9 @@ async function executeSupirUpscale(
   formData.append('image', new Blob([new Uint8Array(imageBuffer)], { type: contentType }), 'input.webp');
   formData.append('type', 'supir');
   formData.append('scale', String(params.scale || 2));
+  if (params.quality_prompt) {
+    formData.append('quality_prompt', String(params.quality_prompt));
+  }
 
   const res = await fetch(`${BASE_URL}/api/enhance-image`, {
     method: 'POST',

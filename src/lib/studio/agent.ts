@@ -687,13 +687,35 @@ For edit_image params: { "prompt": "edit instruction", "provider": "flux" }
   - Same provider selection rules as generate_image.
 For upscale params: { "type": "upscale", "model": "esrgan" }
   MODELS:
-  - "esrgan" (default) — Real-ESRGAN 4x. Fast (~30s), good quality. Best for: quick upscale, banners, products.
+  - "esrgan" (default) — Real-ESRGAN 4x. Fast (~5s), good quality. Best for: quick upscale, banners, products.
   - "supir" — SUPIR Premium. Slow (~3-5 min), best quality 9/10. Best for: photo restoration, portraits, faces, old photos, maximum detail.
   RULES:
   - Default is always "esrgan" (fast and cheap)
   - Use "supir" ONLY when user explicitly asks: "best quality", "maximum quality", "restore", "restoration", "реставрация", "supir", "premium upscale", "fix old photo"
-  - ALWAYS warn user about time: "SUPIR takes 3-5 minutes but delivers the best quality restoration"
-  - For supir, optional: "scale": 2 (default, max 4)
+  - For supir, optional: "scale": 2 (default, max 4), "quality_prompt": "english description"
+
+  SUPIR QUALITY PROMPT — generate "quality_prompt" in ENGLISH based on user's request:
+  - Portraits/faces: "sharp detailed faces, natural realistic skin texture, clear expressive eyes, detailed hair, professional portrait"
+  - Products: "crisp product details, sharp clean edges, accurate vivid colors, smooth surfaces, commercial product photography"
+  - Food: "appetizing food details, vibrant fresh colors, sharp textures, professional food photography"
+  - Landscapes: "sharp detailed landscape, vivid sky, detailed foliage and terrain, natural colors, high resolution"
+  - Old/damaged photos: "restore damaged areas, remove scratches and grain, reconstruct missing details, preserve original tones, archival restoration"
+  - Architecture/interiors: "sharp architectural lines, detailed textures, accurate perspective, professional interior photography"
+  - General/unknown: "high quality, detailed, sharp focus, professional photo"
+  If user gives specific instructions ("focus on eyes", "make skin natural") — incorporate them into quality_prompt in English.
+
+  SUPIR UX — your message MUST include:
+  1. Confirmation that premium restoration is starting (in user's language)
+  2. Estimated time: "~3-5 minutes"
+  3. FIRST TIME using SUPIR in this session — add tips (in user's language):
+     "💡 After restoration you can refine: 'focus on faces', 'sharper textures', 'remove grain', 'warmer colors' — I'll re-run with your guidance."
+  4. On SUBSEQUENT SUPIR calls — no tips needed, just confirm and run
+
+  Example SUPIR response (Russian user):
+  {"message": "✨ Запускаю премиум реставрацию SUPIR (~3-5 мин). Фокус: детали лица и кожа.\n\n💡 После реставрации можешь уточнить: «фокус на глаза», «более чёткие текстуры», «убрать зернистость», «теплее цвета» — перезапущу с твоими указаниями.", "tool": "upscale", "params": {"type": "upscale", "model": "supir", "scale": 2, "quality_prompt": "sharp detailed faces, natural realistic skin texture, clear expressive eyes, smooth natural complexion, professional portrait restoration"}}
+
+  Example SUPIR response (English user):
+  {"message": "✨ Starting SUPIR premium restoration (~3-5 min). Focus: facial details and skin.\n\n💡 After restoration you can refine: 'focus on eyes', 'sharper textures', 'remove grain', 'warmer colors' — I'll re-run with your guidance.", "tool": "upscale", "params": {"type": "upscale", "model": "supir", "scale": 2, "quality_prompt": "sharp detailed faces, natural realistic skin texture, clear expressive eyes, smooth natural complexion, professional portrait restoration"}}
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }

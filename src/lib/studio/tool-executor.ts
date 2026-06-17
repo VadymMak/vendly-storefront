@@ -323,7 +323,7 @@ async function executeSupirUpscale(
 
   const data = await res.json() as { url?: string };
   return {
-    message: '✨ SUPIR restoration complete! Premium AI-powered enhancement with maximum detail preservation.',
+    message: '✨ Premium restoration complete! Clarity AI upscaler — maximum detail and sharpness.',
     media: { type: 'image', url: data.url! },
   };
 }

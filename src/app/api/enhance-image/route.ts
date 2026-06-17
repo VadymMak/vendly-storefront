@@ -97,19 +97,19 @@ export async function POST(req: Request) {
       const replicate = new Replicate({ auth: replicateKey });
 
       const output = await replicate.run(
-        'cjwbw/supir-v0q',
+        'philz1337x/clarity-upscaler',
         {
           input: {
-            image:          dataUrl,
-            upscale:        Math.min(rawScale, 4),
-            edm_steps:      50,
-            s_stage1:       -1,
-            s_stage2:       1,
-            s_cfg:          7.5,
-            a_prompt:       qualityPrompt || 'high quality, detailed, sharp focus, professional photo',
-            n_prompt:       'blurry, noise, artifacts, distortion, low quality, pixelated',
-            color_fix_type: 'Wavelet',
-            min_size:       1024,
+            image:           dataUrl,
+            scale_factor:    Math.min(rawScale, 4),
+            dynamic:         6,
+            creativity:      0.35,
+            resemblance:     0.6,
+            tiling_width:    112,
+            tiling_height:   144,
+            negative_prompt: 'blurry, noise, artifacts, distortion, low quality',
+            prompt:          qualityPrompt || 'masterpiece, best quality, highres, sharp focus, professional photo',
+            output_format:   'png',
           },
         },
       );

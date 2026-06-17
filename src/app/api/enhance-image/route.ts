@@ -97,19 +97,12 @@ export async function POST(req: Request) {
       const replicate = new Replicate({ auth: replicateKey });
 
       const output = await replicate.run(
-        'philz1337x/clarity-upscaler',
+        'topazlabs/image-upscale' as `${string}/${string}`,
         {
           input: {
-            image:           dataUrl,
-            scale_factor:    Math.min(rawScale, 4),
-            dynamic:         6,
-            creativity:      0.35,
-            resemblance:     0.6,
-            tiling_width:    112,
-            tiling_height:   144,
-            negative_prompt: 'blurry, noise, artifacts, distortion, low quality',
-            prompt:          qualityPrompt || 'masterpiece, best quality, highres, sharp focus, professional photo',
-            output_format:   'png',
+            image: dataUrl,
+            scale: Math.min(rawScale, 6),
+            model: 'High Fidelity V2',
           },
         },
       );

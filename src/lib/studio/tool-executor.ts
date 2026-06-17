@@ -323,7 +323,7 @@ async function executeSupirUpscale(
 
   const data = await res.json() as { url?: string };
   return {
-    message: '✨ Premium restoration complete! Clarity AI upscaler — maximum detail and sharpness.',
+    message: `✨ Premium upscale complete! Enhanced ${Math.min(Number(params.scale) || 2, 6)}x with Topaz Labs AI (High Fidelity V2).`,
     media: { type: 'image', url: data.url! },
   };
 }

@@ -42,11 +42,31 @@ export function saveToBrainAsync(
   userMessage: string,
   assistantMessage: string,
   toolUsed?: string,
+  meta?: {
+    provider?: string;
+    quality?: string;
+    aspect_ratio?: string;
+    subject?: string;
+  },
 ): void {
   if (!BRAIN_API_KEY) return;
+
+  const subject = meta?.subject || userMessage.split(' ').slice(0, 5).join(' ');
+
+  const topics = [
+    'studio',
+    ...(toolUsed ? [toolUsed] : []),
+    ...(meta?.provider ? [`provider:${meta.provider}`] : []),
+    ...(meta?.quality ? [`quality:${meta.quality}`] : []),
+    ...(meta?.aspect_ratio ? [`ratio:${meta.aspect_ratio}`] : []),
+    ...(subject ? [`subject:${subject.toLowerCase().replace(/\s+/g, '_').slice(0, 30)}`] : []),
+  ];
+
   const content = [
     `User: ${userMessage.slice(0, 300)}`,
     `Tool: ${toolUsed || 'chat'}`,
+    ...(meta?.provider ? [`Provider: ${meta.provider}`] : []),
+    ...(meta?.aspect_ratio ? [`Aspect ratio: ${meta.aspect_ratio}`] : []),
     `Result: ${assistantMessage.slice(0, 400)}`,
   ].join('\n');
 
@@ -59,7 +79,7 @@ export function saveToBrainAsync(
     body: JSON.stringify({
       project_id: BRAIN_PROJECT_ID,
       content,
-      topics: ['studio', ...(toolUsed ? [toolUsed] : [])],
+      topics,
     }),
   }).catch(() => {}); // ignore all errors
 }

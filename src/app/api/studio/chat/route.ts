@@ -184,7 +184,12 @@ export async function POST(req: NextRequest) {
 
     // Save to Brain async (non-blocking, superusers only)
     if (isSuperuser && toolMessage) {
-      saveToBrainAsync(message, toolMessage, decision.toolCall?.tool ?? undefined);
+      saveToBrainAsync(message, toolMessage, decision.toolCall?.tool ?? undefined, {
+        provider: imageProvider,
+        quality: imageQuality,
+        aspect_ratio: decision.toolCall?.params?.aspect_ratio as string | undefined,
+        subject: decision.toolCall?.params?.subject as string | undefined,
+      });
     }
 
     return NextResponse.json({

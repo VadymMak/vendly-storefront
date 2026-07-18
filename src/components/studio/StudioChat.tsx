@@ -249,6 +249,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [imageQuality, setImageQuality] = useState<'fast' | 'good'>('fast');
+  const [imageProvider, setImageProvider] = useState<'flux' | 'grok'>('flux');
   const [ratedMessages, setRatedMessages] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -791,6 +792,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
           hasAudio: !!audioFile,
           audioFileName: audioFile?.name || null,
           imageQuality,
+          imageProvider,
         }),
       });
 
@@ -1262,32 +1264,62 @@ export default function StudioChat({ userId, userEmail }: Props) {
             </button>
           </div>
         )}
-        {/* Quality toggle */}
-        <div className="mb-2 flex items-center gap-1">
+        {/* Model toolbar: Provider + Quality */}
+        <div className="mb-2 flex items-center gap-1 flex-wrap">
           <button
             type="button"
-            onClick={() => setImageQuality('fast')}
+            onClick={() => setImageProvider('flux')}
             className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
-              imageQuality === 'fast'
+              imageProvider === 'flux'
                 ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
                 : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50'
             }`}
           >
-            ⚡ Fast
+            Flux
           </button>
           <button
             type="button"
-            onClick={() => setImageQuality('good')}
+            onClick={() => setImageProvider('grok')}
             className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
-              imageQuality === 'good'
+              imageProvider === 'grok'
                 ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
                 : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50'
             }`}
           >
-            ✨ Good
+            Grok ✦
           </button>
-          {imageQuality === 'good' && (
-            <span className="text-[10px] text-[var(--color-text-muted)] opacity-60 ml-1">Flux Dev · ~15s</span>
+          {imageProvider === 'grok' && (
+            <span className="text-[10px] text-[var(--color-text-muted)] opacity-60 ml-1">Aurora · BYOK · Free</span>
+          )}
+          {imageProvider === 'flux' && (
+            <>
+              <span className="mx-0.5 text-[var(--color-border)] select-none">·</span>
+              <button
+                type="button"
+                onClick={() => setImageQuality('fast')}
+                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                  imageQuality === 'fast'
+                    ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50'
+                }`}
+              >
+                ⚡ Fast
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageQuality('good')}
+                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                  imageQuality === 'good'
+                    ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50'
+                }`}
+              >
+                ✨ Good
+              </button>
+              {imageQuality === 'good' && (
+                <span className="text-[10px] text-[var(--color-text-muted)] opacity-60 ml-1">Flux Dev · ~15s</span>
+              )}
+            </>
           )}
         </div>
         <div className="flex gap-2 items-end">

@@ -14,6 +14,7 @@ interface ChatRequest {
   hasAudio?: boolean;
   audioFileName?: string | null;
   imageQuality?: 'fast' | 'good';
+  imageProvider?: 'flux' | 'grok';
 }
 
 export async function POST(req: NextRequest) {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = (await req.json()) as ChatRequest;
-    const { message, context, history, hasAudio, audioFileName, imageQuality } = body;
+    const { message, context, history, hasAudio, audioFileName, imageQuality, imageProvider } = body;
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -118,10 +119,16 @@ export async function POST(req: NextRequest) {
     if (decision.toolCall && !decision.comboId) {
       const cookieHeader = req.headers.get('cookie') || '';
 
-      // Override provider to flux-dev when user selected "Good" quality
+      // Apply provider/quality overrides from UI toggles
       const toolParams = { ...decision.toolCall.params };
-      if (imageQuality === 'good' && decision.toolCall.tool === 'generate_image' && toolParams.provider !== 'grok') {
-        toolParams.provider = 'flux-dev';
+      const affectedTools = ['generate_image', 'edit_image'] as const;
+      const isAffectedTool = (affectedTools as readonly string[]).includes(decision.toolCall.tool);
+      if (isAffectedTool) {
+        if (imageProvider === 'grok') {
+          toolParams.provider = 'grok';
+        } else if (imageQuality === 'good') {
+          toolParams.provider = 'flux-dev';
+        }
       }
 
       const result = await executeTool(

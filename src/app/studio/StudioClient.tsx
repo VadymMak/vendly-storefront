@@ -936,7 +936,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
           <div className="flex gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
             {([
               { id: 'image' as StudioTab, label: 'Image Generator', desc: 'Flux Schnell · ~$0.003/image' },
-              { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.0 · ~$0.30–0.60/video' },
+              { id: 'video' as StudioTab, label: 'Video Generator', desc: 'Kling v2.1 · ~$0.30–0.60/video' },
               { id: 'slideshow' as StudioTab, label: 'Photo Slideshow', desc: 'Canvas render · No credits needed' },
               { id: 'chat' as StudioTab, label: 'AI Chat', desc: 'Multi-tool agent · Smart routing' },
             ] as const).map(({ id, label, desc }) => (

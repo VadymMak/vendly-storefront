@@ -130,6 +130,17 @@ export default function ChatMessageBubble({ message, onDeleteMedia }: Props) {
                 </div>
               </div>
             )}
+            {!isUser && message.enhancedPrompt && (
+              <details className="mt-2 group">
+                <summary className="text-[10px] text-[var(--color-text-muted)] cursor-pointer select-none list-none flex items-center gap-1 hover:text-[var(--color-primary)] transition-colors">
+                  <span className="group-open:rotate-90 inline-block transition-transform">▶</span>
+                  ✨ Enhanced prompt
+                </summary>
+                <p className="mt-1 text-[10px] font-mono leading-relaxed text-[var(--color-text-muted)] bg-black/10 rounded-lg px-2 py-1.5 whitespace-pre-wrap break-words">
+                  {message.enhancedPrompt}
+                </p>
+              </details>
+            )}
           </>
         )}
 

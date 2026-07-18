@@ -5,6 +5,8 @@ import { executeTool } from '@/lib/studio/tool-executor';
 import { buildLearningContext, formatLearningContext } from '@/lib/studio/learning';
 import { getComboPreset } from '@/lib/studio/prompt-library';
 import { executeCombo } from '@/lib/studio/combo-executor';
+import { SUPERUSER_EMAILS } from '@/lib/credits';
+import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-client';
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
 
 interface ChatRequest {
@@ -39,7 +41,21 @@ export async function POST(req: NextRequest) {
     const learning = await buildLearningContext(message, null);
     const learningPrompt = formatLearningContext(learning);
 
-    const decision = await getAgentDecision(message + audioContext, context, history, learningPrompt || undefined);
+    // Brain context — only for superusers
+    const isSuperuser = (SUPERUSER_EMAILS as readonly string[]).includes(
+      session.user.email?.toLowerCase() ?? '',
+    );
+    const brainContext = isSuperuser
+      ? await getBrainStudioContext(message)
+      : '';
+
+    const decision = await getAgentDecision(
+      message + audioContext,
+      context,
+      history,
+      learningPrompt || undefined,
+      brainContext || undefined,
+    );
 
     // Handle combo (multi-step chain)
     if (decision.comboId) {
@@ -164,6 +180,11 @@ export async function POST(req: NextRequest) {
           toolMessage = `${decision.message}\n\n${result.message}`;
         }
       }
+    }
+
+    // Save to Brain async (non-blocking, superusers only)
+    if (isSuperuser && toolMessage) {
+      saveToBrainAsync(message, toolMessage, decision.toolCall?.tool ?? undefined);
     }
 
     return NextResponse.json({

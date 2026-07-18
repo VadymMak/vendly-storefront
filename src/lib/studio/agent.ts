@@ -794,6 +794,7 @@ export async function getAgentDecision(
   context: SessionContext,
   recentHistory: ChatMessage[],
   learningContext?: string,
+  brainContext?: string,
 ): Promise<AgentDecision> {
   const contextInfo = [
     context.lastImageUrl
@@ -812,9 +813,11 @@ export async function getAgentDecision(
   const userPrompt = `${contextInfo}\n\nRecent conversation:\n${historyText}\n\nUser: ${userMessage}`;
 
   try {
-    const systemPrompt = learningContext
-      ? SYSTEM_PROMPT + learningContext
-      : SYSTEM_PROMPT;
+    let systemPrompt = SYSTEM_PROMPT;
+    if (learningContext) systemPrompt += learningContext;
+    if (brainContext) {
+      systemPrompt += `\n\n───────────────────────────────\nBRAIN CONTEXT (user's past sessions & learned preferences):\n${brainContext}\n───────────────────────────────\nUse the above to personalize style suggestions, remember what worked before, and avoid repeating past failures.`;
+    }
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',

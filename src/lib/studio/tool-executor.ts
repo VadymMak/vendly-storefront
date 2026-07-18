@@ -109,6 +109,8 @@ export async function executeTool(
     switch (tool) {
       case 'generate_image':
         return await executeGenerateImage(params, cookieHeader);
+      case 'generate_with_reference':
+        return await executeGenerateWithReference(params, context, cookieHeader);
       case 'image_to_video':
         return await executeGenerateVideo(params, context, cookieHeader);
       case 'edit_image':
@@ -442,4 +444,43 @@ async function executeTransformImage(
   });
 
   return { media: { type: 'image', url: resultBlob.url } };
+}
+
+async function executeGenerateWithReference(
+  params: Record<string, string | number | boolean>,
+  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  cookieHeader: string,
+): Promise<ToolResult> {
+  if (!context.lastImageUrl) {
+    return { error: 'No reference image in context. Please upload or generate an image first, then ask again.' };
+  }
+
+  const refRes = await fetch(context.lastImageUrl);
+  const refBuffer = Buffer.from(await refRes.arrayBuffer());
+  const refContentType = refRes.headers.get('content-type') || 'image/webp';
+
+  const fd = new FormData();
+  fd.append('prompt', String(params.prompt || 'high quality photo'));
+  fd.append('referenceImage', new Blob([new Uint8Array(refBuffer)], { type: refContentType }), 'reference.webp');
+  fd.append('strength', String(params.strength || 0.75));
+  fd.append('aspectRatio', String(params.aspect_ratio || '1:1'));
+
+  const res = await fetch(`${BASE_URL}/api/studio/generate-with-reference`, {
+    method: 'POST',
+    headers: { Cookie: cookieHeader },
+    body: fd,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Generation failed' })) as { error?: string };
+    return { error: err.error || 'Reference generation failed' };
+  }
+
+  const data = await res.json() as { url?: string; error?: string };
+  if (!data.url) return { error: data.error || 'Generation failed — no URL returned' };
+
+  return {
+    media: { type: 'image' as const, url: data.url },
+    message: '✓ Generated using your photo as visual reference',
+  };
 }

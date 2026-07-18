@@ -34,6 +34,7 @@ Context rules:
 - If the user wants to REMOVE BACKGROUND → use remove_background (requires lastImageUrl in context)
 - If the user wants to ENHANCE FACE → use face_enhance (requires lastImageUrl in context)
 - If the user wants CAPTION/HASHTAGS → use write_caption (no image needed, just text)
+- If the user wants to GENERATE using their uploaded photo as STYLE or CONTENT REFERENCE → use generate_with_reference (requires lastImageUrl in context). Trigger phrases: "use my photo", "in this style", "generate with my image", "similar to my photo", "keep my product but...", "make something like this"
 - If the user wants to CREATE A CLIP, SLIDESHOW, MONTAGE from images or videos → use create_clip. Renders directly in the browser (free, no credits).
   CLIP FROM MEDIA (images + videos):
   - Images: Ken Burns camera motion (slow zoom + pan). Duration ~4-5s per image.
@@ -741,6 +742,12 @@ For upscale params: { "type": "upscale", "model": "esrgan" }
   {"message": "✨ Starting Topaz Labs premium upscale (~30-60 sec). Focus: facial details and skin.\n\n💡 After upscale you can refine: 'focus on eyes', 'sharper textures', 'remove grain', 'warmer colors' — I'll re-run with your guidance.", "tool": "upscale", "params": {"type": "upscale", "model": "supir", "scale": 2}}
 For face_enhance params: { "type": "portrait" }
 For remove_background params: {}
+For generate_with_reference params: { "prompt": "english description of what to generate", "strength": 0.75, "aspect_ratio": "1:1" }
+  strength: 0.6 = very similar to reference (preserve object/style closely), 0.75 = balanced (default), 0.85 = creative (reference as loose inspiration)
+  RULES:
+  - Always write the prompt in English
+  - strength default is 0.75 unless user says "very similar", "copy the style exactly" (→ 0.6) or "just inspired by" (→ 0.85)
+  - If no aspect_ratio specified, use "1:1"
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }
 For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel" }
   DEFAULT: durationPerImage = 3 seconds (optimal for social media engagement: 3 images = ~10s, 4 images = ~13s)

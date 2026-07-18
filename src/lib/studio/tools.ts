@@ -101,6 +101,17 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
     outputType: 'image',
   },
   {
+    name: 'generate_with_reference',
+    description:
+      "Generate a new image using the current image as a visual style or content reference (img2img). Use when user says 'use my photo', 'in this style', 'similar to my image', 'generate with reference', 'keep my product', 'make something like this'. Requires an image in context.",
+    apiRoute: '/api/studio/generate-with-reference',
+    model: 'Flux Dev (img2img)',
+    provider: 'replicate',
+    costEstimate: '$0.025',
+    inputType: 'image+text',
+    outputType: 'image',
+  },
+  {
     name: 'create_clip',
     description:
       'Create an Instagram/TikTok-style video clip from images and/or videos with Ken Burns motion, transitions, and optional music. Images get Ken Burns camera motion; videos play as-is. Renders directly in browser — no credits needed. Requires at least 1 image or video in chat context. Use when user says "make a clip", "slideshow", "montage", "combine images into video".',

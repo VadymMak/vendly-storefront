@@ -5,6 +5,7 @@ import type { ChatMessage } from '@/lib/studio/types';
 interface Props {
   message: ChatMessage;
   onDeleteMedia?: (messageId: string) => void;
+  onUseAsReference?: (url: string) => void;
 }
 
 function LoadingDots() {
@@ -34,7 +35,7 @@ const handleDownload = async (url: string, filename: string) => {
   }
 };
 
-export default function ChatMessageBubble({ message, onDeleteMedia }: Props) {
+export default function ChatMessageBubble({ message, onDeleteMedia, onUseAsReference }: Props) {
   const isUser = message.role === 'user';
 
   return (
@@ -73,7 +74,7 @@ export default function ChatMessageBubble({ message, onDeleteMedia }: Props) {
                   className="max-w-full h-auto rounded-lg"
                   loading="lazy"
                 />
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => handleDownload(message.media!.url, `studio-${Date.now()}.webp`)}
@@ -81,6 +82,16 @@ export default function ChatMessageBubble({ message, onDeleteMedia }: Props) {
                   >
                     Download
                   </button>
+                  {onUseAsReference && (
+                    <button
+                      type="button"
+                      onClick={() => onUseAsReference(message.media!.url)}
+                      className="text-xs px-2 py-1 rounded bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 text-[var(--color-primary)] transition-colors cursor-pointer"
+                      title="Use this image as visual reference for the next generation"
+                    >
+                      🔁 Use as reference
+                    </button>
+                  )}
                   {onDeleteMedia && (
                     <button
                       type="button"

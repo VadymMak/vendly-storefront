@@ -247,6 +247,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [ratedMessages, setRatedMessages] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -419,6 +420,11 @@ export default function StudioChat({ userId, userEmail }: Props) {
     });
     setAudioFile(null);
     if (audioInputRef.current) audioInputRef.current.value = '';
+  }, []);
+
+  const handleUseAsReference = useCallback((url: string) => {
+    setReferenceImageUrl(url);
+    setContext((c) => ({ ...c, lastImageUrl: url }));
   }, []);
 
   const muxAudioWithVideo = useCallback(async (
@@ -1150,7 +1156,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((msg, index) => (
           <div key={msg.id}>
-            <ChatMessageBubble message={msg} onDeleteMedia={handleDeleteMedia} />
+            <ChatMessageBubble message={msg} onDeleteMedia={handleDeleteMedia} onUseAsReference={handleUseAsReference} />
             {msg.role === 'assistant' && !msg.isLoading && isErrorMessage(msg.content) && (
               <div className="flex justify-start mt-1.5 pl-1">
                 <button
@@ -1213,6 +1219,25 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       {/* Input area */}
       <div className="px-4 py-3 border-t border-[var(--color-border)]">
+        {referenceImageUrl && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-1.5 text-xs text-[var(--color-text-muted)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={referenceImageUrl} alt="Reference" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+            <span className="text-[var(--color-primary)]">🔁 Reference active</span>
+            <span className="opacity-60 flex-1">— ask me to &quot;generate in this style&quot;</span>
+            <button
+              type="button"
+              onClick={() => setReferenceImageUrl(null)}
+              className="ml-auto text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
+              title="Remove reference"
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
         {audioFile && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-1.5 text-xs text-[var(--color-text-muted)]">
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

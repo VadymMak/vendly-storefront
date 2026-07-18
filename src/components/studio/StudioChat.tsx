@@ -248,6 +248,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [imageQuality, setImageQuality] = useState<'fast' | 'good'>('fast');
   const [ratedMessages, setRatedMessages] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -789,6 +790,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
           history: messages.filter((m) => m.id !== 'welcome').slice(-6),
           hasAudio: !!audioFile,
           audioFileName: audioFile?.name || null,
+          imageQuality,
         }),
       });
 
@@ -1260,6 +1262,34 @@ export default function StudioChat({ userId, userEmail }: Props) {
             </button>
           </div>
         )}
+        {/* Quality toggle */}
+        <div className="mb-2 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setImageQuality('fast')}
+            className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+              imageQuality === 'fast'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50'
+            }`}
+          >
+            ⚡ Fast
+          </button>
+          <button
+            type="button"
+            onClick={() => setImageQuality('good')}
+            className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+              imageQuality === 'good'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/50'
+            }`}
+          >
+            ✨ Good
+          </button>
+          {imageQuality === 'good' && (
+            <span className="text-[10px] text-[var(--color-text-muted)] opacity-60 ml-1">Flux Dev · ~15s</span>
+          )}
+        </div>
         <div className="flex gap-2 items-end">
           {/* Upload button */}
           <button

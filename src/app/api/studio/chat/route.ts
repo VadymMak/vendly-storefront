@@ -13,6 +13,7 @@ interface ChatRequest {
   history: ChatMessage[];
   hasAudio?: boolean;
   audioFileName?: string | null;
+  imageQuality?: 'fast' | 'good';
 }
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = (await req.json()) as ChatRequest;
-    const { message, context, history, hasAudio, audioFileName } = body;
+    const { message, context, history, hasAudio, audioFileName, imageQuality } = body;
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -117,9 +118,15 @@ export async function POST(req: NextRequest) {
     if (decision.toolCall && !decision.comboId) {
       const cookieHeader = req.headers.get('cookie') || '';
 
+      // Override provider to flux-dev when user selected "Good" quality
+      const toolParams = { ...decision.toolCall.params };
+      if (imageQuality === 'good' && decision.toolCall.tool === 'generate_image' && toolParams.provider !== 'grok') {
+        toolParams.provider = 'flux-dev';
+      }
+
       const result = await executeTool(
         decision.toolCall.tool,
-        decision.toolCall.params,
+        toolParams,
         context,
         cookieHeader,
       );

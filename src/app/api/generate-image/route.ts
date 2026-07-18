@@ -17,7 +17,7 @@ interface GenerateBody {
   target_height?: number;
   output_format?: 'webp' | 'png' | 'jpeg';
   website?:       string;
-  provider?:      'flux' | 'grok';
+  provider?:      'flux' | 'flux-dev' | 'grok';
 }
 
 export async function POST(request: Request) {
@@ -143,6 +143,94 @@ export async function POST(request: Request) {
     } catch (err) {
       console.error('Grok error:', err);
       return NextResponse.json({ error: 'Grok generation failed' }, { status: 500 });
+    }
+  }
+
+  // ── Flux Dev path (Good quality) ─────────────────────────────────────────────
+  if (body.provider === 'flux-dev') {
+    const devKeyRecord = await db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+      select: { encryptedKey: true },
+    });
+    const devToken = devKeyRecord
+      ? decrypt(devKeyRecord.encryptedKey)
+      : (process.env.REPLICATE_API_TOKEN ?? '');
+    if (!devToken) {
+      return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+    }
+
+    const devCreditCheck = await checkCredits(session.user.id, 'image');
+    if (!devCreditCheck.allowed) {
+      return NextResponse.json({ error: devCreditCheck.reason, needsUpgrade: true }, { status: 403 });
+    }
+
+    const devReplicate = new Replicate({ auth: devToken });
+
+    try {
+      const devOutput = await devReplicate.run('black-forest-labs/flux-dev', {
+        input: {
+          prompt,
+          aspect_ratio,
+          num_inference_steps: 50,
+          guidance_scale:      3.5,
+          output_format:       requested_format === 'jpeg' ? 'png' : requested_format,
+          output_quality:      85,
+        },
+      });
+
+      const devUrls = devOutput as unknown[];
+      const devFirst = devUrls?.[0];
+      let devImageUrl: string | null = null;
+      if (typeof devFirst === 'string') {
+        devImageUrl = devFirst;
+      } else if (devFirst && typeof (devFirst as { url?: () => string | URL }).url === 'function') {
+        const r = (devFirst as { url: () => string | URL }).url();
+        devImageUrl = r instanceof URL ? r.toString() : r;
+      } else if (devFirst instanceof URL) {
+        devImageUrl = devFirst.toString();
+      }
+
+      if (!devImageUrl) {
+        return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
+      }
+
+      const devFluxRes = await fetch(devImageUrl);
+      const devInputBuf = Buffer.from(await devFluxRes.arrayBuffer());
+      const devPipeline = sharp(devInputBuf);
+      if (targetW && targetH) devPipeline.resize(targetW, targetH, { fit: 'fill' });
+
+      let devResized: Buffer;
+      let devContentType: string;
+      let devExt: string;
+      if (requested_format === 'jpeg') {
+        devResized = await devPipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+        devContentType = 'image/jpeg'; devExt = 'jpg';
+      } else if (requested_format === 'png') {
+        devResized = await devPipeline.png({ compressionLevel: 8 }).toBuffer();
+        devContentType = 'image/png'; devExt = 'png';
+      } else {
+        devResized = await devPipeline.webp({ quality: 90 }).toBuffer();
+        devContentType = 'image/webp'; devExt = 'webp';
+      }
+
+      if (!devCreditCheck.byok) {
+        await deductCredit(session.user.id, 'image');
+      }
+
+      const devName = targetW && targetH
+        ? `flux-dev-${targetW}x${targetH}-${Date.now()}.${devExt}`
+        : `flux-dev-${Date.now()}.${devExt}`;
+
+      return new Response(new Uint8Array(devResized), {
+        headers: {
+          'Content-Type':        devContentType,
+          'Content-Disposition': `inline; filename="${devName}"`,
+          'Cache-Control':       'no-store',
+        },
+      });
+    } catch (err) {
+      console.error('[flux-dev] Replicate error:', err);
+      return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
     }
   }
 

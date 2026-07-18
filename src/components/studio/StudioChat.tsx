@@ -811,13 +811,17 @@ export default function StudioChat({ userId, userEmail }: Props) {
         params?: Record<string, unknown>;
         jobId?: string;
         clipParams?: Record<string, string | number | boolean>;
+        comboImages?: string[];
         transformParams?: Record<string, string | number | boolean>;
         context?: SessionContext;
       };
 
       if (data.toolUsed === 'create_clip') {
         if (data.context) setContext(data.context);
-        const clipMediaItems = collectMediaItems(messages);
+        // Use images from this combo only — prevents including all prior session images
+        const clipMediaItems = data.comboImages && data.comboImages.length > 0
+          ? data.comboImages.map((url) => ({ type: 'image' as const, url }))
+          : collectMediaItems(messages);
 
         if (clipMediaItems.length === 0) {
           setMessages((prev) => prev.map((m) =>

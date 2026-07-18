@@ -70,11 +70,16 @@ export async function POST(req: NextRequest) {
         const clipStep = comboResult.steps.find((s) => s.message === '__CREATE_CLIP__');
         if (clipStep) {
           const clipStepDef = combo.steps.find((s) => s.tool === 'create_clip');
+          // Only pass images generated in THIS combo — prevents collecting all session images
+          const comboImages = comboResult.steps
+            .filter((s) => s.media?.type === 'image')
+            .map((s) => s.media!.url);
           return NextResponse.json({
             message: fullMessage,
             media: lastMedia ?? undefined,
             toolUsed: 'create_clip',
             clipParams: clipStepDef?.params ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' },
+            comboImages: comboImages.length > 0 ? comboImages : undefined,
             context: comboResult.finalContext,
           });
         }

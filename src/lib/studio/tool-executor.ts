@@ -111,6 +111,8 @@ export async function executeTool(
         return await executeGenerateImage(params, cookieHeader);
       case 'generate_with_reference':
         return await executeGenerateWithReference(params, context, cookieHeader);
+      case 'generate_character':
+        return await executeGenerateCharacter(params, context, cookieHeader);
       case 'image_to_video':
         return await executeGenerateVideo(params, context, cookieHeader);
       case 'edit_image':
@@ -444,6 +446,59 @@ async function executeTransformImage(
   });
 
   return { media: { type: 'image', url: resultBlob.url } };
+}
+
+async function executeGenerateCharacter(
+  params: Record<string, string | number | boolean>,
+  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  _cookieHeader: string,
+): Promise<ToolResult> {
+  const referenceImage = (params.reference_image as string) || context.lastImageUrl;
+  if (!referenceImage) {
+    return {
+      error: 'No reference image provided. Please upload a photo first, or provide a reference_image URL.',
+      message: 'Upload a clear face photo to use as reference, then try again.',
+    };
+  }
+
+  const prompt = (params.prompt as string) || '';
+  if (!prompt) {
+    return { error: 'prompt is required' };
+  }
+
+  const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
+  if (!BRAIN_API_KEY) {
+    return { error: 'Brain API key not configured' };
+  }
+
+  const res = await fetch(`${BASE_URL}/api/brain/generate-character`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-brain-api-key': BRAIN_API_KEY,
+    },
+    body: JSON.stringify({
+      prompt,
+      reference_image: referenceImage,
+      style: (params.style as string) || 'photorealistic',
+      aspect_ratio: (params.aspect_ratio as string) || '1:1',
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Character generation failed' })) as { error?: string };
+    return { error: err.error || 'Character generation failed' };
+  }
+
+  const data = await res.json() as { url?: string; error?: string };
+  if (!data.url) {
+    return { error: data.error || 'No image URL returned' };
+  }
+
+  return {
+    media: { type: 'image', url: data.url },
+    message: 'Character generated with consistent face!',
+  };
 }
 
 async function executeGenerateWithReference(

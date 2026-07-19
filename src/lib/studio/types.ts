@@ -47,6 +47,7 @@ export type Platform =
 export type ToolName =
   | 'generate_image'
   | 'generate_with_reference'
+  | 'generate_character'
   | 'image_to_video'
   | 'edit_image'
   | 'upscale'

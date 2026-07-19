@@ -563,7 +563,7 @@ async function executeTalkingAvatar(
 
 async function executeVoiceover(
   params: Record<string, string | number | boolean>,
-  _cookieHeader: string,
+  cookieHeader: string,
 ): Promise<ToolResult> {
   const text = params.text as string;
   if (!text) {
@@ -578,6 +578,20 @@ async function executeVoiceover(
     return { error: 'Brain API key not configured' };
   }
 
+  // Fetch user's ElevenLabs key from DB (falls back to env var in voiceover route)
+  let elevenlabsKey: string | undefined;
+  try {
+    const keyRes = await fetch(`${BASE_URL}/api/user/api-keys/decrypted?provider=elevenlabs`, {
+      headers: { Cookie: cookieHeader },
+    });
+    if (keyRes.ok) {
+      const keyData = await keyRes.json() as { key: string | null };
+      elevenlabsKey = keyData.key ?? undefined;
+    }
+  } catch {
+    // ignore — voiceover route falls back to ELEVENLABS_API_KEY env var
+  }
+
   const res = await fetch(`${BASE_URL}/api/brain/voiceover`, {
     method: 'POST',
     headers: {
@@ -586,11 +600,11 @@ async function executeVoiceover(
     },
     body: JSON.stringify({
       text,
-      voice_id:             (params.voice_id as string)            || 'adam',
-      language:             (params.language as string)            || 'en',
-      elevenlabs_api_key:   (params.elevenlabs_api_key as string)  || undefined,
-      stability:            Number(params.stability)               || 0.5,
-      similarity_boost:     Number(params.similarity_boost)        || 0.75,
+      voice_id:             (params.voice_id as string)  || 'adam',
+      language:             (params.language as string)  || 'en',
+      elevenlabs_api_key:   elevenlabsKey,
+      stability:            Number(params.stability)     || 0.5,
+      similarity_boost:     Number(params.similarity_boost) || 0.75,
     }),
   });
 

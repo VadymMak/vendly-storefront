@@ -83,8 +83,8 @@ type ImageSubTab    = 'generate' | 'edit';
 type VideoMode      = 'text' | 'image';
 type GenStep        = 'generating-frame' | 'rate-limiting' | 'animating' | null;
 type AiEditTool     = 'upscale' | 'face' | 'removebg' | 'aiedit' | null;
-type Provider       = 'replicate' | 'anthropic' | 'xai';
-type HelpSection    = 'replicate' | 'anthropic' | 'xai' | 'tips';
+type Provider       = 'replicate' | 'anthropic' | 'xai' | 'elevenlabs';
+type HelpSection    = 'replicate' | 'anthropic' | 'xai' | 'elevenlabs' | 'tips';
 type PresetKey      = keyof typeof PRESET_MAP;
 type OutputFormat   = typeof OUTPUT_FORMATS[number];
 
@@ -133,16 +133,16 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
   // ── Shared: API Keys ──────────────────────────────────────────────────────
   const [keys,        setKeys]        = useState<ApiKeyInfo[]>([]);
   const [keysLoaded,  setKeysLoaded]  = useState(false);
-  const [keyInputs,   setKeyInputs]   = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '' });
-  const [keySaving,   setKeySaving]   = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
-  const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false });
+  const [keyInputs,   setKeyInputs]   = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '', elevenlabs: '' });
+  const [keySaving,   setKeySaving]   = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false, elevenlabs: false });
+  const [keyDeleting, setKeyDeleting] = useState<Record<Provider, boolean>>({ replicate: false, anthropic: false, xai: false, elevenlabs: false });
   // Auto-collapse: open if Replicate key missing, closed if all saved
   const [keysOpen, setKeysOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
 
   // ── Shared: Wizard ────────────────────────────────────────────────────────
   const [wizardStep,   setWizardStep]   = useState<1 | 2 | null>(null);
-  const [wizardInputs, setWizardInputs] = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '' });
+  const [wizardInputs, setWizardInputs] = useState<Record<Provider, string>>({ replicate: '', anthropic: '', xai: '', elevenlabs: '' });
   const [wizardSaving, setWizardSaving] = useState(false);
   const [wizardError,  setWizardError]  = useState<string | null>(null);
 
@@ -890,6 +890,13 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
                 <div className="mt-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3 text-xs text-[var(--color-text-muted)]">💡 Image generation $0.02–$0.055/image. Appears as AI Improve provider toggle when key is saved.</div>
               </div>
               <hr className="border-[var(--color-border)]" />
+              <div ref={(el) => { helpRefs.current.elevenlabs = el; }}>
+                <h3 className="mb-1 font-semibold text-white">ElevenLabs API Key <span className="text-xs font-normal text-[var(--color-text-dim)]">(optional)</span></h3>
+                <p className="mt-2 mb-3 text-[var(--color-text-muted)]">ElevenLabs generates realistic text-to-speech voiceovers for your videos. Supports 29 languages including English, Slovak, Czech, German, and Ukrainian.</p>
+                <ol className="space-y-2 text-[var(--color-text-muted)]">{(['elevenlabs.io → Sign up', 'Profile → API Keys → Create key', 'Add credit in Billing', 'Key starts with sk_'] as string[]).map((item, i) => (<li key={i} className="flex gap-2"><span className="shrink-0 font-bold text-[var(--color-primary)]">{i + 1}.</span><span>{item}</span></li>))}</ol>
+                <div className="mt-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3 text-xs text-[var(--color-text-muted)]">💡 ~$0.30 per 1,000 characters. Free tier includes 10,000 chars/month.</div>
+              </div>
+              <hr className="border-[var(--color-border)]" />
               <div ref={(el) => { helpRefs.current.tips = el; }}>
                 <h3 className="mb-4 font-semibold text-white">Prompt Writing Tips</h3>
                 <div className="space-y-3">{[
@@ -964,7 +971,7 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
               <div className="flex items-center gap-3">
                 <h2 className="text-base font-semibold">API Keys</h2>
                 <span className="rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
-                  {keys.length} / 3 connected
+                  {keys.length} / 4 connected
                 </span>
               </div>
               <svg
@@ -985,9 +992,10 @@ export default function StudioClient({ userId: _userId, userEmail }: Props) {
             {keysOpen && (
             <div className="space-y-5 border-t border-[var(--color-border)] px-6 pb-6 pt-5">
               {([
-                { id: 'replicate' as Provider, label: 'Replicate API Key',       placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••',     hs: 'replicate' as HelpSection, note: 'Optional — for unlimited BYOK access' },
-                { id: 'anthropic' as Provider, label: 'Anthropic API Key',       placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic' as HelpSection, note: 'Optional — AI prompt enhancement' },
-                { id: 'xai'       as Provider, label: 'xAI API Key (Grok)', placeholder: 'xai-••••••••••••••••••••••••••••••••••••••••',         hs: 'xai'       as HelpSection, note: '$0.02–$0.055/img · image generation & editing' },
+                { id: 'replicate'   as Provider, label: 'Replicate API Key',        placeholder: 'r8_••••••••••••••••••••••••••••••••••••••••',     hs: 'replicate'   as HelpSection, note: 'Optional — for unlimited BYOK access' },
+                { id: 'anthropic'   as Provider, label: 'Anthropic API Key',        placeholder: 'sk-ant-••••••••••••••••••••••••••••••••••••••••', hs: 'anthropic'   as HelpSection, note: 'Optional — AI prompt enhancement' },
+                { id: 'xai'         as Provider, label: 'xAI API Key (Grok)',   placeholder: 'xai-••••••••••••••••••••••••••••••••••••••••',         hs: 'xai'         as HelpSection, note: '$0.02–$0.055/img · image generation & editing' },
+                { id: 'elevenlabs'  as Provider, label: 'ElevenLabs API Key',   placeholder: 'sk_••••••••••••••••••••••••••••••••••••••••',          hs: 'elevenlabs'  as HelpSection, note: 'Text-to-speech voiceovers for videos' },
               ]).map(({ id, label, placeholder, hs, note }) => {
                 const saved = keyFor(id);
                 return (

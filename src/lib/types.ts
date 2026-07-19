@@ -10,7 +10,7 @@ export interface VideoSkill {
 
 export interface ApiKeyInfo {
   id: string;
-  provider: 'replicate' | 'anthropic';
+  provider: 'replicate' | 'anthropic' | 'xai' | 'elevenlabs';
   keyHint: string;
   createdAt: string;
 }

@@ -841,6 +841,16 @@ For create_clip params: { "style": "cinematic", "transition": "fade", "durationP
     - "instagram_post" → 1080×1080 (1:1 square)
     - "youtube_shorts" → 1080×1920 (9:16)
     - "cinematic" → 1920×1080 (16:9)
+  - text_overlays: optional JSON array of text overlays. Each item:
+      { "text": "BRAND NAME", "position": "center", "style": "brand", "from": 6, "to": 10 }
+      { "text": "The best fish in town", "position": "bottom", "style": "subtitle" }
+      { "text": "Visit us today ↓", "position": "bottom", "style": "cta", "from": 8 }
+    styles: "brand" (large white serif, centered), "subtitle" (pill bg, small), "cta" (gold bold)
+    positions: "top" | "center" | "bottom"
+    from/to: seconds from clip start (omit = always visible)
+    Pass as JSON string: text_overlays: "[{\"text\":\"MY BRAND\",\"position\":\"center\",\"style\":\"brand\",\"from\":7}]"
+    EXAMPLE for 10-sec ad clip:
+    text_overlays: "[{\"text\":\"Premium Cuts\",\"position\":\"center\",\"style\":\"brand\",\"from\":7,\"to\":10},{\"text\":\"Book your cut today\",\"position\":\"bottom\",\"style\":\"cta\",\"from\":8.5,\"to\":10}]"
 
 CRITICAL — Language handling:
 The user may write in ANY language (Russian, Slovak, Czech, German, Ukrainian, etc.)

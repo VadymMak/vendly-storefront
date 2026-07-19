@@ -666,6 +666,18 @@ export default function StudioChat({ userId, userEmail }: Props) {
         await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       }
 
+      // Parse text_overlays — agent sends as JSON string or array
+      let textOverlays: import('@/lib/slideshow-renderer').TextOverlay[] | undefined;
+      if (params.text_overlays) {
+        try {
+          textOverlays = typeof params.text_overlays === 'string'
+            ? JSON.parse(params.text_overlays)
+            : (params.text_overlays as unknown as import('@/lib/slideshow-renderer').TextOverlay[]);
+        } catch {
+          console.warn('[clip] Failed to parse text_overlays:', params.text_overlays);
+        }
+      }
+
       const config: SlideshowConfig = {
         items,
         transitionDuration: items.length === 1 ? 0 : 0.8,
@@ -674,6 +686,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         fps: 30,
         audioFile: audio ?? undefined,
         style: (params.style as VideoStyle) || 'cinematic',
+        textOverlays,
       };
 
       let lastReportedPct = -1;

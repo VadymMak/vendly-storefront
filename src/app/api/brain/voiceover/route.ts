@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
     const resolvedVoiceId = DEFAULT_VOICES[voice_id.toLowerCase()] ?? voice_id;
 
     // eleven_multilingual_v2 supports SK, CS, UK, DE and 25+ languages
-    const modelId = language === 'en' ? 'eleven_monolingual_v1' : 'eleven_multilingual_v2';
+    // eleven_monolingual_v1 deprecated July 2025 — use eleven_multilingual_v2 for all languages
+    const modelId = 'eleven_multilingual_v2';
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}`,

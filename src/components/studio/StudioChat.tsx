@@ -858,12 +858,35 @@ export default function StudioChat({ userId, userEmail }: Props) {
           console.warn(`[clip] Removed ${clipMediaItems.length - uniqueMediaItems.length} duplicate(s). Using ${uniqueMediaItems.length} unique items.`);
         }
 
+        // Auto-use voiceover as audio if no manual audio file uploaded
+        // Priority: manual audioFile > lastAudioUrl voiceover > silence
+        let clipAudio: File | null = audioFile;
+        const voiceoverUrl = data.context?.lastAudioUrl ?? context?.lastAudioUrl ?? null;
+
+        if (!clipAudio && voiceoverUrl) {
+          try {
+            setMessages((prev) => prev.map((m) =>
+              m.id === loadingMsg.id
+                ? { ...m, content: '🎙️ Loading voiceover audio...' }
+                : m,
+            ));
+            const res = await fetch(voiceoverUrl);
+            const blob = await res.blob();
+            clipAudio = new File([blob], 'voiceover.mp3', { type: 'audio/mpeg' });
+            console.log('[clip] Auto-using voiceover as audio track:', voiceoverUrl.slice(-60));
+          } catch (e) {
+            console.warn('[clip] Failed to fetch voiceover audio, rendering without audio:', e);
+          }
+        }
+
         setMessages((prev) => prev.map((m) =>
           m.id === loadingMsg.id
-            ? { ...m, content: data.message || 'Starting clip render...', isLoading: true }
+            ? { ...m, content: clipAudio
+                ? (audioFile ? 'Starting clip render with your music...' : 'Starting clip render with voiceover...')
+                : (data.message || 'Starting clip render...'), isLoading: true }
             : m,
         ));
-        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, audioFile);
+        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, clipAudio);
         return;
       }
 

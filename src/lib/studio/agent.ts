@@ -826,6 +826,10 @@ For voiceover params: { "text": "Hello, welcome to our shop!", "voice_id": "adam
     Example: text="Welcome to our shop! <break time=\"2s\"/>"
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }
 For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel" }
+  - AUDIO: if voiceover was created earlier in session, it is automatically used as audio track
+    No need to mention audio separately — just call create_clip and voiceover will be baked in
+    If user uploaded music manually → manual music takes priority over voiceover
+    Mention to user: "Creating clip with your voiceover as audio..."
   DEFAULT: durationPerImage = 3 seconds (optimal for social media engagement: 3 images = ~10s, 4 images = ~13s)
   Only increase if user EXPLICITLY asks for longer duration ("make it longer", "5 seconds per image", "30 second video")
   If user says "short clip" or "quick clip" → durationPerImage: 2

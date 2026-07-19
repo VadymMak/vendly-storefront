@@ -48,7 +48,8 @@ export interface SlideshowConfig {
   transitionType: TransitionType;
   outputSize: { width: number; height: number };
   fps: number;
-  audioFile?: File;
+  audioFile?: File;   // voiceover -- full volume, no loop
+  musicFile?: File;   // background music -- low volume, looping
   style?: VideoStyle; // default: 'none'
   textOverlays?: TextOverlay[];
   watermark?: WatermarkConfig;
@@ -553,7 +554,8 @@ function drawFrame(
 
 async function addAudioToVideo(
   videoBlob: Blob,
-  audioFile: File,
+  voiceoverFile: File | null,
+  musicFile: File | null,
   mimeType: string,
   onProgress: (p: number) => void,
 ): Promise<Blob> {
@@ -577,19 +579,49 @@ async function addAudioToVideo(
       if (!ctx) { reject(new Error('Canvas 2D context unavailable')); return; }
 
       try {
-        const audioCtx = new AudioContext();
+        const audioCtx  = new AudioContext();
         await audioCtx.resume();
-        const audioBuffer = await audioCtx.decodeAudioData(await audioFile.arrayBuffer());
-
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.loop   = true;
-
-        const gain = audioCtx.createGain();
-        source.connect(gain);
 
         const audioDest = audioCtx.createMediaStreamDestination();
-        gain.connect(audioDest);
+        const sources: AudioBufferSourceNode[] = [];
+
+        const startAt = audioCtx.currentTime;
+        const fadeAt  = Math.max(startAt, startAt + duration - 2);
+
+        // Voiceover track -- full volume, no loop
+        if (voiceoverFile) {
+          const buf = await audioCtx.decodeAudioData(await voiceoverFile.arrayBuffer());
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf;
+          src.loop   = false;
+          const gain = audioCtx.createGain();
+          src.connect(gain);
+          gain.connect(audioDest);
+          gain.gain.setValueAtTime(1, startAt);
+          gain.gain.setValueAtTime(1, fadeAt);
+          gain.gain.linearRampToValueAtTime(0, startAt + duration);
+          src.start(startAt);
+          sources.push(src);
+        }
+
+        // Music track -- low volume background, looping
+        if (musicFile) {
+          const buf = await audioCtx.decodeAudioData(await musicFile.arrayBuffer());
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf;
+          src.loop   = true;
+          const gain = audioCtx.createGain();
+          src.connect(gain);
+          gain.connect(audioDest);
+          // If voiceover present: music at 22% so voice is clear
+          // If only music: full volume (existing behavior)
+          const musicVol = voiceoverFile ? 0.22 : 1.0;
+          gain.gain.setValueAtTime(musicVol, startAt);
+          gain.gain.setValueAtTime(musicVol, fadeAt);
+          gain.gain.linearRampToValueAtTime(0, startAt + duration);
+          src.start(startAt);
+          sources.push(src);
+        }
 
         const videoStream  = canvas.captureStream(30);
         const mergedStream = new MediaStream([
@@ -610,19 +642,9 @@ async function addAudioToVideo(
 
         recorder.start(500);
 
-        const startAt = audioCtx.currentTime;
-        const fadeAt  = Math.max(startAt, startAt + duration - 2);
-        gain.gain.setValueAtTime(1, startAt);
-        gain.gain.setValueAtTime(1, fadeAt);
-        gain.gain.linearRampToValueAtTime(0, startAt + duration);
-        source.start(startAt);
-
-        video.currentTime = 0;
-        await video.play();
-
         const stop = () => {
           if (recorder.state !== 'recording') return;
-          try { source.stop(); } catch { /* already stopped */ }
+          sources.forEach((src) => { try { src.stop(); } catch { /* already stopped */ } });
           recorder.stop();
         };
 
@@ -635,6 +657,9 @@ async function addAudioToVideo(
           onProgress(video.currentTime / duration);
           requestAnimationFrame(drawVideoFrame);
         };
+
+        video.currentTime = 0;
+        await video.play();
         drawVideoFrame();
 
         // Safety timeout in case video.ended never fires
@@ -713,7 +738,7 @@ export async function renderSlideshow(
     'video/webm',
   ].find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
 
-  const hasAudio = !!config.audioFile;
+  const hasAudio = !!config.audioFile || !!config.musicFile;
   const pass1Max = hasAudio ? 70 : 100;
 
   // ── Pass 1: video-only (no AudioContext, no audio track in MediaStream) ──────
@@ -779,7 +804,8 @@ export async function renderSlideshow(
   // ── Pass 2: add audio in real-time ────────────────────────────────────────────
   const finalBlob = await addAudioToVideo(
     videoBlob,
-    config.audioFile!,
+    config.audioFile ?? null,
+    config.musicFile ?? null,
     mimeType,
     (p) => {
       onProgress({

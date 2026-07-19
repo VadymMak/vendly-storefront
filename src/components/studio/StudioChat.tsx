@@ -550,6 +550,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     params: Record<string, string | number | boolean>,
     messageId: string,
     audio?: File | null,
+    musicFile?: File | null,
   ) => {
     if (mediaItems.length < 1) {
       setMessages((prev) =>
@@ -762,6 +763,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         outputSize,
         fps: 30,
         audioFile: audio ?? undefined,
+        musicFile: musicFile ?? undefined,
         style: (params.style as VideoStyle) || 'cinematic',
         textOverlays,
         watermark,
@@ -949,35 +951,53 @@ export default function StudioChat({ userId, userEmail }: Props) {
           console.warn(`[clip] Removed ${clipMediaItems.length - uniqueMediaItems.length} duplicate(s). Using ${uniqueMediaItems.length} unique items.`);
         }
 
-        // Auto-use voiceover as audio if no manual audio file uploaded
-        // Priority: manual audioFile > lastAudioUrl voiceover > silence
-        let clipAudio: File | null = audioFile;
+        // Dual audio: voiceover (full vol, no loop) + background music (22%, looping)
+        let voiceoverFile: File | null = null;
+        let backgroundMusic: File | null = null;
         const voiceoverUrl = data.context?.lastAudioUrl ?? context?.lastAudioUrl ?? null;
 
-        if (!clipAudio && voiceoverUrl) {
+        if (voiceoverUrl) {
           try {
             setMessages((prev) => prev.map((m) =>
               m.id === loadingMsg.id
-                ? { ...m, content: '🎙️ Loading voiceover audio...' }
+                ? { ...m, content: '🎙️ Loading voiceover...' }
                 : m,
             ));
-            const res = await fetch(voiceoverUrl);
+            const res  = await fetch(voiceoverUrl);
             const blob = await res.blob();
-            clipAudio = new File([blob], 'voiceover.mp3', { type: 'audio/mpeg' });
-            console.log('[clip] Auto-using voiceover as audio track:', voiceoverUrl.slice(-60));
+            voiceoverFile = new File([blob], 'voiceover.mp3', { type: 'audio/mpeg' });
+            console.log('[clip] Voiceover loaded:', voiceoverUrl.slice(-60));
           } catch (e) {
-            console.warn('[clip] Failed to fetch voiceover audio, rendering without audio:', e);
+            console.warn('[clip] Failed to fetch voiceover:', e);
           }
         }
 
+        // Routing:
+        // voiceover + uploaded music -> voiceover primary, music background 22%
+        // only voiceover             -> voiceover at full vol, no loop
+        // only uploaded music        -> music full vol, loop (existing behavior)
+        if (voiceoverFile && audioFile) {
+          backgroundMusic = audioFile;
+        } else if (!voiceoverFile && audioFile) {
+          backgroundMusic = audioFile;
+        }
+
+        const hasVoiceover = !!voiceoverFile;
+        const hasMusic     = !!backgroundMusic;
+        const statusMsg = hasVoiceover && hasMusic
+          ? 'Starting clip render with voiceover + music...'
+          : hasVoiceover
+            ? 'Starting clip render with voiceover...'
+            : hasMusic
+              ? 'Starting clip render with your music...'
+              : (data.message || 'Starting clip render...');
+
         setMessages((prev) => prev.map((m) =>
           m.id === loadingMsg.id
-            ? { ...m, content: clipAudio
-                ? (audioFile ? 'Starting clip render with your music...' : 'Starting clip render with voiceover...')
-                : (data.message || 'Starting clip render...'), isLoading: true }
+            ? { ...m, content: statusMsg, isLoading: true }
             : m,
         ));
-        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, clipAudio);
+        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, voiceoverFile, backgroundMusic);
         return;
       }
 

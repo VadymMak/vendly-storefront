@@ -181,6 +181,13 @@ export default function ChatMessageBubble({ message, onDeleteMedia, onUseAsRefer
                     >
                       Download MP3
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(message.media!.url)}
+                      className="text-xs px-2 py-1 rounded bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
+                    >
+                      Copy URL
+                    </button>
                   </div>
                 </div>
               )}

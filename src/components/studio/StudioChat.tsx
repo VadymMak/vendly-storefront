@@ -666,6 +666,38 @@ export default function StudioChat({ userId, userEmail }: Props) {
         await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       }
 
+      // End card — branded final frame on clean background
+      if (params.end_card) {
+        try {
+          const endCard = typeof params.end_card === 'string'
+            ? JSON.parse(params.end_card as string)
+            : (params.end_card as unknown as Record<string, string | number>);
+
+          const cardOverlays: import('@/lib/slideshow-renderer').TextOverlay[] = [];
+
+          if (endCard.brand) {
+            cardOverlays.push({ text: String(endCard.brand), position: 'center', style: 'brand' });
+          }
+          if (endCard.tagline) {
+            cardOverlays.push({ text: String(endCard.tagline), position: 'bottom', style: 'subtitle' });
+          }
+          if (endCard.cta) {
+            cardOverlays.push({ text: String(endCard.cta), position: 'bottom', style: 'cta' });
+          }
+
+          items.push({
+            type: 'color-card' as const,
+            duration: Number(endCard.duration) || 2.5,
+            bgColor: String(endCard.bg ?? '#0d0d0d'),
+            cardOverlays,
+          });
+
+          console.log('[clip] End card added:', endCard);
+        } catch (e) {
+          console.warn('[clip] Failed to parse end_card:', e);
+        }
+      }
+
       // Parse text_overlays — agent sends as JSON string or array
       let textOverlays: import('@/lib/slideshow-renderer').TextOverlay[] | undefined;
       if (params.text_overlays) {

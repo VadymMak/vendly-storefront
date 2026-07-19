@@ -26,10 +26,12 @@ export type CameraMotion =
   | 'diagonal-zoom';
 
 export interface SlideshowItem {
-  type: 'image' | 'video';
-  element: HTMLImageElement | HTMLVideoElement;
-  duration: number;      // image: durationPerImage setting; video: video.duration
-  motion?: CameraMotion; // images only; undefined = static
+  type: 'image' | 'video' | 'color-card';
+  element?: HTMLImageElement | HTMLVideoElement; // undefined for color-card
+  duration: number;
+  motion?: CameraMotion;       // images only
+  bgColor?: string;            // color-card only: CSS color string e.g. '#0a0a0a'
+  cardOverlays?: TextOverlay[]; // color-card only: overlays always shown during this item
 }
 
 export interface SlideshowConfig {
@@ -199,6 +201,11 @@ function drawItemAtRect(
   rawProgress: number,
   dx: number, dy: number, dw: number, dh: number,
 ): void {
+  if (item.type === 'color-card') {
+    ctx.fillStyle = item.bgColor ?? '#0a0a0a';
+    ctx.fillRect(dx, dy, dw, dh);
+    return;
+  }
   if (item.type === 'video') {
     const video = item.element as HTMLVideoElement;
     const vW    = video.videoWidth;
@@ -391,6 +398,9 @@ function drawFrame(
     ctx.filter = 'none';
     applyStyle(ctx, style, W, H);
     renderOverlays();
+    if (item.type === 'color-card' && item.cardOverlays) {
+      for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H);
+    }
     return;
   }
 

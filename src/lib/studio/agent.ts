@@ -851,6 +851,15 @@ For create_clip params: { "style": "cinematic", "transition": "fade", "durationP
     Pass as JSON string: text_overlays: "[{\"text\":\"MY BRAND\",\"position\":\"center\",\"style\":\"brand\",\"from\":7}]"
     EXAMPLE for 10-sec ad clip:
     text_overlays: "[{\"text\":\"Premium Cuts\",\"position\":\"center\",\"style\":\"brand\",\"from\":7,\"to\":10},{\"text\":\"Book your cut today\",\"position\":\"bottom\",\"style\":\"cta\",\"from\":8.5,\"to\":10}]"
+  - end_card: optional branded final frame (JSON string). Fields:
+      brand: "BRAND NAME"     (large white serif, center)
+      tagline: "Your slogan"  (optional, small pill below center)
+      cta: "Visit us today"   (optional, gold text, very bottom)
+      bg: "#0d0d0d"           (background color, default: near-black)
+      duration: 2.5           (seconds, default: 2.5)
+    Pass as JSON: end_card: "{\"brand\":\"MASTER CUTS\",\"tagline\":\"Every cut tells a story\",\"bg\":\"#0a0a0a\",\"duration\":3}"
+    ALWAYS add end_card for ad clips and brand videos.
+    For cinematic ads use dark bg (#0a0a14, #111827). For product/clean brands use white (#FAFAFA).
 
 CRITICAL — Language handling:
 The user may write in ANY language (Russian, Slovak, Czech, German, Ukrainian, etc.)

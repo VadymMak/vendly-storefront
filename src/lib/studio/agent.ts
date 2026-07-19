@@ -120,7 +120,11 @@ CRITICAL — UPSCALE vs GENERATE vs EDIT routing:
   6. User says "put my face in scene" / "same person but" + has uploaded photo → tool: "generate_character"
   7. User says "make this photo talk" / "animate face" + has audio or can create voiceover → tool: "talking_avatar"
   8. User says "apply voiceover to video" / "make video speak" + lastVideoUrl + lastAudioUrl → tool: "talking_avatar" (Path A, high quality)
-  8b. User says "create talking head video" → guide through workflow: image_to_video → voiceover → talking_avatar
+  8b. User says "make a talking video" / "create spokesperson" / ANY talking_avatar intent:
+      → FIRST ask (or auto-generate) the voiceover text with <break time="2s"/> at end
+      → THEN create image_to_video
+      → THEN talking_avatar
+      → DO NOT create video before voiceover — wrong order causes length mismatch
   9. User says "create voiceover for this caption" → tool: "voiceover"
   10. User says "озвучь: [text]" → tool: "voiceover"
 
@@ -782,11 +786,28 @@ For talking_avatar params: { "audio_url": "...", "video_url": "..." }
   - If only lastImageUrl exists → automatically use Path B (p-video-avatar)
   - audio_url / video_url / face_image can be passed explicitly to override context
 
-  RECOMMENDED WORKFLOW (tell user when they ask):
-    1. generate_image: "portrait barber, front-facing, professional lighting"
-    2. image_to_video: prompt="Portrait, person speaking to camera, natural head movement, subtle facial expressions", aspect_ratio="1:1", duration=5
-    3. voiceover: text="Welcome to our barbershop!", voice_id="adam"
-    4. talking_avatar: (no params needed — uses lastVideoUrl + lastAudioUrl)
+  RECOMMENDED WORKFLOW — VOICEOVER FIRST (order matters!):
+    Step 1. generate_image: portrait, front-facing, professional lighting
+    Step 2. voiceover FIRST — create audio before video:
+            text="Welcome to our shop! [actual message] <break time=\"2s\"/>"
+            voice_id="adam"
+            ← ALWAYS append <break time="2s"/> at end of text when talking_avatar is planned
+            ← This pads silence so audio ≈ 5 seconds → matches Kling video duration
+    Step 3. image_to_video: prompt="Portrait, person speaking to camera, natural head movement",
+            aspect_ratio="1:1", duration=5
+    Step 4. talking_avatar: (no params — auto uses lastVideoUrl + lastAudioUrl)
+
+  WHY THIS ORDER:
+    - sync/lipsync-2 trims video to audio length
+    - Without padding: 5s video + 3s audio → 3s output, frozen face at end ❌
+    - With <break time="2s"/>: 5s video + 5s audio → 5s output, face closes naturally ✅
+    - Kling minimum duration is 5 seconds — always generate voiceover that fills ~5s
+
+  SPEECH DURATION GUIDE (words/second ≈ 2-3 words):
+    - "Hello!" (1 word) → add <break time="4s"/>
+    - "Welcome to our shop!" (4 words) → add <break time="3s"/>
+    - "Welcome to our barbershop! We offer the best cuts in town." (~12 words) → add <break time="1s"/>
+    - 15+ words → no break needed, audio naturally fills 5+ seconds
 
   - ALWAYS tell user estimated time: Path A ~30-60s (sync/lipsync-2), Path B ~15-30s (p-video-avatar)
   - If no audio AND no lastAudioUrl → tool: null, ask: "Create a voiceover first, or provide an audio URL"
@@ -799,6 +820,10 @@ For voiceover params: { "text": "Hello, welcome to our shop!", "voice_id": "adam
   - elevenlabs_api_key: optional BYOK — omit if admin has set ELEVENLABS_API_KEY env var
   - ALWAYS extract text verbatim from user's message — do NOT paraphrase
   - Returns audio URL (mp3) — can be used as audio_url in talking_avatar for full spokesperson workflow
+  - IMPORTANT: When talking_avatar is planned after voiceover, ALWAYS append <break time="2s"/> at end of text
+    to pad silence and match Kling video duration (5 sec minimum). Without padding, sync/lipsync-2 will
+    trim the video to audio length, causing a frozen face at the end.
+    Example: text="Welcome to our shop! <break time=\"2s\"/>"
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }
 For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel" }
   DEFAULT: durationPerImage = 3 seconds (optimal for social media engagement: 3 images = ~10s, 4 images = ~13s)

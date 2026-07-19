@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
 
     const replicate = new Replicate({ auth: replicateToken });
 
-    // cjwbw/sadtalker removed from Replicate — using wav2lip as replacement
-    const output = await replicate.run('devxpy/cog-wav2lip', {
+    // prunaai/p-video-avatar: image + audio → lipsync video (Official, 111.9k runs)
+    const output = await replicate.run('prunaai/p-video-avatar', {
       input: {
-        face:  face_image,
-        audio: audio_url,
+        image: face_image,  // portrait photo URL
+        audio: audio_url,   // MP3 audio wins over voice_script
       },
     });
 

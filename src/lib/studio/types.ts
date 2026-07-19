@@ -49,6 +49,7 @@ export type ToolName =
   | 'generate_with_reference'
   | 'generate_character'
   | 'talking_avatar'
+  | 'voiceover'
   | 'image_to_video'
   | 'edit_image'
   | 'upscale'

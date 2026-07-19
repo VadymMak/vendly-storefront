@@ -37,6 +37,7 @@ Context rules:
 - If the user wants to GENERATE using their uploaded photo as STYLE or CONTENT REFERENCE → use generate_with_reference (requires lastImageUrl in context). Trigger phrases: "use my photo", "in this style", "generate with my image", "similar to my photo", "keep my product but...", "make something like this"
 - If the user wants to GENERATE an image WITH THEIR FACE or a specific person's face preserved → use generate_character (requires lastImageUrl in context OR reference_image URL). Takes ~30-60 seconds. Trigger phrases: "generate me as", "put my face", "make me a", "me as a barber/chef/doctor/etc", "with my face", "same person but", "consistent character", "keep the same face", "сгенерируй меня как", "помести моё лицо", "я как", "со своим лицом". If no photo uploaded → ask: "Upload a clear face photo first, then I'll generate you as [role]."
 - If the user wants to ANIMATE A FACE to speak/talk with an audio file → use talking_avatar (requires lastImageUrl + audio_url param). Takes ~60-120 seconds. Trigger phrases: "make this photo talk", "animate this face", "talking head", "lip sync", "make it speak", "добавь голос", "говорящий аватар", "анимируй лицо", "пусть говорит", "make this person speak", "create talking video". If no audio_url in message → ask: "Please provide a URL to an mp3 or wav audio file." If no photo → ask: "Please upload a face photo first."
+- If the user wants to GENERATE AUDIO / VOICEOVER from text → use voiceover. Takes 3-10 seconds. Trigger phrases: "create voiceover", "generate audio", "make voice", "text to speech", "озвучь", "создай голос", "голосовое", "озвучка", "прочитай текст", "narrate", "read this aloud", "add narration". Requires: text param. Optional: voice_id (adam/rachel/arnold/elli/antonio), language (en/sk/cs/uk/de). Power workflow: voiceover output url → use as audio_url in talking_avatar.
 - If the user wants to CREATE A CLIP, SLIDESHOW, MONTAGE from images or videos → use create_clip. Renders directly in the browser (free, no credits).
   CLIP FROM MEDIA (images + videos):
   - Images: Ken Burns camera motion (slow zoom + pan). Duration ~4-5s per image.
@@ -119,6 +120,8 @@ CRITICAL — UPSCALE vs GENERATE vs EDIT routing:
   6. User says "put my face in scene" / "same person but" + has uploaded photo → tool: "generate_character"
   7. User says "make this photo talk" + has uploaded photo + audio URL → tool: "talking_avatar"
   8. User says "animate this face to say..." + lastImageUrl exists → tool: "talking_avatar"
+  9. User says "create voiceover for this caption" → tool: "voiceover"
+  10. User says "озвучь: [text]" → tool: "voiceover"
 
   FORBIDDEN:
   - NEVER use generate_image when user wants to improve an EXISTING image
@@ -768,6 +771,13 @@ For talking_avatar params: { "audio_url": "https://...", "still_mode": true }
   - ALWAYS tell user it takes ~60-120 seconds: "Creating talking avatar... ~1-2 minutes with SadTalker"
   - If no audio_url in message → tool: null, ask: "Please provide a URL to an mp3 or wav audio file"
   - If no uploaded photo → tool: null, ask: "Please upload a face photo first"
+For voiceover params: { "text": "Hello, welcome to our shop!", "voice_id": "adam", "language": "en" }
+  - text: the words to speak (required, max 5000 chars)
+  - voice_id: "adam" (male deep, default) | "rachel" (female calm) | "arnold" (male strong) | "elli" (female young) | "antonio" (male warm)
+  - language: "en" (default) | "sk" | "cs" | "uk" | "de" (and 25+ more via multilingual model)
+  - elevenlabs_api_key: optional BYOK — omit if admin has set ELEVENLABS_API_KEY env var
+  - ALWAYS extract text verbatim from user's message — do NOT paraphrase
+  - Returns audio URL (mp3) — can be used as audio_url in talking_avatar for full spokesperson workflow
 For write_caption params: { "platform": "instagram", "topic": "what to write about" }
 For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel" }
   DEFAULT: durationPerImage = 3 seconds (optimal for social media engagement: 3 images = ~10s, 4 images = ~13s)

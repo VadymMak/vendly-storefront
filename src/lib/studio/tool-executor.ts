@@ -115,6 +115,8 @@ export async function executeTool(
         return await executeGenerateCharacter(params, context, cookieHeader);
       case 'talking_avatar':
         return await executeTalkingAvatar(params, context, cookieHeader);
+      case 'voiceover':
+        return await executeVoiceover(params, cookieHeader);
       case 'image_to_video':
         return await executeGenerateVideo(params, context, cookieHeader);
       case 'edit_image':
@@ -556,6 +558,55 @@ async function executeTalkingAvatar(
   return {
     media: { type: 'video', url: data.url },
     message: 'Talking avatar created! The face is now speaking with the provided audio.',
+  };
+}
+
+async function executeVoiceover(
+  params: Record<string, string | number | boolean>,
+  _cookieHeader: string,
+): Promise<ToolResult> {
+  const text = params.text as string;
+  if (!text) {
+    return {
+      error: 'text is required.',
+      message: 'Tell me what you want the voiceover to say.',
+    };
+  }
+
+  const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
+  if (!BRAIN_API_KEY) {
+    return { error: 'Brain API key not configured' };
+  }
+
+  const res = await fetch(`${BASE_URL}/api/brain/voiceover`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-brain-api-key': BRAIN_API_KEY,
+    },
+    body: JSON.stringify({
+      text,
+      voice_id:             (params.voice_id as string)            || 'adam',
+      language:             (params.language as string)            || 'en',
+      elevenlabs_api_key:   (params.elevenlabs_api_key as string)  || undefined,
+      stability:            Number(params.stability)               || 0.5,
+      similarity_boost:     Number(params.similarity_boost)        || 0.75,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Voiceover failed' })) as { error?: string };
+    return { error: err.error || 'Voiceover failed' };
+  }
+
+  const data = await res.json() as { url?: string; characters?: number; error?: string };
+  if (!data.url) {
+    return { error: data.error || 'No audio URL returned' };
+  }
+
+  return {
+    media:   { type: 'audio', url: data.url },
+    message: `Voiceover created! ${data.characters ?? 0} characters spoken.`,
   };
 }
 

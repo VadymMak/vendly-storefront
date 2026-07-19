@@ -113,6 +113,8 @@ export async function executeTool(
         return await executeGenerateWithReference(params, context, cookieHeader);
       case 'generate_character':
         return await executeGenerateCharacter(params, context, cookieHeader);
+      case 'talking_avatar':
+        return await executeTalkingAvatar(params, context, cookieHeader);
       case 'image_to_video':
         return await executeGenerateVideo(params, context, cookieHeader);
       case 'edit_image':
@@ -498,6 +500,62 @@ async function executeGenerateCharacter(
   return {
     media: { type: 'image', url: data.url },
     message: 'Character generated with consistent face!',
+  };
+}
+
+async function executeTalkingAvatar(
+  params: Record<string, string | number | boolean>,
+  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  _cookieHeader: string,
+): Promise<ToolResult> {
+  const faceImage = (params.face_image as string) || context.lastImageUrl;
+  if (!faceImage) {
+    return {
+      error: 'No face image found. Please upload a face photo first.',
+      message: 'Upload a clear photo of a face, then provide an audio URL.',
+    };
+  }
+
+  const audioUrl = params.audio_url as string;
+  if (!audioUrl) {
+    return {
+      error: 'audio_url is required.',
+      message: 'Provide a URL to an mp3 or wav audio file. Example: "make this photo talk with this audio: https://..."',
+    };
+  }
+
+  const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
+  if (!BRAIN_API_KEY) {
+    return { error: 'Brain API key not configured' };
+  }
+
+  const res = await fetch(`${BASE_URL}/api/brain/lip-sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-brain-api-key': BRAIN_API_KEY,
+    },
+    body: JSON.stringify({
+      face_image:    faceImage,
+      audio_url:     audioUrl,
+      still_mode:    params.still_mode !== false,
+      use_enhancer:  params.use_enhancer === true,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Lip sync failed' })) as { error?: string };
+    return { error: err.error || 'Lip sync failed' };
+  }
+
+  const data = await res.json() as { url?: string; error?: string };
+  if (!data.url) {
+    return { error: data.error || 'No video URL returned' };
+  }
+
+  return {
+    media: { type: 'video', url: data.url },
+    message: 'Talking avatar created! The face is now speaking with the provided audio.',
   };
 }
 

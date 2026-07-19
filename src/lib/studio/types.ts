@@ -48,6 +48,7 @@ export type ToolName =
   | 'generate_image'
   | 'generate_with_reference'
   | 'generate_character'
+  | 'talking_avatar'
   | 'image_to_video'
   | 'edit_image'
   | 'upscale'

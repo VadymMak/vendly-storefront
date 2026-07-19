@@ -164,6 +164,27 @@ export default function ChatMessageBubble({ message, onDeleteMedia, onUseAsRefer
                 </div>
               )}
 
+              {message.media?.type === 'audio' && (
+                <div className="mt-2 rounded-lg overflow-hidden bg-black/10 p-3">
+                  <p className="text-xs text-[var(--color-text-muted)] mb-2">🎙️ Voiceover audio</p>
+                  <audio
+                    src={message.media.url}
+                    controls
+                    className="w-full"
+                    preload="metadata"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(message.media!.url, `voiceover-${Date.now()}.mp3`)}
+                      className="text-xs px-2 py-1 rounded bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
+                    >
+                      Download MP3
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {!isUser && message.enhancedPrompt && (
                 <details className="mt-2 group">
                   <summary className="text-[10px] text-[var(--color-text-muted)] cursor-pointer select-none list-none flex items-center gap-1 hover:text-[var(--color-primary)] transition-colors">

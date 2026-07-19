@@ -118,8 +118,9 @@ CRITICAL — UPSCALE vs GENERATE vs EDIT routing:
   4. User says "resize/compress/for Instagram" → tool: "transform_image" (FREE)
   5. User says "generate me as X" / "me as a [role]" + has uploaded photo → tool: "generate_character"
   6. User says "put my face in scene" / "same person but" + has uploaded photo → tool: "generate_character"
-  7. User says "make this photo talk" + has uploaded photo + audio URL → tool: "talking_avatar"
-  8. User says "animate this face to say..." + lastImageUrl exists → tool: "talking_avatar"
+  7. User says "make this photo talk" / "animate face" + has audio or can create voiceover → tool: "talking_avatar"
+  8. User says "apply voiceover to video" / "make video speak" + lastVideoUrl + lastAudioUrl → tool: "talking_avatar" (Path A, high quality)
+  8b. User says "create talking head video" → guide through workflow: image_to_video → voiceover → talking_avatar
   9. User says "create voiceover for this caption" → tool: "voiceover"
   10. User says "озвучь: [text]" → tool: "voiceover"
 
@@ -763,15 +764,34 @@ For generate_character params: { "prompt": "detailed scene description in Englis
   - ALWAYS tell user it takes ~30-60 seconds: "Generating you as [role]... This takes about 30-60 seconds with InstantID"
   - ALWAYS write prompt in English with scene details: pose, setting, lighting, clothing
   - If user has no uploaded photo → message: "Upload a clear face photo first, then I'll generate you as [role]." → tool: null
-For talking_avatar params: { "audio_url": "https://...", "still_mode": true }
-  - face_image is taken from lastImageUrl automatically — do NOT include in params unless user explicitly provides a URL
-  - audio_url: "URL" (optional if lastAudioUrl exists from a previous voiceover tool call — omit param and it will be used automatically)
-  - If user provides an explicit audio URL → use it; otherwise rely on lastAudioUrl from context
-  - still_mode: true (default, less head movement — recommended) | false (more natural movement)
-  - use_enhancer: false (default) | true (GFPGAN face enhancement, slower)
-  - ALWAYS tell user it takes ~60-120 seconds: "Creating talking avatar... ~1-2 minutes with SadTalker"
-  - If no audio_url in message AND no lastAudioUrl in context → tool: null, ask: "Please provide a URL to an mp3 or wav audio file, or create a voiceover first"
-  - If no uploaded photo → tool: null, ask: "Please upload a face photo first"
+For talking_avatar params: { "audio_url": "...", "video_url": "..." }
+  TWO PATHS depending on context:
+
+  PATH A — Studio quality (preferred): requires lastVideoUrl + lastAudioUrl
+    - First run image_to_video (prompt: "Portrait, person speaking to camera, natural head movement, subtle facial expressions"), then voiceover, then talking_avatar
+    - Uses sync/lipsync-2: professional lip sync on animated video
+    - talking_avatar params: {} (auto-uses lastVideoUrl + lastAudioUrl from context)
+
+  PATH B — Quick fallback: requires only lastImageUrl + lastAudioUrl (no video step)
+    - Uses prunaai/p-video-avatar: animates static photo with audio
+    - Useful when user just wants to try quickly without Kling video step
+    - talking_avatar params: {} (auto-uses lastImageUrl + lastAudioUrl)
+
+  DECISION LOGIC:
+  - If lastVideoUrl exists → automatically use Path A (sync/lipsync-2)
+  - If only lastImageUrl exists → automatically use Path B (p-video-avatar)
+  - audio_url / video_url / face_image can be passed explicitly to override context
+
+  RECOMMENDED WORKFLOW (tell user when they ask):
+    1. generate_image: "portrait barber, front-facing, professional lighting"
+    2. image_to_video: prompt="Portrait, person speaking to camera, natural head movement, subtle facial expressions", aspect_ratio="1:1", duration=5
+    3. voiceover: text="Welcome to our barbershop!", voice_id="adam"
+    4. talking_avatar: (no params needed — uses lastVideoUrl + lastAudioUrl)
+
+  - ALWAYS tell user estimated time: Path A ~30-60s (sync/lipsync-2), Path B ~15-30s (p-video-avatar)
+  - If no audio AND no lastAudioUrl → tool: null, ask: "Create a voiceover first, or provide an audio URL"
+  - If no image AND no lastImageUrl AND no lastVideoUrl → tool: null, ask: "Upload or generate a face photo first"
+  - DEPRECATED params (do not use): still_mode, use_enhancer — SadTalker-specific, no longer supported
 For voiceover params: { "text": "Hello, welcome to our shop!", "voice_id": "adam", "language": "en" }
   - text: the words to speak (required, max 5000 chars)
   - voice_id: "adam" (male deep, default) | "rachel" (female calm) | "arnold" (male strong) | "elli" (female young) | "antonio" (male warm)

@@ -510,19 +510,24 @@ async function executeTalkingAvatar(
   context: { lastImageUrl: string | null; lastVideoUrl: string | null; lastAudioUrl: string | null },
   _cookieHeader: string,
 ): Promise<ToolResult> {
-  const faceImage = (params.face_image as string) || context.lastImageUrl;
-  if (!faceImage) {
-    return {
-      error: 'No face image found. Please upload a face photo first.',
-      message: 'Upload a clear photo of a face, then provide an audio URL.',
-    };
-  }
-
-  const audioUrl = (params.audio_url as string) || context.lastAudioUrl || '';
+  const audioUrl = (params.audio_url as string) || context.lastAudioUrl;
   if (!audioUrl) {
     return {
       error: 'No audio found.',
-      message: 'Please provide a URL to an mp3 or wav audio file, or create a voiceover first.',
+      message: 'Create a voiceover first ("create voiceover: [text]"), then try again.',
+    };
+  }
+
+  // Path A: video exists → sync/lipsync-2 (studio quality)
+  const videoUrl = (params.video_url as string) || context.lastVideoUrl;
+
+  // Path B fallback: image only → p-video-avatar
+  const faceImage = (params.face_image as string) || context.lastImageUrl;
+
+  if (!videoUrl && !faceImage) {
+    return {
+      error: 'No video or image found.',
+      message: 'Upload a face photo or generate one first.',
     };
   }
 
@@ -531,18 +536,23 @@ async function executeTalkingAvatar(
     return { error: 'Brain API key not configured' };
   }
 
+  const requestBody = videoUrl
+    ? { video_url: videoUrl, audio_url: audioUrl }
+    : { face_image: faceImage, audio_url: audioUrl };
+
+  const modeLabel = videoUrl
+    ? 'Applying voiceover to video with studio-grade lip sync...'
+    : 'Animating photo with voiceover...';
+
+  console.log(`[talking_avatar] ${modeLabel}`);
+
   const res = await fetch(`${BASE_URL}/api/brain/lip-sync`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-brain-api-key': BRAIN_API_KEY,
     },
-    body: JSON.stringify({
-      face_image:    faceImage,
-      audio_url:     audioUrl,
-      still_mode:    params.still_mode !== false,
-      use_enhancer:  params.use_enhancer === true,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!res.ok) {
@@ -550,14 +560,18 @@ async function executeTalkingAvatar(
     return { error: err.error || 'Lip sync failed' };
   }
 
-  const data = await res.json() as { url?: string; error?: string };
+  const data = await res.json() as { url?: string; error?: string; mode?: string };
   if (!data.url) {
     return { error: data.error || 'No video URL returned' };
   }
 
+  const qualityNote = videoUrl
+    ? 'Studio-grade lip sync applied.'
+    : 'Photo animated with voiceover. For higher quality, first run image_to_video, then talking_avatar.';
+
   return {
     media: { type: 'video', url: data.url },
-    message: 'Talking avatar created! The face is now speaking with the provided audio.',
+    message: `Talking avatar ready! ${qualityNote}`,
   };
 }
 

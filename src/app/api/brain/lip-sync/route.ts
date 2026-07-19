@@ -12,21 +12,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = (await req.json()) as {
-      face_image?: string;
+      video_url?: string;   // preferred: animated video → sync/lipsync-2
+      face_image?: string;  // fallback: static photo → prunaai/p-video-avatar
       audio_url?: string;
     };
 
-    const { face_image, audio_url } = body;
+    const { video_url, face_image, audio_url } = body;
 
-    if (!face_image) {
+    if (!audio_url) {
       return NextResponse.json(
-        { error: 'face_image URL is required. Upload a clear face photo first.' },
+        { error: 'audio_url is required. Create a voiceover first.' },
         { status: 400 },
       );
     }
-    if (!audio_url) {
+    if (!video_url && !face_image) {
       return NextResponse.json(
-        { error: 'audio_url is required. Provide a URL to an mp3 or wav audio file.' },
+        { error: 'Provide video_url (preferred) or face_image.' },
         { status: 400 },
       );
     }
@@ -38,14 +39,27 @@ export async function POST(req: NextRequest) {
 
     const replicate = new Replicate({ auth: replicateToken });
 
-    // prunaai/p-video-avatar: image + audio → lipsync video (Official, 111.9k runs)
-    const output = await replicate.run('prunaai/p-video-avatar', {
-      input: {
-        image: face_image,  // portrait photo URL
-        audio: audio_url,   // MP3 audio wins over voice_script
-      },
-    });
+    let output: unknown;
 
+    if (video_url) {
+      // Path A: studio-grade lipsync — video + audio → sync/lipsync-2
+      output = await replicate.run('sync/lipsync-2', {
+        input: {
+          audio: audio_url,
+          video: video_url,
+        },
+      });
+    } else {
+      // Path B: talking photo fallback — image + audio → p-video-avatar
+      output = await replicate.run('prunaai/p-video-avatar', {
+        input: {
+          image: face_image,
+          audio: audio_url,
+        },
+      });
+    }
+
+    // Resolve output URL (handles string, URL, FileOutput, array)
     let videoUrl: string | null = null;
     if (typeof output === 'string') {
       videoUrl = output;
@@ -58,6 +72,9 @@ export async function POST(req: NextRequest) {
       const first = (output as unknown[])[0];
       if (typeof first === 'string') videoUrl = first;
       else if (first instanceof URL) videoUrl = first.toString();
+      else if (first && typeof (first as { url?: () => string }).url === 'function') {
+        videoUrl = (first as { url: () => string }).url();
+      }
     }
 
     if (!videoUrl) {
@@ -72,10 +89,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      url: blob.url,
+      url:   blob.url,
       media: { type: 'video', url: blob.url },
-      face_image,
-      audio_url,
+      mode:  video_url ? 'sync-lipsync-2' : 'p-video-avatar',
     });
   } catch (error) {
     console.error('[brain/lip-sync]', error);

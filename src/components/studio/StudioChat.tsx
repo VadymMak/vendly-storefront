@@ -233,6 +233,26 @@ const WELCOME_MESSAGE: ChatMessage = {
 const SESSION_KEY = 'studio-chat-session';
 const MAX_MESSAGES = 30;
 
+// Groups Whisper word-level timestamps into readable caption lines.
+// 4 words per line is optimal for subtitle readability at video pace.
+function groupWordsIntoCaptions(
+  words: Array<{ word: string; start: number; end: number }>,
+  wordsPerLine = 4,
+): import('@/lib/slideshow-renderer').TextOverlay[] {
+  const overlays: import('@/lib/slideshow-renderer').TextOverlay[] = [];
+  for (let i = 0; i < words.length; i += wordsPerLine) {
+    const chunk = words.slice(i, i + wordsPerLine);
+    overlays.push({
+      text:     chunk.map((w) => w.word).join(' ').trim(),
+      position: 'bottom',
+      style:    'subtitle',
+      from:     chunk[0].start,
+      to:       chunk[chunk.length - 1].end + 0.15,
+    });
+  }
+  return overlays;
+}
+
 export default function StudioChat({ userId, userEmail }: Props) {
   void userId;
   void userEmail;
@@ -551,6 +571,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     messageId: string,
     audio?: File | null,
     musicFile?: File | null,
+    captionOverlays?: import('@/lib/slideshow-renderer').TextOverlay[] | null,
   ) => {
     if (mediaItems.length < 1) {
       setMessages((prev) =>
@@ -731,6 +752,13 @@ export default function StudioChat({ userId, userEmail }: Props) {
         }
       }
 
+      // Merge agent text_overlays with Whisper auto-captions
+      const mergedOverlays = [
+        ...(textOverlays ?? []),
+        ...(captionOverlays ?? []),
+      ];
+      const finalTextOverlays = mergedOverlays.length > 0 ? mergedOverlays : undefined;
+
       // Watermark -- load image before rendering starts
       let watermark: import('@/lib/slideshow-renderer').WatermarkConfig | undefined;
       if (params.watermark_url) {
@@ -766,7 +794,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         musicFile: musicFile ?? undefined,
         style: (params.style as VideoStyle) || 'cinematic',
         grain: params.grain ? Number(params.grain) : 0,
-        textOverlays,
+        textOverlays: finalTextOverlays,
         watermark,
       };
 
@@ -957,6 +985,39 @@ export default function StudioChat({ userId, userEmail }: Props) {
         let backgroundMusic: File | null = null;
         const voiceoverUrl = data.context?.lastAudioUrl ?? context?.lastAudioUrl ?? null;
 
+        // Auto-captions: transcribe voiceover via Whisper if requested
+        let captionOverlays: import('@/lib/slideshow-renderer').TextOverlay[] | null = null;
+        if (clipParams.auto_captions && voiceoverUrl) {
+          try {
+            setMessages((prev) => prev.map((m) =>
+              m.id === loadingMsg.id
+                ? { ...m, content: '📝 Transcribing voiceover for captions...' }
+                : m,
+            ));
+            const transcRes = await fetch('/api/brain/transcribe', {
+              method:  'POST',
+              headers: {
+                'Content-Type':    'application/json',
+                'x-brain-api-key': process.env.NEXT_PUBLIC_BRAIN_API_KEY ?? '',
+              },
+              body: JSON.stringify({ audio_url: voiceoverUrl }),
+            });
+            if (transcRes.ok) {
+              const transcData = (await transcRes.json()) as {
+                words: Array<{ word: string; start: number; end: number }>;
+              };
+              if (transcData.words?.length > 0) {
+                captionOverlays = groupWordsIntoCaptions(transcData.words);
+                console.log('[clip] Auto-captions:', captionOverlays.length, 'lines generated');
+              }
+            } else {
+              console.warn('[clip] Transcribe failed:', await transcRes.text());
+            }
+          } catch (e) {
+            console.warn('[clip] Caption transcription error:', e);
+          }
+        }
+
         if (voiceoverUrl) {
           try {
             setMessages((prev) => prev.map((m) =>
@@ -998,7 +1059,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
             ? { ...m, content: statusMsg, isLoading: true }
             : m,
         ));
-        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, voiceoverFile, backgroundMusic);
+        renderClipInChat(uniqueMediaItems, clipParams, loadingMsg.id, voiceoverFile, backgroundMusic, captionOverlays);
         return;
       }
 

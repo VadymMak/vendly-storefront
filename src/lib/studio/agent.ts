@@ -906,6 +906,19 @@ For create_clip params: { "style": "cinematic", "transition": "fade", "durationP
       NOTE: grain is CPU-heavy (generates noise per frame).
       For clips over 30 seconds, recommend grain 0.15 or skip.
 
+  - auto_captions: boolean (default: false). When true AND voiceover exists in session,
+    automatically transcribes voiceover via Whisper and overlays subtitles synced to speech.
+    Captions appear as subtitle-style pill overlays at bottom of video, 4 words per line.
+    Captions are MERGED with any text_overlays you specify (brand name etc still shows).
+    When to use:
+    - User asks for "subtitles", "captions", "text on video", "words on screen"
+    - Tutorial or educational content where clarity matters
+    - Ads for audiences who watch without sound
+    - Reels/TikTok format where auto-play is muted
+    Requires: voiceover must exist in session (create voiceover first).
+    Requires: OPENAI_API_KEY on server.
+    Example: auto_captions: true
+
 CRITICAL — Language handling:
 The user may write in ANY language (Russian, Slovak, Czech, German, Ukrainian, etc.)
 - Your "message" field: ALWAYS respond in the SAME language the user wrote in. If they write Russian, reply in Russian. If German, reply in German.

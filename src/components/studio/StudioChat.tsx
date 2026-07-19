@@ -730,6 +730,31 @@ export default function StudioChat({ userId, userEmail }: Props) {
         }
       }
 
+      // Watermark -- load image before rendering starts
+      let watermark: import('@/lib/slideshow-renderer').WatermarkConfig | undefined;
+      if (params.watermark_url) {
+        try {
+          const wmImg = new Image();
+          wmImg.crossOrigin = 'anonymous';
+          wmImg.src = params.watermark_url as string;
+          await new Promise<void>((resolve) => {
+            wmImg.onload  = () => resolve();
+            wmImg.onerror = () => resolve(); // fail silently, no watermark
+          });
+          if (wmImg.naturalWidth > 0) {
+            watermark = {
+              image:     wmImg,
+              position:  ((params.watermark_position as string) || 'bottom-right') as import('@/lib/slideshow-renderer').WatermarkConfig['position'],
+              opacity:   params.watermark_opacity ? Number(params.watermark_opacity) : 0.8,
+              sizeRatio: params.watermark_size    ? Number(params.watermark_size)    : 0.12,
+            };
+            console.log('[clip] Watermark loaded:', params.watermark_url);
+          }
+        } catch (e) {
+          console.warn('[clip] Failed to load watermark image:', e);
+        }
+      }
+
       const config: SlideshowConfig = {
         items,
         transitionDuration: items.length === 1 ? 0 : 0.8,
@@ -739,6 +764,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         audioFile: audio ?? undefined,
         style: (params.style as VideoStyle) || 'cinematic',
         textOverlays,
+        watermark,
       };
 
       let lastReportedPct = -1;

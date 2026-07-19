@@ -35,6 +35,13 @@ export interface SlideshowItem {
   style?: VideoStyle;            // per-scene override; if omitted → SlideshowConfig.style
 }
 
+export interface WatermarkConfig {
+  image: HTMLImageElement;
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  opacity: number;    // 0.0 to 1.0, default 0.8
+  sizeRatio: number;  // fraction of canvas width, default 0.12
+}
+
 export interface SlideshowConfig {
   items: SlideshowItem[];
   transitionDuration: number;
@@ -44,6 +51,7 @@ export interface SlideshowConfig {
   audioFile?: File;
   style?: VideoStyle; // default: 'none'
   textOverlays?: TextOverlay[];
+  watermark?: WatermarkConfig;
 }
 
 export interface RenderProgress {
@@ -364,6 +372,40 @@ function drawTextOverlay(
   ctx.restore();
 }
 
+function drawWatermark(
+  ctx: CanvasRenderingContext2D,
+  wm: WatermarkConfig,
+  W: number,
+  H: number,
+): void {
+  const wmW = Math.round(W * wm.sizeRatio);
+  const aspect = wm.image.naturalHeight / wm.image.naturalWidth;
+  const wmH = Math.round(wmW * aspect);
+  const pad = Math.round(W * 0.025);
+
+  let x: number;
+  let y: number;
+
+  if (wm.position === 'top-left') {
+    x = pad;
+    y = pad;
+  } else if (wm.position === 'top-right') {
+    x = W - wmW - pad;
+    y = pad;
+  } else if (wm.position === 'bottom-left') {
+    x = pad;
+    y = H - wmH - pad;
+  } else {
+    x = W - wmW - pad;
+    y = H - wmH - pad;
+  }
+
+  ctx.save();
+  ctx.globalAlpha = wm.opacity;
+  ctx.drawImage(wm.image, x, y, wmW, wmH);
+  ctx.restore();
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
@@ -405,6 +447,7 @@ function drawFrame(
     if (item.type === 'color-card' && item.cardOverlays) {
       for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H);
     }
+    if (config.watermark) drawWatermark(ctx, config.watermark, W, H);
     return;
   }
 
@@ -499,6 +542,7 @@ function drawFrame(
   // During transition, incoming scene style wins
   applyStyle(ctx, toItem.style ?? style, W, H);
   renderOverlays();
+  if (config.watermark) drawWatermark(ctx, config.watermark, W, H);
 }
 
 // ── Pass 2: add audio track in real-time ──────────────────────────────────────

@@ -13,22 +13,23 @@ const VALID_CAMERA_TYPES = [
 
 type CameraType = (typeof VALID_CAMERA_TYPES)[number];
 
+const CAMERA_PROMPTS: Record<CameraType, string> = {
+  zoom_in:     'slow dolly push in, camera moves forward toward subject',
+  zoom_out:    'slow dolly pull out, camera moves backward revealing space',
+  pan_left:    'smooth camera pan left, horizontal slide',
+  pan_right:   'smooth camera pan right, horizontal slide',
+  tilt_up:     'crane up shot, camera slowly rises from low to high angle',
+  tilt_down:   'crane down shot, camera slowly descends from high to low',
+  orbit_left:  'slow orbit shot, camera circles subject from right to left',
+  orbit_right: 'slow orbit shot, camera circles subject from left to right',
+  none:        '',
+};
+
 // Kling on Replicate has no camera_movement field — we encode it in the prompt instead.
 function buildCameraFragment(type: CameraType, value: number): string {
   if (type === 'none') return '';
-  const speed = value <= 3 ? 'slowly' : value <= 7 ? 'steadily' : 'quickly';
-  const directions: Record<CameraType, string> = {
-    zoom_in:     `${speed} zooming in`,
-    zoom_out:    `${speed} zooming out`,
-    pan_left:    `${speed} panning left`,
-    pan_right:   `${speed} panning right`,
-    tilt_up:     `${speed} tilting up`,
-    tilt_down:   `${speed} tilting down`,
-    orbit_left:  `${speed} orbiting left`,
-    orbit_right: `${speed} orbiting right`,
-    none:        '',
-  };
-  return `, with camera ${directions[type]}`;
+  const intensity = value <= 3 ? 'subtle' : value <= 6 ? 'smooth' : 'dramatic';
+  return `, ${CAMERA_PROMPTS[type]}, ${intensity} motion, continuous fluid movement`;
 }
 
 export async function POST(req: NextRequest) {

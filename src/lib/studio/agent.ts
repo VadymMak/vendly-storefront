@@ -860,6 +860,19 @@ For create_clip params: { "style": "cinematic", "transition": "fade", "durationP
     Pass as JSON: end_card: "{\"brand\":\"MASTER CUTS\",\"tagline\":\"Every cut tells a story\",\"bg\":\"#0a0a0a\",\"duration\":3}"
     ALWAYS add end_card for ad clips and brand videos.
     For cinematic ads use dark bg (#0a0a14, #111827). For product/clean brands use white (#FAFAFA).
+  - scene_styles: optional per-scene color grade (comma-separated or JSON array).
+    Order matches media order. Styles: none | golden-hour | cinematic | vintage | cool-tone | bw
+    Examples:
+      scene_styles: "cool-tone,cool-tone,golden-hour"   // city intro -> warm sunset
+      scene_styles: "cinematic,cinematic,bw"             // drama with b&w finale
+      scene_styles: "golden-hour,golden-hour,cinematic"  // food -> restaurant ambiance
+    HOW TO USE: count images/videos the user has (N scenes), pick style per scene based on content.
+    Omit to apply global 'style' to all scenes equally.
+    EXAMPLES by business type:
+    - Barbershop: "cinematic,bw,bw"                     (sharp intro, b&w craft)
+    - Restaurant: "golden-hour,golden-hour,cinematic"    (warm food, premium finish)
+    - Tech/SaaS:  "cool-tone,cinematic,cinematic"        (clean blue, bold finish)
+    - Nail studio: "vintage,golden-hour,golden-hour"     (pastel mood, warmth)
 
 CRITICAL — Language handling:
 The user may write in ANY language (Russian, Slovak, Czech, German, Ukrainian, etc.)

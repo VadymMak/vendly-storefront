@@ -30,8 +30,9 @@ export interface SlideshowItem {
   element?: HTMLImageElement | HTMLVideoElement; // undefined for color-card
   duration: number;
   motion?: CameraMotion;       // images only
-  bgColor?: string;            // color-card only: CSS color string e.g. '#0a0a0a'
-  cardOverlays?: TextOverlay[]; // color-card only: overlays always shown during this item
+  bgColor?: string;             // color-card only: CSS color string e.g. '#0a0a0a'
+  cardOverlays?: TextOverlay[];  // color-card only: overlays always shown during this item
+  style?: VideoStyle;            // per-scene override; if omitted → SlideshowConfig.style
 }
 
 export interface SlideshowConfig {
@@ -284,8 +285,11 @@ function getFrameState(
 
 // Audio is now in Pass 2 (real-time, no drift), so slow filter rendering in Pass 1
 // no longer breaks audio sync. Apply cssFilter to all items including video.
-function itemFilter(_item: SlideshowItem, cssFilter: string): string {
-  return cssFilter;
+function itemFilter(item: SlideshowItem, globalCssFilter: string): string {
+  if (item.style && item.style !== 'none') {
+    return STYLE_PRESETS[item.style].filter;
+  }
+  return globalCssFilter;
 }
 
 function drawTextOverlay(
@@ -396,7 +400,7 @@ function drawFrame(
     ctx.filter = itemFilter(item, cssFilter);
     drawItemAtRect(ctx, item, W, H, rawProgress, 0, 0, W, H);
     ctx.filter = 'none';
-    applyStyle(ctx, style, W, H);
+    applyStyle(ctx, item.style ?? style, W, H);
     renderOverlays();
     if (item.type === 'color-card' && item.cardOverlays) {
       for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H);
@@ -492,7 +496,8 @@ function drawFrame(
     }
   }
 
-  applyStyle(ctx, style, W, H);
+  // During transition, incoming scene style wins
+  applyStyle(ctx, toItem.style ?? style, W, H);
   renderOverlays();
 }
 

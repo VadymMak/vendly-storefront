@@ -666,6 +666,26 @@ export default function StudioChat({ userId, userEmail }: Props) {
         await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       }
 
+      // Per-scene color grading — scene_styles: "cinematic,golden-hour,cool-tone" or JSON array
+      if (params.scene_styles && items.length > 0) {
+        try {
+          const raw = params.scene_styles as string;
+          const styles: string[] = raw.startsWith('[')
+            ? (JSON.parse(raw) as string[])
+            : raw.split(',').map((s) => s.trim());
+
+          styles.forEach((s, i) => {
+            if (i < items.length && s && s !== 'none') {
+              items[i] = { ...items[i], style: s as import('@/lib/slideshow-renderer').VideoStyle };
+            }
+          });
+
+          console.log('[clip] Scene styles applied:', styles);
+        } catch (e) {
+          console.warn('[clip] Failed to parse scene_styles:', e);
+        }
+      }
+
       // End card — branded final frame on clean background
       if (params.end_card) {
         try {

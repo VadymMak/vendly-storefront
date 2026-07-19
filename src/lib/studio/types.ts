@@ -33,6 +33,7 @@ export interface ChatSession {
 export interface SessionContext {
   lastImageUrl: string | null;
   lastVideoUrl: string | null;
+  lastAudioUrl: string | null;
   platform?: Platform;
 }
 

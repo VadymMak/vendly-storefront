@@ -243,6 +243,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const [context, setContext] = useState<SessionContext>({
     lastImageUrl: null,
     lastVideoUrl: null,
+    lastAudioUrl: null,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -263,7 +264,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         const parsed = JSON.parse(saved) as { messages?: ChatMessage[]; context?: SessionContext };
         if (parsed.messages && parsed.messages.length > 0) {
           setMessages(parsed.messages);
-          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null });
+          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null });
         }
       }
     } catch {
@@ -1061,18 +1062,20 @@ export default function StudioChat({ userId, userEmail }: Props) {
         m.id === messageId ? { ...m, media: undefined } : m,
       );
 
-      // Recalculate context: find the last remaining image and video
+      // Recalculate context: find the last remaining image, video and audio
       let newLastImageUrl: string | null = null;
       let newLastVideoUrl: string | null = null;
+      let newLastAudioUrl: string | null = null;
 
       for (let i = updated.length - 1; i >= 0; i--) {
         const msg = updated[i];
         if (msg.media?.type === 'image' && !newLastImageUrl) newLastImageUrl = msg.media.url;
         if (msg.media?.type === 'video' && !newLastVideoUrl) newLastVideoUrl = msg.media.url;
-        if (newLastImageUrl && newLastVideoUrl) break;
+        if (msg.media?.type === 'audio' && !newLastAudioUrl) newLastAudioUrl = msg.media.url;
+        if (newLastImageUrl && newLastVideoUrl && newLastAudioUrl) break;
       }
 
-      setContext((c) => ({ ...c, lastImageUrl: newLastImageUrl, lastVideoUrl: newLastVideoUrl }));
+      setContext((c) => ({ ...c, lastImageUrl: newLastImageUrl, lastVideoUrl: newLastVideoUrl, lastAudioUrl: newLastAudioUrl }));
 
       return updated;
     });
@@ -1127,7 +1130,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   const handleNewSession = () => {
     setMessages([WELCOME_MESSAGE]);
-    setContext({ lastImageUrl: null, lastVideoUrl: null });
+    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null });
     localStorage.removeItem(SESSION_KEY);
   };
 

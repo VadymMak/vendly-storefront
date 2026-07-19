@@ -102,7 +102,7 @@ async function ensureWithinPixelLimit(
 export async function executeTool(
   tool: ToolName,
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  context: { lastImageUrl: string | null; lastVideoUrl: string | null; lastAudioUrl: string | null },
   cookieHeader: string,
 ): Promise<ToolResult> {
   try {
@@ -507,7 +507,7 @@ async function executeGenerateCharacter(
 
 async function executeTalkingAvatar(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  context: { lastImageUrl: string | null; lastVideoUrl: string | null; lastAudioUrl: string | null },
   _cookieHeader: string,
 ): Promise<ToolResult> {
   const faceImage = (params.face_image as string) || context.lastImageUrl;
@@ -518,11 +518,11 @@ async function executeTalkingAvatar(
     };
   }
 
-  const audioUrl = params.audio_url as string;
+  const audioUrl = (params.audio_url as string) || context.lastAudioUrl || '';
   if (!audioUrl) {
     return {
-      error: 'audio_url is required.',
-      message: 'Provide a URL to an mp3 or wav audio file. Example: "make this photo talk with this audio: https://..."',
+      error: 'No audio found.',
+      message: 'Please provide a URL to an mp3 or wav audio file, or create a voiceover first.',
     };
   }
 

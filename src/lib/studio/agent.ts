@@ -765,11 +765,12 @@ For generate_character params: { "prompt": "detailed scene description in Englis
   - If user has no uploaded photo → message: "Upload a clear face photo first, then I'll generate you as [role]." → tool: null
 For talking_avatar params: { "audio_url": "https://...", "still_mode": true }
   - face_image is taken from lastImageUrl automatically — do NOT include in params unless user explicitly provides a URL
-  - audio_url MUST be a direct URL to an mp3 or wav file — extract it from the user's message
+  - audio_url: "URL" (optional if lastAudioUrl exists from a previous voiceover tool call — omit param and it will be used automatically)
+  - If user provides an explicit audio URL → use it; otherwise rely on lastAudioUrl from context
   - still_mode: true (default, less head movement — recommended) | false (more natural movement)
   - use_enhancer: false (default) | true (GFPGAN face enhancement, slower)
   - ALWAYS tell user it takes ~60-120 seconds: "Creating talking avatar... ~1-2 minutes with SadTalker"
-  - If no audio_url in message → tool: null, ask: "Please provide a URL to an mp3 or wav audio file"
+  - If no audio_url in message AND no lastAudioUrl in context → tool: null, ask: "Please provide a URL to an mp3 or wav audio file, or create a voiceover first"
   - If no uploaded photo → tool: null, ask: "Please upload a face photo first"
 For voiceover params: { "text": "Hello, welcome to our shop!", "voice_id": "adam", "language": "en" }
   - text: the words to speak (required, max 5000 chars)

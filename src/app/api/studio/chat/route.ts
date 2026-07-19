@@ -168,6 +168,8 @@ export async function POST(req: NextRequest) {
             updatedContext.lastImageUrl = result.media.url;
           } else if (result.media.type === 'video') {
             updatedContext.lastVideoUrl = result.media.url;
+          } else if (result.media.type === 'audio') {
+            updatedContext.lastAudioUrl = result.media.url;
           }
         }
 

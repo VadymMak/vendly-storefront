@@ -14,16 +14,9 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       face_image?: string;
       audio_url?: string;
-      still_mode?: boolean;
-      use_enhancer?: boolean;
     };
 
-    const {
-      face_image,
-      audio_url,
-      still_mode = true,
-      use_enhancer = false,
-    } = body;
+    const { face_image, audio_url } = body;
 
     if (!face_image) {
       return NextResponse.json(
@@ -45,20 +38,11 @@ export async function POST(req: NextRequest) {
 
     const replicate = new Replicate({ auth: replicateToken });
 
-    // SadTalker: static face image + audio → talking head video.
-    // still_mode requires preprocess='full' to work correctly per model docs.
-    const output = await replicate.run('cjwbw/sadtalker', {
+    // cjwbw/sadtalker removed from Replicate — using wav2lip as replacement
+    const output = await replicate.run('devxpy/cog-wav2lip', {
       input: {
-        source_image:     face_image,
-        driven_audio:     audio_url,
-        preprocess:       still_mode ? 'full' : 'crop',
-        still_mode,
-        use_enhancer,
-        use_eyeblink:     true,
-        size_of_image:    256,
-        expression_scale: 1,
-        facerender:       'facevid2vid',
-        pose_style:       0,
+        face:  face_image,
+        audio: audio_url,
       },
     });
 

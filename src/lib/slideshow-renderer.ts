@@ -50,6 +50,7 @@ export interface SlideshowConfig {
   fps: number;
   audioFile?: File;   // voiceover -- full volume, no loop
   musicFile?: File;   // background music -- low volume, looping
+  grain?: number;     // 0-1 film grain intensity; 0 = off (default); 0.2 = cinematic; 0.35 = vintage
   style?: VideoStyle; // default: 'none'
   textOverlays?: TextOverlay[];
   watermark?: WatermarkConfig;
@@ -407,6 +408,41 @@ function drawWatermark(
   ctx.restore();
 }
 
+// Renders per-frame random noise at 1/4 resolution (performance), scaled up for film grain look.
+// Creating a small canvas per frame is intentional -- avoids stale grain between frames.
+function applyFilmGrain(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  intensity: number,
+): void {
+  const GW = Math.ceil(W / 4);
+  const GH = Math.ceil(H / 4);
+
+  const gCanvas = document.createElement('canvas');
+  gCanvas.width  = GW;
+  gCanvas.height = GH;
+  const gCtx = gCanvas.getContext('2d');
+  if (!gCtx) return;
+
+  const imageData = gCtx.createImageData(GW, GH);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const v     = (Math.random() * 255) | 0;
+    data[i]     = v;
+    data[i + 1] = v;
+    data[i + 2] = v;
+    data[i + 3] = (Math.random() * 255 * intensity) | 0;
+  }
+  gCtx.putImageData(imageData, 0, 0);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.globalAlpha = intensity * 0.55;
+  ctx.drawImage(gCanvas, 0, 0, W, H);
+  ctx.restore();
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   config: SlideshowConfig,
@@ -449,6 +485,7 @@ function drawFrame(
       for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H);
     }
     if (config.watermark) drawWatermark(ctx, config.watermark, W, H);
+    if (config.grain && config.grain > 0) applyFilmGrain(ctx, W, H, config.grain);
     return;
   }
 
@@ -544,6 +581,7 @@ function drawFrame(
   applyStyle(ctx, toItem.style ?? style, W, H);
   renderOverlays();
   if (config.watermark) drawWatermark(ctx, config.watermark, W, H);
+  if (config.grain && config.grain > 0) applyFilmGrain(ctx, W, H, config.grain);
 }
 
 // ── Pass 2: add audio track in real-time ──────────────────────────────────────

@@ -895,6 +895,17 @@ For create_clip params: { "style": "cinematic", "transition": "fade", "durationP
       watermark_opacity: "0.75"
       watermark_size: "0.10"
 
+  - grain: 0 to 1 film grain intensity (default: 0 = disabled)
+      0.2  = subtle cinematic texture (recommended for cinematic style)
+      0.35 = vintage film look (recommended for vintage style)
+      0.5+ = heavy grain / damaged film aesthetic
+      Pairs well with:
+        style "cinematic" -> grain 0.2
+        style "vintage"   -> grain 0.35
+        style "bw"        -> grain 0.3 (dramatic documentary feel)
+      NOTE: grain is CPU-heavy (generates noise per frame).
+      For clips over 30 seconds, recommend grain 0.15 or skip.
+
 CRITICAL — Language handling:
 The user may write in ANY language (Russian, Slovak, Czech, German, Ukrainian, etc.)
 - Your "message" field: ALWAYS respond in the SAME language the user wrote in. If they write Russian, reply in Russian. If German, reply in German.

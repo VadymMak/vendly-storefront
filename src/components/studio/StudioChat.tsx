@@ -765,6 +765,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         audioFile: audio ?? undefined,
         musicFile: musicFile ?? undefined,
         style: (params.style as VideoStyle) || 'cinematic',
+        grain: params.grain ? Number(params.grain) : 0,
         textOverlays,
         watermark,
       };

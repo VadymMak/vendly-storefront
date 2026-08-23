@@ -473,7 +473,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     return URL.createObjectURL(resultBlob);
   }, []);
 
-  // Ref to always call the latest sendText (avoids stale closure in pollVideoJob / useEffect)
+  // Ref to always call the latest sendText (avoids stale closure in async callbacks)
   const sendTextRef = useRef<((text: string) => void) | null>(null);
 
   const pollVideoJob = useCallback(async (jobId: string, messageId: string, audioForMux?: File | null) => {
@@ -883,6 +883,86 @@ export default function StudioChat({ userId, userEmail }: Props) {
     }
   }, []);
 
+  // Poll multiple Kling jobs simultaneously (for ad_clip_generate parallel animation)
+  const pollVideoJobsParallel = useCallback(async (
+    jobIds: string[],
+    messageId: string,
+  ) => {
+    const jobStatus: Record<string, 'pending' | 'done' | 'error'> = {};
+    const completedUrls: Record<number, string> = {};
+    jobIds.forEach((id) => { jobStatus[id] = 'pending'; });
+
+    const renderProgress = () => {
+      const lines = jobIds.map((id, idx) => {
+        const s = jobStatus[id];
+        return `  Scene ${idx + 1}: ${s === 'done' ? '✅ Done' : s === 'error' ? '❌ Failed' : '⏳ Processing...'}`;
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, content: `🎬 Animating ${jobIds.length} scenes in parallel...\n${lines.join('\n')}`, isLoading: true }
+            : m,
+        ),
+      );
+    };
+
+    renderProgress();
+
+    await Promise.all(
+      jobIds.map(async (jobId, idx) => {
+        const maxTime = 10 * 60 * 1000;
+        const start = Date.now();
+        while (Date.now() - start < maxTime) {
+          await new Promise((r) => setTimeout(r, 4000));
+          try {
+            const res = await fetch(`/api/studio/job/${jobId}`);
+            if (!res.ok) continue;
+            const data = await res.json() as { status: string; outputUrl?: string };
+            if (data.status === 'succeeded' && data.outputUrl) {
+              jobStatus[jobId] = 'done';
+              completedUrls[idx] = data.outputUrl;
+              renderProgress();
+              return;
+            } else if (data.status === 'failed' || data.status === 'canceled') {
+              jobStatus[jobId] = 'error';
+              renderProgress();
+              return;
+            }
+          } catch { /* network error — retry */ }
+        }
+        jobStatus[jobId] = 'error';
+        renderProgress();
+      }),
+    );
+
+    const videoUrls = jobIds.map((_, idx) => completedUrls[idx]).filter(Boolean) as string[];
+    const doneCount = videoUrls.length;
+    const lastVideoUrl = videoUrls[doneCount - 1] ?? null;
+
+    setContext((prev) => ({
+      ...prev,
+      lastVideoUrl: lastVideoUrl ?? prev.lastVideoUrl,
+      adClipState: prev.adClipState
+        ? { ...prev.adClipState, videos: videoUrls }
+        : undefined,
+    }));
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              content:
+                doneCount === jobIds.length
+                  ? `✅ All ${doneCount} scenes animated!\n\nSay "assemble final clip" to compile the ad.`
+                  : `⚠️ ${doneCount}/${jobIds.length} scenes animated (${jobIds.length - doneCount} failed).\n\nSay "create clip" to compile what's ready.`,
+              isLoading: false,
+            }
+          : m,
+      ),
+    );
+  }, []);
+
   const sendText = useCallback(async (text: string) => {
     if (!text || isProcessing) return;
     if (messages.length >= MAX_MESSAGES) {
@@ -937,6 +1017,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         model?: string;
         params?: Record<string, unknown>;
         jobId?: string;
+        jobIds?: string[];
         clipParams?: Record<string, string | number | boolean>;
         comboImages?: string[];
         transformParams?: Record<string, string | number | boolean>;
@@ -1208,7 +1289,9 @@ export default function StudioChat({ userId, userEmail }: Props) {
         setContext(data.context);
       }
 
-      if (data.jobId) {
+      if (data.jobIds && data.jobIds.length > 0) {
+        void pollVideoJobsParallel(data.jobIds, loadingMsg.id);
+      } else if (data.jobId) {
         pollVideoJob(data.jobId, loadingMsg.id, audioFile);
       }
     } catch (error) {
@@ -1223,32 +1306,10 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setIsProcessing(false);
       inputRef.current?.focus();
     }
-  }, [audioFile, isProcessing, messages, context, pollVideoJob, renderClipInChat]);
+  }, [audioFile, isProcessing, messages, context, pollVideoJob, pollVideoJobsParallel, renderClipInChat]);
 
-  // Keep ref in sync so pollVideoJob / useEffect can always call latest sendText
+  // Keep ref in sync so async callbacks always call latest sendText
   sendTextRef.current = sendText;
-
-  // Auto-animate next ad clip scene when a video job completes during the ad pipeline
-  useEffect(() => {
-    if (!context.lastVideoUrl || !context.adClipState) return;
-    const { scenes, videos } = context.adClipState;
-    if (videos.includes(context.lastVideoUrl)) return; // already processed this video
-
-    // Add completed video to adClipState.videos
-    const updatedVideos = [...videos, context.lastVideoUrl];
-    setContext((prev) => ({
-      ...prev,
-      adClipState: prev.adClipState
-        ? { ...prev.adClipState, videos: updatedVideos }
-        : undefined,
-    }));
-
-    // Auto-trigger next scene animation if still have scenes left
-    if (updatedVideos.length < scenes.length) {
-      setTimeout(() => sendTextRef.current?.('__animate_next__'), 600);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context.lastVideoUrl]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();

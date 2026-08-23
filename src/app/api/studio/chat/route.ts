@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         // Check if combo ends with a client-side clip step
         const clipStep = comboResult.steps.find((s) => s.message === '__CREATE_CLIP__');
 
-        // ad_clip_generate: set adClipState + auto-start scene 1 animation (bypass create_clip)
+        // ad_clip_generate: set adClipState + launch ALL animations in parallel
         if (clipStep && decision.comboId === 'ad_clip_generate') {
           const comboImages = comboResult.steps
             .filter((s) => s.media?.type === 'image')
@@ -126,21 +126,30 @@ export async function POST(req: NextRequest) {
             currentStep: 'videos',
           };
 
-          let animJobId: string | undefined;
-          if (comboImages[0]) {
-            const animCtx: SessionContext = { ...comboResult.finalContext, lastImageUrl: comboImages[0] };
-            const animResult = await executeTool('image_to_video', {
-              prompt: 'slow dolly forward, cinematic movement, warm atmospheric lighting',
-              aspectRatio: '9:16',
-              duration: 5,
-            }, animCtx, cookieHeader);
-            animJobId = animResult.jobId ?? undefined;
-          }
+          const motionPrompts = [
+            'slow dolly forward, cinematic movement, warm atmospheric lighting',
+            'gentle camera pull-back, subject in focus, golden hour light',
+            'subtle pan right, intimate close detail, warm cinematic',
+          ];
+
+          const videoJobResults = await Promise.all(
+            comboImages.map(async (imageUrl, idx) => {
+              const animCtx: SessionContext = { ...comboResult.finalContext, lastImageUrl: imageUrl };
+              const result = await executeTool('image_to_video', {
+                prompt: motionPrompts[idx] ?? motionPrompts[0],
+                aspectRatio: '9:16',
+                duration: 5,
+              }, animCtx, cookieHeader);
+              return result.jobId ?? null;
+            })
+          );
+
+          const jobIds = videoJobResults.filter((id): id is string => id !== null);
 
           return NextResponse.json({
-            message: fullMessage + `\n\n🎬 Animating scene 1/${comboImages.length}... (~30-60 sec)`,
+            message: fullMessage + `\n\n🎬 Animating ${jobIds.length} scene${jobIds.length !== 1 ? 's' : ''} in parallel... (~2 min)`,
             media: lastMedia ?? undefined,
-            jobId: animJobId,
+            jobIds: jobIds.length > 0 ? jobIds : undefined,
             toolUsed: `combo:ad_clip_generate`,
             comboImages: comboImages.length > 0 ? comboImages : undefined,
             context: comboResult.finalContext,

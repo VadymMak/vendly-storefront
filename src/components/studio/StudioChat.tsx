@@ -1030,7 +1030,11 @@ export default function StudioChat({ userId, userEmail }: Props) {
       };
 
       if (data.toolUsed === 'create_clip') {
-        if (data.context) setContext(data.context);
+        if (data.context) setContext(prev => ({
+          ...data.context!,
+          uploadedReferenceUrl: data.context!.uploadedReferenceUrl ?? prev.uploadedReferenceUrl,
+          characterReferenceUrl: data.context!.characterReferenceUrl ?? prev.characterReferenceUrl,
+        }));
 
         // Priority 1: use Kling animated videos (ad_clip_generate flow)
         const adKlingVideos = data.context?.adClipState?.videos ?? context.adClipState?.videos;
@@ -1180,7 +1184,11 @@ export default function StudioChat({ userId, userEmail }: Props) {
       }
 
       if (data.toolUsed === 'transform_image') {
-        if (data.context) setContext(data.context);
+        if (data.context) setContext(prev => ({
+          ...data.context!,
+          uploadedReferenceUrl: data.context!.uploadedReferenceUrl ?? prev.uploadedReferenceUrl,
+          characterReferenceUrl: data.context!.characterReferenceUrl ?? prev.characterReferenceUrl,
+        }));
         console.log('[transform_image] context:', JSON.stringify(context));
         console.log('[transform_image] lastImageUrl:', context?.lastImageUrl);
         const sourceUrl = context?.lastImageUrl || getLatestImageUrl(messages);
@@ -1318,7 +1326,11 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setMessages((prev) => prev.map((m) => (m.id === loadingMsg.id ? agentMsg : m)));
 
       if (data.context) {
-        setContext(data.context);
+        setContext(prev => ({
+          ...data.context!,
+          uploadedReferenceUrl: data.context!.uploadedReferenceUrl ?? prev.uploadedReferenceUrl,
+          characterReferenceUrl: data.context!.characterReferenceUrl ?? prev.characterReferenceUrl,
+        }));
       }
 
       if (data.jobIds && data.jobIds.length > 0) {

@@ -462,6 +462,7 @@ async function executeGenerateCharacter(
   _cookieHeader: string,
 ): Promise<ToolResult> {
   const referenceImage = (params.reference_image as string)
+    || context.uploadedReferenceUrl
     || context.characterReferenceUrl
     || context.lastImageUrl;
   if (!referenceImage) {

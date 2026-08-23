@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: blob.url });
   } catch (error) {
     console.error('[studio/upload]', error);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: `Upload failed: ${message}` }, { status: 500 });
   }
 }

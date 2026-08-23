@@ -8,6 +8,7 @@ const anthropic = new Anthropic({
 
 export interface AgentDecision {
   message: string;
+  buttons?: Array<{ label: string; value: string }>;
   toolCall?: {
     tool: ToolName;
     params: Record<string, string | number | boolean>;
@@ -161,55 +162,76 @@ STORYBOARD WORKFLOW:
   "придумай идею", "придумай историю для рекламы", "storyboard for",
   "make an ad for", "рекламу для", "рекламный ролик для":
 
-  STEP 1 — PRE-SCRIPT DIALOGUE (mandatory, ask FIRST, do NOT call write_script yet):
-    DO NOT ask generic marketing questions like "What cuisine?", "Target audience?", "Do you want music?"
+  STEP 1 — BUSINESS TYPE DETECTION (mandatory first step):
 
-    PRE-FLIGHT CHECK — check context for uploadedReferenceUrl:
+    A) OBVIOUS type — user explicitly said a business keyword:
+       Keywords: "ресторан", "кафе", "паста", "кухня", "блюдо", "еда", "restaurant", "cafe", "food" → restaurant
+                 "барбер", "стрижка", "barbershop", "barber", "haircut" → barbershop
+                 "ногти", "маникюр", "nail", "педикюр" → nail_salon
+                 "спа", "массаж", "spa", "massage", "wellness" → spa
+                 "магазин", "товар", "shop", "retail" → retail
+                 "фитнес", "спорт", "gym", "fitness" → fitness
+       → Skip to STEP 2 immediately with the detected type.
+
+    B) UNCLEAR type — user gave only a brand name (e.g. "Nova", "Studio X", "Adriano") with no business keywords:
+       → Return JSON with buttons (NO director questions yet):
+       {
+         "message": "Привет! 👋 Помогу создать рекламный ролик для [NAME].\n\nЧто за бизнес?",
+         "buttons": [
+           {"label": "🍽️ Ресторан / Кафе", "value": "restaurant"},
+           {"label": "✂️ Барбершоп", "value": "barbershop"},
+           {"label": "💅 Nail salon", "value": "nail_salon"},
+           {"label": "💆 Спа / Массаж", "value": "spa"},
+           {"label": "🏪 Магазин / Товары", "value": "retail"},
+           {"label": "🏋️ Фитнес / Спорт", "value": "fitness"},
+           {"label": "📱 Другое", "value": "other"}
+         ]
+       }
+       Wait for user to click or type their choice. THEN proceed to STEP 2.
+
+  STEP 2 — DIRECTOR QUESTIONS (only after business type is known):
+
+    PRE-FLIGHT CHECK for uploaded photo:
     - If uploadedReferenceUrl IS SET → say: "Отличное фото! Буду анимировать его напрямую как сцену 1, а остальные сцены сгенерирую в той же стилистике."
-    - If uploadedReferenceUrl IS NOT SET → suggest: "💡 Совет: если загрузите фото вашего заведения/блюда через 📎 — анимирую ваше реальное фото вместо AI-генерации. Но можно и без него!"
+    - If uploadedReferenceUrl IS NOT SET → suggest: "💡 Совет: если загрузите фото вашего заведения через 📎 — анимирую ваше реальное фото. Но можно и без него!"
 
-    BUSINESS TYPE DETECTION — CRITICAL:
-    Read the user's message carefully. Identify the actual business type they mentioned.
-    NEVER use generic or hardcoded examples. ALWAYS adapt questions to the specific business.
+    Then ask 2 director questions tailored to the CONFIRMED business type:
+    NEVER copy restaurant/barber questions for other types.
 
-    Detection rules:
-    - "ресторан", "кафе", "паста", "кухня", "блюдо", "еда", "restaurant", "cafe", "food", or any restaurant name (e.g. "Adriano") → RESTAURANT
-    - "барбер", "стрижка", "брадобрей", "barbershop", "barber", "haircut" → BARBERSHOP
-    - "ногти", "маникюр", "nail", "педикюр" → NAIL SALON
-    - "спа", "массаж", "spa", "massage", "wellness" → SPA/WELLNESS
-    - "магазин", "товар", "shop", "retail", "продукт" → RETAIL
-    - unknown / not detected → GENERAL
-
-    Then ask director-style questions tailored to THAT business (max 2-3, conversational tone):
-
-    FOR RESTAURANT:
+    FOR restaurant:
     "Прежде чем начать — пару вопросов как режиссёр:
-    1. **Кто герой?** Шеф-повар за работой? Довольный гость? Или сама атмосфера зала?
+    1. **Кто герой?** Шеф-повар за работой? Довольный гость? Сама атмосфера зала?
     2. **Какой момент?** Утренняя подготовка кухни? Подача блюда? Романтический вечер?
     (Необязательно: есть фирменное блюдо или особая деталь интерьера?)"
 
-    FOR BARBERSHOP:
+    FOR barbershop:
     "Прежде чем начать — пару вопросов как режиссёр:
     1. **Кто герой?** Барбер в процессе работы? Клиент после стрижки? Атмосфера зала?
     2. **Какой момент?** Финальный результат? Ритуал бритья? Первый взгляд в зеркало?
-    (Необязательно: есть особый инструмент или деталь интерьера, которую нужно показать?)"
+    (Необязательно: есть особый инструмент или деталь интерьера?)"
 
-    FOR NAIL SALON:
+    FOR nail_salon:
     "Прежде чем начать — пару вопросов как режиссёр:
     1. **Кто герой?** Мастер в процессе работы? Клиентка с готовым результатом?
-    2. **Какой момент?** Детальная работа кисти? Готовые ногти крупным планом? Улыбка клиентки?
-    (Необязательно: есть фирменный дизайн или цветовая гамма?)"
+    2. **Какой момент?** Детальная работа кисти? Готовые ногти крупным планом?
+    (Необязательно: есть фирменный дизайн или цветовая палитра?)"
 
-    FOR SPA/WELLNESS:
+    FOR spa:
     "Прежде чем начать — пару вопросов как режиссёр:
-    1. **Кто герой?** Мастер во время процедуры? Клиент в состоянии релакса?
+    1. **Кто герой?** Мастер во время процедуры? Гость в состоянии релакса?
     2. **Какой момент?** Тихая атмосфера кабинета? Момент расслабления? Финальный результат?
-    (Необязательно: есть особый аромат, свет или интерьер, который задаёт настроение?)"
+    (Необязательно: есть особый свет, аромат или интерьер?)"
 
-    FOR GENERAL/UNKNOWN:
+    FOR fitness:
     "Прежде чем начать — пару вопросов как режиссёр:
-    1. **Кто герой вашей истории?** Кто в центре кадра?
-    2. **Какой ключевой момент?** Что должен запомнить зритель?
+    1. **Кто герой?** Тренер? Клиент во время тренировки? Атмосфера зала?
+    2. **Какой момент?** Интенсивная тренировка? Результат трансформации? Командный дух?
+    (Необязательно: есть особое оборудование или фирменный стиль?)"
+
+    FOR retail / other / unknown:
+    "Прежде чем начать — пару вопросов как режиссёр:
+    1. **Кто герой?** Ваш продукт крупным планом? Покупатель? Или бренд в целом?
+    2. **Какой ключевой момент?** Первое использование? Восторг от покупки? Процесс создания?
     (Необязательно: есть особая деталь или атмосфера, которую обязательно нужно передать?)"
 
   STEP 2 — After user answers → call write_script with:
@@ -1194,6 +1216,7 @@ export async function getAgentDecision(
       params?: Record<string, string | number | boolean>;
       combo?: string;
       subject?: string;
+      buttons?: Array<{ label: string; value: string }>;
     };
 
     try {
@@ -1230,6 +1253,10 @@ export async function getAgentDecision(
     const decision: AgentDecision = {
       message: cleanMessage,
     };
+
+    if (parsed.buttons && Array.isArray(parsed.buttons)) {
+      decision.buttons = parsed.buttons as Array<{ label: string; value: string }>;
+    }
 
     if (parsed.combo) {
       decision.comboId = parsed.combo;

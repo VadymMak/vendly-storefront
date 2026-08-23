@@ -278,6 +278,7 @@ export async function POST(req: NextRequest) {
       enhancedPrompt: (decision.toolCall?.params?.prompt as string) || '',
       model: '',
       params: decision.toolCall?.params ?? null,
+      buttons: decision.buttons ?? null,
       context: updatedContext,
     });
   } catch (error) {

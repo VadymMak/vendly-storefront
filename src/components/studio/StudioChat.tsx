@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import type { ChatMessage, SessionContext } from '@/lib/studio/types';
+import type { ChatMessage, SessionContext, QuickReplyButton } from '@/lib/studio/types';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowConfig, SlideshowItem, TransitionType, VideoStyle, OnProgress } from '@/lib/slideshow-renderer';
 import ChatMessageBubble from './ChatMessage';
@@ -1022,6 +1022,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         clipParams?: Record<string, string | number | boolean>;
         comboImages?: string[];
         transformParams?: Record<string, string | number | boolean>;
+        buttons?: Array<{ label: string; value: string }>;
         context?: SessionContext;
       };
 
@@ -1281,6 +1282,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         enhancedPrompt: data.enhancedPrompt || undefined,
         model: data.model || undefined,
         toolParams: data.params || undefined,
+        buttons: data.buttons && data.buttons.length > 0 ? data.buttons : undefined,
         timestamp: Date.now(),
       };
 
@@ -1455,6 +1457,20 @@ export default function StudioChat({ userId, userEmail }: Props) {
         {messages.map((msg, index) => (
           <div key={msg.id}>
             <ChatMessageBubble message={msg} onDeleteMedia={handleDeleteMedia} onUseAsReference={handleUseAsReference} />
+            {msg.role === 'assistant' && !msg.isLoading && msg.buttons && msg.buttons.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2 pl-1">
+                {msg.buttons.map((btn: QuickReplyButton) => (
+                  <button
+                    key={btn.value}
+                    type="button"
+                    onClick={() => sendText(btn.label)}
+                    className="px-3 py-1.5 rounded-full border border-[var(--color-border)] text-sm text-[var(--color-text)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {msg.role === 'assistant' && !msg.isLoading && isErrorMessage(msg.content) && (
               <div className="flex justify-start mt-1.5 pl-1">
                 <button

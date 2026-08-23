@@ -10,6 +10,11 @@ export interface MediaAttachment {
   duration?: number;
 }
 
+export interface QuickReplyButton {
+  label: string;
+  value: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
@@ -20,6 +25,7 @@ export interface ChatMessage {
   model?: string;
   toolParams?: Record<string, unknown>;
   isLoading?: boolean;
+  buttons?: QuickReplyButton[];
   timestamp: number;
 }
 

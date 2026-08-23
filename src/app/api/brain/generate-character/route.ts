@@ -4,13 +4,6 @@ import { put } from '@vercel/blob';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
 
-const STYLE_SUFFIXES: Record<string, string> = {
-  photorealistic: 'photorealistic, professional photography, high quality',
-  anime:          'anime style, vibrant colors, detailed illustration',
-  cartoon:        '3D cartoon style, Pixar-like, soft lighting',
-  watercolor:     'watercolor painting, artistic, soft edges',
-};
-
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get('x-brain-api-key');
   if (!BRAIN_API_KEY || apiKey !== BRAIN_API_KEY) {
@@ -22,13 +15,10 @@ export async function POST(req: NextRequest) {
       prompt?: string;
       reference_image?: string;
       style?: string;
+      aspect_ratio?: string;
     };
 
-    const {
-      prompt,
-      reference_image,
-      style = 'photorealistic',
-    } = body;
+    const { prompt, reference_image } = body;
 
     if (!prompt) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
@@ -44,24 +34,21 @@ export async function POST(req: NextRequest) {
 
     const replicate = new Replicate({ auth: replicateToken });
 
-    const styleSuffix = STYLE_SUFFIXES[style] ?? STYLE_SUFFIXES.photorealistic;
-    const enhancedPrompt = `${prompt}, ${styleSuffix}`;
+    // PhotoMaker: face-consistent generation across scenes.
+    // The trigger word "img" in the prompt marks where the reference face is applied.
+    // Prompt must describe the person with "img" as the class word, e.g. "a woman img in Spanish street"
+    const photoMakerPrompt = prompt.includes('img') ? prompt : `${prompt}, img`;
 
-    // InstantID preserves face identity across different scenes/styles.
-    // No width/height params — model uses fixed SDXL dimensions.
-    const output = await replicate.run('zsxkib/instant-id', {
+    const output = await replicate.run('tencentarc/photomaker', {
       input: {
-        image:                        reference_image,
-        prompt:                       enhancedPrompt,
-        negative_prompt:              'deformed, ugly, disfigured, bad anatomy, blurry, low quality',
-        num_inference_steps:          30,
-        guidance_scale:               7.5,
-        ip_adapter_scale:             0.8,
-        controlnet_conditioning_scale: 0.8,
-        enhance_nonface_region:       true,
-        output_format:                'webp',
-        output_quality:               85,
-        num_outputs:                  1,
+        input_image:         reference_image,
+        prompt:              photoMakerPrompt,
+        negative_prompt:     'deformed, ugly, disfigured, bad anatomy, blurry, low quality, watermark, nsfw',
+        style_name:          'Photographic (Default)',
+        num_steps:           20,
+        style_strength_ratio: 20,
+        guidance_scale:      5,
+        num_outputs:         1,
       },
     });
 
@@ -91,8 +78,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       url: blob.url,
       media: { type: 'image', url: blob.url },
-      prompt: enhancedPrompt,
-      style,
+      prompt: photoMakerPrompt,
       reference_image,
     });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { put } from '@vercel/blob';
+import sharp from 'sharp';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
       return NextResponse.json({ error: 'Only image, video and audio files allowed' }, { status: 400 });
     }
+
     const maxSize = file.type.startsWith('video/')
       ? 100 * 1024 * 1024
       : file.type.startsWith('audio/')
@@ -30,19 +32,30 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = file.type.startsWith('video/')
-      ? file.name.split('.').pop() || 'mp4'
-      : file.type.startsWith('audio/')
-        ? file.name.split('.').pop() || 'mp3'
-        : file.type.includes('png') ? 'png'
-          : file.type.includes('webp') ? 'webp'
-          : 'jpg';
+
+    let finalBuffer = buffer;
+    let contentType = file.type;
+    let ext: string;
+
+    if (file.type.startsWith('image/')) {
+      // Resize large phone photos to max 1536px and convert to webp
+      finalBuffer = Buffer.from(await sharp(buffer)
+        .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 88 })
+        .toBuffer());
+      contentType = 'image/webp';
+      ext = 'webp';
+    } else if (file.type.startsWith('video/')) {
+      ext = file.name.split('.').pop() || 'mp4';
+    } else {
+      ext = file.name.split('.').pop() || 'mp3';
+    }
 
     const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const blob = await put(
       `studio/chat/upload/${session.user.id}/${uniqueId}.${ext}`,
-      buffer,
-      { access: 'public', contentType: file.type },
+      finalBuffer,
+      { access: 'public', contentType },
     );
 
     return NextResponse.json({ url: blob.url });

@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
 
     // fofr/consistent-character: generates consistent character across scenes.
     // subject = reference photo URL, prompt = scene description.
-    const output = await replicate.run('fofr/consistent-character', {
+    // Version hash required — community models need /v1/predictions (not /v1/models/) endpoint.
+    const output = await replicate.run('fofr/consistent-character:9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460456b831c8772', {
       input: {
         subject:                  reference_image,
         prompt:                   prompt,

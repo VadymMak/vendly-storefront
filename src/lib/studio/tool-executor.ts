@@ -1,11 +1,12 @@
 import { put } from '@vercel/blob';
-import type { ToolName, MediaAttachment } from './types';
+import type { ToolName, MediaAttachment, SessionContext } from './types';
 
 interface ToolResult {
   media?: MediaAttachment;
   message?: string;
   jobId?: string;
   error?: string;
+  metadata?: Record<string, unknown>;
 }
 
 const BASE_URL =
@@ -102,7 +103,7 @@ async function ensureWithinPixelLimit(
 export async function executeTool(
   tool: ToolName,
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null; lastVideoUrl: string | null; lastAudioUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   try {
@@ -133,6 +134,8 @@ export async function executeTool(
         return await executeTransformImage(params, context, cookieHeader);
       case 'write_caption':
         return await executeWriteCaption(params);
+      case 'write_script':
+        return await executeWriteScript(params);
       default:
         return { error: `Unknown tool: ${tool}` };
     }
@@ -179,7 +182,7 @@ async function executeGenerateImage(
 
 async function executeGenerateVideo(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
@@ -222,7 +225,7 @@ async function executeGenerateVideo(
 
 async function executeEditImage(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
@@ -256,7 +259,7 @@ async function executeEditImage(
 async function executeEnhanceImage(
   tool: 'upscale' | 'face_enhance',
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
@@ -294,7 +297,7 @@ async function executeEnhanceImage(
 
 async function executeSupirUpscale(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
@@ -337,7 +340,7 @@ async function executeSupirUpscale(
 }
 
 async function executeRemoveBg(
-  context: { lastImageUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
@@ -409,7 +412,7 @@ async function executeWriteCaption(
 
 async function executeTransformImage(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null },
+  context: SessionContext,
   _cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
@@ -454,10 +457,12 @@ async function executeTransformImage(
 
 async function executeGenerateCharacter(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  context: SessionContext,
   _cookieHeader: string,
 ): Promise<ToolResult> {
-  const referenceImage = (params.reference_image as string) || context.lastImageUrl;
+  const referenceImage = (params.reference_image as string)
+    || context.characterReferenceUrl
+    || context.lastImageUrl;
   if (!referenceImage) {
     return {
       error: 'No reference image provided. Please upload a photo first, or provide a reference_image URL.',
@@ -507,7 +512,7 @@ async function executeGenerateCharacter(
 
 async function executeTalkingAvatar(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null; lastVideoUrl: string | null; lastAudioUrl: string | null },
+  context: SessionContext,
   _cookieHeader: string,
 ): Promise<ToolResult> {
   const audioUrl = (params.audio_url as string) || context.lastAudioUrl;
@@ -638,9 +643,121 @@ async function executeVoiceover(
   };
 }
 
+interface StoryboardScene {
+  number: number;
+  description: string;
+  visual: string;
+  motion: string;
+  duration: number;
+}
+
+interface Storyboard {
+  title: string;
+  hero: string;
+  voiceover: string;
+  scenes: StoryboardScene[];
+  style: string;
+  mood: string;
+}
+
+async function executeWriteScript(
+  params: Record<string, string | number | boolean>,
+): Promise<ToolResult> {
+  const product = (params.product as string) || '';
+  const hero = (params.hero as string) || '';
+  const mood = (params.mood as string) || 'cinematic';
+  const platform = (params.platform as string) || 'instagram';
+
+  const systemPrompt = `You are an expert ad copywriter and film director.
+Write a 3-scene storyboard for a short ad clip (15-30 seconds).
+Format as JSON with this structure:
+{
+  "title": "Ad concept name",
+  "hero": "Who the character is",
+  "voiceover": "Full voiceover script (15-20 words max)",
+  "scenes": [
+    {
+      "number": 1,
+      "description": "What happens in this scene",
+      "visual": "Detailed visual prompt for image generation",
+      "motion": "Camera motion for Kling animation",
+      "duration": 5
+    }
+  ],
+  "style": "cinematic preset name (cold_ocean/warm_restaurant/golden_hour/dramatic_urban/spa_wellness/medical_clean)",
+  "mood": "overall emotional tone"
+}`;
+
+  const userPrompt = `Product/Business: ${product}
+Hero: ${hero || 'choose an appropriate character'}
+Mood: ${mood}
+Platform: ${platform}
+Language for voiceover: SK (Slovak)
+
+Write the storyboard. Visual prompts must be tight-crop cinematic (subject fills 80% of frame, 85mm f/1.4, no empty space).`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    return { error: 'Storyboard generation failed' };
+  }
+
+  const data = await res.json() as { content: Array<{ text: string }> };
+  const text = data.content[0]?.text || '';
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { error: 'Failed to generate storyboard', message: text };
+  }
+
+  let storyboard: Storyboard;
+  try {
+    storyboard = JSON.parse(jsonMatch[0]) as Storyboard;
+  } catch {
+    return { error: 'Failed to parse storyboard JSON', message: text };
+  }
+
+  const display = `## 🎬 Ad Storyboard: "${storyboard.title}"
+
+**Hero:** ${storyboard.hero}
+**Mood:** ${storyboard.mood}
+**Style:** ${storyboard.style}
+
+---
+
+${storyboard.scenes.map((s) => `**Scene ${s.number}:** ${s.description}
+> Visual: ${s.visual}
+> Motion: ${s.motion} (${s.duration}s)`).join('\n\n')}
+
+---
+
+**Voiceover:** "${storyboard.voiceover}"
+
+---
+✅ Approve to generate all scenes, or ask to change anything.`;
+
+  return {
+    message: display,
+    metadata: { storyboard },
+  };
+}
+
 async function executeGenerateWithReference(
   params: Record<string, string | number | boolean>,
-  context: { lastImageUrl: string | null; lastVideoUrl: string | null },
+  context: SessionContext,
   cookieHeader: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {

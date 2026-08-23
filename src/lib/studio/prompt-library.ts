@@ -516,6 +516,25 @@ const COMBO_PRESETS: ComboPreset[] = [
     defaultParams: {},
   },
   {
+    id: 'ad_clip',
+    label: 'Ad Clip',
+    emoji: '🎬',
+    category: 'combo',
+    description: 'Story → 3 Scenes → Animate → Voiceover → Clip',
+    platforms: ['instagram_reel', 'tiktok', 'youtube_shorts'],
+    steps: [
+      {
+        tool: 'write_script',
+        description: 'Writing ad storyboard',
+        params: { mood: 'cinematic', platform: 'instagram' },
+      },
+      // Steps 2-8 are triggered after user approves the storyboard.
+      // The agent reads storyboard.scenes and calls generate_image × 3, animate × 3, voiceover, create_clip.
+      // This combo intentionally stops at write_script — user must approve first.
+    ],
+    defaultParams: {},
+  },
+  {
     id: 'photo_clip',
     label: 'Photo Clip',
     emoji: '🎞️',
@@ -598,4 +617,85 @@ export function presetsToAgentContext(): string {
         `- "${p.id}": ${p.description} → tool: ${p.targetTool}, prompt: "${p.promptTemplate.slice(0, 80)}..."`,
     )
     .join('\n');
+}
+
+// ========================================
+// CINEMATIC PRESETS
+// ========================================
+
+export interface CinematicPreset {
+  name: string;
+  lens: string;
+  light: string;
+  palette: string;
+  grain: number;
+  scene_style: string;
+  use_for: string[];
+}
+
+export const CINEMATIC_PRESETS: Record<string, CinematicPreset> = {
+  cold_ocean: {
+    name: 'Cold Ocean',
+    lens: '85mm f/1.4',
+    light: 'cold blue instrument glow, rembrandt shadows',
+    palette: 'desaturated steel blue, dark teal, near-black',
+    grain: 0.25,
+    scene_style: 'cold-tone',
+    use_for: ['fish', 'seafood', 'sea', 'ocean', 'harbour', 'marine'],
+  },
+  warm_restaurant: {
+    name: 'Warm Restaurant',
+    lens: '50mm f/2.0',
+    light: 'warm window light, golden hour fill, soft shadows',
+    palette: 'amber, warm cream, deep mahogany',
+    grain: 0.15,
+    scene_style: 'golden-hour',
+    use_for: ['restaurant', 'cafe', 'food', 'dining', 'kitchen'],
+  },
+  dramatic_urban: {
+    name: 'Dramatic Urban',
+    lens: '35mm f/1.8',
+    light: 'hard neon backlight, deep shadows, high contrast',
+    palette: 'near-black, electric blue accent, white highlights',
+    grain: 0.3,
+    scene_style: 'cinematic',
+    use_for: ['barber', 'gym', 'fashion', 'urban', 'nightlife'],
+  },
+  golden_hour: {
+    name: 'Golden Hour',
+    lens: '85mm f/1.2',
+    light: 'direct golden sunset backlight, warm fill, lens flare',
+    palette: 'deep amber, warm gold, rich orange',
+    grain: 0.1,
+    scene_style: 'golden-hour',
+    use_for: ['outdoor', 'nature', 'wedding', 'lifestyle', 'travel'],
+  },
+  spa_wellness: {
+    name: 'Spa & Wellness',
+    lens: '90mm macro',
+    light: 'soft diffused daylight, white fill, minimal shadows',
+    palette: 'soft white, sage green, warm sand',
+    grain: 0.05,
+    scene_style: 'none',
+    use_for: ['spa', 'beauty', 'salon', 'wellness', 'skin', 'nails'],
+  },
+  medical_clean: {
+    name: 'Medical Clean',
+    lens: '50mm f/2.8',
+    light: 'clinical white light, no shadows',
+    palette: 'pure white, light blue, soft gray',
+    grain: 0,
+    scene_style: 'none',
+    use_for: ['clinic', 'doctor', 'dental', 'health', 'medical'],
+  },
+};
+
+export function selectCinematicPreset(subject: string): CinematicPreset {
+  const lower = subject.toLowerCase();
+  for (const preset of Object.values(CINEMATIC_PRESETS)) {
+    if (preset.use_for.some((kw) => lower.includes(kw))) {
+      return preset;
+    }
+  }
+  return CINEMATIC_PRESETS.warm_restaurant;
 }

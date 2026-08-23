@@ -34,6 +34,7 @@ export interface SessionContext {
   lastImageUrl: string | null;
   lastVideoUrl: string | null;
   lastAudioUrl: string | null;
+  characterReferenceUrl: string | null;
   platform?: Platform;
 }
 
@@ -57,6 +58,7 @@ export type ToolName =
   | 'remove_background'
   | 'face_enhance'
   | 'write_caption'
+  | 'write_script'
   | 'create_clip'
   | 'transform_image';
 

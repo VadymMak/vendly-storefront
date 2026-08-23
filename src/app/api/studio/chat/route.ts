@@ -166,6 +166,10 @@ export async function POST(req: NextRequest) {
           media = result.media;
           if (result.media.type === 'image') {
             updatedContext.lastImageUrl = result.media.url;
+            // Lock reference image for character consistency across scenes
+            if (decision.toolCall?.tool === 'generate_character') {
+              updatedContext.characterReferenceUrl = result.media.url;
+            }
           } else if (result.media.type === 'video') {
             updatedContext.lastVideoUrl = result.media.url;
           } else if (result.media.type === 'audio') {

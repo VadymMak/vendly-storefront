@@ -32,7 +32,8 @@ export async function executeCombo(
   if (currentContext.lastImageUrl) {
     while (
       startIndex < steps.length &&
-      steps[startIndex].tool === 'generate_image'
+      steps[startIndex].tool === 'generate_image' &&
+      !steps[startIndex].alwaysGenerate
     ) {
       results.push({
         stepIndex: startIndex,

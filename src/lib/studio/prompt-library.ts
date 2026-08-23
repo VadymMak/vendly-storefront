@@ -29,6 +29,8 @@ export interface ComboStep {
   /** Prompt template for this step. {subject} replaced with user input */
   promptTemplate?: string;
   params?: Record<string, string | number>;
+  /** Skip the lastImageUrl context check — always generate fresh images */
+  alwaysGenerate?: boolean;
 }
 
 export interface ComboPreset extends Omit<PromptPreset, 'targetTool' | 'promptTemplate'> {
@@ -528,9 +530,55 @@ const COMBO_PRESETS: ComboPreset[] = [
         description: 'Writing ad storyboard',
         params: { mood: 'cinematic', platform: 'instagram' },
       },
-      // Steps 2-8 are triggered after user approves the storyboard.
-      // The agent reads storyboard.scenes and calls generate_image × 3, animate × 3, voiceover, create_clip.
+      // Steps 2+ triggered after user approves the storyboard via ad_clip_generate combo.
       // This combo intentionally stops at write_script — user must approve first.
+    ],
+    defaultParams: {},
+  },
+  {
+    id: 'ad_clip_generate',
+    label: 'Ad Clip — Generate Scenes',
+    emoji: '🎬',
+    category: 'combo',
+    description: 'Generate 3 cinematic scenes → Compile into clip',
+    platforms: ['instagram_reel', 'tiktok', 'youtube_shorts'],
+    steps: [
+      {
+        tool: 'generate_image',
+        description: 'Generating scene 1/3 — hero action',
+        promptTemplate:
+          '{subject} — scene 1, cinematic close-up, warm amber light, 85mm f/1.4, subject fills 80% of frame, no empty space, shallow depth of field',
+        params: { aspect_ratio: '9:16' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'generate_image',
+        description: 'Generating scene 2/3 — key moment',
+        promptTemplate:
+          '{subject} — scene 2, tight portrait, golden hour light, 85mm, shallow depth of field, background softly blurred, cinematic',
+        params: { aspect_ratio: '9:16' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'generate_image',
+        description: 'Generating scene 3/3 — emotional close',
+        promptTemplate:
+          '{subject} — scene 3, intimate detail shot, warm ambient light, 85mm macro, foreground sharp, cinematic framing',
+        params: { aspect_ratio: '9:16' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'create_clip',
+        description: 'Assembling preview clip from 3 scenes',
+        params: {
+          style: 'cinematic',
+          transition: 'fade',
+          durationPerImage: 3,
+          platform: 'instagram_reel',
+          scene_styles: 'golden-hour,golden-hour,warm',
+          grain: 0.2,
+        },
+      },
     ],
     defaultParams: {},
   },

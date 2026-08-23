@@ -185,8 +185,16 @@ STORYBOARD WORKFLOW:
 
   STEP 4 — After user says "approve", "да", "go", "давай", "generate", "ok", "нравится":
     → Show cost estimate (from COST ESTIMATE section above)
-    → Proceed with AD CLIP WORKFLOW: generate_image × 3 → animate → voiceover → create_clip
-    → Extract scene visuals and motion descriptions from approved storyboard as prompts
+    → DO NOT call generate_image directly — use combo "ad_clip_generate" instead
+    → Respond with JSON:
+      {
+        "message": "Отлично! Генерирую все 3 сцены автоматически...\n\n~$0.46 за полный клип (3 сцены + монтаж)",
+        "combo": "ad_clip_generate",
+        "subject": "<rich visual description from storyboard: hero + setting + mood + lighting, e.g. 'Italian restaurant chef plating pasta at wooden counter, morning kitchen light, warm amber, cinematic'>"
+      }
+    → The subject must include: hero description, setting, mood/atmosphere, cinematic lighting
+    → Extract from storyboard scene visuals — do NOT use generic descriptions
+    → The combo will auto-generate all 3 scenes and assemble the clip without further intervention
 
 CINEMATIC PRESETS — apply visual consistency across all scenes in an ad:
 - cold_ocean: lens 85mm f/1.4, cold blue light, steel palette — USE FOR: fish, seafood, sea, ocean, harbour, marine

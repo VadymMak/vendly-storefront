@@ -32,6 +32,34 @@ function getVideoDuration(file: File): Promise<number> {
   });
 }
 
+/** Resize image client-side to max 1024px before upload — avoids 413 on large phone photos */
+function resizeImageForUpload(file: File, maxPx = 1024, quality = 0.85): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const scale = Math.min(1, maxPx / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Could not load image')); };
+    img.src = objectUrl;
+  });
+}
+
 interface MediaItem {
   type: 'image' | 'video';
   url: string;
@@ -370,8 +398,11 @@ export default function StudioChat({ userId, userEmail }: Props) {
       setMessages((prev) => [...prev, uploadMsg]);
 
       try {
+        // Resize images client-side before upload to avoid 413 on large phone photos
+        const fileToUpload = !isVideo ? await resizeImageForUpload(file) : file;
+
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append('image', fileToUpload);
 
         const res = await fetch('/api/studio/upload', { method: 'POST', body: formData });
 

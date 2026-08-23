@@ -15,17 +15,21 @@ export async function POST(req: NextRequest) {
       prompt?: string;
       provider?: string;
       aspect_ratio?: string;
+      replicate_api_key?: string;
     };
 
-    const { prompt, provider = 'flux', aspect_ratio = '1:1' } = body;
+    const { prompt, provider = 'flux', aspect_ratio = '1:1', replicate_api_key } = body;
 
     if (!prompt) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
 
-    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    const replicateToken = replicate_api_key || process.env.REPLICATE_API_TOKEN;
     if (!replicateToken) {
-      return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Replicate API key not configured. Pass replicate_api_key or set REPLICATE_API_TOKEN env var.' },
+        { status: 500 },
+      );
     }
 
     const replicate = new Replicate({ auth: replicateToken });

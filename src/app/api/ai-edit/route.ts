@@ -130,9 +130,20 @@ export async function POST(req: Request) {
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
   });
-  if (!keyRecord) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 400 });
 
-  const replicateKey = decrypt(keyRecord.encryptedKey);
+  let replicateKey: string | null = null;
+  if (keyRecord?.encryptedKey) {
+    replicateKey = decrypt(keyRecord.encryptedKey);
+  }
+  if (!replicateKey) {
+    replicateKey = process.env.REPLICATE_API_TOKEN ?? null;
+  }
+  if (!replicateKey) {
+    return NextResponse.json(
+      { error: 'Replicate API key required. Add it in Settings → API Keys.' },
+      { status: 400 },
+    );
+  }
 
   try {
     const bytes = await file.arrayBuffer();

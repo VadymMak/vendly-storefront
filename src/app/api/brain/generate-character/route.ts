@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       prompt?: string;
       reference_image?: string;
-      style?: string;
       aspect_ratio?: string;
     };
 
@@ -34,57 +33,39 @@ export async function POST(req: NextRequest) {
 
     const replicate = new Replicate({ auth: replicateToken });
 
-    // Step 1: fofr/consistent-character — generate the scene with character.
-    // Version hash required — community models need /v1/predictions (not /v1/models/) endpoint.
-    const sceneOutput = await replicate.run('fofr/consistent-character:9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460456b831c8772', {
+    // zsxkib/flux-pulid: face-preserving image generation based on Flux.
+    // main_face_image = uploaded face photo, prompt = new scene description.
+    // start_step=0 → maximum face fidelity (exact face, new scene/pose/clothing).
+    const output = await replicate.run('zsxkib/flux-pulid:8baa7ef2255075b46f4d91cd238c21d31181b3e6a864463f967960bb0112525b', {
       input: {
-        subject:                   reference_image,
-        prompt:                    prompt,
-        negative_prompt:           'deformed, ugly, disfigured, bad anatomy, blurry, low quality, watermark, nsfw',
-        number_of_outputs:         1,
-        number_of_images_per_pose: 1,
-        output_format:             'webp',
-        output_quality:            85,
-        randomise_poses:           false,
+        main_face_image: reference_image,
+        prompt,
+        negative_prompt:    'bad quality, worst quality, deformed, blurry, watermark, nsfw',
+        num_steps:          20,
+        start_step:         0,
+        id_weight:          1,
+        guidance_scale:     4,
+        num_outputs:        1,
+        output_format:      'webp',
+        output_quality:     85,
       },
     });
 
-    const sceneUrls = sceneOutput as unknown[];
-    const sceneFirst = sceneUrls?.[0];
-    let sceneImageUrl: string | null = null;
-
-    if (typeof sceneFirst === 'string') sceneImageUrl = sceneFirst;
-    else if (sceneFirst && typeof (sceneFirst as { url?: () => string | URL }).url === 'function') {
-      const r = (sceneFirst as { url: () => string | URL }).url();
-      sceneImageUrl = r instanceof URL ? r.toString() : r;
-    } else if (sceneFirst instanceof URL) {
-      sceneImageUrl = sceneFirst.toString();
-    }
-
-    if (!sceneImageUrl) {
-      return NextResponse.json({ error: 'Step 1 (scene generation) returned no image URL' }, { status: 500 });
-    }
-
-    // Step 2: lucataco/faceswap — paste the real face onto the generated scene.
-    // swap_image = real uploaded face, target_image = generated scene.
-    const swapOutput = await replicate.run('lucataco/faceswap:9a4298548422074c3f57258c5d544497314ae4112df80d116f0d2109e843d20d', {
-      input: {
-        swap_image:   reference_image,
-        target_image: sceneImageUrl,
-      },
-    });
-
+    const urls = output as unknown[];
+    const first = urls?.[0];
     let imageUrl: string | null = null;
-    if (typeof swapOutput === 'string') imageUrl = swapOutput;
-    else if (swapOutput && typeof (swapOutput as { url?: () => string | URL }).url === 'function') {
-      const r = (swapOutput as { url: () => string | URL }).url();
+
+    if (typeof first === 'string') imageUrl = first;
+    else if (first && typeof (first as { url?: () => string | URL }).url === 'function') {
+      const r = (first as { url: () => string | URL }).url();
       imageUrl = r instanceof URL ? r.toString() : r;
-    } else if (swapOutput instanceof URL) {
-      imageUrl = swapOutput.toString();
+    } else if (first instanceof URL) {
+      imageUrl = first.toString();
     }
 
-    // Fallback: if faceswap fails, use the scene image without swap
-    if (!imageUrl) imageUrl = sceneImageUrl;
+    if (!imageUrl) {
+      return NextResponse.json({ error: 'No image URL in Replicate response' }, { status: 500 });
+    }
 
     const imgRes = await fetch(imageUrl);
     const buffer = Buffer.from(await imgRes.arrayBuffer());

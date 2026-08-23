@@ -34,21 +34,16 @@ export async function POST(req: NextRequest) {
 
     const replicate = new Replicate({ auth: replicateToken });
 
-    // PhotoMaker: face-consistent generation across scenes.
-    // The trigger word "img" in the prompt marks where the reference face is applied.
-    // Prompt must describe the person with "img" as the class word, e.g. "a woman img in Spanish street"
-    const photoMakerPrompt = prompt.includes('img') ? prompt : `${prompt}, img`;
-
-    const output = await replicate.run('tencentarc/photomaker', {
+    // fofr/consistent-character: generates consistent character across scenes.
+    // subject = reference photo URL, prompt = scene description.
+    const output = await replicate.run('fofr/consistent-character', {
       input: {
-        input_image:         reference_image,
-        prompt:              photoMakerPrompt,
-        negative_prompt:     'deformed, ugly, disfigured, bad anatomy, blurry, low quality, watermark, nsfw',
-        style_name:          'Photographic (Default)',
-        num_steps:           20,
-        style_strength_ratio: 20,
-        guidance_scale:      5,
-        num_outputs:         1,
+        subject:         reference_image,
+        prompt:          prompt,
+        negative_prompt: 'deformed, ugly, disfigured, bad anatomy, blurry, low quality, watermark, nsfw',
+        num_outputs:     1,
+        output_format:   'webp',
+        output_quality:  85,
       },
     });
 
@@ -78,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       url: blob.url,
       media: { type: 'image', url: blob.url },
-      prompt: photoMakerPrompt,
+      prompt,
       reference_image,
     });
   } catch (error) {

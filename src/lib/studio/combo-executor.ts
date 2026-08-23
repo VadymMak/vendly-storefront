@@ -78,6 +78,18 @@ export async function executeCombo(
       break;
     }
 
+    // useUploadedAsInput: skip generation and use uploaded photo directly as scene output
+    if (step.useUploadedAsInput && currentContext.uploadedReferenceUrl) {
+      const uploadedUrl = currentContext.uploadedReferenceUrl;
+      results.push({
+        stepIndex: i,
+        description: 'Using your uploaded photo as scene 1',
+        media: { type: 'image', url: uploadedUrl },
+      });
+      currentContext.lastImageUrl = uploadedUrl;
+      continue;
+    }
+
     const params: Record<string, string | number | boolean> = {
       ...(step.params as Record<string, string | number | boolean>),
     };
@@ -86,6 +98,12 @@ export async function executeCombo(
       params.topic = userInput || 'this product';
     } else if (step.promptTemplate) {
       params.prompt = step.promptTemplate.replace('{subject}', userInput || 'the product');
+    }
+
+    // Scenes 2-3: use Flux Redux for style consistency when uploaded reference exists
+    if (step.tool === 'generate_image' && currentContext.uploadedReferenceUrl && !step.useUploadedAsInput) {
+      params.provider = 'flux-redux';
+      params.reference_image = currentContext.uploadedReferenceUrl;
     }
 
     const result = await executeTool(

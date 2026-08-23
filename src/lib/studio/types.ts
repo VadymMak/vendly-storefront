@@ -43,6 +43,7 @@ export interface SessionContext {
   characterReferenceUrl: string | null;
   platform?: Platform;
   adClipState?: AdClipState;
+  uploadedReferenceUrl?: string | null;
 }
 
 export type Platform =

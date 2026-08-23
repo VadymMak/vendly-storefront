@@ -160,6 +160,7 @@ async function executeGenerateImage(
       aspect_ratio: params.aspect_ratio || '1:1',
       output_format: 'webp',
       provider: params.provider || 'flux',
+      ...(params.reference_image ? { reference_image: params.reference_image } : {}),
     }),
   });
 

@@ -10,14 +10,15 @@ import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokGenerate } from '@/lib/xai-client';
 
 interface GenerateBody {
-  prompt:         string;
-  aspect_ratio?:  string;
-  megapixels?:    string;
-  target_width?:  number;
-  target_height?: number;
-  output_format?: 'webp' | 'png' | 'jpeg';
-  website?:       string;
-  provider?:      'flux' | 'flux-dev' | 'grok';
+  prompt:          string;
+  aspect_ratio?:   string;
+  megapixels?:     string;
+  target_width?:   number;
+  target_height?:  number;
+  output_format?:  'webp' | 'png' | 'jpeg';
+  website?:        string;
+  provider?:       'flux' | 'flux-dev' | 'grok' | 'flux-redux';
+  reference_image?: string;
 }
 
 export async function POST(request: Request) {
@@ -143,6 +144,66 @@ export async function POST(request: Request) {
     } catch (err) {
       console.error('Grok error:', err);
       return NextResponse.json({ error: 'Grok generation failed' }, { status: 500 });
+    }
+  }
+
+  // ── Flux Redux path (style-consistent variation from reference image) ─────────
+  if (body.provider === 'flux-redux' && body.reference_image) {
+    const reduxKeyRecord = await db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+      select: { encryptedKey: true },
+    });
+    const reduxToken = reduxKeyRecord
+      ? decrypt(reduxKeyRecord.encryptedKey)
+      : (process.env.REPLICATE_API_TOKEN ?? '');
+    if (!reduxToken) {
+      return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+    }
+
+    const creditCheck = await checkCredits(session.user.id, 'image');
+    if (!creditCheck.allowed) {
+      return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
+    }
+
+    try {
+      const reduxReplicate = new Replicate({ auth: reduxToken });
+      const reduxOutput = await reduxReplicate.run(
+        'black-forest-labs/flux-redux-schnell' as `${string}/${string}`,
+        {
+          input: {
+            redux_image:         body.reference_image,
+            num_outputs:         1,
+            num_inference_steps: 4,
+            output_format:       'webp',
+            output_quality:      90,
+          },
+        },
+      );
+
+      const reduxUrls = reduxOutput as unknown[];
+      const reduxFirst = reduxUrls?.[0];
+      let reduxUrl: string | null = null;
+      if (typeof reduxFirst === 'string') {
+        reduxUrl = reduxFirst;
+      } else if (reduxFirst && typeof (reduxFirst as { url?: () => string | URL }).url === 'function') {
+        const r = (reduxFirst as { url: () => string | URL }).url();
+        reduxUrl = r instanceof URL ? r.toString() : r;
+      } else if (reduxFirst instanceof URL) {
+        reduxUrl = reduxFirst.toString();
+      }
+
+      if (!reduxUrl) {
+        return NextResponse.json({ error: 'No image URL in Flux Redux response' }, { status: 500 });
+      }
+
+      const reduxFetch = await fetch(reduxUrl);
+      const reduxBuf = Buffer.from(await reduxFetch.arrayBuffer());
+
+      if (!creditCheck.byok) await deductCredit(session.user.id, 'image');
+      return new Response(reduxBuf, { headers: { 'Content-Type': 'image/webp' } });
+    } catch (err) {
+      console.error('[flux-redux] Replicate error:', err);
+      return NextResponse.json({ error: 'Flux Redux generation failed' }, { status: 500 });
     }
   }
 

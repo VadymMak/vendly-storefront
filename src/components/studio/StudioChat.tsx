@@ -265,6 +265,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     lastVideoUrl: null,
     lastAudioUrl: null,
     characterReferenceUrl: null,
+    uploadedReferenceUrl: null,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -285,7 +286,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         const parsed = JSON.parse(saved) as { messages?: ChatMessage[]; context?: SessionContext };
         if (parsed.messages && parsed.messages.length > 0) {
           setMessages(parsed.messages);
-          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null });
+          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null });
         }
       }
     } catch {
@@ -389,7 +390,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         if (isVideo) {
           setContext((prev) => ({ ...prev, lastVideoUrl: data.url }));
         } else {
-          setContext((prev) => ({ ...prev, lastImageUrl: data.url }));
+          setContext((prev) => ({ ...prev, lastImageUrl: data.url, uploadedReferenceUrl: data.url }));
         }
       } catch (err) {
         setMessages((prev) =>
@@ -1416,7 +1417,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   const handleNewSession = () => {
     setMessages([WELCOME_MESSAGE]);
-    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null });
+    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null });
     localStorage.removeItem(SESSION_KEY);
   };
 

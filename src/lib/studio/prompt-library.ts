@@ -31,6 +31,8 @@ export interface ComboStep {
   params?: Record<string, string | number>;
   /** Skip the lastImageUrl context check — always generate fresh images */
   alwaysGenerate?: boolean;
+  /** If context.uploadedReferenceUrl exists, use it directly as this step's image output (skip generation) */
+  useUploadedAsInput?: boolean;
 }
 
 export interface ComboPreset extends Omit<PromptPreset, 'targetTool' | 'promptTemplate'> {
@@ -550,6 +552,7 @@ const COMBO_PRESETS: ComboPreset[] = [
           '{subject} — scene 1, cinematic close-up, warm amber light, 85mm f/1.4, subject fills 80% of frame, no empty space, shallow depth of field',
         params: { aspect_ratio: '9:16' },
         alwaysGenerate: true,
+        useUploadedAsInput: true,
       },
       {
         tool: 'generate_image',

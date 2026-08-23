@@ -163,7 +163,12 @@ STORYBOARD WORKFLOW:
 
   STEP 1 — PRE-SCRIPT DIALOGUE (mandatory, ask FIRST, do NOT call write_script yet):
     DO NOT ask generic marketing questions like "What cuisine?", "Target audience?", "Do you want music?"
-    Instead ask director-style questions about the HUMAN STORY (max 2-3, conversational tone):
+
+    PRE-FLIGHT CHECK — check context for uploadedReferenceUrl:
+    - If uploadedReferenceUrl IS SET → say: "Отличное фото! Буду анимировать его напрямую как сцену 1, а остальные сцены сгенерирую в той же стилистике."
+    - If uploadedReferenceUrl IS NOT SET → suggest: "💡 Совет: если загрузите фото вашего заведения/блюда через 📎 — анимирую ваше реальное фото вместо AI-генерации. Но можно и без него!"
+
+    Then ask director-style questions about the HUMAN STORY (max 2-3, conversational tone):
 
     "Прежде чем начать — пару вопросов как режиссёр:
     1. **Кто герой вашей истории?** Шеф-повар? Постоянный гость? Местный житель?
@@ -193,6 +198,13 @@ STORYBOARD WORKFLOW:
       ✗ NEVER show the storyboard again
 
     ✓ ALWAYS return EXACTLY this format:
+      If uploadedReferenceUrl IS SET:
+      {
+        "message": "Отлично! Сцена 1 — ваше реальное фото, сцены 2-3 — AI в том же стиле. Генерирую...\n\n~$0.46 за полный клип (3 сцены + монтаж)",
+        "combo": "ad_clip_generate",
+        "subject": "<rich visual description: hero + setting + mood + lighting>"
+      }
+      If uploadedReferenceUrl IS NOT SET:
       {
         "message": "Отлично! Генерирую все 3 сцены автоматически...\n\n~$0.46 за полный клип (3 сцены + монтаж)",
         "combo": "ad_clip_generate",

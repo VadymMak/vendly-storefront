@@ -9,11 +9,12 @@ import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
 
 const generateSchema = z.object({
-  prompt:      z.string().min(1),
-  skillId:     z.string(),
-  aspectRatio: z.enum(['9:16', '1:1', '16:9']),
-  duration:    z.union([z.literal(5), z.literal(10)]),
-  startImage:  z.string().url(),
+  prompt:          z.string().min(1),
+  skillId:         z.string(),
+  aspectRatio:     z.enum(['9:16', '1:1', '16:9']),
+  duration:        z.union([z.literal(5), z.literal(10)]),
+  startImage:      z.string().url(),
+  referenceImages: z.array(z.string().url()).optional(),
 });
 
 const MAX_RETRIES = 3;
@@ -94,21 +95,36 @@ export async function POST(request: Request) {
     : (process.env.REPLICATE_API_TOKEN ?? '');
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
+  // ── Choose model: v3 when referenceImages provided, v2.1 otherwise ─────────
+  const useV3 = body.referenceImages && body.referenceImages.length > 0;
+  const modelUrl = useV3
+    ? 'https://api.replicate.com/v1/models/kwaivgi/kling-v3-omni-video/predictions'
+    : 'https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions';
+
+  const inputPayload = useV3
+    ? {
+        prompt:           body.prompt,
+        start_image:      body.startImage,
+        aspect_ratio:     body.aspectRatio,
+        duration:         body.duration,
+        reference_images: body.referenceImages,
+        mode:             'standard',
+      }
+    : {
+        prompt:       body.prompt,
+        start_image:  body.startImage,
+        aspect_ratio: body.aspectRatio,
+        duration:     body.duration,
+      };
+
   // ── Create prediction — no Prefer:wait, returns prediction.id immediately ─
-  const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions', {
+  const createRes = await fetchWithRetry(modelUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${replicateKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      input: {
-        prompt:       body.prompt,
-        start_image:  body.startImage,
-        aspect_ratio: body.aspectRatio,
-        duration:     body.duration,
-      },
-    }),
+    body: JSON.stringify({ input: inputPayload }),
   });
 
   if (!createRes.ok) {

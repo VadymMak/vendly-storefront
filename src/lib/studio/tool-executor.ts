@@ -197,19 +197,26 @@ async function executeGenerateVideo(
     ? (params.aspectRatio as string)
     : '9:16';
 
+  const videoBody: Record<string, unknown> = {
+    prompt: params.prompt || 'Smooth cinematic motion',
+    skillId: 'agent-video',
+    aspectRatio,
+    duration,
+    startImage: context.lastImageUrl,
+  };
+
+  // Use Kling v3 with character reference when uploaded face photo is available
+  if (context.uploadedReferenceUrl) {
+    videoBody.referenceImages = [context.uploadedReferenceUrl];
+  }
+
   const res = await fetch(`${BASE_URL}/api/generate-video`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Cookie: cookieHeader,
     },
-    body: JSON.stringify({
-      prompt: params.prompt || 'Smooth cinematic motion',
-      skillId: 'agent-video',
-      aspectRatio,
-      duration,
-      startImage: context.lastImageUrl,
-    }),
+    body: JSON.stringify(videoBody),
   });
 
   if (!res.ok) {

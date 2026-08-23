@@ -50,6 +50,7 @@ export interface SessionContext {
   platform?: Platform;
   adClipState?: AdClipState;
   uploadedReferenceUrl?: string | null;
+  businessType?: string | null;
 }
 
 export type Platform =

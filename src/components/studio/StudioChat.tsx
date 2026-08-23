@@ -266,6 +266,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
     lastAudioUrl: null,
     characterReferenceUrl: null,
     uploadedReferenceUrl: null,
+    businessType: null,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -286,7 +287,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         const parsed = JSON.parse(saved) as { messages?: ChatMessage[]; context?: SessionContext };
         if (parsed.messages && parsed.messages.length > 0) {
           setMessages(parsed.messages);
-          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null });
+          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null });
         }
       }
     } catch {
@@ -1419,7 +1420,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   const handleNewSession = () => {
     setMessages([WELCOME_MESSAGE]);
-    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null });
+    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null });
     localStorage.removeItem(SESSION_KEY);
   };
 
@@ -1464,8 +1465,9 @@ export default function StudioChat({ userId, userEmail }: Props) {
                     key={btn.value}
                     type="button"
                     onClick={() => {
-                      setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, buttons: undefined } : m));
-                      void sendText(btn.label);
+                      setContext((prev) => ({ ...prev, businessType: btn.value }));
+                      setMessages((prev) => prev.map((m) => m.buttons ? { ...m, buttons: undefined } : m));
+                      void sendText(`Тип бизнеса: ${btn.label}. Создаём рекламный ролик.`);
                     }}
                     className="px-3 py-1.5 rounded-full border border-[var(--color-border)] text-sm text-[var(--color-text)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
                   >

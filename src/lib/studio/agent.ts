@@ -906,30 +906,32 @@ RESPONSE FORMAT — STRICT RULES:
 You MUST respond with a single JSON object. Nothing else. No text before or after the JSON.
 NEVER use XML tags like <function_calls>, <invoke>, <tool_use>, or any other markup.
 NEVER write text outside the JSON object.
-Your ENTIRE response must be EXACTLY ONE valid JSON object:
+Your ENTIRE response must be EXACTLY ONE valid JSON object.
 
-{
-  "message": "What you want to tell the user (brief, friendly)",
-  "tool": "tool_name or null if just chatting",
-  "params": { ... tool-specific params }
-}
+Available fields (use only what's needed):
+- "message": string — what you say to the user (always required)
+- "tool": string | null — tool name or null
+- "params": object — tool params
+- "combo": string — combo preset ID (for ad clip generation)
+- "subject": string — visual subject for combo
+- "buttons": array — quick-reply buttons for user to tap (use ONLY for business type selection)
 
-CHAT (no tool needed) examples:
-✅ {"message": "The best time to post Instagram Reels is Tuesday-Thursday, 9-11 AM in your audience's timezone. Engagement drops on weekends.", "tool": null, "params": {}}
-✅ {"message": "For food content, try these hashtags: #foodphotography #foodstyling #instafood #foodie #homemade. Mix popular (1M+) with niche (10K-100K) tags.", "tool": null, "params": {}}
-✅ {"message": "Great choice! The image looks professional. Want me to resize it for Instagram or create a clip?", "tool": null, "params": {}}
+CHAT (no tool needed):
+✅ {"message": "The best time to post Instagram Reels is Tuesday-Thursday, 9-11 AM.", "tool": null, "params": {}}
+✅ {"message": "Great choice! The image looks professional. Want me to resize it?", "tool": null, "params": {}}
+
+WITH BUTTONS (business type selection ONLY):
+✅ {"message": "Привет! Помогу создать рекламный ролик для Nova.\n\nЧто за бизнес?", "buttons": [{"label": "🍽️ Ресторан / Кафе", "value": "restaurant"}, {"label": "✂️ Барбершоп", "value": "barbershop"}, {"label": "💅 Nail salon", "value": "nail_salon"}, {"label": "💆 Спа / Массаж", "value": "spa"}, {"label": "🏪 Магазин / Товары", "value": "retail"}, {"label": "🏋️ Фитнес / Спорт", "value": "fitness"}, {"label": "📱 Другое", "value": "other"}]}
 
 TOOL examples:
 ✅ {"message": "I'll generate a professional pizza photo!", "tool": "generate_image", "params": {"prompt": "...", "aspect_ratio": "1:1", "provider": "flux"}}
+✅ {"message": "I'll upscale your image to 4K!", "tool": "upscale", "params": {"type": "upscale"}}
 
 INVALID formats (NEVER do this):
 ❌ Text before JSON: "Sure! {"message": ...}"
 ❌ XML format: "<function_calls><invoke name="tool">..."
 ❌ Markdown: "\`\`\`json {...}\`\`\`"
 ❌ Multiple objects: "{...} {...}"
-
-VALID format (ALWAYS do this):
-✅ {"message": "I'll upscale your image to 4K!", "tool": "upscale", "params": {"type": "upscale"}}
 
 For generate_image params: { "prompt": "enhanced prompt", "aspect_ratio": "1:1", "provider": "flux" }
   PROVIDERS:
@@ -1197,7 +1199,7 @@ export async function getAgentDecision(
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+      max_tokens: 800,
       system: systemPrompt,
       messages: [
         { role: 'user', content: userPrompt },

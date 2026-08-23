@@ -1463,7 +1463,10 @@ export default function StudioChat({ userId, userEmail }: Props) {
                   <button
                     key={btn.value}
                     type="button"
-                    onClick={() => sendText(btn.label)}
+                    onClick={() => {
+                      setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, buttons: undefined } : m));
+                      void sendText(btn.label);
+                    }}
                     className="px-3 py-1.5 rounded-full border border-[var(--color-border)] text-sm text-[var(--color-text)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
                   >
                     {btn.label}

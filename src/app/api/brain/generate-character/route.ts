@@ -38,12 +38,14 @@ export async function POST(req: NextRequest) {
     // subject = reference photo URL, prompt = scene description.
     const output = await replicate.run('fofr/consistent-character', {
       input: {
-        subject:         reference_image,
-        prompt:          prompt,
-        negative_prompt: 'deformed, ugly, disfigured, bad anatomy, blurry, low quality, watermark, nsfw',
-        num_outputs:     1,
-        output_format:   'webp',
-        output_quality:  85,
+        subject:                  reference_image,
+        prompt:                   prompt,
+        negative_prompt:          'deformed, ugly, disfigured, bad anatomy, blurry, low quality, watermark, nsfw',
+        number_of_outputs:        1,
+        number_of_images_per_pose: 1,
+        output_format:            'webp',
+        output_quality:           85,
+        randomise_poses:          false,
       },
     });
 

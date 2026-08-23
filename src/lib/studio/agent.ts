@@ -183,18 +183,26 @@ STORYBOARD WORKFLOW:
     DO NOT start generating images yet.
     DO NOT show cost yet.
 
-  STEP 4 — After user says "approve", "да", "go", "давай", "generate", "ok", "нравится":
-    → Show cost estimate (from COST ESTIMATE section above)
-    → DO NOT call generate_image directly — use combo "ad_clip_generate" instead
-    → Respond with JSON:
+  STEP 4 — After user says "approve", "да", "go", "давай", "generate", "ok", "нравится",
+    "одобряю", "генерируй", "yes", "go ahead", "давай генерируй":
+
+    ⚠️ CRITICAL — NEVER do these after storyboard approval:
+      ✗ NEVER return { "tool": "generate_image", ... }
+      ✗ NEVER generate a single image
+      ✗ NEVER ask more questions
+      ✗ NEVER show the storyboard again
+
+    ✓ ALWAYS return EXACTLY this format:
       {
         "message": "Отлично! Генерирую все 3 сцены автоматически...\n\n~$0.46 за полный клип (3 сцены + монтаж)",
         "combo": "ad_clip_generate",
-        "subject": "<rich visual description from storyboard: hero + setting + mood + lighting, e.g. 'Italian restaurant chef plating pasta at wooden counter, morning kitchen light, warm amber, cinematic'>"
+        "subject": "<rich visual description: hero + setting + mood + lighting>"
       }
-    → The subject must include: hero description, setting, mood/atmosphere, cinematic lighting
-    → Extract from storyboard scene visuals — do NOT use generic descriptions
-    → The combo will auto-generate all 3 scenes and assemble the clip without further intervention
+
+    The combo handles ALL 3 scenes automatically — your only job is to return the combo trigger.
+    The subject must be rich enough for all 3 scene prompts to produce consistent visuals:
+      Extract from storyboard → include: hero description, setting, mood, cinematic lighting
+      Example: "Italian restaurant chef plating pasta at wooden counter, morning kitchen light, warm amber, 85mm f/2.0"
 
 CINEMATIC PRESETS — apply visual consistency across all scenes in an ad:
 - cold_ocean: lens 85mm f/1.4, cold blue light, steel palette — USE FOR: fish, seafood, sea, ocean, harbour, marine

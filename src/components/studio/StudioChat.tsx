@@ -473,6 +473,9 @@ export default function StudioChat({ userId, userEmail }: Props) {
     return URL.createObjectURL(resultBlob);
   }, []);
 
+  // Ref to always call the latest sendText (avoids stale closure in pollVideoJob / useEffect)
+  const sendTextRef = useRef<((text: string) => void) | null>(null);
+
   const pollVideoJob = useCallback(async (jobId: string, messageId: string, audioForMux?: File | null) => {
     const maxPollTime = 10 * 60 * 1000; // 10 min — matches manual flow
     const startTime = Date.now();
@@ -1221,6 +1224,31 @@ export default function StudioChat({ userId, userEmail }: Props) {
       inputRef.current?.focus();
     }
   }, [audioFile, isProcessing, messages, context, pollVideoJob, renderClipInChat]);
+
+  // Keep ref in sync so pollVideoJob / useEffect can always call latest sendText
+  sendTextRef.current = sendText;
+
+  // Auto-animate next ad clip scene when a video job completes during the ad pipeline
+  useEffect(() => {
+    if (!context.lastVideoUrl || !context.adClipState) return;
+    const { scenes, videos } = context.adClipState;
+    if (videos.includes(context.lastVideoUrl)) return; // already processed this video
+
+    // Add completed video to adClipState.videos
+    const updatedVideos = [...videos, context.lastVideoUrl];
+    setContext((prev) => ({
+      ...prev,
+      adClipState: prev.adClipState
+        ? { ...prev.adClipState, videos: updatedVideos }
+        : undefined,
+    }));
+
+    // Auto-trigger next scene animation if still have scenes left
+    if (updatedVideos.length < scenes.length) {
+      setTimeout(() => sendTextRef.current?.('__animate_next__'), 600);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context.lastVideoUrl]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();

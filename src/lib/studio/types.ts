@@ -30,12 +30,19 @@ export interface ChatSession {
   createdAt: number;
 }
 
+export interface AdClipState {
+  scenes: string[];        // generated image URLs (up to 3)
+  videos: string[];        // completed animation URLs
+  currentStep: 'videos' | 'clip';
+}
+
 export interface SessionContext {
   lastImageUrl: string | null;
   lastVideoUrl: string | null;
   lastAudioUrl: string | null;
   characterReferenceUrl: string | null;
   platform?: Platform;
+  adClipState?: AdClipState;
 }
 
 export type Platform =

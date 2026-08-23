@@ -33,6 +33,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    // Auto-animate next ad clip scene — bypasses agent entirely
+    if (message === '__animate_next__' && context.adClipState) {
+      const { scenes, videos } = context.adClipState;
+      const nextIndex = videos.length;
+      const cookieHeader = req.headers.get('cookie') || '';
+
+      if (nextIndex < scenes.length) {
+        const animCtx: SessionContext = { ...context, lastImageUrl: scenes[nextIndex] };
+        const animResult = await executeTool('image_to_video', {
+          prompt: 'slow dolly forward, cinematic movement, warm atmospheric',
+          aspectRatio: '9:16',
+          duration: 5,
+        }, animCtx, cookieHeader);
+
+        return NextResponse.json({
+          message: `🎬 Animating scene ${nextIndex + 1}/${scenes.length}... (~30-60 sec)`,
+          jobId: animResult.jobId ?? undefined,
+          toolUsed: 'image_to_video',
+          context,
+        });
+      }
+
+      return NextResponse.json({
+        message: `✅ All ${scenes.length} scenes animated! Say "assemble final clip" to compile the ad.`,
+        context: { ...context, adClipState: { ...context.adClipState, currentStep: 'clip' as const } },
+        toolUsed: null,
+      });
+    }
+
     const audioContext = hasAudio
       ? `\n[AUDIO STATUS: Music file "${audioFileName}" is uploaded and ready. It will be automatically added to any clip. Do NOT ask user to upload music — it's already done.]`
       : `\n[AUDIO STATUS: No music uploaded. If user wants music in clip, remind them to use the 🎵 button.]`;
@@ -84,6 +113,40 @@ export async function POST(req: NextRequest) {
 
         // Check if combo ends with a client-side clip step
         const clipStep = comboResult.steps.find((s) => s.message === '__CREATE_CLIP__');
+
+        // ad_clip_generate: set adClipState + auto-start scene 1 animation (bypass create_clip)
+        if (clipStep && decision.comboId === 'ad_clip_generate') {
+          const comboImages = comboResult.steps
+            .filter((s) => s.media?.type === 'image')
+            .map((s) => s.media!.url);
+
+          comboResult.finalContext.adClipState = {
+            scenes: comboImages,
+            videos: [],
+            currentStep: 'videos',
+          };
+
+          let animJobId: string | undefined;
+          if (comboImages[0]) {
+            const animCtx: SessionContext = { ...comboResult.finalContext, lastImageUrl: comboImages[0] };
+            const animResult = await executeTool('image_to_video', {
+              prompt: 'slow dolly forward, cinematic movement, warm atmospheric lighting',
+              aspectRatio: '9:16',
+              duration: 5,
+            }, animCtx, cookieHeader);
+            animJobId = animResult.jobId ?? undefined;
+          }
+
+          return NextResponse.json({
+            message: fullMessage + `\n\n🎬 Animating scene 1/${comboImages.length}... (~30-60 sec)`,
+            media: lastMedia ?? undefined,
+            jobId: animJobId,
+            toolUsed: `combo:ad_clip_generate`,
+            comboImages: comboImages.length > 0 ? comboImages : undefined,
+            context: comboResult.finalContext,
+          });
+        }
+
         if (clipStep) {
           const clipStepDef = combo.steps.find((s) => s.tool === 'create_clip');
           // Only pass images generated in THIS combo — prevents collecting all session images

@@ -1103,7 +1103,10 @@ For write_script params: { "product": "what to advertise", "hero": "optional cha
   - mood: optional — overall emotional tone (default: "cinematic")
   - platform: optional — target platform (default: "instagram")
   - Returns a full storyboard (3 scenes + voiceover) for user approval before generating
-For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel" }
+For create_clip params: { "style": "cinematic", "transition": "fade", "durationPerImage": 3, "platform": "instagram_reel", "brandName": "Business Name", "slogan": "short slogan" }
+  - brandName: ALWAYS include when assembling an ad clip — extract from conversation (business name user mentioned)
+  - slogan: optional short phrase (5-7 words). Extract from storyboard voiceover or invent one matching mood.
+  - When assembling from Kling videos (adClipState): system auto-routes to VIDEO concatenation (not slideshow). You just call create_clip.
   - AUDIO SYSTEM (dual track):
     Voiceover (from session) = primary voice track, full volume, plays once (no loop)
     User uploaded music      = background ambient, 22% volume, loops

@@ -267,6 +267,8 @@ export default function StudioChat({ userId, userEmail }: Props) {
     characterReferenceUrl: null,
     uploadedReferenceUrl: null,
     businessType: null,
+    brandName: null,
+    slogan: null,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -287,7 +289,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         const parsed = JSON.parse(saved) as { messages?: ChatMessage[]; context?: SessionContext };
         if (parsed.messages && parsed.messages.length > 0) {
           setMessages(parsed.messages);
-          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null });
+          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null });
         }
       }
     } catch {
@@ -1029,10 +1031,24 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
       if (data.toolUsed === 'create_clip') {
         if (data.context) setContext(data.context);
-        // Use images from this combo only — prevents including all prior session images
-        const clipMediaItems = data.comboImages && data.comboImages.length > 0
-          ? data.comboImages.map((url) => ({ type: 'image' as const, url }))
-          : collectMediaItems(messages);
+
+        // Priority 1: use Kling animated videos (ad_clip_generate flow)
+        const adKlingVideos = data.context?.adClipState?.videos ?? context.adClipState?.videos;
+        // Priority 2: use static images from this combo
+        // Priority 3: collect all media from messages
+        const clipMediaItems: MediaItem[] = adKlingVideos && adKlingVideos.length > 0
+          ? adKlingVideos.map((url) => ({ type: 'video' as const, url, duration: 5 }))
+          : data.comboImages && data.comboImages.length > 0
+            ? data.comboImages.map((url) => ({ type: 'image' as const, url }))
+            : collectMediaItems(messages);
+
+        // Store brandName/slogan from clipParams if provided
+        if (data.clipParams?.brandName) {
+          setContext((prev) => ({ ...prev, brandName: String(data.clipParams!.brandName) }));
+        }
+        if (data.clipParams?.slogan) {
+          setContext((prev) => ({ ...prev, slogan: String(data.clipParams!.slogan) }));
+        }
 
         if (clipMediaItems.length === 0) {
           setMessages((prev) => prev.map((m) =>
@@ -1045,6 +1061,18 @@ export default function StudioChat({ userId, userEmail }: Props) {
         }
 
         const clipParams = data.clipParams ?? { style: 'cinematic', transition: 'fade', durationPerImage: 3, platform: 'instagram_reel' };
+
+        // Auto end_card for ad clip flow: brand name + slogan on dark frame
+        const brandForCard = (data.clipParams?.brandName as string | undefined) || context.brandName || null;
+        const sloganForCard = (data.clipParams?.slogan as string | undefined) || context.slogan || null;
+        if (adKlingVideos && adKlingVideos.length > 0 && (brandForCard || sloganForCard) && !clipParams.end_card) {
+          clipParams.end_card = JSON.stringify({
+            brand: brandForCard || '',
+            tagline: sloganForCard || '',
+            bg: '#0d0d0d',
+            duration: 2.5,
+          });
+        }
 
         // Cap durationPerImage: Haiku often sends 7 — force max 5 unless user clearly wants more
         const rawDuration = Number(clipParams.durationPerImage) || 3;
@@ -1420,7 +1448,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   const handleNewSession = () => {
     setMessages([WELCOME_MESSAGE]);
-    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null });
+    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null });
     localStorage.removeItem(SESSION_KEY);
   };
 

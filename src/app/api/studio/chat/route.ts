@@ -191,11 +191,14 @@ export async function POST(req: NextRequest) {
 
     // create_clip is client-side — return params to frontend without executing on server
     if (decision.toolCall?.tool === 'create_clip') {
+      const clipCtx = { ...context };
+      if (decision.toolCall.params.brandName) clipCtx.brandName = String(decision.toolCall.params.brandName);
+      if (decision.toolCall.params.slogan) clipCtx.slogan = String(decision.toolCall.params.slogan);
       return NextResponse.json({
         message: decision.message,
         toolUsed: 'create_clip',
         clipParams: decision.toolCall.params,
-        context,
+        context: clipCtx,
       });
     }
 

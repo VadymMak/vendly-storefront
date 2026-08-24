@@ -1,12 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { toolsToSystemPrompt } from './tools';
-import type { ChatMessage, SessionContext, ToolName } from './types';
+import type { AgentState, ChatMessage, SessionContext, ToolName } from './types';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
 export interface AgentDecision {
+  state: AgentState;
   message: string;
   buttons?: Array<{ label: string; value: string }>;
   toolCall?: {
@@ -24,6 +25,27 @@ Always respond in the SAME language the user used in their LAST message.
 - User writes in Russian → respond entirely in Russian
 - User writes in English → respond entirely in English
 - Never switch languages mid-conversation. Never mix languages.
+
+─────────────────────────────────────────────
+STATE MACHINE: ALWAYS include a "state" field in every JSON response.
+This is how route.ts tracks the flow — it NEVER reads your message text for routing.
+
+"asking_business_type"      — you asked what type of business/product to advertise (showed buttons OR asked "Что рекламируем?")
+"asking_director_questions" — you asked the 2 director questions (hero, scene/moment)
+"ready_to_generate"         — you called write_script (showing the storyboard to user)
+"generating"                — you returned a combo ("ad_clip_generate", "lora_ad_clip", etc.)
+"done"                      — you triggered create_clip or said the final clip is assembling
+"idle"                      — anything else: chatting, answering questions, single tool call, error
+
+Also inject current state context when [State: previous state was "..."] appears in user message:
+- "asking_director_questions" → user is answering your director questions → IMMEDIATELY call write_script
+- "asking_business_type" → user told you their business type → ask director questions
+- "ready_to_generate" → user approved storyboard → return combo "ad_clip_generate"
+
+Example format:
+{"state": "asking_director_questions", "message": "Пару вопросов...", "tool": null}
+{"state": "generating", "message": "Генерирую...", "combo": "ad_clip_generate", "subject": "..."}
+{"state": "idle", "message": "...", "tool": "generate_image", "params": {...}}
 
 ─────────────────────────────────────────────
 LORA FACE CLIP (highest priority after language rule):
@@ -1251,6 +1273,7 @@ export async function getAgentDecision(
       : '[Context: no image in session yet]',
     context.lastVideoUrl ? `[Context: user has a video: ${context.lastVideoUrl}]` : '',
     context.businessType ? `[Context: business_type="${context.businessType}" — user already selected this via button, go straight to director questions for this type]` : '',
+    context.lastAgentState ? `[State: previous state was "${context.lastAgentState}"]` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -1285,6 +1308,7 @@ export async function getAgentDecision(
     const text = '{' + rawText;
 
     let parsed: {
+      state?: string;
       message?: string;
       tool?: string | null;
       params?: Record<string, string | number | boolean>;
@@ -1309,22 +1333,31 @@ export async function getAgentDecision(
             const messageText = rawText.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
             console.warn('[studio agent] XML fallback extracted tool:', toolName);
             return {
+              state: 'idle' as AgentState,
               message: messageText || `Using ${toolName}...`,
               toolCall: { tool: toolName as ToolName, params: {} },
             };
           }
-          return { message: "I'm not sure what you'd like. Could you describe what you want to create?" };
+          return { state: 'idle' as AgentState, message: "I'm not sure what you'd like. Could you describe what you want to create?" };
         }
       } else {
         console.warn('[studio agent] No JSON found in response:', text.slice(0, 200));
-        return { message: rawText || "I'm not sure what you'd like. Could you describe what you want to create?" };
+        return { state: 'idle' as AgentState, message: rawText || "I'm not sure what you'd like. Could you describe what you want to create?" };
       }
     }
 
     // Strip any XML artifacts that might leak into the message field
     const cleanMessage = (parsed.message || '').replace(/<[^>]+>/g, '').trim();
 
+    const VALID_STATES: AgentState[] = [
+      'idle', 'asking_business_type', 'asking_director_questions',
+      'ready_to_generate', 'generating', 'done', 'lora_asking_scene',
+    ];
+    const parsedState = parsed.state as AgentState | undefined;
+    const resolvedState: AgentState = parsedState && VALID_STATES.includes(parsedState) ? parsedState : 'idle';
+
     const decision: AgentDecision = {
+      state: resolvedState,
       message: cleanMessage,
     };
 
@@ -1348,6 +1381,6 @@ export async function getAgentDecision(
     return decision;
   } catch (error) {
     console.error('[studio agent] Haiku error:', error);
-    return { message: 'Sorry, I had trouble processing that. Please try again.' };
+    return { state: 'idle', message: 'Sorry, I had trouble processing that. Please try again.' };
   }
 }

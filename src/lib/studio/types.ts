@@ -1,5 +1,14 @@
 export type MessageRole = 'user' | 'assistant' | 'system';
 
+export type AgentState =
+  | 'idle'
+  | 'asking_business_type'
+  | 'asking_director_questions'
+  | 'ready_to_generate'
+  | 'generating'
+  | 'done'
+  | 'lora_asking_scene';
+
 export type MediaType = 'image' | 'video' | 'audio';
 
 export interface MediaAttachment {
@@ -56,6 +65,7 @@ export interface SessionContext {
   loraModel?: string | null;
   loraTriggerWord?: string | null;
   jobIds?: string[];
+  lastAgentState?: AgentState;
 }
 
 export type Platform =

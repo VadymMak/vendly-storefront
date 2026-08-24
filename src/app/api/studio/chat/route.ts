@@ -125,16 +125,11 @@ export async function POST(req: NextRequest) {
 
     console.log('[studio/chat] wantsAdClip:', wantsAdClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic, '| msg:', msgLower);
 
-    // Check if previous assistant message was asking LoRA director questions
-    const prevAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant')?.content ?? '';
-    const wasAskingLoraQuestions =
-      prevAssistantMsg.includes('Где происходит сцена') ||
-      prevAssistantMsg.includes('Что она делает') ||
-      prevAssistantMsg.includes('Уточни детали') ||
-      prevAssistantMsg.includes('face clip with ANNA');
+    // State-based LoRA detection — no string matching on text
+    const wasAskingLoraScene = context.lastAgentState === 'lora_asking_scene';
 
-    // Enter LoRA flow when: specific keyword NOW, OR answering director questions (loraModel already set from prev response)
-    if (wantsLoraSpecific || (wasAskingLoraQuestions && context.loraModel)) {
+    // Enter LoRA flow when: specific keyword NOW, OR state says we were asking for scene (loraModel set from prev response)
+    if (wantsLoraSpecific || (wasAskingLoraScene && context.loraModel)) {
       const hasSceneDescription =
         msgLower.includes('пляж') || msgLower.includes('beach') ||
         msgLower.includes('кухн') || msgLower.includes('kitchen') ||
@@ -145,15 +140,15 @@ export async function POST(req: NextRequest) {
         msgLower.includes('кафе') || msgLower.includes('cafe') ||
         msgLower.includes('студи') || msgLower.includes('studio') ||
         msgLower.includes('парк') || msgLower.includes('park') ||
-        wasAskingLoraQuestions ||
+        wasAskingLoraScene ||
         message.length > 60;
 
       if (!hasSceneDescription) {
-        // Step 1: No scene described — ask director questions, set loraModel in context
+        // Step 1: No scene described — ask director questions, set loraModel + state in context
         return NextResponse.json({
           message: 'Отлично! Создам клип с лицом ANNA. Уточни детали:\n\n🎬 **Где происходит сцена?** (пляж, ресторан, улица, лес, студия, кафе...)\n💃 **Что она делает?** (идёт, держит кофе, улыбается, смотрит в камеру...)\n👗 **Стиль одежды?** (casual, элегантное, пляжное, спортивное...)\n🌅 **Настроение?** (летнее, романтичное, динамичное, утреннее...)',
           toolUsed: null,
-          context: { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER },
+          context: { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER, lastAgentState: 'lora_asking_scene' as const },
         });
       }
 
@@ -208,7 +203,7 @@ export async function POST(req: NextRequest) {
           toolUsed: 'combo:lora_ad_clip',
           comboImages: comboImages.length > 0 ? comboImages : undefined,
           jobIds: jobIds.length > 0 ? jobIds : undefined,
-          context: loraFinalContext,
+          context: { ...loraFinalContext, lastAgentState: 'generating' as const },
         });
       }
     }
@@ -239,6 +234,7 @@ export async function POST(req: NextRequest) {
           clipParams: { style: 'cinematic', transition: 'fade', durationPerImage: 5, platform: 'instagram_reel' },
           context: {
             ...context,
+            lastAgentState: 'done' as const,
             adClipState: context.adClipState
               ? { ...context.adClipState, currentStep: 'clip' as const }
               : undefined,
@@ -250,27 +246,23 @@ export async function POST(req: NextRequest) {
     }
     // --- END ASSEMBLE INTENT ---
 
-    // --- DIRECTOR QUESTIONS ANSWERED: inject write_script instruction ---
-    const wasAskingDirectorQuestions =
-      prevAssistantMsg.includes('Что рекламируем') ||
-      prevAssistantMsg.includes('Какой тип бизнеса') ||
-      prevAssistantMsg.includes('рекламируем') ||
-      prevAssistantMsg.includes('тип бизнеса') ||
-      prevAssistantMsg.includes('Кто герой') ||
-      prevAssistantMsg.includes('Какой момент') ||
-      prevAssistantMsg.includes('Опиши сцену') ||
-      prevAssistantMsg.includes('Для какого бизнеса') ||
-      prevAssistantMsg.includes('Какой продукт');
+    // --- STATE-BASED ROUTING: inject instructions based on lastAgentState (no string matching) ---
+    const lastState = context.lastAgentState;
 
-    const directorInstruction = wasAskingDirectorQuestions
-      ? '\n\n[DIRECTOR CONTEXT: The assistant just asked the user for their business/scene details, and the user has now replied with that information. You MUST immediately call write_script with the scene description the user just provided. Do NOT ask more questions. Do NOT say you need more info. Call write_script NOW.]'
-      : '';
+    let stateInstruction = '';
+    if (lastState === 'asking_director_questions') {
+      stateInstruction = '\n\n[STATE: previous state was "asking_director_questions". User has now replied with their scene/hero details. IMMEDIATELY call write_script with the information from the user\'s reply. Do NOT ask more questions.]';
+    } else if (lastState === 'asking_business_type') {
+      stateInstruction = '\n\n[STATE: previous state was "asking_business_type". User has now told you their business type. Ask director questions immediately (state → "asking_director_questions").]';
+    } else if (lastState === 'ready_to_generate') {
+      stateInstruction = '\n\n[STATE: previous state was "ready_to_generate" (storyboard was shown). If user approves → return combo "ad_clip_generate" (state → "generating"). If user wants changes → update storyboard (keep state "ready_to_generate").]';
+    }
 
-    console.log('[studio/chat] wasAskingDirectorQuestions:', wasAskingDirectorQuestions, '| prevMsg preview:', prevAssistantMsg.slice(0, 80));
-    // --- END DIRECTOR QUESTIONS ---
+    console.log('[studio/chat] lastAgentState:', lastState, '| stateInstruction applied:', !!stateInstruction);
+    // --- END STATE-BASED ROUTING ---
 
     const decision = await getAgentDecision(
-      message + audioContext + languageInstruction + directorInstruction,
+      message + audioContext + languageInstruction + stateInstruction,
       context,
       history,
       learningPrompt || undefined,
@@ -343,13 +335,12 @@ export async function POST(req: NextRequest) {
             jobIds: jobIds.length > 0 ? jobIds : undefined,
             toolUsed: `combo:ad_clip_generate`,
             comboImages: comboImages.length > 0 ? comboImages : undefined,
-            context: comboResult.finalContext,
+            context: { ...comboResult.finalContext, lastAgentState: 'generating' as const },
           });
         }
 
         if (clipStep) {
           const clipStepDef = combo.steps.find((s) => s.tool === 'create_clip');
-          // Only pass images generated in THIS combo — prevents collecting all session images
           const comboImages = comboResult.steps
             .filter((s) => s.media?.type === 'image')
             .map((s) => s.media!.url);
@@ -359,7 +350,7 @@ export async function POST(req: NextRequest) {
             toolUsed: 'create_clip',
             clipParams: clipStepDef?.params ?? { style: 'cinematic', transition: 'fade', durationPerImage: 4, platform: 'instagram_reel' },
             comboImages: comboImages.length > 0 ? comboImages : undefined,
-            context: comboResult.finalContext,
+            context: { ...comboResult.finalContext, lastAgentState: 'done' as const },
           });
         }
 
@@ -370,7 +361,7 @@ export async function POST(req: NextRequest) {
           media: lastMedia ?? undefined,
           jobId: videoStep?.jobId ?? undefined,
           toolUsed: `combo:${decision.comboId}`,
-          context: comboResult.finalContext,
+          context: { ...comboResult.finalContext, lastAgentState: decision.state },
         });
       }
     }
@@ -378,11 +369,11 @@ export async function POST(req: NextRequest) {
     let media: MediaAttachment | undefined;
     let jobId: string | undefined;
     let toolMessage = decision.message;
-    const updatedContext: SessionContext = { ...context };
+    const updatedContext: SessionContext = { ...context, lastAgentState: decision.state };
 
     // create_clip is client-side — return params to frontend without executing on server
     if (decision.toolCall?.tool === 'create_clip') {
-      const clipCtx = { ...context };
+      const clipCtx = { ...context, lastAgentState: 'done' as const };
       if (decision.toolCall.params.brandName) clipCtx.brandName = String(decision.toolCall.params.brandName);
       if (decision.toolCall.params.slogan) clipCtx.slogan = String(decision.toolCall.params.slogan);
       return NextResponse.json({
@@ -399,7 +390,7 @@ export async function POST(req: NextRequest) {
         message: decision.message,
         toolUsed: 'transform_image',
         transformParams: decision.toolCall.params,
-        context,
+        context: { ...context, lastAgentState: decision.state },
       });
     }
 

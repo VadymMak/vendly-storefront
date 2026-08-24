@@ -95,7 +95,13 @@ export async function POST(req: NextRequest) {
       msgLower.includes('лицом') ||
       msgLower.includes('face clip') ||
       msgLower.includes('same face') ||
-      msgLower.includes('lora');
+      msgLower.includes('lora') ||
+      msgLower.includes('рекламн') ||
+      msgLower.includes('реклам') ||
+      msgLower.includes('клип') ||
+      msgLower.includes('ролик');
+
+    console.log('[studio/chat] wantsLoraClip:', wantsLoraClip, '| loraModel:', !!context.loraModel, '| msg:', msgLower);
 
     // Check if previous assistant message was asking LoRA director questions
     const prevAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant')?.content ?? '';

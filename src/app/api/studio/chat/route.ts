@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
 
     // --- LoRA CLIP INTENT: two-step — director questions → generate ---
     const msgLower = message.toLowerCase();
+
+    // Broad detection (for logging only — doesn't trigger LoRA unless specific)
     const wantsLoraClip =
       msgLower.includes('anna') ||
       msgLower.includes('лицом') ||
@@ -101,17 +103,28 @@ export async function POST(req: NextRequest) {
       msgLower.includes('клип') ||
       msgLower.includes('ролик');
 
-    console.log('[studio/chat] wantsLoraClip:', wantsLoraClip, '| loraModel:', !!context.loraModel, '| msg:', msgLower);
+    // Specific LoRA keywords — only these activate the LoRA flow and set loraModel
+    const LORA_MODEL = 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6';
+    const LORA_TRIGGER = 'ANNA';
+    const wantsLoraSpecific =
+      msgLower.includes('anna') ||
+      msgLower.includes('лицом') ||
+      msgLower.includes('face clip') ||
+      msgLower.includes('same face') ||
+      msgLower.includes('lora');
+
+    console.log('[studio/chat] wantsLoraClip:', wantsLoraClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| msg:', msgLower);
 
     // Check if previous assistant message was asking LoRA director questions
     const prevAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant')?.content ?? '';
     const wasAskingLoraQuestions =
-      prevAssistantMsg.includes('Где происходит сцена') ||
+      prevAssistantMsg.includes('Де происходит сцена') ||
       prevAssistantMsg.includes('Что она делает') ||
       prevAssistantMsg.includes('Уточни детали') ||
       prevAssistantMsg.includes('face clip with ANNA');
 
-    if ((wantsLoraClip || wasAskingLoraQuestions) && context.loraModel) {
+    // Enter LoRA flow when: specific keyword NOW, OR answering director questions (loraModel already set from prev response)
+    if (wantsLoraSpecific || (wasAskingLoraQuestions && context.loraModel)) {
       const hasSceneDescription =
         msgLower.includes('пляж') || msgLower.includes('beach') ||
         msgLower.includes('кухн') || msgLower.includes('kitchen') ||
@@ -126,11 +139,11 @@ export async function POST(req: NextRequest) {
         message.length > 60;
 
       if (!hasSceneDescription) {
-        // Step 1: No scene described — ask director questions
+        // Step 1: No scene described — ask director questions, set loraModel in context
         return NextResponse.json({
           message: 'Отлично! Создам клип с лицом ANNA. Уточни детали:\n\n🎬 **Где происходит сцена?** (пляж, ресторан, улица, лес, студия, кафе...)\n💃 **Что она делает?** (идёт, держит кофе, улыбается, смотрит в камеру...)\n👗 **Стиль одежды?** (casual, элегантное, пляжное, спортивное...)\n🌅 **Настроение?** (летнее, романтичное, динамичное, утреннее...)',
           toolUsed: null,
-          context,
+          context: { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER },
         });
       }
 
@@ -157,7 +170,9 @@ export async function POST(req: NextRequest) {
           return step;
         });
 
-        const loraResult = await executeCombo(loraSteps, sceneBase, context, cookieHeader);
+        // Ensure loraModel is set in context for the combo execution
+        const loraContext = { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER };
+        const loraResult = await executeCombo(loraSteps, sceneBase, loraContext, cookieHeader);
 
         const comboImages = loraResult.steps
           .filter((s) => s.media?.type === 'image')
@@ -173,7 +188,7 @@ export async function POST(req: NextRequest) {
           return `${i + 1}. ✅ ${s.description}`;
         });
 
-        const loraContext: typeof loraResult.finalContext = {
+        const loraFinalContext = {
           ...loraResult.finalContext,
           ...(jobIds.length > 0 ? { jobIds } : {}),
         };
@@ -183,7 +198,7 @@ export async function POST(req: NextRequest) {
           toolUsed: 'combo:lora_ad_clip',
           comboImages: comboImages.length > 0 ? comboImages : undefined,
           jobIds: jobIds.length > 0 ? jobIds : undefined,
-          context: loraContext,
+          context: loraFinalContext,
         });
       }
     }

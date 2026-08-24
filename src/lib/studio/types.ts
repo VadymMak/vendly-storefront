@@ -55,6 +55,7 @@ export interface SessionContext {
   slogan?: string | null;
   loraModel?: string | null;
   loraTriggerWord?: string | null;
+  jobIds?: string[];
 }
 
 export type Platform =

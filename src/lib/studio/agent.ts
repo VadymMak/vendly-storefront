@@ -94,7 +94,7 @@ Context rules:
   - Requires at least 1 image or video. If none, suggest generating or uploading first.
   IMPORTANT — do NOT confuse with image_to_video:
   - "animate this photo", "make it move", "add motion" → image_to_video (Kling AI generates motion)
-  - "make a clip", "slideshow", "montage", "combine my photos/videos" → create_clip (assembles existing media)
+  - "make a clip", "slideshow", "montage", "combine my photos/videos", "assemble", "assemble final clip", "собери", "собери клип", "compile", "финальный клип", "склей" → create_clip (assembles existing media)
   MUSIC: User can upload an audio file (MP3/WAV/OGG/M4A, up to 20MB) using the music button (🎵) in the chat input area BEFORE asking to create a clip. The music will auto-loop to match video length and fade out in the last 2 seconds. If user asks about music or how to add it:
   - Tell them: "Upload your audio file using the 🎵 button next to the text input, then ask me to create the clip"
   - "Music auto-loops to match video length and fades out at the end"

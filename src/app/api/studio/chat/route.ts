@@ -157,23 +157,58 @@ export async function POST(req: NextRequest) {
           return `${i + 1}. ✅ ${s.description}`;
         });
 
+        const loraContext: typeof loraResult.finalContext = {
+          ...loraResult.finalContext,
+          ...(jobIds.length > 0 ? { jobIds } : {}),
+        };
+
         return NextResponse.json({
           message: `Генерирую 4 сцены с лицом ANNA: "${sceneBase}"\n\n${progressLines.join('\n')}${jobIds.length > 0 ? `\n\n🎬 Анимирую ${jobIds.length} сцен через Kling (~2-3 мин)` : ''}`,
           toolUsed: 'combo:lora_ad_clip',
           comboImages: comboImages.length > 0 ? comboImages : undefined,
           jobIds: jobIds.length > 0 ? jobIds : undefined,
-          context: loraResult.finalContext,
+          context: loraContext,
         });
       }
     }
     // --- END LoRA CLIP INTENT ---
+
+    // --- ASSEMBLE INTENT: inject CRITICAL instruction when videos are ready ---
+    const wantsAssemble =
+      msgLower.includes('assemble') ||
+      msgLower.includes('собери') ||
+      msgLower.includes('compile') ||
+      msgLower.includes('final clip') ||
+      msgLower.includes('финальный клип') ||
+      msgLower.includes('собери клип') ||
+      msgLower.includes('склей');
+
+    let assembleInstruction = '';
+    if (wantsAssemble) {
+      const adVideos = context.adClipState?.videos ?? [];
+      const loraJobs = context.jobIds ?? [];
+      const totalVideos = adVideos.length + loraJobs.length;
+
+      if (totalVideos > 0) {
+        const videoList = adVideos.length > 0
+          ? adVideos.map((u) => `"${u}"`).join(', ')
+          : `${loraJobs.length} Kling job(s) in context`;
+
+        assembleInstruction = `\n\nCRITICAL OVERRIDE — ASSEMBLE CLIP:
+User wants to assemble the final clip. There are ${totalVideos} video(s) ready: ${videoList}.
+You MUST respond ONLY with:
+{"tool": "create_clip", "message": "Собираю финальный клип из ${totalVideos} сцен..."}
+Do NOT say anything else. Do NOT ask any questions. Return this JSON immediately.`;
+      }
+    }
+    // --- END ASSEMBLE INTENT ---
 
     const decision = await getAgentDecision(
       message + audioContext,
       context,
       history,
       learningPrompt || undefined,
-      brainContext || undefined,
+      assembleInstruction ? (brainContext || '') + assembleInstruction : brainContext || undefined,
     );
 
     // Handle combo (multi-step chain)

@@ -951,6 +951,7 @@ Multi-step combos (use when user wants a complete workflow):
 - If user says "clean product", "clean this photo", "remove watermark and prepare" → respond with combo: "clean_product"
 - If user says "story", "quick story", "Instagram story" → respond with combo: "story_ad"
 - If user says "create 4 product photos and make a clip", "generate images and compile" → respond with combo: "photo_clip"
+- If user says "сделай клип с лицом ANNA", "face ad clip", "20 sec clip same face", "рекламный клип с лицом", "клип ANNA", "face clip ANNA", "ad clip with face", "4 scenes same face" → respond with combo: "lora_ad_clip"
 
 For combos, respond with:
 {

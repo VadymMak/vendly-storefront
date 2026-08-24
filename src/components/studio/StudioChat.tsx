@@ -297,6 +297,8 @@ export default function StudioChat({ userId, userEmail }: Props) {
     businessType: null,
     brandName: null,
     slogan: null,
+    loraModel: 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6',
+    loraTriggerWord: 'ANNA',
   });
   const [isUploading, setIsUploading] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -317,7 +319,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
         const parsed = JSON.parse(saved) as { messages?: ChatMessage[]; context?: SessionContext };
         if (parsed.messages && parsed.messages.length > 0) {
           setMessages(parsed.messages);
-          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null });
+          setContext(parsed.context ?? { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null, loraModel: 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6', loraTriggerWord: 'ANNA' });
         }
       }
     } catch {
@@ -1491,7 +1493,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   const handleNewSession = () => {
     setMessages([WELCOME_MESSAGE]);
-    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null });
+    setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null, loraModel: 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6', loraTriggerWord: 'ANNA' });
     localStorage.removeItem(SESSION_KEY);
   };
 

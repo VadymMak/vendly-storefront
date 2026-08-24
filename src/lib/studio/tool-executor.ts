@@ -468,6 +468,74 @@ async function executeGenerateCharacter(
   context: SessionContext,
   _cookieHeader: string,
 ): Promise<ToolResult> {
+  // LoRA path: use trained face model if set in context
+  if (context.loraModel) {
+    const triggerWord = context.loraTriggerWord || 'ANNA';
+    const sceneDesc = (params.scene_description as string) || (params.prompt as string) || 'portrait, natural light';
+    const loraPrompt = `${triggerWord} ${sceneDesc}, high quality, professional photography, cinematic lighting`;
+
+    const REPLICATE_API_KEY = process.env.REPLICATE_API_TOKEN || '';
+    if (!REPLICATE_API_KEY) {
+      return { error: 'REPLICATE_API_TOKEN not configured' };
+    }
+
+    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token ${REPLICATE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        version: context.loraModel.includes(':') ? context.loraModel.split(':')[1] : context.loraModel,
+        input: {
+          prompt: loraPrompt,
+          num_inference_steps: 28,
+          guidance_scale: 3.5,
+          width: 1024,
+          height: 1024,
+          num_outputs: 1,
+        },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({ detail: 'LoRA generation failed' })) as { detail?: string };
+      return { error: err.detail || 'LoRA generation failed' };
+    }
+
+    const prediction = await createRes.json() as { id: string; status: string; output?: string[]; error?: string };
+
+    // Poll until done (max 120s)
+    let result = prediction;
+    let attempts = 0;
+    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < 60) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
+        headers: { Authorization: `Token ${REPLICATE_API_KEY}` },
+      });
+      result = await pollRes.json() as typeof result;
+      attempts++;
+    }
+
+    if (result.status === 'failed' || !result.output?.[0]) {
+      return { error: result.error || 'LoRA generation timed out or failed' };
+    }
+
+    const imageUrl = result.output[0];
+    const imgRes = await fetch(imageUrl);
+    const buffer = Buffer.from(await imgRes.arrayBuffer());
+    const contentType = imgRes.headers.get('content-type') || 'image/webp';
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('jpeg') ? 'jpg' : 'webp';
+
+    const blob = await put(`studio/lora/${Date.now()}.${ext}`, buffer, { access: 'public', contentType });
+
+    return {
+      media: { type: 'image', url: blob.url },
+      message: `Scene generated with LoRA face (${triggerWord})`,
+    };
+  }
+
+  // Fallback: existing PuLID / Brain character generation
   const referenceImage = (params.reference_image as string)
     || context.uploadedReferenceUrl
     || context.characterReferenceUrl

@@ -622,6 +622,46 @@ const COMBO_PRESETS: ComboPreset[] = [
     ],
     defaultParams: {},
   },
+  {
+    id: 'lora_ad_clip',
+    label: 'Face Ad Clip',
+    emoji: '🎬',
+    category: 'combo',
+    description: 'Generate 4 scenes with same face via LoRA + animate each with Kling',
+    platforms: ['instagram_reel', 'tiktok', 'youtube_shorts'],
+    steps: [
+      {
+        tool: 'generate_character',
+        description: 'Scene 1 — intro',
+        params: { scene_description: 'woman smiling in a cafe, morning light, warm tones' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'generate_character',
+        description: 'Scene 2 — product',
+        params: { scene_description: 'woman holding product, looking at camera, studio light' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'generate_character',
+        description: 'Scene 3 — lifestyle',
+        params: { scene_description: 'woman walking on city street, golden hour, bokeh' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'generate_character',
+        description: 'Scene 4 — outro',
+        params: { scene_description: 'woman laughing, close-up portrait, natural light' },
+        alwaysGenerate: true,
+      },
+      {
+        tool: 'create_clip',
+        description: 'Assembling 20-sec clip from 4 scenes',
+        params: { duration: 5, animate_all: 1 },
+      },
+    ],
+    defaultParams: {},
+  },
 ];
 
 // ========================================

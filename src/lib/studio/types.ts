@@ -53,6 +53,8 @@ export interface SessionContext {
   businessType?: string | null;
   brandName?: string | null;
   slogan?: string | null;
+  loraModel?: string | null;
+  loraTriggerWord?: string | null;
 }
 
 export type Platform =

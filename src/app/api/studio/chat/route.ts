@@ -78,6 +78,49 @@ export async function POST(req: NextRequest) {
       ? await getBrainStudioContext(message)
       : '';
 
+    // --- LoRA CLIP INTENT: short-circuit before Haiku ---
+    const msgLower = message.toLowerCase();
+    const wantsLoraClip =
+      msgLower.includes('anna') ||
+      msgLower.includes('лицом') ||
+      msgLower.includes('face clip') ||
+      msgLower.includes('same face') ||
+      msgLower.includes('lora');
+
+    if (wantsLoraClip && context.loraModel) {
+      const loraCombo = getComboPreset('lora_ad_clip');
+      if (loraCombo) {
+        const cookieHeader = req.headers.get('cookie') || '';
+        const loraResult = await executeCombo(loraCombo.steps, message, context, cookieHeader);
+
+        const allMedia = loraResult.steps.filter((s) => s.media).map((s) => s.media!);
+        const lastMedia = allMedia[allMedia.length - 1];
+        const comboImages = loraResult.steps
+          .filter((s) => s.media?.type === 'image')
+          .map((s) => s.media!.url);
+
+        const progressLines = loraResult.steps.map((s, i) => {
+          if (s.message === '__CREATE_CLIP__') return `${i + 1}. ⏳ ${s.description} (rendering in browser...)`;
+          if (s.error) return `${i + 1}. ❌ ${s.description}: ${s.error}`;
+          if (s.jobId) return `${i + 1}. ⏳ ${s.description} (generating...)`;
+          return `${i + 1}. ✅ ${s.description}`;
+        });
+
+        const fullMessage = `Генерирую 4 сцены с лицом ANNA через LoRA...\n\n${progressLines.join('\n')}`;
+        const clipStepDef = loraCombo.steps.find((s) => s.tool === 'create_clip');
+
+        return NextResponse.json({
+          message: fullMessage,
+          media: lastMedia ?? undefined,
+          toolUsed: 'create_clip',
+          clipParams: clipStepDef?.params ?? { style: 'cinematic', transition: 'fade', durationPerImage: 5, platform: 'instagram_reel' },
+          comboImages: comboImages.length > 0 ? comboImages : undefined,
+          context: loraResult.finalContext,
+        });
+      }
+    }
+    // --- END LoRA CLIP INTENT ---
+
     const decision = await getAgentDecision(
       message + audioContext,
       context,

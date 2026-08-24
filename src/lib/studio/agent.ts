@@ -16,7 +16,10 @@ export interface AgentDecision {
   comboId?: string;
 }
 
-const SYSTEM_PROMPT = `LANGUAGE RULE (highest priority):
+const SYSTEM_PROMPT = `LANGUAGE RULE (ABSOLUTE HIGHEST PRIORITY — non-negotiable):
+If the user message contains ANY Cyrillic characters (а-яёА-ЯЁ) — you MUST respond ENTIRELY in Russian.
+No English words. No code-switching. Russian only.
+If the injected message ends with "[LANGUAGE OVERRIDE: User is writing in Russian...]" — this is a hard enforcement signal: respond in Russian with zero exceptions.
 Always respond in the SAME language the user used in their LAST message.
 - User writes in Russian → respond entirely in Russian
 - User writes in English → respond entirely in English

@@ -91,19 +91,26 @@ export async function POST(req: NextRequest) {
     // --- LoRA CLIP INTENT: two-step — director questions → generate ---
     const msgLower = message.toLowerCase();
 
-    // Broad detection (for logging only — doesn't trigger LoRA unless specific)
-    const wantsLoraClip =
-      msgLower.includes('anna') ||
-      msgLower.includes('лицом') ||
-      msgLower.includes('face clip') ||
-      msgLower.includes('same face') ||
-      msgLower.includes('lora') ||
-      msgLower.includes('рекламн') ||
-      msgLower.includes('реклам') ||
-      msgLower.includes('клип') ||
-      msgLower.includes('ролик');
+    // --- LANGUAGE DETECTION ---
+    const hasCyrillic = /[а-яёА-ЯЁ]/.test(message);
+    const languageInstruction = hasCyrillic
+      ? '\n\n[LANGUAGE OVERRIDE: User is writing in Russian. You MUST respond ENTIRELY in Russian. No English words. No mixing languages.]'
+      : '';
 
-    // Specific LoRA keywords — only these activate the LoRA flow and set loraModel
+    // --- wantsAdClip: regular ad/clip requests (non-LoRA) ---
+    const wantsAdClip =
+      msgLower.includes('реклам') ||
+      msgLower.includes('рекламн') ||
+      msgLower.includes('клип') ||
+      msgLower.includes('ролик') ||
+      msgLower.includes(' clip') ||
+      msgLower.includes('reel') ||
+      msgLower.includes('ad for') ||
+      msgLower.includes('make ad') ||
+      msgLower.includes('create clip') ||
+      msgLower.includes('сделай');
+
+    // --- wantsLoraSpecific: only these trigger the LoRA trained-face flow ---
     const LORA_MODEL = 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6';
     const LORA_TRIGGER = 'ANNA';
     const wantsLoraSpecific =
@@ -113,12 +120,15 @@ export async function POST(req: NextRequest) {
       msgLower.includes('same face') ||
       msgLower.includes('lora');
 
-    console.log('[studio/chat] wantsLoraClip:', wantsLoraClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| msg:', msgLower);
+    // Broad LoRA logging (superset)
+    const wantsLoraClip = wantsLoraSpecific || wantsAdClip;
+
+    console.log('[studio/chat] wantsAdClip:', wantsAdClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic, '| msg:', msgLower);
 
     // Check if previous assistant message was asking LoRA director questions
     const prevAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant')?.content ?? '';
     const wasAskingLoraQuestions =
-      prevAssistantMsg.includes('Де происходит сцена') ||
+      prevAssistantMsg.includes('Где происходит сцена') ||
       prevAssistantMsg.includes('Что она делает') ||
       prevAssistantMsg.includes('Уточни детали') ||
       prevAssistantMsg.includes('face clip with ANNA');
@@ -241,7 +251,7 @@ export async function POST(req: NextRequest) {
     // --- END ASSEMBLE INTENT ---
 
     const decision = await getAgentDecision(
-      message + audioContext,
+      message + audioContext + languageInstruction,
       context,
       history,
       learningPrompt || undefined,

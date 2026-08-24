@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       ? await getBrainStudioContext(message)
       : '';
 
-    // --- LoRA CLIP INTENT: short-circuit before Haiku ---
+    // --- LoRA CLIP INTENT: two-step — director questions → generate ---
     const msgLower = message.toLowerCase();
     const wantsLoraClip =
       msgLower.includes('anna') ||
@@ -87,11 +87,61 @@ export async function POST(req: NextRequest) {
       msgLower.includes('same face') ||
       msgLower.includes('lora');
 
-    if (wantsLoraClip && context.loraModel) {
+    // Check if previous assistant message was asking LoRA director questions
+    const prevAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant')?.content ?? '';
+    const wasAskingLoraQuestions =
+      prevAssistantMsg.includes('Где происходит сцена') ||
+      prevAssistantMsg.includes('Что она делает') ||
+      prevAssistantMsg.includes('Уточни детали') ||
+      prevAssistantMsg.includes('face clip with ANNA');
+
+    if ((wantsLoraClip || wasAskingLoraQuestions) && context.loraModel) {
+      const hasSceneDescription =
+        msgLower.includes('пляж') || msgLower.includes('beach') ||
+        msgLower.includes('кухн') || msgLower.includes('kitchen') ||
+        msgLower.includes('улиц') || msgLower.includes('street') ||
+        msgLower.includes('ресторан') || msgLower.includes('restaurant') ||
+        msgLower.includes('лес') || msgLower.includes('forest') ||
+        msgLower.includes('офис') || msgLower.includes('office') ||
+        msgLower.includes('кафе') || msgLower.includes('cafe') ||
+        msgLower.includes('студи') || msgLower.includes('studio') ||
+        msgLower.includes('парк') || msgLower.includes('park') ||
+        wasAskingLoraQuestions ||
+        message.length > 60;
+
+      if (!hasSceneDescription) {
+        // Step 1: No scene described — ask director questions
+        return NextResponse.json({
+          message: 'Отлично! Создам клип с лицом ANNA. Уточни детали:\n\n🎬 **Где происходит сцена?** (пляж, ресторан, улица, лес, студия, кафе...)\n💃 **Что она делает?** (идёт, держит кофе, улыбается, смотрит в камеру...)\n👗 **Стиль одежды?** (casual, элегантное, пляжное, спортивное...)\n🌅 **Настроение?** (летнее, романтичное, динамичное, утреннее...)',
+          toolUsed: null,
+          context,
+        });
+      }
+
+      // Step 2: Scene described — run combo with 4 variations
       const loraCombo = getComboPreset('lora_ad_clip');
       if (loraCombo) {
         const cookieHeader = req.headers.get('cookie') || '';
-        const loraResult = await executeCombo(loraCombo.steps, message, context, cookieHeader);
+        const sceneBase = message;
+        const sceneVariations = [
+          `${sceneBase}, wide establishing shot`,
+          `${sceneBase}, medium shot, natural expression`,
+          `${sceneBase}, close-up portrait, bokeh background`,
+          `${sceneBase}, dynamic angle, cinematic lighting`,
+        ];
+
+        // Clone steps with scene variations injected into each generate_character step
+        let variationIdx = 0;
+        const loraSteps = loraCombo.steps.map((step) => {
+          if (step.tool === 'generate_character') {
+            const variation = sceneVariations[variationIdx] ?? sceneBase;
+            variationIdx++;
+            return { ...step, params: { ...step.params, scene_description: variation } };
+          }
+          return step;
+        });
+
+        const loraResult = await executeCombo(loraSteps, sceneBase, context, cookieHeader);
 
         const allMedia = loraResult.steps.filter((s) => s.media).map((s) => s.media!);
         const lastMedia = allMedia[allMedia.length - 1];
@@ -106,11 +156,10 @@ export async function POST(req: NextRequest) {
           return `${i + 1}. ✅ ${s.description}`;
         });
 
-        const fullMessage = `Генерирую 4 сцены с лицом ANNA через LoRA...\n\n${progressLines.join('\n')}`;
         const clipStepDef = loraCombo.steps.find((s) => s.tool === 'create_clip');
 
         return NextResponse.json({
-          message: fullMessage,
+          message: `Генерирую 4 сцены с лицом ANNA: "${sceneBase}"\n\n${progressLines.join('\n')}`,
           media: lastMedia ?? undefined,
           toolUsed: 'create_clip',
           clipParams: clipStepDef?.params ?? { style: 'cinematic', transition: 'fade', durationPerImage: 5, platform: 'instagram_reel' },

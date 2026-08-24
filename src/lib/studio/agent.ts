@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { toolsToSystemPrompt } from './tools';
-import type { AgentState, ChatMessage, SessionContext, ToolName } from './types';
+import type { AgentState, ChatMessage, MovieScene, SessionContext, ToolName } from './types';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -15,6 +15,7 @@ export interface AgentDecision {
     params: Record<string, string | number | boolean>;
   };
   comboId?: string;
+  movieScript?: MovieScene[];
 }
 
 const SYSTEM_PROMPT = `LANGUAGE RULE (ABSOLUTE HIGHEST PRIORITY — non-negotiable):
@@ -30,20 +31,28 @@ Always respond in the SAME language the user used in their LAST message.
 STATE MACHINE: ALWAYS include a "state" field in every JSON response.
 This is how route.ts tracks the flow — it NEVER reads your message text for routing.
 
-"asking_business_type"      — you asked what type of business/product to advertise (showed buttons OR asked "Что рекламируем?")
+"asking_clip_length"        — you asked how long the clip should be (Movie Maker step 1)
+"asking_face_mode"          — you asked which face to use (Movie Maker step 2) [handled by route.ts, never return this]
+"asking_business_type"      — you asked what type of business/product to advertise
 "asking_director_questions" — you asked the 2 director questions (hero, scene/moment)
-"ready_to_generate"         — you called write_script (showing the storyboard to user)
-"generating"                — you returned a combo ("ad_clip_generate", "lora_ad_clip", etc.)
-"done"                      — you triggered create_clip or said the final clip is assembling
-"idle"                      — anything else: chatting, answering questions, single tool call, error
+"showing_script"            — you returned a movieScript storyboard (Movie Maker step 4)
+"ready_to_generate"         — you called write_script (showing text storyboard for regular ad clip)
+"generating"                — you returned a combo ("ad_clip_generate", etc.)
+"generating_scenes"         — Movie Maker is running (N scenes + Kling) [set by route.ts]
+"done"                      — create_clip triggered
+"idle"                      — anything else
 
-Also inject current state context when [State: previous state was "..."] appears in user message:
-- "asking_director_questions" → user is answering your director questions → IMMEDIATELY call write_script
-- "asking_business_type" → user told you their business type → ask director questions
-- "ready_to_generate" → user approved storyboard → return combo "ad_clip_generate"
+State transition rules (injected via [State: "..."] in user message):
+- "asking_director_questions" + clipLength set → generate movieScript, return "showing_script"
+- "asking_director_questions" + no clipLength → IMMEDIATELY call write_script, return "ready_to_generate"
+- "asking_business_type" → ask director questions → "asking_director_questions"
+- "ready_to_generate" + approval → return combo "ad_clip_generate" → "generating"
+- "showing_script" + edits requested → regenerate specific scenes, return updated movieScript, keep "showing_script"
 
 Example format:
+{"state": "asking_clip_length", "message": "Какой длины клип?", "buttons": [...], "tool": null}
 {"state": "asking_director_questions", "message": "Пару вопросов...", "tool": null}
+{"state": "showing_script", "message": "Вот сценарий...", "movieScript": [...], "tool": null}
 {"state": "generating", "message": "Генерирую...", "combo": "ad_clip_generate", "subject": "..."}
 {"state": "idle", "message": "...", "tool": "generate_image", "params": {...}}
 
@@ -53,6 +62,49 @@ If user message contains ANY of: "ANNA", "лицом", "face clip", "same face",
 You MUST respond ONLY with:
 {"combo": "lora_ad_clip", "message": "Запускаю генерацию 4 сцен с лицом ANNA через LoRA. Генерация займёт ~3-5 минут.\n\nЧтобы настроить сцены — скажи:\n• Где происходит действие? (кафе, улица, студия...)\n• Что делает персонаж?\n• Настроение и стиль?"}
 Do NOT say "I'm not sure". Do NOT ask any other question first. Return the combo JSON immediately.
+
+─────────────────────────────────────────────
+MOVIE MAKER — FULL CLIP CREATION FLOW:
+
+Triggers (when no clipLength in context yet):
+  "movie maker", "сделай клип", "создай клип", "make a movie clip", "create a clip",
+  "снять клип", "сделай видео клип", "full clip", "снимем клип"
+
+If triggered AND context has no clipLength → return EXACTLY:
+{
+  "state": "asking_clip_length",
+  "message": "🎬 Отлично! Создадим клип.\n\nКакой длины?\n• 15 сек = 5 сцен\n• 30 сек = 10 сцен\n• 60 сек = 20 сцен",
+  "buttons": [
+    {"label": "⏱ 15 сек", "value": "15"},
+    {"label": "⏱ 30 сек", "value": "30"},
+    {"label": "⏱ 60 сек", "value": "60"},
+    {"label": "✏️ Другое", "value": "custom"}
+  ],
+  "tool": null
+}
+
+[State: "asking_director_questions"] + clipLength IS set in context (Movie Maker flow):
+Generate a full storyboard. clipLength and sceneCount come from [State: ...] injection.
+RULES for movieScript:
+  - Exactly sceneCount scenes
+  - title: short Russian label for display (e.g. "Интро — утреннее кафе")
+  - description: detailed English prompt for Flux AI image generation (include: subject, action, setting, lighting, camera, mood)
+  - Vary camera angles across scenes: close-up, medium, wide, overhead, etc.
+  - No two consecutive scenes with identical framing
+
+Return:
+{
+  "state": "showing_script",
+  "message": "Вот сценарий для [X]-секундного клипа ([N] сцен × 3 сек):\n\n**Сцена 1 — [title]:** [short Russian description]\n**Сцена 2 — [title]:** ...\n...\n\nВсё нравится или что-то изменить?",
+  "movieScript": [
+    {"index": 1, "title": "Russian display title", "description": "English Flux prompt, cinematic 9:16, detailed scene"},
+    ... exactly N items matching sceneCount
+  ],
+  "tool": null
+}
+
+[State: "showing_script"] + user wants edits (not approval):
+Regenerate the specific scenes they want changed. Return full updated movieScript with "showing_script".
 
 ─────────────────────────────────────────────
 WORKFLOW STATE MACHINE — detect state from history, act accordingly:
@@ -1294,7 +1346,7 @@ export async function getAgentDecision(
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
+      max_tokens: 1500,
       system: systemPrompt,
       messages: [
         { role: 'user', content: userPrompt },
@@ -1315,6 +1367,7 @@ export async function getAgentDecision(
       combo?: string;
       subject?: string;
       buttons?: Array<{ label: string; value: string }>;
+      movieScript?: Array<{ index: number; title: string; description: string }>;
     };
 
     try {
@@ -1363,6 +1416,17 @@ export async function getAgentDecision(
 
     if (parsed.buttons && Array.isArray(parsed.buttons)) {
       decision.buttons = parsed.buttons as Array<{ label: string; value: string }>;
+    }
+
+    if (parsed.movieScript && Array.isArray(parsed.movieScript)) {
+      decision.movieScript = parsed.movieScript.map((s) => ({
+        index: s.index,
+        title: s.title || '',
+        description: s.description || '',
+        imageUrl: null,
+        videoUrl: null,
+        jobId: null,
+      }));
     }
 
     if (parsed.combo) {

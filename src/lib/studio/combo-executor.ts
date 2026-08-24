@@ -80,7 +80,15 @@ export async function executeCombo(
         'gentle camera pull-back, subject in focus, golden hour light',
         'subtle pan right, intimate close detail, warm cinematic',
         'slow zoom in, cinematic depth, natural light shift',
+        'slow orbit left, atmospheric depth, diffused soft light',
+        'gentle tilt up, revealing scene, soft morning light',
+        'slow push in, intimate framing, warm bokeh background',
+        'subtle pan left, wide establishing shot, golden tones',
+        'slight handheld drift, naturalistic feel, ambient light',
+        'slow dolly back, expanding scene, cinematic depth of field',
       ];
+
+      const sceneDuration = (step.params?.duration as number) || (currentContext.sceneDuration as number) || 3;
 
       const animResults = await Promise.all(
         allImages.map((imageUrl, idx) => {
@@ -88,9 +96,9 @@ export async function executeCombo(
           return executeTool(
             'image_to_video',
             {
-              prompt: motionPrompts[idx] ?? motionPrompts[0],
+              prompt: motionPrompts[idx % motionPrompts.length],
               aspectRatio: '9:16',
-              duration: 5,
+              duration: sceneDuration,
             },
             animCtx,
             cookieHeader,

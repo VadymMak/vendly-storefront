@@ -2,12 +2,25 @@ export type MessageRole = 'user' | 'assistant' | 'system';
 
 export type AgentState =
   | 'idle'
+  | 'asking_clip_length'
+  | 'asking_face_mode'
   | 'asking_business_type'
   | 'asking_director_questions'
   | 'ready_to_generate'
+  | 'showing_script'
   | 'generating'
+  | 'generating_scenes'
   | 'done'
   | 'lora_asking_scene';
+
+export interface MovieScene {
+  index: number;
+  title: string;
+  description: string;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  jobId?: string | null;
+}
 
 export type MediaType = 'image' | 'video' | 'audio';
 
@@ -66,6 +79,11 @@ export interface SessionContext {
   loraTriggerWord?: string | null;
   jobIds?: string[];
   lastAgentState?: AgentState;
+  clipLength?: 15 | 30 | 60 | null;
+  sceneCount?: number | null;
+  sceneDuration?: 3 | 5 | null;
+  faceMode?: 'random' | 'lora' | 'upload' | null;
+  movieScript?: MovieScene[] | null;
 }
 
 export type Platform =

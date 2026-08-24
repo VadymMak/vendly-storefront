@@ -4,6 +4,7 @@ import { getAgentDecision } from '@/lib/studio/agent';
 import { executeTool } from '@/lib/studio/tool-executor';
 import { buildLearningContext, formatLearningContext } from '@/lib/studio/learning';
 import { getComboPreset } from '@/lib/studio/prompt-library';
+import type { ComboStep } from '@/lib/studio/prompt-library';
 import { executeCombo } from '@/lib/studio/combo-executor';
 import { SUPERUSER_EMAILS } from '@/lib/credits';
 import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-client';
@@ -209,6 +210,134 @@ export async function POST(req: NextRequest) {
     }
     // --- END LoRA CLIP INTENT ---
 
+    // Declare lastState early — used by Movie Maker handlers and state routing below
+    const lastState = context.lastAgentState;
+
+    // --- MOVIE MAKER STATE TRANSITIONS (short-circuit before agent) ---
+
+    // Step 1 → Step 2: User selected clip length
+    if (lastState === 'asking_clip_length') {
+      const len = msgLower.includes('60') ? 60
+                : msgLower.includes('30') ? 30
+                : msgLower.includes('15') ? 15
+                : null;
+      if (len) {
+        const sceneCount = Math.round(len / 3);
+        return NextResponse.json({
+          message: `${len} секунд — ${sceneCount} сцен × 3 сек.\n\nКакое лицо использовать?`,
+          toolUsed: null,
+          buttons: [
+            { label: '🎲 Случайное лицо', value: 'random' },
+            { label: '👤 ANNA (сохранённое лицо)', value: 'lora' },
+            { label: '📷 Загрузить фото', value: 'upload' },
+          ],
+          context: {
+            ...context,
+            clipLength: len as 15 | 30 | 60,
+            sceneCount,
+            sceneDuration: 3 as const,
+            lastAgentState: 'asking_face_mode' as const,
+          },
+        });
+      }
+    }
+
+    // Step 2 → Step 3: User selected face mode
+    if (lastState === 'asking_face_mode') {
+      const isLora = msgLower.includes('anna') || msgLower.includes('lora') || msgLower.includes('сохранённ');
+      const isUpload = msgLower.includes('загрузить') || msgLower.includes('upload') || msgLower.includes('📷') || (!!context.uploadedReferenceUrl && !isLora);
+      const isRandom = msgLower.includes('случайн') || msgLower.includes('random') || msgLower.includes('🎲') || msgLower === 'random';
+      const faceMode: 'random' | 'lora' | 'upload' | null =
+        isLora ? 'lora' : isUpload ? 'upload' : isRandom ? 'random' : null;
+
+      if (faceMode) {
+        const newCtx: SessionContext = {
+          ...context,
+          faceMode,
+          ...(faceMode === 'lora' ? { loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER } : {}),
+          lastAgentState: 'asking_business_type' as const,
+        };
+        return NextResponse.json({
+          message: 'Отлично! Теперь выберите тему клипа:',
+          toolUsed: null,
+          buttons: [
+            { label: '🍽️ Ресторан / Кафе', value: 'restaurant' },
+            { label: '✂️ Барбершоп', value: 'barbershop' },
+            { label: '💅 Nail salon', value: 'nail_salon' },
+            { label: '💆 Спа / Массаж', value: 'spa' },
+            { label: '🏪 Магазин', value: 'retail' },
+            { label: '📱 Другое', value: 'other' },
+          ],
+          context: newCtx,
+        });
+      }
+    }
+
+    // Step 4 (approval) → Generate: user approved movieScript storyboard
+    if (lastState === 'showing_script' && context.movieScript?.length) {
+      const approvalWords = ['да', 'генерируй', 'давай', 'go', 'yes', 'нравится', 'одобряю', 'ok', 'ок', 'generate', 'старт', 'поехали', 'начинай', 'запускай'];
+      const isApproval = approvalWords.some((w) => msgLower.includes(w));
+
+      if (isApproval) {
+        console.log('[studio/chat] Movie Maker approval → launching', context.movieScript.length, 'scenes, faceMode:', context.faceMode);
+        const cookieHeader = req.headers.get('cookie') || '';
+        const sceneTool = context.faceMode === 'random' ? 'generate_image' : 'generate_character';
+
+        const movieSteps: ComboStep[] = context.movieScript.map((scene, i) => {
+          if (context.faceMode === 'random') {
+            return {
+              tool: 'generate_image',
+              description: `Сцена ${i + 1} — ${scene.title}`,
+              promptTemplate: scene.description,
+              params: { aspect_ratio: '9:16' } as Record<string, string | number>,
+              alwaysGenerate: true,
+            } satisfies ComboStep;
+          }
+          return {
+            tool: 'generate_character',
+            description: `Сцена ${i + 1} — ${scene.title}`,
+            params: { scene_description: scene.description } as Record<string, string | number>,
+            alwaysGenerate: true,
+          } satisfies ComboStep;
+        });
+        movieSteps.push({
+          tool: 'create_clip',
+          description: `Анимирую и собираю ${context.clipLength || '?'}с клип`,
+          params: { duration: context.sceneDuration || 3, animate_all: 1 },
+        });
+
+        const movieCtx: SessionContext = {
+          ...context,
+          ...(context.faceMode === 'lora' ? { loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER } : {}),
+        };
+        const movieResult = await executeCombo(movieSteps, '', movieCtx, cookieHeader);
+
+        const comboImages = movieResult.steps
+          .filter((s) => s.media?.type === 'image')
+          .map((s) => s.media!.url);
+        const animStep = movieResult.steps.find((s) => s.jobIds?.length);
+        const jobIds = animStep?.jobIds ?? [];
+
+        const progressLines = movieResult.steps.map((s, i) => {
+          if (s.jobIds?.length) return `${i + 1}. ⏳ ${s.description} (${s.jobIds.length} видео генерируется...)`;
+          if (s.error) return `${i + 1}. ❌ ${s.description}: ${s.error}`;
+          if (s.jobId) return `${i + 1}. ⏳ ${s.description}`;
+          return `${i + 1}. ✅ ${s.description}`;
+        });
+
+        return NextResponse.json({
+          message: `🎬 Генерирую ${context.movieScript.length} сцен для ${context.clipLength || '?'}с клипа!\n\n${progressLines.join('\n')}${jobIds.length > 0 ? `\n\n⚡ Анимирую ${jobIds.length} сцен через Kling (~2-3 мин)` : ''}`,
+          toolUsed: 'combo:movie_maker',
+          comboImages: comboImages.length > 0 ? comboImages : undefined,
+          jobIds: jobIds.length > 0 ? jobIds : undefined,
+          context: { ...movieResult.finalContext, lastAgentState: 'generating_scenes' as const },
+        });
+      }
+      // Not approval → fall through to agent (handles edits to storyboard)
+    }
+
+    // --- END MOVIE MAKER STATE TRANSITIONS ---
+
     // --- ASSEMBLE INTENT: short-circuit Haiku when videos are ready ---
     const wantsAssemble =
       msgLower.includes('assemble') ||
@@ -247,15 +376,22 @@ export async function POST(req: NextRequest) {
     // --- END ASSEMBLE INTENT ---
 
     // --- STATE-BASED ROUTING: inject instructions based on lastAgentState (no string matching) ---
-    const lastState = context.lastAgentState;
 
     let stateInstruction = '';
     if (lastState === 'asking_director_questions') {
-      stateInstruction = '\n\n[STATE: previous state was "asking_director_questions". User has now replied with their scene/hero details. IMMEDIATELY call write_script with the information from the user\'s reply. Do NOT ask more questions.]';
+      if (context.clipLength) {
+        // Movie Maker flow — generate movieScript storyboard
+        stateInstruction = `\n\n[STATE: "asking_director_questions" in MOVIE MAKER flow. clipLength=${context.clipLength}s, sceneCount=${context.sceneCount}, faceMode="${context.faceMode ?? 'unknown'}". User described their content. Generate EXACTLY ${context.sceneCount} scenes as movieScript array. scene.description MUST be in English. Return state "showing_script".]`;
+      } else {
+        // Regular ad clip flow — call write_script
+        stateInstruction = '\n\n[STATE: "asking_director_questions". User replied with scene/hero details. IMMEDIATELY call write_script. Do NOT ask more questions. Return state "ready_to_generate".]';
+      }
     } else if (lastState === 'asking_business_type') {
-      stateInstruction = '\n\n[STATE: previous state was "asking_business_type". User has now told you their business type. Ask director questions immediately (state → "asking_director_questions").]';
+      stateInstruction = '\n\n[STATE: "asking_business_type". User told you their business type. Ask director questions now → state "asking_director_questions".]';
     } else if (lastState === 'ready_to_generate') {
-      stateInstruction = '\n\n[STATE: previous state was "ready_to_generate" (storyboard was shown). If user approves → return combo "ad_clip_generate" (state → "generating"). If user wants changes → update storyboard (keep state "ready_to_generate").]';
+      stateInstruction = '\n\n[STATE: "ready_to_generate" (text storyboard shown). User approves → return combo "ad_clip_generate" → state "generating". User wants changes → rewrite specific scene, keep state "ready_to_generate".]';
+    } else if (lastState === 'showing_script') {
+      stateInstruction = `\n\n[STATE: "showing_script" (movieScript storyboard shown). User wants edits → update specific scenes, return full updated movieScript, keep state "showing_script". If user approves — route.ts handles it (you will NOT receive approval messages for this state).]`;
     }
 
     console.log('[studio/chat] lastAgentState:', lastState, '| stateInstruction applied:', !!stateInstruction);
@@ -369,7 +505,11 @@ export async function POST(req: NextRequest) {
     let media: MediaAttachment | undefined;
     let jobId: string | undefined;
     let toolMessage = decision.message;
-    const updatedContext: SessionContext = { ...context, lastAgentState: decision.state };
+    const updatedContext: SessionContext = {
+      ...context,
+      lastAgentState: decision.state,
+      ...(decision.movieScript ? { movieScript: decision.movieScript } : {}),
+    };
 
     // create_clip is client-side — return params to frontend without executing on server
     if (decision.toolCall?.tool === 'create_clip') {

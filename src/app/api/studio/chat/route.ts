@@ -250,8 +250,27 @@ export async function POST(req: NextRequest) {
     }
     // --- END ASSEMBLE INTENT ---
 
+    // --- DIRECTOR QUESTIONS ANSWERED: inject write_script instruction ---
+    const wasAskingDirectorQuestions =
+      prevAssistantMsg.includes('Что рекламируем') ||
+      prevAssistantMsg.includes('Какой тип бизнеса') ||
+      prevAssistantMsg.includes('рекламируем') ||
+      prevAssistantMsg.includes('тип бизнеса') ||
+      prevAssistantMsg.includes('Кто герой') ||
+      prevAssistantMsg.includes('Какой момент') ||
+      prevAssistantMsg.includes('Опиши сцену') ||
+      prevAssistantMsg.includes('Для какого бизнеса') ||
+      prevAssistantMsg.includes('Какой продукт');
+
+    const directorInstruction = wasAskingDirectorQuestions
+      ? '\n\n[DIRECTOR CONTEXT: The assistant just asked the user for their business/scene details, and the user has now replied with that information. You MUST immediately call write_script with the scene description the user just provided. Do NOT ask more questions. Do NOT say you need more info. Call write_script NOW.]'
+      : '';
+
+    console.log('[studio/chat] wasAskingDirectorQuestions:', wasAskingDirectorQuestions, '| prevMsg preview:', prevAssistantMsg.slice(0, 80));
+    // --- END DIRECTOR QUESTIONS ---
+
     const decision = await getAgentDecision(
-      message + audioContext + languageInstruction,
+      message + audioContext + languageInstruction + directorInstruction,
       context,
       history,
       learningPrompt || undefined,

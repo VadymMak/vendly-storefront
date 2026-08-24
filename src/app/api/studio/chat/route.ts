@@ -29,6 +29,16 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as ChatRequest;
     const { message, context, history, hasAudio, audioFileName, imageQuality, imageProvider } = body;
 
+    // DEBUG: log full context received from client
+    console.log('[studio/chat] message:', JSON.stringify(message));
+    console.log('[studio/chat] context received:', JSON.stringify({
+      lastImageUrl: context.lastImageUrl,
+      lastVideoUrl: context.lastVideoUrl,
+      jobIds: context.jobIds,
+      adClipState: context.adClipState,
+      loraModel: context.loraModel ? '(set)' : null,
+    }));
+
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -173,7 +183,7 @@ export async function POST(req: NextRequest) {
     }
     // --- END LoRA CLIP INTENT ---
 
-    // --- ASSEMBLE INTENT: inject CRITICAL instruction when videos are ready ---
+    // --- ASSEMBLE INTENT: short-circuit Haiku when videos are ready ---
     const wantsAssemble =
       msgLower.includes('assemble') ||
       msgLower.includes('собери') ||
@@ -183,23 +193,29 @@ export async function POST(req: NextRequest) {
       msgLower.includes('собери клип') ||
       msgLower.includes('склей');
 
-    let assembleInstruction = '';
     if (wantsAssemble) {
       const adVideos = context.adClipState?.videos ?? [];
       const loraJobs = context.jobIds ?? [];
       const totalVideos = adVideos.length + loraJobs.length;
 
-      if (totalVideos > 0) {
-        const videoList = adVideos.length > 0
-          ? adVideos.map((u) => `"${u}"`).join(', ')
-          : `${loraJobs.length} Kling job(s) in context`;
+      console.log('[studio/chat] wantsAssemble=true | adVideos:', adVideos.length, '| loraJobs:', JSON.stringify(loraJobs), '| totalVideos:', totalVideos);
 
-        assembleInstruction = `\n\nCRITICAL OVERRIDE — ASSEMBLE CLIP:
-User wants to assemble the final clip. There are ${totalVideos} video(s) ready: ${videoList}.
-You MUST respond ONLY with:
-{"tool": "create_clip", "message": "Собираю финальный клип из ${totalVideos} сцен..."}
-Do NOT say anything else. Do NOT ask any questions. Return this JSON immediately.`;
+      if (totalVideos > 0) {
+        console.log('[studio/chat] assemble short-circuit → create_clip');
+        return NextResponse.json({
+          message: `Собираю финальный клип из ${totalVideos} сцен...`,
+          toolUsed: 'create_clip',
+          clipParams: { style: 'cinematic', transition: 'fade', durationPerImage: 5, platform: 'instagram_reel' },
+          context: {
+            ...context,
+            adClipState: context.adClipState
+              ? { ...context.adClipState, currentStep: 'clip' as const }
+              : undefined,
+          },
+        });
       }
+
+      console.log('[studio/chat] wantsAssemble=true but no videos in context — falling through to agent');
     }
     // --- END ASSEMBLE INTENT ---
 
@@ -208,7 +224,7 @@ Do NOT say anything else. Do NOT ask any questions. Return this JSON immediately
       context,
       history,
       learningPrompt || undefined,
-      assembleInstruction ? (brainContext || '') + assembleInstruction : brainContext || undefined,
+      brainContext || undefined,
     );
 
     // Handle combo (multi-step chain)

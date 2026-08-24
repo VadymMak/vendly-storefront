@@ -979,9 +979,12 @@ export default function StudioChat({ userId, userEmail }: Props) {
     setContext((prev) => ({
       ...prev,
       lastVideoUrl: lastVideoUrl ?? prev.lastVideoUrl,
+      // For lora_ad_clip flow adClipState is not pre-set — initialise it so videos persist
       adClipState: prev.adClipState
         ? { ...prev.adClipState, videos: videoUrls }
-        : undefined,
+        : videoUrls.length > 0
+          ? { scenes: [], videos: videoUrls, currentStep: 'clip' as const }
+          : undefined,
     }));
 
     setMessages((prev) =>

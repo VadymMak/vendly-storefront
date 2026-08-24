@@ -472,7 +472,7 @@ async function executeGenerateCharacter(
   if (context.loraModel) {
     const triggerWord = context.loraTriggerWord || 'ANNA';
     const sceneDesc = (params.scene_description as string) || (params.prompt as string) || 'portrait, natural light';
-    const loraPrompt = `${triggerWord} ${sceneDesc}, high quality, professional photography, cinematic lighting`;
+    const loraPrompt = `${sceneDesc}, ${triggerWord} woman, high quality, professional photography, cinematic lighting`;
 
     const REPLICATE_API_KEY = process.env.REPLICATE_API_TOKEN || '';
     if (!REPLICATE_API_KEY) {

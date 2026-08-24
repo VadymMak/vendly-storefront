@@ -143,27 +143,25 @@ export async function POST(req: NextRequest) {
 
         const loraResult = await executeCombo(loraSteps, sceneBase, context, cookieHeader);
 
-        const allMedia = loraResult.steps.filter((s) => s.media).map((s) => s.media!);
-        const lastMedia = allMedia[allMedia.length - 1];
         const comboImages = loraResult.steps
           .filter((s) => s.media?.type === 'image')
           .map((s) => s.media!.url);
 
+        const animateStep = loraResult.steps.find((s) => s.jobIds && s.jobIds.length > 0);
+        const jobIds = animateStep?.jobIds ?? [];
+
         const progressLines = loraResult.steps.map((s, i) => {
-          if (s.message === '__CREATE_CLIP__') return `${i + 1}. ⏳ ${s.description} (rendering in browser...)`;
+          if (s.jobIds?.length) return `${i + 1}. ⏳ ${s.description} (${s.jobIds.length} videos generating...)`;
           if (s.error) return `${i + 1}. ❌ ${s.description}: ${s.error}`;
           if (s.jobId) return `${i + 1}. ⏳ ${s.description} (generating...)`;
           return `${i + 1}. ✅ ${s.description}`;
         });
 
-        const clipStepDef = loraCombo.steps.find((s) => s.tool === 'create_clip');
-
         return NextResponse.json({
-          message: `Генерирую 4 сцены с лицом ANNA: "${sceneBase}"\n\n${progressLines.join('\n')}`,
-          media: lastMedia ?? undefined,
-          toolUsed: 'create_clip',
-          clipParams: clipStepDef?.params ?? { style: 'cinematic', transition: 'fade', durationPerImage: 5, platform: 'instagram_reel' },
+          message: `Генерирую 4 сцены с лицом ANNA: "${sceneBase}"\n\n${progressLines.join('\n')}${jobIds.length > 0 ? `\n\n🎬 Анимирую ${jobIds.length} сцен через Kling (~2-3 мин)` : ''}`,
+          toolUsed: 'combo:lora_ad_clip',
           comboImages: comboImages.length > 0 ? comboImages : undefined,
+          jobIds: jobIds.length > 0 ? jobIds : undefined,
           context: loraResult.finalContext,
         });
       }

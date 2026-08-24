@@ -8,6 +8,7 @@ export interface StepResult {
   media?: MediaAttachment;
   message?: string;
   jobId?: string;
+  jobIds?: string[];
   error?: string;
 }
 
@@ -68,7 +69,50 @@ export async function executeCombo(
   for (let i = startIndex; i < steps.length; i++) {
     const step = steps[i];
 
-    // create_clip is client-side only — signal frontend to render from collected images
+    // create_clip with animate_all: launch Kling for every generated image in parallel
+    if (step.tool === 'create_clip' && step.params?.animate_all) {
+      const allImages = results
+        .filter((r) => r.media?.type === 'image')
+        .map((r) => r.media!.url);
+
+      const motionPrompts = [
+        'slow dolly forward, cinematic movement, warm atmospheric lighting',
+        'gentle camera pull-back, subject in focus, golden hour light',
+        'subtle pan right, intimate close detail, warm cinematic',
+        'slow zoom in, cinematic depth, natural light shift',
+      ];
+
+      const animResults = await Promise.all(
+        allImages.map((imageUrl, idx) => {
+          const animCtx: SessionContext = { ...currentContext, lastImageUrl: imageUrl };
+          return executeTool(
+            'image_to_video',
+            {
+              prompt: motionPrompts[idx] ?? motionPrompts[0],
+              aspectRatio: '9:16',
+              duration: 5,
+            },
+            animCtx,
+            cookieHeader,
+          );
+        }),
+      );
+
+      const jobIds = animResults
+        .map((r) => r.jobId ?? null)
+        .filter((id): id is string => id !== null);
+
+      results.push({
+        stepIndex: i,
+        description: step.description,
+        jobIds,
+        message: `Animating ${allImages.length} scenes in parallel (~2-3 min)`,
+      });
+      // No break — animate_all is the final meaningful step
+      continue;
+    }
+
+    // create_clip without animate_all — client-side render signal
     if (step.tool === 'create_clip') {
       results.push({
         stepIndex: i,

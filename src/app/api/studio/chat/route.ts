@@ -469,7 +469,12 @@ export async function POST(req: NextRequest) {
         const cookieHeader = req.headers.get('cookie') || '';
         const subject = (decision.toolCall?.params?.subject as string) || message;
 
-        const comboResult = await executeCombo(combo.steps, subject, context, cookieHeader);
+        // Ensure loraModel is in context when agent routes to lora_ad_clip
+        const comboContext = decision.comboId === 'lora_ad_clip' && !context.loraModel
+          ? { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER }
+          : context;
+
+        const comboResult = await executeCombo(combo.steps, subject, comboContext, cookieHeader);
 
         const allMedia = comboResult.steps.filter((s) => s.media).map((s) => s.media!);
         const lastMedia = allMedia[allMedia.length - 1];

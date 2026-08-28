@@ -158,6 +158,27 @@ export async function executeCombo(
       params.reference_image = currentContext.uploadedReferenceUrl;
     }
 
+    // LoRA image generation: delegate to generate_character which has full LoRA + Replicate support
+    if (step.tool === 'generate_image' && params.use_lora && currentContext.loraModel) {
+      const loraResult = await executeTool('generate_character', {
+        scene_description: String(params.scene_description || ''),
+      }, currentContext, cookieHeader);
+
+      const loraStepResult: StepResult = { stepIndex: i, description: step.description };
+      if (loraResult.error) {
+        loraStepResult.error = loraResult.error;
+        results.push(loraStepResult);
+        break;
+      }
+      if (loraResult.media) {
+        loraStepResult.media = loraResult.media;
+        if (loraResult.media.type === 'image') currentContext.lastImageUrl = loraResult.media.url;
+      }
+      if (loraResult.message) loraStepResult.message = loraResult.message;
+      results.push(loraStepResult);
+      continue;
+    }
+
     const result = await executeTool(
       step.tool as ToolName,
       params,

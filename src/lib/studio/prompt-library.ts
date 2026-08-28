@@ -28,7 +28,7 @@ export interface ComboStep {
   description: string;
   /** Prompt template for this step. {subject} replaced with user input */
   promptTemplate?: string;
-  params?: Record<string, string | number>;
+  params?: Record<string, string | number | boolean>;
   /** Skip the lastImageUrl context check — always generate fresh images */
   alwaysGenerate?: boolean;
   /** If context.uploadedReferenceUrl exists, use it directly as this step's image output (skip generation) */
@@ -631,27 +631,27 @@ const COMBO_PRESETS: ComboPreset[] = [
     platforms: ['instagram_reel', 'tiktok', 'youtube_shorts'],
     steps: [
       {
-        tool: 'generate_character',
+        tool: 'generate_image',
         description: 'Scene 1 — intro',
-        params: { scene_description: 'woman smiling in a cafe, morning light, warm tones' },
+        params: { scene_description: 'woman smiling in a cafe, morning light, warm tones', use_lora: true },
         alwaysGenerate: true,
       },
       {
-        tool: 'generate_character',
+        tool: 'generate_image',
         description: 'Scene 2 — product',
-        params: { scene_description: 'woman holding product, looking at camera, studio light' },
+        params: { scene_description: 'woman holding product, looking at camera, studio light', use_lora: true },
         alwaysGenerate: true,
       },
       {
-        tool: 'generate_character',
+        tool: 'generate_image',
         description: 'Scene 3 — lifestyle',
-        params: { scene_description: 'woman walking on city street, golden hour, bokeh' },
+        params: { scene_description: 'woman walking on city street, golden hour, bokeh', use_lora: true },
         alwaysGenerate: true,
       },
       {
-        tool: 'generate_character',
+        tool: 'generate_image',
         description: 'Scene 4 — outro',
-        params: { scene_description: 'woman laughing, close-up portrait, natural light' },
+        params: { scene_description: 'woman laughing, close-up portrait, natural light', use_lora: true },
         alwaysGenerate: true,
       },
       {

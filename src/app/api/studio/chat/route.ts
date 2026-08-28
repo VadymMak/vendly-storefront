@@ -44,13 +44,6 @@ async function ollamaChat(model: string, systemPrompt: string, userMessage: stri
   return data.message?.content || '';
 }
 
-const ROUTING_PROMPT = `Reply with JSON only. No markdown.
-{"action":"clip|lora_clip|movie|image|assemble|text","face":"NAME or null"}
-- lora_clip: user mentions a person name (ANNA, KATE, etc.)
-- clip/movie: ad/рекламный клип/ролик
-- assemble: собери/склей/assemble
-- text: everything else`;
-
 const OLLAMA_EXTRACTOR_PROMPT = `You are a service AI for a video/image generation app.
 Extract structured data from user messages and build a clean prompt for Claude.
 Always respond with valid JSON only. No markdown. No explanation.
@@ -172,7 +165,26 @@ export async function POST(req: NextRequest) {
       ? '\n\n[LANGUAGE OVERRIDE: User is writing in Russian. You MUST respond ENTIRELY in Russian. No English words. No mixing languages.]'
       : '';
 
-    // --- OLLAMA TWO-STEP EXTRACTION ---
+    // --- STEP 1: Instant JS routing — no network, no timeout risk ---
+    function quickRoute(msg: string): { action: string; face: string | null } {
+      const m = msg.toLowerCase();
+      let face: string | null = null;
+      for (const faceName of Object.keys(FACE_REGISTRY)) {
+        if (msg.toUpperCase().includes(faceName)) { face = faceName; break; }
+      }
+      const action =
+        face ? 'lora_clip' :
+        m.includes('собери') || m.includes('собер') || m.includes('assemble') || m.includes('финальный') || m.includes('склей') ? 'assemble' :
+        m.includes('клип') || m.includes('clip') || m.includes('рекламн') || m.includes('reel') || m.includes('ролик') ? 'clip' :
+        m.includes('фильм') || m.includes('movie') || m.includes('сценари') ? 'movie' :
+        m.includes('фото') || m.includes('изображ') || m.includes('image') || m.includes('генер') ? 'image' :
+        'text';
+      return { action, face };
+    }
+
+    const quickRouting = quickRoute(message);
+    console.log('[studio/chat] JS routing:', quickRouting.action, '| face:', quickRouting.face);
+
     let extracted: {
       action: string;
       face: string | null;
@@ -181,66 +193,42 @@ export async function POST(req: NextRequest) {
       duration: number | null;
       business_type: string | null;
       claude_prompt: string | null;
-    } = { action: 'text', face: null, scene: null, style: null, duration: null, business_type: null, claude_prompt: null };
+    } = {
+      action: quickRouting.action,
+      face: quickRouting.face,
+      scene: null, style: null, duration: null, business_type: null, claude_prompt: null,
+    };
 
-    let ollamaFailed = false;
+    // Keyword scene extraction as baseline (used if 3B fails)
+    if (msgLower.includes('пляж') || msgLower.includes('beach')) extracted.scene = 'beach';
+    else if (msgLower.includes('кафе') || msgLower.includes('cafe')) extracted.scene = 'cozy cafe';
+    else if (msgLower.includes('улиц') || msgLower.includes('street')) extracted.scene = 'city street';
+    else if (msgLower.includes('лес') || msgLower.includes('forest')) extracted.scene = 'forest';
+    else if (msgLower.includes('офис') || msgLower.includes('office')) extracted.scene = 'office';
+    if (msgLower.includes('закат') || msgLower.includes('sunset')) extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
 
-    // Step 1: Fast routing with 1B (8s) — just action + face
-    try {
-      const routingRes = await ollamaChat('llama3.2:1b', ROUTING_PROMPT, message, 8000);
-      const routing = JSON.parse(routingRes) as { action?: string; face?: string | null };
-      extracted.action = routing.action || 'text';
-      extracted.face = routing.face || null;
-      console.log('[studio/chat] 1B routing:', extracted.action, '| face:', extracted.face);
-    } catch (err) {
-      console.error('[studio/chat] 1B routing failed, keyword fallback:', err);
-      ollamaFailed = true;
-
-      // Detect face from FACE_REGISTRY
-      for (const faceName of Object.keys(FACE_REGISTRY)) {
-        if (message.toUpperCase().includes(faceName)) { extracted.face = faceName; break; }
-      }
-      extracted.action =
-        extracted.face || msgLower.includes('лицом') || msgLower.includes('lora') ? 'lora_clip' :
-        msgLower.includes('assemble') || msgLower.includes('собери') || msgLower.includes('склей') ? 'assemble' :
-        msgLower.includes('реклам') || msgLower.includes('клип') || msgLower.includes('ролик') || msgLower.includes('сделай') ? 'clip' :
-        'text';
-
-      // Keyword scene extraction as fallback
-      if (msgLower.includes('пляж') || msgLower.includes('beach')) extracted.scene = 'beach';
-      if (msgLower.includes('кафе') || msgLower.includes('cafe')) extracted.scene = 'cozy cafe';
-      if (msgLower.includes('улиц') || msgLower.includes('street')) extracted.scene = 'city street';
-      if (msgLower.includes('лес') || msgLower.includes('forest')) extracted.scene = 'forest';
-      if (msgLower.includes('офис') || msgLower.includes('office')) extracted.scene = 'office';
-      if (msgLower.includes('закат') || msgLower.includes('sunset')) extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
-    }
-
-    // Step 2: Full extraction with 3B (30s) — only if action needs generation
+    // --- STEP 2: Full extraction with 3B (30s) — only if generation needed ---
     const needsGeneration = ['lora_clip', 'clip', 'movie', 'image'].includes(extracted.action);
-    if (needsGeneration && !ollamaFailed) {
+    if (needsGeneration) {
       try {
         const fullRes = await ollamaChat('llama3.2:3b', OLLAMA_EXTRACTOR_PROMPT, message, 30000);
         const full = JSON.parse(fullRes) as typeof extracted;
         extracted = full;
+        // Restore JS-detected face if 3B missed it
+        if (!extracted.face && quickRouting.face) extracted.face = quickRouting.face;
         console.log('[studio/chat] 3B extracted:', JSON.stringify(extracted));
       } catch (err) {
-        console.error('[studio/chat] 3B extraction failed, using 1B routing result:', err);
-        // Keep action/face from step 1, add keyword scene
-        if (msgLower.includes('пляж') || msgLower.includes('beach')) extracted.scene = 'beach';
-        if (msgLower.includes('кафе') || msgLower.includes('cafe')) extracted.scene = 'cozy cafe';
-        if (msgLower.includes('улиц') || msgLower.includes('street')) extracted.scene = 'city street';
-        if (msgLower.includes('лес') || msgLower.includes('forest')) extracted.scene = 'forest';
-        if (msgLower.includes('офис') || msgLower.includes('office')) extracted.scene = 'office';
-        if (msgLower.includes('закат') || msgLower.includes('sunset')) extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
+        console.error('[studio/chat] 3B extraction failed, using JS routing + keyword scene:', err);
+        // extracted already has action/face from quickRoute and keyword scene — safe to continue
       }
     }
 
-    // Fix 1: Safety guard — if both Ollama calls failed AND generation is needed AND no scene → stop, ask user
-    if (ollamaFailed && needsGeneration && !extracted.scene) {
+    // Safety guard — lora_clip needs a face model resolved
+    if (extracted.action === 'lora_clip' && !extracted.face && !context.loraModel) {
       return NextResponse.json({
-        message: 'Опиши сцену подробнее — где происходит действие, что делает персонаж? Например: "ANNA на пляже на закате в белом платье"',
+        message: 'Не могу найти модель лица. Уточни: "сделай клип с лицом ANNA"',
         toolUsed: null,
-        context: { ...context, lastAgentState: 'lora_asking_scene' as const },
+        context,
       });
     }
 

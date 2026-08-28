@@ -190,6 +190,12 @@ async function executeGenerateVideo(
     return { error: 'No image in context. Please generate or upload an image first.' };
   }
 
+  // STUDIO_MOCK mode — return placeholder video job without calling Kling
+  if (process.env.STUDIO_MOCK === 'true') {
+    console.log('[tool-executor] MOCK mode — skipping Kling video generation');
+    return { jobId: `mock-job-${Date.now()}`, message: '[MOCK] Video job queued — STUDIO_MOCK=true' };
+  }
+
   const rawDuration = Number(params.duration);
   const duration = rawDuration === 10 ? 10 : 5;
   const validRatios = ['9:16', '1:1', '16:9'] as const;

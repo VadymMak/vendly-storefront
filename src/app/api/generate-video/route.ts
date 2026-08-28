@@ -39,6 +39,8 @@ interface ReplicatePrediction {
   error?: string;
 }
 
+const IS_MOCK = process.env.STUDIO_MOCK === 'true';
+
 export async function POST(request: Request) {
   // ── Parse body (honeypot must come before auth) ───────────────────────────
   let rawBody: Record<string, unknown>;
@@ -84,6 +86,15 @@ export async function POST(request: Request) {
       { error: creditCheck.reason, needsUpgrade: true },
       { status: 403 },
     );
+  }
+
+  // Mock mode — return placeholder video without calling Replicate/Kling
+  if (IS_MOCK) {
+    return NextResponse.json({
+      success: true,
+      jobId: `mock-job-${Date.now()}`,
+      message: '[MOCK] Video generation skipped — STUDIO_MOCK=true',
+    });
   }
 
   const keyRecord = await db.userApiKey.findUnique({

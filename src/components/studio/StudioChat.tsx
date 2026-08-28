@@ -1072,6 +1072,17 @@ export default function StudioChat({ userId, userEmail }: Props) {
           characterReferenceUrl: data.context!.characterReferenceUrl ?? prev.characterReferenceUrl,
         }));
 
+        // MOCK / pre-assembled: server already returned a final video — skip local rendering
+        if (data.media?.type === 'video' && data.media.url) {
+          setMessages((prev) => prev.map((m) =>
+            m.id === loadingMsg.id
+              ? { ...m, content: data.message || '✅ Клип готов!', isLoading: false, media: data.media as MediaItem, toolUsed: 'create_clip' }
+              : m
+          ));
+          setIsProcessing(false);
+          return;
+        }
+
         // Priority 1: use Kling animated videos (ad_clip_generate flow)
         const adKlingVideos = data.context?.adClipState?.videos ?? context.adClipState?.videos;
         // Priority 2: use static images from this combo

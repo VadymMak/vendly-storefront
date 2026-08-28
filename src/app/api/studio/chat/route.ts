@@ -9,6 +9,7 @@ import { executeCombo } from '@/lib/studio/combo-executor';
 import { SUPERUSER_EMAILS } from '@/lib/credits';
 import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-client';
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
+import { FACE_REGISTRY } from '@/lib/studio/face-registry';
 
 interface ChatRequest {
   message: string;
@@ -32,7 +33,7 @@ async function ollamaChat(systemPrompt: string, userMessage: string): Promise<st
         { role: 'user', content: userMessage },
       ],
       stream: false,
-      options: { temperature: 0.1, num_predict: 200 },
+      options: { temperature: 0.1, num_predict: 500 },
     }),
     signal: AbortSignal.timeout(15000),
   });
@@ -41,19 +42,40 @@ async function ollamaChat(systemPrompt: string, userMessage: string): Promise<st
   return data.message?.content || '';
 }
 
-const ROUTING_SYSTEM_PROMPT = `You are an intent router for an AI content creation app.
-Analyze the user message and return ONLY valid JSON with no markdown, no explanation.
+const OLLAMA_EXTRACTOR_PROMPT = `You are a service AI for a video/image generation app.
+Extract structured data from user messages and build a clean prompt for Claude.
+Always respond with valid JSON only. No markdown. No explanation.
 
-Intent types:
-- "generate_image" — user wants to create/generate an image
-- "generate_video" — user wants to create video or animate
-- "create_clip" — user wants ad clip, reel, promo video
-- "lora_clip" — user mentions ANNA, face clip, same face, lora
-- "movie_maker" — user wants longer clip, 30sec, movie, scenario
-- "assemble" — user wants to assemble, combine, finalize clip
-- "text" — anything else (question, feedback, general chat)
+JSON structure:
+{
+  "action": "clip" | "lora_clip" | "movie" | "image" | "assemble" | "text",
+  "face": "<NAME>" | "random" | "upload" | null,
+  "scene": "<English scene description>",
+  "style": "<visual style in English>",
+  "duration": <seconds as number> | null,
+  "business_type": "<type>" | null,
+  "claude_prompt": "<complete English task description for Claude>"
+}
 
-Always return JSON: {"intent": "<type>", "confidence": 0.0-1.0}`;
+Rules:
+- action "lora_clip" when user mentions a specific person name (ANNA, KATE, etc.)
+- action "clip" for generic ad clip/reel requests
+- action "movie" when duration > 20sec or user says movie/scenario/history
+- action "assemble" when user says assemble/combine/finalize/готово/собери
+- face: extract the name exactly as written (ANNA not anna), null if not mentioned
+- scene: always translate to English, be specific
+- claude_prompt: write a complete creative brief in English for Claude to generate storyboard
+
+Examples:
+
+Input: "сделай клип с лицом ANNA на пляже как реклама духов"
+Output: {"action":"lora_clip","face":"ANNA","scene":"tropical beach at sunset","style":"luxury perfume advertisement, cinematic, warm golden tones","duration":null,"business_type":null,"claude_prompt":"Create a 4-scene storyboard for a luxury perfume advertisement. Setting: tropical beach at sunset. Character: young woman with consistent face. Style: cinematic, elegant, warm golden light. Scenes: arrival on beach, walking along water, holding perfume bottle, emotional close-up laughing."}
+
+Input: "создай рекламный клип для кафе 30 секунд"
+Output: {"action":"clip","face":"random","scene":"cozy modern cafe, morning light","style":"lifestyle advertisement, warm, inviting","duration":30,"business_type":"cafe","claude_prompt":"Create a 10-scene storyboard for a cafe advertisement (30 seconds, 3 sec per scene). Setting: modern cozy cafe in the morning. Style: warm, lifestyle, inviting. Show: exterior, barista, coffee preparation, customer arriving, enjoying coffee, food close-up, social moment, terrace, logo, CTA."}
+
+Input: "привет как дела"
+Output: {"action":"text","face":null,"scene":null,"style":null,"duration":null,"business_type":null,"claude_prompt":null}`;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -133,97 +155,82 @@ export async function POST(req: NextRequest) {
       ? '\n\n[LANGUAGE OVERRIDE: User is writing in Russian. You MUST respond ENTIRELY in Russian. No English words. No mixing languages.]'
       : '';
 
-    // --- OLLAMA INTENT ROUTING ---
-    let detectedIntent = 'text';
+    // --- OLLAMA ENTITY EXTRACTION ---
+    let extracted: {
+      action: string;
+      face: string | null;
+      scene: string | null;
+      style: string | null;
+      duration: number | null;
+      business_type: string | null;
+      claude_prompt: string | null;
+    } = { action: 'text', face: null, scene: null, style: null, duration: null, business_type: null, claude_prompt: null };
+
     try {
-      const routingResponse = await ollamaChat(ROUTING_SYSTEM_PROMPT, message);
-      const routing = JSON.parse(routingResponse) as { intent?: string; confidence?: number };
-      detectedIntent = routing.intent || 'text';
-      console.log('[studio/chat] Ollama intent:', detectedIntent);
+      const ollamaResponse = await ollamaChat(OLLAMA_EXTRACTOR_PROMPT, message);
+      extracted = JSON.parse(ollamaResponse) as typeof extracted;
+      console.log('[studio/chat] Ollama extracted:', JSON.stringify(extracted));
     } catch (err) {
-      console.error('[studio/chat] Ollama routing failed, using keyword fallback:', err);
+      console.error('[studio/chat] Ollama extraction failed, using keyword fallback:', err);
+      if (msgLower.includes('anna') || msgLower.includes('лицом') || msgLower.includes('face clip') || msgLower.includes('same face') || msgLower.includes('lora')) {
+        extracted.action = 'lora_clip';
+        extracted.face = 'ANNA';
+      } else if (msgLower.includes('assemble') || msgLower.includes('собери') || msgLower.includes('compile') || msgLower.includes('финальный клип') || msgLower.includes('склей')) {
+        extracted.action = 'assemble';
+      } else if (msgLower.includes('реклам') || msgLower.includes('клип') || msgLower.includes('ролик') || msgLower.includes(' clip') || msgLower.includes('reel') || msgLower.includes('сделай')) {
+        extracted.action = 'clip';
+      }
     }
 
-    // --- wantsAdClip: regular ad/clip requests (non-LoRA) ---
-    const wantsAdClip =
-      detectedIntent === 'create_clip' ||
-      detectedIntent === 'movie_maker' ||
-      (detectedIntent === 'text' && (
-        msgLower.includes('реклам') ||
-        msgLower.includes('рекламн') ||
-        msgLower.includes('клип') ||
-        msgLower.includes('ролик') ||
-        msgLower.includes(' clip') ||
-        msgLower.includes('reel') ||
-        msgLower.includes('ad for') ||
-        msgLower.includes('make ad') ||
-        msgLower.includes('create clip') ||
-        msgLower.includes('сделай')
-      ));
+    // Set context from extracted entities
+    if (extracted.face && extracted.face !== 'random' && extracted.face !== 'upload') {
+      const faceEntry = FACE_REGISTRY[extracted.face.toUpperCase()];
+      if (faceEntry?.loraModel) {
+        context.loraModel = faceEntry.loraModel;
+        context.loraTriggerWord = faceEntry.triggerWord ?? null;
+        console.log(`[studio/chat] Face set from registry: ${extracted.face} → ${faceEntry.loraModel}`);
+      }
+    }
+    if (extracted.duration && !context.clipLength) {
+      const dur = extracted.duration;
+      context.clipLength = (dur >= 60 ? 60 : dur >= 30 ? 30 : 15) as 15 | 30 | 60;
+      context.sceneCount = Math.floor(extracted.duration / 3);
+      context.sceneDuration = 3;
+    }
+    if (extracted.scene) {
+      context.currentScene = extracted.scene;
+    }
 
-    // --- wantsLoraSpecific: only these trigger the LoRA trained-face flow ---
-    const LORA_MODEL = 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6';
-    const LORA_TRIGGER = 'ANNA';
-    const wantsLoraSpecific =
-      detectedIntent === 'lora_clip' ||
-      (detectedIntent === 'text' && (
-        msgLower.includes('anna') ||
-        msgLower.includes('лицом') ||
-        msgLower.includes('face clip') ||
-        msgLower.includes('same face') ||
-        msgLower.includes('lora')
-      ));
-
-    // --- wantsAssemble ---
-    const wantsAssemble =
-      detectedIntent === 'assemble' ||
-      (detectedIntent === 'text' && (
-        msgLower.includes('assemble') ||
-        msgLower.includes('собери') ||
-        msgLower.includes('compile') ||
-        msgLower.includes('final clip') ||
-        msgLower.includes('финальный клип') ||
-        msgLower.includes('собери клип') ||
-        msgLower.includes('склей')
-      ));
-
-    // Broad LoRA logging (superset)
+    const wantsLoraSpecific = extracted.action === 'lora_clip';
+    const wantsAdClip = extracted.action === 'clip' || extracted.action === 'movie';
+    const wantsAssemble = extracted.action === 'assemble';
     const wantsLoraClip = wantsLoraSpecific || wantsAdClip;
 
-    console.log('[studio/chat] detectedIntent:', detectedIntent, '| wantsAdClip:', wantsAdClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic, '| msg:', msgLower);
+    console.log('[studio/chat] action:', extracted.action, '| wantsLoraSpecific:', wantsLoraSpecific, '| wantsAdClip:', wantsAdClip, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic);
 
     // State-based LoRA detection — no string matching on text
     const wasAskingLoraScene = context.lastAgentState === 'lora_asking_scene';
 
     // Enter LoRA flow when: specific keyword NOW, OR state says we were asking for scene (loraModel set from prev response)
     if (wantsLoraSpecific || (wasAskingLoraScene && context.loraModel)) {
-      const hasSceneDescription =
-        msgLower.includes('пляж') || msgLower.includes('beach') ||
-        msgLower.includes('кухн') || msgLower.includes('kitchen') ||
-        msgLower.includes('улиц') || msgLower.includes('street') ||
-        msgLower.includes('ресторан') || msgLower.includes('restaurant') ||
-        msgLower.includes('лес') || msgLower.includes('forest') ||
-        msgLower.includes('офис') || msgLower.includes('office') ||
-        msgLower.includes('кафе') || msgLower.includes('cafe') ||
-        msgLower.includes('студи') || msgLower.includes('studio') ||
-        msgLower.includes('парк') || msgLower.includes('park') ||
-        wasAskingLoraScene ||
-        message.length > 60;
+      // Ollama gives us the scene directly; fallback to keyword/length check
+      const hasSceneDescription = !!extracted.scene || wasAskingLoraScene || message.length > 60;
+      const faceName = extracted.face ?? context.loraTriggerWord ?? 'ANNA';
 
       if (!hasSceneDescription) {
-        // Step 1: No scene described — ask director questions, set loraModel + state in context
+        // Step 1: No scene described — ask director questions (loraModel already set from extraction)
         return NextResponse.json({
-          message: 'Отлично! Создам клип с лицом ANNA. Уточни детали:\n\n🎬 **Где происходит сцена?** (пляж, ресторан, улица, лес, студия, кафе...)\n💃 **Что она делает?** (идёт, держит кофе, улыбается, смотрит в камеру...)\n👗 **Стиль одежды?** (casual, элегантное, пляжное, спортивное...)\n🌅 **Настроение?** (летнее, романтичное, динамичное, утреннее...)',
+          message: `Отлично! Создам клип с лицом ${faceName}. Уточни детали:\n\n🎬 **Где происходит сцена?** (пляж, ресторан, улица, лес, студия, кафе...)\n💃 **Что она делает?** (идёт, держит кофе, улыбается, смотрит в камеру...)\n👗 **Стиль одежды?** (casual, элегантное, пляжное, спортивное...)\n🌅 **Настроение?** (летнее, романтичное, динамичное, утреннее...)`,
           toolUsed: null,
-          context: { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER, lastAgentState: 'lora_asking_scene' as const },
+          context: { ...context, lastAgentState: 'lora_asking_scene' as const },
         });
       }
 
-      // Step 2: Scene described — run combo with 4 variations
+      // Step 2: Scene described — run combo with 4 variations using English scene from Ollama
       const loraCombo = getComboPreset('lora_ad_clip');
       if (loraCombo) {
         const cookieHeader = req.headers.get('cookie') || '';
-        const sceneBase = message;
+        const sceneBase = extracted.scene || message;
         const sceneVariations = [
           `${sceneBase}, wide establishing shot`,
           `${sceneBase}, medium shot, natural expression`,
@@ -231,10 +238,10 @@ export async function POST(req: NextRequest) {
           `${sceneBase}, dynamic angle, cinematic lighting`,
         ];
 
-        // Clone steps with scene variations injected into each generate_character step
+        // Clone steps with scene variations injected into each generate_image step
         let variationIdx = 0;
         const loraSteps = loraCombo.steps.map((step) => {
-          if (step.tool === 'generate_character') {
+          if (step.tool === 'generate_image') {
             const variation = sceneVariations[variationIdx] ?? sceneBase;
             variationIdx++;
             return { ...step, params: { ...step.params, scene_description: variation } };
@@ -242,9 +249,8 @@ export async function POST(req: NextRequest) {
           return step;
         });
 
-        // Ensure loraModel is set in context for the combo execution
-        const loraContext = { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER };
-        const loraResult = await executeCombo(loraSteps, sceneBase, loraContext, cookieHeader);
+        // loraModel already set in context from extraction block
+        const loraResult = await executeCombo(loraSteps, sceneBase, context, cookieHeader);
 
         const comboImages = loraResult.steps
           .filter((s) => s.media?.type === 'image')
@@ -266,7 +272,7 @@ export async function POST(req: NextRequest) {
         };
 
         return NextResponse.json({
-          message: `Генерирую 4 сцены с лицом ANNA: "${sceneBase}"\n\n${progressLines.join('\n')}${jobIds.length > 0 ? `\n\n🎬 Анимирую ${jobIds.length} сцен через Kling (~2-3 мин)` : ''}`,
+          message: `Генерирую 4 сцены с лицом ${faceName}: "${sceneBase}"\n\n${progressLines.join('\n')}${jobIds.length > 0 ? `\n\n🎬 Анимирую ${jobIds.length} сцен через Kling (~2-3 мин)` : ''}`,
           toolUsed: 'combo:lora_ad_clip',
           comboImages: comboImages.length > 0 ? comboImages : undefined,
           jobIds: jobIds.length > 0 ? jobIds : undefined,
@@ -320,7 +326,7 @@ export async function POST(req: NextRequest) {
         const newCtx: SessionContext = {
           ...context,
           faceMode,
-          ...(faceMode === 'lora' ? { loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER } : {}),
+          ...(faceMode === 'lora' ? { loraModel: FACE_REGISTRY['ANNA']?.loraModel ?? '', loraTriggerWord: FACE_REGISTRY['ANNA']?.triggerWord ?? null } : {}),
           lastAgentState: 'asking_business_type' as const,
         };
         return NextResponse.json({
@@ -374,7 +380,7 @@ export async function POST(req: NextRequest) {
 
         const movieCtx: SessionContext = {
           ...context,
-          ...(context.faceMode === 'lora' ? { loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER } : {}),
+          ...(context.faceMode === 'lora' ? { loraModel: context.loraModel ?? FACE_REGISTRY['ANNA']?.loraModel ?? '', loraTriggerWord: context.loraTriggerWord ?? FACE_REGISTRY['ANNA']?.triggerWord ?? null } : {}),
         };
         const movieResult = await executeCombo(movieSteps, '', movieCtx, cookieHeader);
 
@@ -454,8 +460,13 @@ export async function POST(req: NextRequest) {
     console.log('[studio/chat] lastAgentState:', lastState, '| stateInstruction applied:', !!stateInstruction);
     // --- END STATE-BASED ROUTING ---
 
+    // Use Ollama-built English prompt when available; keep languageInstruction for response language
+    const promptForClaude = extracted.claude_prompt
+      ? extracted.claude_prompt + audioContext + languageInstruction + stateInstruction
+      : message + audioContext + languageInstruction + stateInstruction;
+
     const decision = await getAgentDecision(
-      message + audioContext + languageInstruction + stateInstruction,
+      promptForClaude,
       context,
       history,
       learningPrompt || undefined,
@@ -470,8 +481,9 @@ export async function POST(req: NextRequest) {
         const subject = (decision.toolCall?.params?.subject as string) || message;
 
         // Ensure loraModel is in context when agent routes to lora_ad_clip
-        const comboContext = decision.comboId === 'lora_ad_clip' && !context.loraModel
-          ? { ...context, loraModel: LORA_MODEL, loraTriggerWord: LORA_TRIGGER }
+        const annaEntry = FACE_REGISTRY['ANNA'];
+        const comboContext = decision.comboId === 'lora_ad_clip' && !context.loraModel && annaEntry?.loraModel
+          ? { ...context, loraModel: annaEntry.loraModel, loraTriggerWord: annaEntry.triggerWord ?? null }
           : context;
 
         const comboResult = await executeCombo(combo.steps, subject, comboContext, cookieHeader);

@@ -84,6 +84,7 @@ export interface SessionContext {
   sceneDuration?: 3 | 5 | null;
   faceMode?: 'random' | 'lora' | 'upload' | null;
   movieScript?: MovieScene[] | null;
+  currentScene?: string | null;
 }
 
 export type Platform =

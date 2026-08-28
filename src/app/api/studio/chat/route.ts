@@ -222,7 +222,17 @@ export async function POST(req: NextRequest) {
     // Enter LoRA flow when: specific keyword NOW, OR state says we were asking for scene (loraModel set from prev response)
     if (wantsLoraSpecific || (wasAskingLoraScene && context.loraModel)) {
       // Ollama gives us the scene directly; fallback to keyword/length check
-      const hasSceneDescription = !!extracted.scene || wasAskingLoraScene || message.length > 60;
+      const hasSceneDescription =
+        !!extracted.scene ||
+        wasAskingLoraScene ||
+        msgLower.includes('пляж') ||
+        msgLower.includes('beach') ||
+        msgLower.includes('кухн') ||
+        msgLower.includes('улиц') ||
+        msgLower.includes('ресторан') ||
+        msgLower.includes('лес') ||
+        msgLower.includes('офис') ||
+        message.length > 60;
       const faceName = extracted.face ?? context.loraTriggerWord ?? 'ANNA';
 
       if (!hasSceneDescription) {

@@ -17,9 +17,10 @@ export async function GET(
 
   // STUDIO_MOCK: return succeeded immediately for mock job IDs
   if (id.startsWith('mock-job-')) {
+    const mockVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
     return NextResponse.json({
       status: 'succeeded',
-      outputUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      outputUrl: mockVideoUrl,
     });
   }
 

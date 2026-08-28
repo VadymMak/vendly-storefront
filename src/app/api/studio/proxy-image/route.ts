@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     'replicate.delivery',
     'replicate.com',
     'oaidalleapiprodscus.blob.core.windows.net',
+    'commondatastorage.googleapis.com',
   ];
 
   const isAllowed = allowed.some((d) => parsedUrl.hostname.endsWith(d));

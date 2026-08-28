@@ -808,7 +808,7 @@ export async function renderSlideshow(
 
       if (t >= itemStart && t < itemEnd && !startedVideos.has(i)) {
         video.currentTime = 0;
-        try { await video.play(); } catch { /* autoplay policy — proceed with static frame */ }
+        void video.play().catch(() => { /* autoplay policy — continue with static frame */ });
         startedVideos.add(i);
       } else if (t >= itemEnd && startedVideos.has(i)) {
         video.pause();

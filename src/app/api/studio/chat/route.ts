@@ -68,13 +68,13 @@ Rules:
 - scene: always translate to English, be specific
 - claude_prompt: write a complete creative brief in English for Claude to generate storyboard
 
-CONTINUITY RULES for claude_prompt when action is lora_clip (critical for movie-like result):
-- Choose ONE location for ALL 4 scenes (not beach + cafe + street — pick ONE from user request)
-- ONE outfit described explicitly (e.g., "white sundress", "red blazer") — same in all 4 scenes
-- ONE lighting condition (e.g., "golden hour", "soft morning light") — same in all 4 scenes
-- Scenes must be PROGRESSIVE: arrive → explore → interact → emotional close-up
-- Each scene: "[FaceName] [action], [SAME location], [SAME outfit], [SAME light], [camera angle]"
-- claude_prompt must list all 4 scene descriptions explicitly following these rules
+CONTINUITY RULES for claude_prompt when action is lora_clip (CRITICAL — violating these makes scenes look like 4 separate photoshoots):
+- ONE location only — pick from user message, never invent a second one
+- ONE outfit — same garment description word-for-word in all 4 scenes
+- ONE lighting — same light quality word-for-word in all 4 scenes
+- Progressive narrative: scene 1=wide establishing, scene 2=mid action, scene 3=close detail/product, scene 4=final reveal/smile
+- State "Setting: [location], [outfit], [lighting]" ONCE at top of claude_prompt, then per-scene only describe what changes (action + camera angle)
+- NEVER change location, outfit, or lighting between scenes
 
 Examples:
 

@@ -66,10 +66,18 @@ Rules:
 - scene: always translate to English, be specific
 - claude_prompt: write a complete creative brief in English for Claude to generate storyboard
 
+CONTINUITY RULES for claude_prompt when action is lora_clip (critical for movie-like result):
+- Choose ONE location for ALL 4 scenes (not beach + cafe + street — pick ONE from user request)
+- ONE outfit described explicitly (e.g., "white sundress", "red blazer") — same in all 4 scenes
+- ONE lighting condition (e.g., "golden hour", "soft morning light") — same in all 4 scenes
+- Scenes must be PROGRESSIVE: arrive → explore → interact → emotional close-up
+- Each scene: "[FaceName] [action], [SAME location], [SAME outfit], [SAME light], [camera angle]"
+- claude_prompt must list all 4 scene descriptions explicitly following these rules
+
 Examples:
 
 Input: "сделай клип с лицом ANNA на пляже как реклама духов"
-Output: {"action":"lora_clip","face":"ANNA","scene":"tropical beach at sunset","style":"luxury perfume advertisement, cinematic, warm golden tones","duration":null,"business_type":null,"claude_prompt":"Create a 4-scene storyboard for a luxury perfume advertisement. Setting: tropical beach at sunset. Character: young woman with consistent face. Style: cinematic, elegant, warm golden light. Scenes: arrival on beach, walking along water, holding perfume bottle, emotional close-up laughing."}
+Output: {"action":"lora_clip","face":"ANNA","scene":"tropical beach at sunset","style":"luxury perfume advertisement, cinematic, golden hour light, white sundress","duration":null,"business_type":null,"claude_prompt":"Create a 4-scene lora_ad_clip with CONTINUITY. Location: tropical beach at sunset. Outfit: white sundress. Lighting: golden hour. Scenes: 1) ANNA arrives on beach, white sundress, golden hour, wide shot. 2) ANNA walks along water, same white sundress, same golden light, medium shot from behind. 3) ANNA holds perfume bottle looking at ocean, same outfit, same light, medium-close profile. 4) ANNA turns to camera with warm smile, beach softly blurred, same golden light, close-up portrait."}
 
 Input: "создай рекламный клип для кафе 30 секунд"
 Output: {"action":"clip","face":"random","scene":"cozy modern cafe, morning light","style":"lifestyle advertisement, warm, inviting","duration":30,"business_type":"cafe","claude_prompt":"Create a 10-scene storyboard for a cafe advertisement (30 seconds, 3 sec per scene). Setting: modern cozy cafe in the morning. Style: warm, lifestyle, inviting. Show: exterior, barista, coffee preparation, customer arriving, enjoying coffee, food close-up, social moment, terrace, logo, CTA."}
@@ -231,11 +239,13 @@ export async function POST(req: NextRequest) {
       if (loraCombo) {
         const cookieHeader = req.headers.get('cookie') || '';
         const sceneBase = extracted.scene || message;
+        // Continuity: same location + outfit + light across all 4 scenes, progressive action
+        const styleCtx = extracted.style ? `, ${extracted.style}` : '';
         const sceneVariations = [
-          `${sceneBase}, wide establishing shot`,
-          `${sceneBase}, medium shot, natural expression`,
-          `${sceneBase}, close-up portrait, bokeh background`,
-          `${sceneBase}, dynamic angle, cinematic lighting`,
+          `${sceneBase}${styleCtx}, wide establishing shot, character arriving or standing, full body visible`,
+          `${sceneBase}${styleCtx}, medium shot, character walking or moving slowly, same exact setting and lighting`,
+          `${sceneBase}${styleCtx}, medium-close shot, character pausing or interacting with environment, same setting and light`,
+          `${sceneBase}${styleCtx}, close-up portrait, character facing camera with warm expression, same background softly blurred, same lighting`,
         ];
 
         // Clone steps with scene variations injected into each generate_image step
@@ -486,7 +496,21 @@ export async function POST(req: NextRequest) {
           ? { ...context, loraModel: annaEntry.loraModel, loraTriggerWord: annaEntry.triggerWord ?? null }
           : context;
 
-        const comboResult = await executeCombo(combo.steps, subject, comboContext, cookieHeader);
+        // Inject Claude-generated continuity scenes into lora_ad_clip steps
+        let stepsToRun = combo.steps;
+        if (decision.comboId === 'lora_ad_clip' && decision.movieScript?.length) {
+          let sceneIdx = 0;
+          stepsToRun = combo.steps.map((step) => {
+            if (step.tool === 'generate_image' && step.params?.use_lora && decision.movieScript![sceneIdx]) {
+              const enriched = { ...step, params: { ...step.params, scene_description: decision.movieScript![sceneIdx].description } };
+              sceneIdx++;
+              return enriched;
+            }
+            return step;
+          });
+        }
+
+        const comboResult = await executeCombo(stepsToRun, subject, comboContext, cookieHeader);
 
         const allMedia = comboResult.steps.filter((s) => s.media).map((s) => s.media!);
         const lastMedia = allMedia[allMedia.length - 1];

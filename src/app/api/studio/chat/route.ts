@@ -27,7 +27,7 @@ async function ollamaChat(systemPrompt: string, userMessage: string): Promise<st
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'llama3.2:1b',
+      model: 'llama3.2:3b',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },

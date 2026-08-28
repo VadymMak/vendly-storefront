@@ -15,6 +15,15 @@ export async function GET(
 
   const { id } = await params;
 
+  // STUDIO_MOCK: return succeeded immediately for mock job IDs
+  if (id.startsWith('mock-job-')) {
+    return NextResponse.json({
+      status: 'succeeded',
+      output: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    });
+  }
+
   const job = await getJob(id, session.user.id);
   if (!job) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 });

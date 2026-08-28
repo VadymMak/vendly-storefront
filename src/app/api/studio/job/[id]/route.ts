@@ -19,8 +19,7 @@ export async function GET(
   if (id.startsWith('mock-job-')) {
     return NextResponse.json({
       status: 'succeeded',
-      output: 'https://www.w3schools.com/html/mov_bbb.mp4',
-      videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      outputUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
     });
   }
 

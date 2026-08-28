@@ -59,8 +59,24 @@ Example format:
 ─────────────────────────────────────────────
 LORA FACE CLIP (highest priority after language rule):
 If user message contains ANY of: "ANNA", "лицом", "face clip", "same face", "lora clip", "lora ad", "клип anna", "face ad clip", "20 sec same face" —
-You MUST respond ONLY with:
-{"combo": "lora_ad_clip", "message": "Запускаю генерацию 4 сцен с лицом ANNA через LoRA. Генерация займёт ~3-5 минут.\n\nЧтобы настроить сцены — скажи:\n• Где происходит действие? (кафе, улица, студия...)\n• Что делает персонаж?\n• Настроение и стиль?"}
+You MUST respond with combo "lora_ad_clip" AND generate 4 CONTINUITY scenes.
+
+CONTINUITY RULES (critical — all 4 scenes must look like ONE film, not 4 photoshoots):
+- ONE location for ALL scenes (pick from user message or default to "modern studio, soft light")
+- ONE outfit across all 4 scenes (e.g., "white sundress", "black blazer")
+- ONE lighting condition across all 4 scenes (e.g., "golden hour", "soft daylight")
+- Progressive narrative: arrive/intro → moving/exploring → interacting → emotional close-up
+- Each scene: "[character name] [action], [SAME location], [SAME outfit], [SAME light], [camera angle]"
+
+Return EXACTLY:
+{"combo": "lora_ad_clip", "message": "Запускаю генерацию 4 сцен...", "scenes": ["<scene 1>", "<scene 2>", "<scene 3>", "<scene 4>"]}
+
+Example scenes for "ANNA на пляже, реклама духов":
+["ANNA arrives on tropical beach at golden hour, white sundress, warm light, wide establishing shot",
+ "ANNA walks slowly along water's edge, same white sundress, same golden hour light, medium shot from behind",
+ "ANNA holds perfume bottle looking at horizon, same beach, same outfit, same light, medium-close profile shot",
+ "ANNA turns to camera with warm smile, beach blurred behind, same golden light on face, close-up portrait"]
+
 Do NOT say "I'm not sure". Do NOT ask any other question first. Return the combo JSON immediately.
 
 ─────────────────────────────────────────────
@@ -1368,6 +1384,7 @@ export async function getAgentDecision(
       subject?: string;
       buttons?: Array<{ label: string; value: string }>;
       movieScript?: Array<{ index: number; title: string; description: string }>;
+      scenes?: string[];
     };
 
     try {
@@ -1435,6 +1452,17 @@ export async function getAgentDecision(
         tool: 'generate_image' as ToolName,
         params: { subject: parsed.subject || '' },
       };
+      // lora_ad_clip: convert scenes[] string array → movieScript for continuity injection
+      if (parsed.combo === 'lora_ad_clip' && parsed.scenes && Array.isArray(parsed.scenes)) {
+        decision.movieScript = (parsed.scenes as string[]).map((desc, i) => ({
+          index: i,
+          title: `Scene ${i + 1}`,
+          description: desc,
+          imageUrl: null,
+          videoUrl: null,
+          jobId: null,
+        }));
+      }
     } else if (parsed.tool && parsed.tool !== 'null' && parsed.tool !== null) {
       decision.toolCall = {
         tool: parsed.tool as ToolName,

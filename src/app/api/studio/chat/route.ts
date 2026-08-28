@@ -11,6 +11,8 @@ import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-clie
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
 import { FACE_REGISTRY } from '@/lib/studio/face-registry';
 
+const IS_MOCK = process.env.STUDIO_MOCK === 'true';
+
 interface ChatRequest {
   message: string;
   context: SessionContext;
@@ -21,26 +23,33 @@ interface ChatRequest {
   imageProvider?: 'flux' | 'grok';
 }
 
-async function ollamaChat(systemPrompt: string, userMessage: string): Promise<string> {
+async function ollamaChat(model: string, systemPrompt: string, userMessage: string, timeoutMs = 30000): Promise<string> {
   const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
   const res = await fetch(`${ollamaUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'llama3.2:3b',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
       stream: false,
-      options: { temperature: 0.1, num_predict: 300 },
+      options: { temperature: 0.1, num_predict: model.includes('1b') ? 80 : 300 },
     }),
-    signal: AbortSignal.timeout(30000), // 30s — 3B model needs more time
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
   const data = await res.json() as { message?: { content?: string } };
   return data.message?.content || '';
 }
+
+const ROUTING_PROMPT = `Reply with JSON only. No markdown.
+{"action":"clip|lora_clip|movie|image|assemble|text","face":"NAME or null"}
+- lora_clip: user mentions a person name (ANNA, KATE, etc.)
+- clip/movie: ad/рекламный клип/ролик
+- assemble: собери/склей/assemble
+- text: everything else`;
 
 const OLLAMA_EXTRACTOR_PROMPT = `You are a service AI for a video/image generation app.
 Extract structured data from user messages and build a clean prompt for Claude.
@@ -163,7 +172,7 @@ export async function POST(req: NextRequest) {
       ? '\n\n[LANGUAGE OVERRIDE: User is writing in Russian. You MUST respond ENTIRELY in Russian. No English words. No mixing languages.]'
       : '';
 
-    // --- OLLAMA ENTITY EXTRACTION ---
+    // --- OLLAMA TWO-STEP EXTRACTION ---
     let extracted: {
       action: string;
       face: string | null;
@@ -174,41 +183,65 @@ export async function POST(req: NextRequest) {
       claude_prompt: string | null;
     } = { action: 'text', face: null, scene: null, style: null, duration: null, business_type: null, claude_prompt: null };
 
+    let ollamaFailed = false;
+
+    // Step 1: Fast routing with 1B (8s) — just action + face
     try {
-      const ollamaResponse = await ollamaChat(OLLAMA_EXTRACTOR_PROMPT, message);
-      extracted = JSON.parse(ollamaResponse) as typeof extracted;
-      console.log('[studio/chat] Ollama extracted:', JSON.stringify(extracted));
+      const routingRes = await ollamaChat('llama3.2:1b', ROUTING_PROMPT, message, 8000);
+      const routing = JSON.parse(routingRes) as { action?: string; face?: string | null };
+      extracted.action = routing.action || 'text';
+      extracted.face = routing.face || null;
+      console.log('[studio/chat] 1B routing:', extracted.action, '| face:', extracted.face);
     } catch (err) {
-      console.error('[studio/chat] Ollama extraction failed, using keyword fallback:', err);
+      console.error('[studio/chat] 1B routing failed, keyword fallback:', err);
+      ollamaFailed = true;
 
-      // Detect known faces from FACE_REGISTRY
-      const knownFaces = Object.keys(FACE_REGISTRY);
-      for (const faceName of knownFaces) {
-        if (message.toUpperCase().includes(faceName)) {
-          extracted.face = faceName;
-          break;
-        }
+      // Detect face from FACE_REGISTRY
+      for (const faceName of Object.keys(FACE_REGISTRY)) {
+        if (message.toUpperCase().includes(faceName)) { extracted.face = faceName; break; }
       }
-
-      // Detect action
       extracted.action =
-        (extracted.face || msgLower.includes('лицом') || msgLower.includes('face clip') || msgLower.includes('same face') || msgLower.includes('lora'))
-          ? 'lora_clip'
-          : msgLower.includes('assemble') || msgLower.includes('собери') || msgLower.includes('compile') || msgLower.includes('финальный клип') || msgLower.includes('склей')
-          ? 'assemble'
-          : msgLower.includes('реклам') || msgLower.includes('клип') || msgLower.includes('ролик') || msgLower.includes(' clip') || msgLower.includes('reel') || msgLower.includes('сделай')
-          ? 'clip'
-          : 'text';
+        extracted.face || msgLower.includes('лицом') || msgLower.includes('lora') ? 'lora_clip' :
+        msgLower.includes('assemble') || msgLower.includes('собери') || msgLower.includes('склей') ? 'assemble' :
+        msgLower.includes('реклам') || msgLower.includes('клип') || msgLower.includes('ролик') || msgLower.includes('сделай') ? 'clip' :
+        'text';
 
-      // Extract basic scene from keywords
+      // Keyword scene extraction as fallback
       if (msgLower.includes('пляж') || msgLower.includes('beach')) extracted.scene = 'beach';
       if (msgLower.includes('кафе') || msgLower.includes('cafe')) extracted.scene = 'cozy cafe';
       if (msgLower.includes('улиц') || msgLower.includes('street')) extracted.scene = 'city street';
       if (msgLower.includes('лес') || msgLower.includes('forest')) extracted.scene = 'forest';
       if (msgLower.includes('офис') || msgLower.includes('office')) extracted.scene = 'office';
-      if (msgLower.includes('закат') || msgLower.includes('sunset')) {
-        extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
+      if (msgLower.includes('закат') || msgLower.includes('sunset')) extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
+    }
+
+    // Step 2: Full extraction with 3B (30s) — only if action needs generation
+    const needsGeneration = ['lora_clip', 'clip', 'movie', 'image'].includes(extracted.action);
+    if (needsGeneration && !ollamaFailed) {
+      try {
+        const fullRes = await ollamaChat('llama3.2:3b', OLLAMA_EXTRACTOR_PROMPT, message, 30000);
+        const full = JSON.parse(fullRes) as typeof extracted;
+        extracted = full;
+        console.log('[studio/chat] 3B extracted:', JSON.stringify(extracted));
+      } catch (err) {
+        console.error('[studio/chat] 3B extraction failed, using 1B routing result:', err);
+        // Keep action/face from step 1, add keyword scene
+        if (msgLower.includes('пляж') || msgLower.includes('beach')) extracted.scene = 'beach';
+        if (msgLower.includes('кафе') || msgLower.includes('cafe')) extracted.scene = 'cozy cafe';
+        if (msgLower.includes('улиц') || msgLower.includes('street')) extracted.scene = 'city street';
+        if (msgLower.includes('лес') || msgLower.includes('forest')) extracted.scene = 'forest';
+        if (msgLower.includes('офис') || msgLower.includes('office')) extracted.scene = 'office';
+        if (msgLower.includes('закат') || msgLower.includes('sunset')) extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
       }
+    }
+
+    // Fix 1: Safety guard — if both Ollama calls failed AND generation is needed AND no scene → stop, ask user
+    if (ollamaFailed && needsGeneration && !extracted.scene) {
+      return NextResponse.json({
+        message: 'Опиши сцену подробнее — где происходит действие, что делает персонаж? Например: "ANNA на пляже на закате в белом платье"',
+        toolUsed: null,
+        context: { ...context, lastAgentState: 'lora_asking_scene' as const },
+      });
     }
 
     // Set context from extracted entities

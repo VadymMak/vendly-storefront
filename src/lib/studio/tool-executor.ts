@@ -474,6 +474,14 @@ async function executeGenerateCharacter(
     const sceneDesc = (params.scene_description as string) || (params.prompt as string) || 'portrait, natural light';
     const loraPrompt = `${sceneDesc}, ${triggerWord} woman, high quality, professional photography, cinematic lighting`;
 
+    // STUDIO_MOCK mode — return placeholder image without calling Replicate
+    if (process.env.STUDIO_MOCK === 'true') {
+      const mockIndex = Math.floor(Math.random() * 4) + 1;
+      const mockUrl = `https://placehold.co/768x1024/1a1a2e/white?text=MOCK+SCENE+${mockIndex}`;
+      console.log('[tool-executor] MOCK mode — skipping Replicate:', loraPrompt);
+      return { media: { type: 'image', url: mockUrl } };
+    }
+
     const REPLICATE_API_KEY = process.env.REPLICATE_API_TOKEN || '';
     if (!REPLICATE_API_KEY) {
       return { error: 'REPLICATE_API_TOKEN not configured' };

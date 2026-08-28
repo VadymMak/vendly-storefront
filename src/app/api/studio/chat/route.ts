@@ -483,7 +483,7 @@ export async function POST(req: NextRequest) {
       if (totalVideos > 0) {
         // STUDIO_MOCK: skip canvas assembly, return mock video directly
         if (IS_MOCK) {
-          const mockClipUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+          const mockClipUrl = '/mock-clip.mp4';
           console.log('[studio/chat] MOCK assemble — returning mock clip directly');
           return NextResponse.json({
             message: `[MOCK] ✅ Финальный клип из ${totalVideos} сцен готов!`,

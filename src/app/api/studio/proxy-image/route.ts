@@ -6,9 +6,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
-  // STUDIO_MOCK: redirect instead of proxying — avoids domain whitelist issues with test CDN URLs
-  if (process.env.STUDIO_MOCK === 'true') {
-    return NextResponse.redirect(url);
+  // Relative paths and MOCK mode: redirect to same-origin URL directly
+  if (url.startsWith('/') || process.env.STUDIO_MOCK === 'true') {
+    return NextResponse.redirect(new URL(url, request.url).toString());
   }
 
   let parsedUrl: URL;

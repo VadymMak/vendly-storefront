@@ -33,9 +33,9 @@ async function ollamaChat(systemPrompt: string, userMessage: string): Promise<st
         { role: 'user', content: userMessage },
       ],
       stream: false,
-      options: { temperature: 0.1, num_predict: 500 },
+      options: { temperature: 0.1, num_predict: 300 },
     }),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(30000), // 30s — 3B model needs more time
   });
   if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
   const data = await res.json() as { message?: { content?: string } };
@@ -180,13 +180,34 @@ export async function POST(req: NextRequest) {
       console.log('[studio/chat] Ollama extracted:', JSON.stringify(extracted));
     } catch (err) {
       console.error('[studio/chat] Ollama extraction failed, using keyword fallback:', err);
-      if (msgLower.includes('anna') || msgLower.includes('лицом') || msgLower.includes('face clip') || msgLower.includes('same face') || msgLower.includes('lora')) {
-        extracted.action = 'lora_clip';
-        extracted.face = 'ANNA';
-      } else if (msgLower.includes('assemble') || msgLower.includes('собери') || msgLower.includes('compile') || msgLower.includes('финальный клип') || msgLower.includes('склей')) {
-        extracted.action = 'assemble';
-      } else if (msgLower.includes('реклам') || msgLower.includes('клип') || msgLower.includes('ролик') || msgLower.includes(' clip') || msgLower.includes('reel') || msgLower.includes('сделай')) {
-        extracted.action = 'clip';
+
+      // Detect known faces from FACE_REGISTRY
+      const knownFaces = Object.keys(FACE_REGISTRY);
+      for (const faceName of knownFaces) {
+        if (message.toUpperCase().includes(faceName)) {
+          extracted.face = faceName;
+          break;
+        }
+      }
+
+      // Detect action
+      extracted.action =
+        (extracted.face || msgLower.includes('лицом') || msgLower.includes('face clip') || msgLower.includes('same face') || msgLower.includes('lora'))
+          ? 'lora_clip'
+          : msgLower.includes('assemble') || msgLower.includes('собери') || msgLower.includes('compile') || msgLower.includes('финальный клип') || msgLower.includes('склей')
+          ? 'assemble'
+          : msgLower.includes('реклам') || msgLower.includes('клип') || msgLower.includes('ролик') || msgLower.includes(' clip') || msgLower.includes('reel') || msgLower.includes('сделай')
+          ? 'clip'
+          : 'text';
+
+      // Extract basic scene from keywords
+      if (msgLower.includes('пляж') || msgLower.includes('beach')) extracted.scene = 'beach';
+      if (msgLower.includes('кафе') || msgLower.includes('cafe')) extracted.scene = 'cozy cafe';
+      if (msgLower.includes('улиц') || msgLower.includes('street')) extracted.scene = 'city street';
+      if (msgLower.includes('лес') || msgLower.includes('forest')) extracted.scene = 'forest';
+      if (msgLower.includes('офис') || msgLower.includes('office')) extracted.scene = 'office';
+      if (msgLower.includes('закат') || msgLower.includes('sunset')) {
+        extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
       }
     }
 

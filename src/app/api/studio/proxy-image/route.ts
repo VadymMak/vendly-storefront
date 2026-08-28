@@ -6,6 +6,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
+  // STUDIO_MOCK: redirect instead of proxying — avoids domain whitelist issues with test CDN URLs
+  if (process.env.STUDIO_MOCK === 'true') {
+    return NextResponse.redirect(url);
+  }
+
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(url);

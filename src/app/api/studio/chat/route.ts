@@ -481,6 +481,18 @@ export async function POST(req: NextRequest) {
       console.log('[studio/chat] wantsAssemble=true | adVideos:', adVideos.length, '| loraJobs:', JSON.stringify(loraJobs), '| totalVideos:', totalVideos);
 
       if (totalVideos > 0) {
+        // STUDIO_MOCK: skip canvas assembly, return mock video directly
+        if (IS_MOCK) {
+          const mockClipUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+          console.log('[studio/chat] MOCK assemble — returning mock clip directly');
+          return NextResponse.json({
+            message: `[MOCK] ✅ Финальный клип из ${totalVideos} сцен готов!`,
+            toolUsed: 'create_clip',
+            media: { type: 'video', url: mockClipUrl },
+            context: { ...context, lastAgentState: 'done' as const, lastVideoUrl: mockClipUrl },
+          });
+        }
+
         console.log('[studio/chat] assemble short-circuit → create_clip');
         return NextResponse.json({
           message: `Собираю финальный клип из ${totalVideos} сцен...`,

@@ -20,6 +20,41 @@ interface ChatRequest {
   imageProvider?: 'flux' | 'grok';
 }
 
+async function ollamaChat(systemPrompt: string, userMessage: string): Promise<string> {
+  const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+  const res = await fetch(`${ollamaUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3.2:1b',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      stream: false,
+      options: { temperature: 0.1, num_predict: 200 },
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+  const data = await res.json() as { message?: { content?: string } };
+  return data.message?.content || '';
+}
+
+const ROUTING_SYSTEM_PROMPT = `You are an intent router for an AI content creation app.
+Analyze the user message and return ONLY valid JSON with no markdown, no explanation.
+
+Intent types:
+- "generate_image" — user wants to create/generate an image
+- "generate_video" — user wants to create video or animate
+- "create_clip" — user wants ad clip, reel, promo video
+- "lora_clip" — user mentions ANNA, face clip, same face, lora
+- "movie_maker" — user wants longer clip, 30sec, movie, scenario
+- "assemble" — user wants to assemble, combine, finalize clip
+- "text" — anything else (question, feedback, general chat)
+
+Always return JSON: {"intent": "<type>", "confidence": 0.0-1.0}`;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -98,33 +133,64 @@ export async function POST(req: NextRequest) {
       ? '\n\n[LANGUAGE OVERRIDE: User is writing in Russian. You MUST respond ENTIRELY in Russian. No English words. No mixing languages.]'
       : '';
 
+    // --- OLLAMA INTENT ROUTING ---
+    let detectedIntent = 'text';
+    try {
+      const routingResponse = await ollamaChat(ROUTING_SYSTEM_PROMPT, message);
+      const routing = JSON.parse(routingResponse) as { intent?: string; confidence?: number };
+      detectedIntent = routing.intent || 'text';
+      console.log('[studio/chat] Ollama intent:', detectedIntent);
+    } catch (err) {
+      console.error('[studio/chat] Ollama routing failed, using keyword fallback:', err);
+    }
+
     // --- wantsAdClip: regular ad/clip requests (non-LoRA) ---
     const wantsAdClip =
-      msgLower.includes('реклам') ||
-      msgLower.includes('рекламн') ||
-      msgLower.includes('клип') ||
-      msgLower.includes('ролик') ||
-      msgLower.includes(' clip') ||
-      msgLower.includes('reel') ||
-      msgLower.includes('ad for') ||
-      msgLower.includes('make ad') ||
-      msgLower.includes('create clip') ||
-      msgLower.includes('сделай');
+      detectedIntent === 'create_clip' ||
+      detectedIntent === 'movie_maker' ||
+      (detectedIntent === 'text' && (
+        msgLower.includes('реклам') ||
+        msgLower.includes('рекламн') ||
+        msgLower.includes('клип') ||
+        msgLower.includes('ролик') ||
+        msgLower.includes(' clip') ||
+        msgLower.includes('reel') ||
+        msgLower.includes('ad for') ||
+        msgLower.includes('make ad') ||
+        msgLower.includes('create clip') ||
+        msgLower.includes('сделай')
+      ));
 
     // --- wantsLoraSpecific: only these trigger the LoRA trained-face flow ---
     const LORA_MODEL = 'vadymmak/anna-face-lora:4198443f5a945bd22a2dfdfdb4ec2ec47a5107b9c1c7e163c1d81c78489e72c6';
     const LORA_TRIGGER = 'ANNA';
     const wantsLoraSpecific =
-      msgLower.includes('anna') ||
-      msgLower.includes('лицом') ||
-      msgLower.includes('face clip') ||
-      msgLower.includes('same face') ||
-      msgLower.includes('lora');
+      detectedIntent === 'lora_clip' ||
+      (detectedIntent === 'text' && (
+        msgLower.includes('anna') ||
+        msgLower.includes('лицом') ||
+        msgLower.includes('face clip') ||
+        msgLower.includes('same face') ||
+        msgLower.includes('lora')
+      ));
+
+    // --- wantsAssemble ---
+    const wantsAssemble =
+      detectedIntent === 'assemble' ||
+      (detectedIntent === 'text' && (
+        msgLower.includes('assemble') ||
+        msgLower.includes('собери') ||
+        msgLower.includes('compile') ||
+        msgLower.includes('final clip') ||
+        msgLower.includes('финальный клип') ||
+        msgLower.includes('собери клип') ||
+        msgLower.includes('склей')
+      ));
 
     // Broad LoRA logging (superset)
     const wantsLoraClip = wantsLoraSpecific || wantsAdClip;
 
-    console.log('[studio/chat] wantsAdClip:', wantsAdClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic, '| msg:', msgLower);
+    console.log('[studio/chat] detectedIntent:', detectedIntent, '| wantsAdClip:', wantsAdClip, '| wantsLoraSpecific:', wantsLoraSpecific, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic, '| msg:', msgLower);
 
     // State-based LoRA detection — no string matching on text
     const wasAskingLoraScene = context.lastAgentState === 'lora_asking_scene';
@@ -339,15 +405,6 @@ export async function POST(req: NextRequest) {
     // --- END MOVIE MAKER STATE TRANSITIONS ---
 
     // --- ASSEMBLE INTENT: short-circuit Haiku when videos are ready ---
-    const wantsAssemble =
-      msgLower.includes('assemble') ||
-      msgLower.includes('собери') ||
-      msgLower.includes('compile') ||
-      msgLower.includes('final clip') ||
-      msgLower.includes('финальный клип') ||
-      msgLower.includes('собери клип') ||
-      msgLower.includes('склей');
-
     if (wantsAssemble) {
       const adVideos = context.adClipState?.videos ?? [];
       const loraJobs = context.jobIds ?? [];

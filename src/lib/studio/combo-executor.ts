@@ -1,6 +1,30 @@
 import { executeTool } from './tool-executor';
+import { extractLastFrame } from './frame-extractor';
 import type { MediaAttachment, SessionContext, ToolName } from './types';
 import type { ComboStep } from './prompt-library';
+
+const BASE_URL =
+  process.env.NEXTAUTH_URL ||
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+/** Poll job until terminal state, return video URL or null. Max 4 min wait. */
+async function waitForJobComplete(jobId: string, cookieHeader: string): Promise<string | null> {
+  const maxWait = 240_000;
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    const res = await fetch(`${BASE_URL}/api/studio/job/${jobId}`, {
+      headers: { Cookie: cookieHeader },
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) break;
+    const data = await res.json() as { status: string; outputUrl?: string };
+    if (data.status === 'succeeded') return data.outputUrl ?? null;
+    if (data.status === 'failed' || data.status === 'canceled') return null;
+    await new Promise<void>((r) => setTimeout(r, 5000));
+  }
+  return null;
+}
 
 export interface StepResult {
   stepIndex: number;
@@ -90,25 +114,42 @@ export async function executeCombo(
 
       const sceneDuration = (step.params?.duration as number) || (currentContext.sceneDuration as number) || 3;
 
-      const animResults = await Promise.all(
-        allImages.map((imageUrl, idx) => {
-          const animCtx: SessionContext = { ...currentContext, lastImageUrl: imageUrl };
-          return executeTool(
-            'image_to_video',
-            {
-              prompt: motionPrompts[idx % motionPrompts.length],
-              aspectRatio: '9:16',
-              duration: sceneDuration,
-            },
-            animCtx,
-            cookieHeader,
-          );
-        }),
-      );
+      // Sequential generation with frame continuity:
+      // last frame of clip N becomes image_start for clip N+1
+      const jobIds: string[] = [];
+      let lastFrameUrl: string | null = null;
 
-      const jobIds = animResults
-        .map((r) => r.jobId ?? null)
-        .filter((id): id is string => id !== null);
+      for (let idx = 0; idx < allImages.length; idx++) {
+        const imageUrl = allImages[idx];
+        // Scene 0 starts from its generated image; subsequent scenes start from last frame of previous clip
+        const startImageUrl = lastFrameUrl ?? imageUrl;
+        const animCtx: SessionContext = { ...currentContext, lastImageUrl: startImageUrl };
+
+        const result = await executeTool(
+          'image_to_video',
+          {
+            prompt: motionPrompts[idx % motionPrompts.length],
+            aspectRatio: '9:16',
+            duration: sceneDuration,
+          },
+          animCtx,
+          cookieHeader,
+        );
+
+        if (result.jobId) {
+          jobIds.push(result.jobId);
+
+          // Wait for this clip to complete so we can extract its last frame for the next clip
+          if (idx < allImages.length - 1) {
+            console.log(`[continuity] waiting for clip ${idx} (job ${result.jobId})...`);
+            const videoUrl = await waitForJobComplete(result.jobId, cookieHeader);
+            if (videoUrl) {
+              lastFrameUrl = await extractLastFrame(videoUrl);
+              console.log(`[continuity] clip ${idx} last frame → clip ${idx + 1}: ${lastFrameUrl ? 'ok' : 'skipped'}`);
+            }
+          }
+        }
+      }
 
       results.push({
         stepIndex: i,

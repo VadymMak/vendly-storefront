@@ -705,7 +705,7 @@ async function addAudioToVideo(
         };
 
         video.currentTime = 0;
-        await video.play();
+        void video.play().catch(() => {});
         drawVideoFrame();
 
         // Safety timeout in case video.ended never fires

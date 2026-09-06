@@ -7,6 +7,7 @@ import { checkCredits, getOrCreateCredits, getVideoCreditCost } from '@/lib/cred
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
+import { getVideoProvider, VideoProviderError } from '@/lib/video';
 
 const generateSchema = z.object({
   prompt:          z.string().min(1),
@@ -16,28 +17,6 @@ const generateSchema = z.object({
   startImage:      z.string().url(),
   referenceImages: z.array(z.string().url()).optional(),
 });
-
-const MAX_RETRIES = 3;
-
-async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
-  let attempt = 0;
-  while (true) {
-    const res = await fetch(url, options);
-    if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
-    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
-    const detail = (body.detail as string) ?? '';
-    const m = detail.match(/(\d+(?:\.\d+)?)\s*second/i);
-    await new Promise((r) => setTimeout(r, m ? Math.ceil(parseFloat(m[1])) * 1000 : 8000));
-    attempt++;
-  }
-}
-
-interface ReplicatePrediction {
-  id: string;
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
-  output?: string | string[];
-  error?: string;
-}
 
 const IS_MOCK = process.env.STUDIO_MOCK === 'true';
 
@@ -88,7 +67,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Mock mode — return placeholder video without calling Replicate/Kling
+  // Mock mode — return placeholder video without calling the video provider
   if (IS_MOCK) {
     return NextResponse.json({
       success: true,
@@ -106,45 +85,22 @@ export async function POST(request: Request) {
     : (process.env.REPLICATE_API_TOKEN ?? '');
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
-  // ── Choose model: v3 when referenceImages provided, v2.1 otherwise ─────────
-  const useV3 = body.referenceImages && body.referenceImages.length > 0;
-  const modelUrl = useV3
-    ? 'https://api.replicate.com/v1/models/kwaivgi/kling-v3-omni-video/predictions'
-    : 'https://api.replicate.com/v1/models/kwaivgi/kling-v2.1/predictions';
-
-  const inputPayload = useV3
-    ? {
-        prompt:           body.prompt,
-        start_image:      body.startImage,
-        aspect_ratio:     body.aspectRatio,
-        duration:         body.duration,
-        reference_images: body.referenceImages,
-        mode:             'standard',
-      }
-    : {
-        prompt:       body.prompt,
-        start_image:  body.startImage,
-        aspect_ratio: body.aspectRatio,
-        duration:     body.duration,
-      };
-
-  // ── Create prediction — no Prefer:wait, returns prediction.id immediately ─
-  const createRes = await fetchWithRetry(modelUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${replicateKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ input: inputPayload }),
-  });
-
-  if (!createRes.ok) {
-    const err = await createRes.json().catch(() => ({})) as Record<string, unknown>;
-    const detail = (err.detail as string) ?? JSON.stringify(err);
-    return NextResponse.json({ error: `Replicate error: ${detail}` }, { status: 502 });
+  // ── Create prediction — returns immediately, polled via the job record ────
+  let prediction;
+  try {
+    prediction = await getVideoProvider().createVideo({
+      prompt:          body.prompt,
+      startImage:      body.startImage,
+      aspectRatio:     body.aspectRatio,
+      duration:        body.duration,
+      referenceImages: body.referenceImages,
+    }, replicateKey);
+  } catch (error) {
+    if (error instanceof VideoProviderError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
   }
-
-  const prediction = await createRes.json() as ReplicatePrediction;
 
   if (prediction.status === 'failed') {
     return NextResponse.json({ error: prediction.error ?? 'Generation failed' }, { status: 500 });
@@ -153,7 +109,7 @@ export async function POST(request: Request) {
   // ── Persist job — credit deduction happens in refreshJobStatus on success ─
   const jobId = await createJob({
     userId:       session.user.id,
-    predictionId: prediction.id,
+    predictionId: prediction.predictionId,
     type:         'video',
     creditType:   creditCheck.byok ? undefined : 'video',
     creditAmount: creditCheck.byok ? 0 : creditAmount,
@@ -165,5 +121,5 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ jobId, predictionId: prediction.id });
+  return NextResponse.json({ jobId, predictionId: prediction.predictionId });
 }

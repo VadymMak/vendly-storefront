@@ -1,4 +1,7 @@
 import { ToolName } from './types';
+import { getVideoProvider } from '@/lib/video';
+
+const videoProvider = getVideoProvider();
 
 export interface ToolDefinition {
   name: ToolName;
@@ -28,9 +31,9 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
     description:
       'Animate a static image into a short video. Use for turntable, zoom, parallax, cinematic effects. Requires an image in context.',
     apiRoute: '/api/generate-video',
-    model: 'Kling v2.1',
+    model: videoProvider.getDisplayName(),
     provider: 'replicate',
-    costEstimate: '$0.30-0.60',
+    costEstimate: videoProvider.getCostEstimate(),
     inputType: 'image+text',
     outputType: 'video',
   },

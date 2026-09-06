@@ -10,6 +10,7 @@ import { SUPERUSER_EMAILS } from '@/lib/credits';
 import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-client';
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
 import { FACE_REGISTRY } from '@/lib/studio/face-registry';
+import { getVideoProvider } from '@/lib/video';
 
 const IS_MOCK = process.env.STUDIO_MOCK === 'true';
 
@@ -50,7 +51,7 @@ Always respond with valid JSON only. No markdown. No explanation.
 
 JSON structure:
 {
-  "action": "clip" | "lora_clip" | "movie" | "image" | "assemble" | "text",
+  "action": "clip" | "lora_clip" | "movie" | "image" | "animate" | "assemble" | "text",
   "face": "<NAME>" | "random" | "upload" | null,
   "scene": "<English scene description>",
   "style": "<visual style in English>",
@@ -63,6 +64,7 @@ Rules:
 - action "lora_clip" when user mentions a specific person name (ANNA, KATE, etc.)
 - action "clip" for generic ad clip/reel requests
 - action "movie" when duration > 20sec or user says movie/scenario/history
+- action "animate" when user wants to turn an EXISTING image into video (animate/оживи/анимируй/make it move/видео из фото)
 - action "assemble" when user says assemble/combine/finalize/готово/собери
 - face: extract the name exactly as written (ANNA not anna), null if not mentioned
 - scene: always translate to English, be specific
@@ -83,6 +85,9 @@ Output: {"action":"lora_clip","face":"ANNA","scene":"tropical beach at sunset","
 
 Input: "создай рекламный клип для кафе 30 секунд"
 Output: {"action":"clip","face":"random","scene":"cozy modern cafe, morning light","style":"lifestyle advertisement, warm, inviting","duration":30,"business_type":"cafe","claude_prompt":"Create a 10-scene storyboard for a cafe advertisement (30 seconds, 3 sec per scene). Setting: modern cozy cafe in the morning. Style: warm, lifestyle, inviting. Show: exterior, barista, coffee preparation, customer arriving, enjoying coffee, food close-up, social moment, terrace, logo, CTA."}
+
+Input: "animate this image with waves and wind"
+Output: {"action":"animate","face":null,"scene":"waves rolling in and wind moving through the frame","style":"cinematic, natural motion","duration":null,"business_type":null,"claude_prompt":null}
 
 Input: "привет как дела"
 Output: {"action":"text","face":null,"scene":null,"style":null,"duration":null,"business_type":null,"claude_prompt":null}`;
@@ -175,6 +180,7 @@ export async function POST(req: NextRequest) {
       const action =
         face ? 'lora_clip' :
         m.includes('собери') || m.includes('собер') || m.includes('assemble') || m.includes('финальный') || m.includes('склей') ? 'assemble' :
+        m.includes('анимир') || m.includes('animate') || m.includes('оживи') || m.includes('видео из') || m.includes('make it move') ? 'animate' :
         m.includes('клип') || m.includes('clip') || m.includes('рекламн') || m.includes('reel') || m.includes('ролик') ? 'clip' :
         m.includes('фильм') || m.includes('movie') || m.includes('сценари') ? 'movie' :
         m.includes('фото') || m.includes('изображ') || m.includes('image') || m.includes('генер') ? 'image' :
@@ -208,7 +214,7 @@ export async function POST(req: NextRequest) {
     if (msgLower.includes('закат') || msgLower.includes('sunset')) extracted.scene = (extracted.scene ? extracted.scene + ' at sunset' : 'at sunset');
 
     // --- STEP 2: Full extraction with 3B (30s) — only if generation needed ---
-    const needsGeneration = ['lora_clip', 'clip', 'movie', 'image'].includes(extracted.action);
+    const needsGeneration = ['lora_clip', 'clip', 'movie', 'image', 'animate'].includes(extracted.action);
     if (needsGeneration) {
       try {
         const fullRes = await ollamaChat('llama3.2:3b', OLLAMA_EXTRACTOR_PROMPT, message, 30000);
@@ -216,6 +222,8 @@ export async function POST(req: NextRequest) {
         extracted = full;
         // Restore JS-detected face if 3B missed it
         if (!extracted.face && quickRouting.face) extracted.face = quickRouting.face;
+        // Explicit animate keywords win — 3B tends to reclassify them as clip/image
+        if (quickRouting.action === 'animate') extracted.action = 'animate';
         console.log('[studio/chat] 3B extracted:', JSON.stringify(extracted));
       } catch (err) {
         console.error('[studio/chat] 3B extraction failed, using JS routing + keyword scene:', err);
@@ -257,6 +265,56 @@ export async function POST(req: NextRequest) {
     const wantsLoraClip = wantsLoraSpecific || wantsAdClip;
 
     console.log('[studio/chat] action:', extracted.action, '| wantsLoraSpecific:', wantsLoraSpecific, '| wantsAdClip:', wantsAdClip, '| loraModel:', !!context.loraModel, '| hasCyrillic:', hasCyrillic);
+
+    // --- ANIMATE SHORT-CIRCUIT: skip Haiku, run image_to_video directly ---
+    if (extracted.action === 'animate') {
+      if (!context.lastImageUrl) {
+        return NextResponse.json({
+          message: hasCyrillic
+            ? 'Сначала создайте изображение, которое хотите анимировать. Напишите, что хотите увидеть.'
+            : 'Please create an image first, then I can animate it. What would you like to generate?',
+          toolUsed: null,
+          context: { ...context, lastAgentState: 'idle' as const },
+        });
+      }
+
+      // Prefer the English scene from 3B; fall back to the raw message with the
+      // "animate this image:" prefix stripped so it reads as a motion description.
+      const cleanMotion = (extracted.scene || message)
+        .replace(/^(animate|анимируй|оживи)\s*(this|the|last|это|послед\S*)?\s*(image|photo|picture|фото|картинк\S*|изображ\S*)?[\s:,-]*/i, '')
+        .trim() || 'gentle natural motion, cinematic';
+
+      const duration = extracted.duration === 10 ? 10 : 5;
+      const aspectRatio = '9:16';
+      const cookieHeader = req.headers.get('cookie') || '';
+
+      console.log('[studio/chat] animate short-circuit:', { cleanMotion, duration, aspectRatio, imageUrl: context.lastImageUrl.slice(0, 60) });
+
+      const animResult = await executeTool('image_to_video', {
+        prompt: cleanMotion,
+        aspectRatio,
+        duration,
+      }, context, cookieHeader);
+
+      if (animResult.error) {
+        return NextResponse.json({
+          message: `⚠️ ${animResult.error}`,
+          toolUsed: null,
+          context: { ...context, lastAgentState: 'idle' as const },
+        });
+      }
+
+      const modelName = getVideoProvider().getDisplayName();
+      return NextResponse.json({
+        message: hasCyrillic
+          ? `🎬 Анимирую изображение через ${modelName}... Это займёт ~60 секунд.`
+          : `🎬 Animating your image with ${modelName}... This takes ~60 seconds.`,
+        jobId: animResult.jobId ?? undefined,
+        toolUsed: 'image_to_video',
+        context: { ...context, lastAgentState: 'idle' as const },
+      });
+    }
+    // --- END ANIMATE SHORT-CIRCUIT ---
 
     // State-based LoRA detection — no string matching on text
     const wasAskingLoraScene = context.lastAgentState === 'lora_asking_scene';

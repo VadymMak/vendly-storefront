@@ -222,6 +222,11 @@ export async function POST(req: NextRequest) {
         extracted = full;
         // Restore JS-detected face if 3B missed it
         if (!extracted.face && quickRouting.face) extracted.face = quickRouting.face;
+        // Restore JS-detected action if 3B downgraded clip/movie/assemble to image/text
+        if (['clip', 'movie', 'assemble', 'animate'].includes(quickRouting.action) && ['image', 'text'].includes(extracted.action)) {
+          console.log(`[studio/chat] 3B downgraded action "${quickRouting.action}" → "${extracted.action}", restoring quickRoute action`);
+          extracted.action = quickRouting.action;
+        }
         // Explicit animate keywords win — 3B tends to reclassify them as clip/image
         if (quickRouting.action === 'animate') extracted.action = 'animate';
         console.log('[studio/chat] 3B extracted:', JSON.stringify(extracted));
@@ -569,6 +574,55 @@ export async function POST(req: NextRequest) {
       console.log('[studio/chat] wantsAssemble=true but no videos in context — falling through to agent');
     }
     // --- END ASSEMBLE INTENT ---
+
+    // --- FRESH CLIP/MOVIE ENTRY POINT: start Movie Maker flow ---
+    // Only when no Movie Maker flow is already in progress. A fresh session arrives
+    // with lastAgentState 'idle', so treat idle/done/undefined as "no active flow".
+    const noActiveFlow = !lastState || lastState === 'idle' || lastState === 'done';
+    if (wantsAdClip && noActiveFlow && !context.adClipState) {
+      console.log('[studio/chat] fresh clip/movie entry point | clipLength:', context.clipLength, '| sceneCount:', context.sceneCount);
+
+      // Duration already extracted (clipLength/sceneCount set above) → skip straight to face mode
+      if (context.clipLength && context.sceneCount) {
+        return NextResponse.json({
+          message: hasCyrillic
+            ? `${context.clipLength} секунд — ${context.sceneCount} сцен × 3 сек.\n\nКакое лицо использовать?`
+            : `${context.clipLength} seconds — ${context.sceneCount} scenes × 3 sec.\n\nWhich face should I use?`,
+          toolUsed: null,
+          buttons: hasCyrillic
+            ? [
+                { label: '🎲 Случайное лицо', value: 'random' },
+                { label: '👤 ANNA (сохранённое лицо)', value: 'lora' },
+                { label: '📷 Загрузить фото', value: 'upload' },
+              ]
+            : [
+                { label: '🎲 Random face', value: 'random' },
+                { label: '👤 ANNA (saved face)', value: 'lora' },
+                { label: '📷 Upload photo', value: 'upload' },
+              ],
+          context: { ...context, lastAgentState: 'asking_face_mode' as const },
+        });
+      }
+
+      // No duration → ask clip length first (labels keep the digits the handler parses)
+      return NextResponse.json({
+        message: hasCyrillic ? 'Какой длины клип?' : 'How long should the clip be?',
+        toolUsed: null,
+        buttons: hasCyrillic
+          ? [
+              { label: '15 секунд (Instagram Reel)', value: '15' },
+              { label: '30 секунд (стандарт)', value: '30' },
+              { label: '60 секунд (длинный)', value: '60' },
+            ]
+          : [
+              { label: '15 seconds (Instagram Reel)', value: '15' },
+              { label: '30 seconds (standard)', value: '30' },
+              { label: '60 seconds (long)', value: '60' },
+            ],
+        context: { ...context, lastAgentState: 'asking_clip_length' as const },
+      });
+    }
+    // --- END FRESH CLIP/MOVIE ENTRY ---
 
     // --- STATE-BASED ROUTING: inject instructions based on lastAgentState (no string matching) ---
 

@@ -1,7 +1,9 @@
-export default function AssemblePage() {
-  return (
-    <div className="flex h-full items-center justify-center text-gray-500">
-      <p>Clip Assembly — coming in next step</p>
-    </div>
-  );
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { AssembleCanvas } from '@/components/studio/assemble/AssembleCanvas';
+
+export default async function AssemblePage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect('/login');
+  return <AssembleCanvas userId={session.user.id} />;
 }

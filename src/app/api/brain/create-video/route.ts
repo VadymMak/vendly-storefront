@@ -1,36 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Replicate from 'replicate';
+import { getVideoProvider, resolveCamera, VideoProviderError } from '@/lib/video';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
-
-const VALID_CAMERA_TYPES = [
-  'zoom_in', 'zoom_out',
-  'pan_left', 'pan_right',
-  'tilt_up', 'tilt_down',
-  'orbit_left', 'orbit_right',
-  'none',
-] as const;
-
-type CameraType = (typeof VALID_CAMERA_TYPES)[number];
-
-const CAMERA_PROMPTS: Record<CameraType, string> = {
-  zoom_in:     'slow dolly push in, camera moves forward toward subject',
-  zoom_out:    'slow dolly pull out, camera moves backward revealing space',
-  pan_left:    'smooth camera pan left, horizontal slide',
-  pan_right:   'smooth camera pan right, horizontal slide',
-  tilt_up:     'crane up shot, camera slowly rises from low to high angle',
-  tilt_down:   'crane down shot, camera slowly descends from high to low',
-  orbit_left:  'slow orbit shot, camera circles subject from right to left',
-  orbit_right: 'slow orbit shot, camera circles subject from left to right',
-  none:        '',
-};
-
-// Kling on Replicate has no camera_movement field — we encode it in the prompt instead.
-function buildCameraFragment(type: CameraType, value: number): string {
-  if (type === 'none') return '';
-  const intensity = value <= 3 ? 'subtle' : value <= 6 ? 'smooth' : 'dramatic';
-  return `, ${CAMERA_PROMPTS[type]}, ${intensity} motion, continuous fluid movement`;
-}
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get('x-brain-api-key');
@@ -69,47 +40,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
     }
 
-    const replicate = new Replicate({ auth: replicateToken });
-
     const validDuration = duration === 10 ? 10 : 5;
     const validRatios = ['9:16', '1:1', '16:9'] as const;
     const validAspect = validRatios.includes(aspect_ratio as typeof validRatios[number])
       ? (aspect_ratio as string)
       : '9:16';
 
-    const resolvedCameraType =
-      camera_type && VALID_CAMERA_TYPES.includes(camera_type as CameraType)
-        ? (camera_type as CameraType)
-        : null;
+    const camera = resolveCamera(camera_type, camera_value);
 
-    const clampedValue = Math.min(10, Math.max(0, camera_value));
-    const cameraFragment = resolvedCameraType
-      ? buildCameraFragment(resolvedCameraType, clampedValue)
-      : '';
-
-    const finalPrompt = `${prompt}${cameraFragment}`;
-
-    const prediction = await replicate.predictions.create({
-      model: 'kwaivgi/kling-v2.1',
-      input: {
-        prompt: finalPrompt,
-        start_image: image_url,
-        duration: validDuration,
-        aspect_ratio: validAspect,
-        mode: 'standard',
-      },
-    });
+    const prediction = await getVideoProvider().createVideo({
+      prompt,
+      startImage:  image_url,
+      duration:    validDuration,
+      aspectRatio: validAspect,
+      mode:        'standard',
+      camera,
+    }, replicateToken);
 
     return NextResponse.json({
-      jobId: prediction.id,
+      jobId: prediction.predictionId,
       status: 'started',
-      pollUrl: `https://api.replicate.com/v1/predictions/${prediction.id}`,
-      camera: resolvedCameraType
-        ? { type: resolvedCameraType, value: clampedValue }
-        : null,
+      // TODO(wan): Replicate-specific poll URL — route through the provider once Wan lands.
+      pollUrl: `https://api.replicate.com/v1/predictions/${prediction.predictionId}`,
+      camera,
     });
   } catch (error) {
     console.error('[brain/create-video]', error);
+    if (error instanceof VideoProviderError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
+import { getVideoProvider } from '@/lib/video';
 
 export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit';
 export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
@@ -48,38 +49,26 @@ export async function refreshJobStatus(
     };
   }
 
-  const res = await fetch(`https://api.replicate.com/v1/predictions/${job.predictionId}`, {
-    headers: { Authorization: `Bearer ${replicateKey}` },
-    next: { revalidate: 0 },
-  });
+  // Video runs on whichever backend VIDEO_PROVIDER selects; every other job
+  // type is always a Replicate prediction, so it must not go through the
+  // video provider (a non-Replicate one would not recognise the id).
+  const polled = job.type === 'video'
+    ? await pollVideoPrediction(job.predictionId, replicateKey)
+    : await pollReplicatePrediction(job.predictionId, replicateKey);
 
-  if (!res.ok) {
+  // Backend unreachable — keep the current status and retry on the next poll.
+  if (!polled) {
     return { status: job.status as JobStatus };
   }
 
-  const prediction = await res.json() as {
-    status: string;
-    output?: string | string[];
-    error?: string;
-  };
-
-  const newStatus: JobStatus =
-    prediction.status === 'succeeded' ? 'succeeded'
-    : prediction.status === 'failed'   ? 'failed'
-    : prediction.status === 'canceled' ? 'canceled'
-    : 'processing';
-
-  const outputUrl =
-    prediction.status === 'succeeded'
-      ? (Array.isArray(prediction.output) ? prediction.output[0] : prediction.output) ?? null
-      : null;
+  const { status: newStatus, outputUrl } = polled;
 
   await db.studioJob.update({
     where: { id: jobId },
     data: {
       status:    newStatus,
       outputUrl: outputUrl ?? undefined,
-      error:     prediction.error ?? undefined,
+      error:     polled.error ?? undefined,
     },
   });
 
@@ -100,7 +89,66 @@ export async function refreshJobStatus(
   return {
     status:    newStatus,
     outputUrl: outputUrl ?? undefined,
-    error:     prediction.error ?? undefined,
+    error:     polled.error ?? undefined,
+  };
+}
+
+interface PolledPrediction {
+  status:     JobStatus;
+  outputUrl?: string;
+  error?:     string;
+}
+
+/** Collapses provider statuses to the set persisted on StudioJob. */
+function toJobStatus(status: string): JobStatus {
+  return status === 'succeeded' ? 'succeeded'
+    : status === 'failed'   ? 'failed'
+    : status === 'canceled' ? 'canceled'
+    : 'processing';
+}
+
+async function pollVideoPrediction(
+  predictionId: string,
+  apiKey:       string,
+): Promise<PolledPrediction | null> {
+  try {
+    const result = await getVideoProvider().pollVideo(predictionId, apiKey);
+    return {
+      status:    toJobStatus(result.status),
+      outputUrl: result.videoUrl,
+      error:     result.error,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Image, upscale, remove-bg and ai-edit jobs are always Replicate predictions. */
+async function pollReplicatePrediction(
+  predictionId: string,
+  apiKey:       string,
+): Promise<PolledPrediction | null> {
+  const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    next: { revalidate: 0 },
+  });
+
+  if (!res.ok) return null;
+
+  const prediction = await res.json() as {
+    status: string;
+    output?: string | string[];
+    error?: string;
+  };
+
+  const status = toJobStatus(prediction.status);
+
+  return {
+    status,
+    outputUrl: status === 'succeeded'
+      ? (Array.isArray(prediction.output) ? prediction.output[0] : prediction.output)
+      : undefined,
+    error: prediction.error,
   };
 }
 

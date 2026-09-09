@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Replicate from 'replicate';
 import { put } from '@vercel/blob';
+import { getVideoProvider, VideoProviderError } from '@/lib/video';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
 
@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const replicate = new Replicate({ auth: replicateToken });
-    const prediction = await replicate.predictions.get(id);
+    const prediction = await getVideoProvider().pollVideo(id, replicateToken);
 
     if (prediction.status === 'failed') {
       return NextResponse.json(
@@ -35,32 +34,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ status: prediction.status, jobId: id });
     }
 
-    // Extract video URL from succeeded prediction
-    const output = prediction.output as unknown;
-    let videoUrl: string | null = null;
-
-    if (typeof output === 'string') {
-      videoUrl = output;
-    } else if (output instanceof URL) {
-      videoUrl = output.toString();
-    } else if (output && typeof (output as { url?: () => string | URL }).url === 'function') {
-      const r = (output as { url: () => string | URL }).url();
-      videoUrl = r instanceof URL ? r.toString() : r;
-    } else if (Array.isArray(output)) {
-      const first = (output as unknown[])[0];
-      if (typeof first === 'string') videoUrl = first;
-      else if (first instanceof URL) videoUrl = first.toString();
-      else if (first && typeof (first as { url?: () => string | URL }).url === 'function') {
-        const r = (first as { url: () => string | URL }).url();
-        videoUrl = r instanceof URL ? r.toString() : r;
-      }
-    }
-
-    if (!videoUrl) {
+    if (!prediction.videoUrl) {
       return NextResponse.json({ error: 'No video URL in output', jobId: id }, { status: 500 });
     }
 
-    const videoRes = await fetch(videoUrl);
+    const videoRes = await fetch(prediction.videoUrl);
     const buffer = Buffer.from(await videoRes.arrayBuffer());
     const blob = await put(`brain/video-ext/${Date.now()}.mp4`, buffer, {
       access: 'public',
@@ -75,6 +53,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('[brain/extend-video/poll]', error);
+    if (error instanceof VideoProviderError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

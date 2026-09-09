@@ -596,6 +596,7 @@ async function addAudioToVideo(
   musicFile: File | null,
   mimeType: string,
   onProgress: (p: number) => void,
+  expectedDuration?: number,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const videoUrl = URL.createObjectURL(videoBlob);
@@ -608,7 +609,14 @@ async function addAudioToVideo(
     video.addEventListener('error', () => reject(new Error('Audio-pass video failed to load')), { once: true });
 
     video.addEventListener('loadedmetadata', async () => {
-      const duration = video.duration;
+      // WebM blobs from MediaRecorder often report Infinity duration — fall back to
+      // the timeline length computed by renderSlideshow so fades and the stop
+      // condition use the real video length, not the music file's length.
+      let duration = video.duration;
+      if (!isFinite(duration) || duration <= 0) {
+        console.warn('[slideshow] video.duration is', duration, '— using expectedDuration:', expectedDuration);
+        duration = expectedDuration ?? 15;
+      }
 
       const canvas = document.createElement('canvas');
       canvas.width  = video.videoWidth;
@@ -853,6 +861,7 @@ export async function renderSlideshow(
         phase: 'audio',
       });
     },
+    totalDuration,
   );
 
   onProgress({ currentFrame: totalFrames, totalFrames, percent: 100, phase: 'audio' });

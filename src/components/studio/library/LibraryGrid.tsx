@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getLibraryItems, removeLibraryItem, type LibraryItem } from '@/lib/studio/library-store';
-import { addToAssemble } from '@/lib/studio/media-context';
+import { useStudioStore } from '@/lib/studio/store';
 
 type FilterType = 'all' | 'image' | 'video';
 
@@ -113,6 +113,7 @@ function LibraryCard({
 
 export function LibraryGrid() {
   const router = useRouter();
+  const addToTimeline = useStudioStore((s) => s.addToTimeline);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
@@ -140,7 +141,7 @@ export function LibraryGrid() {
   }
 
   function handleAddToAssemble(item: LibraryItem) {
-    addToAssemble({ type: item.type, url: item.url, prompt: item.prompt });
+    addToTimeline({ type: item.type, url: item.url, prompt: item.prompt });
     router.push('/studio/assemble');
   }
 

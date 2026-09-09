@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { getAssembleItems } from '@/lib/studio/media-context';
+import { useState, useRef } from 'react';
 import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
+import { useStudioStore } from '@/lib/studio/store';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType } from '@/lib/slideshow-renderer';
 
@@ -143,7 +143,36 @@ interface Props {
 }
 
 export function AssembleCanvas({ userId: _userId }: Props) {
-  const [items, setItems] = useState<TimelineItem[]>([]);
+  // Timeline items live in the global store — survive route navigation.
+  const storeItems    = useStudioStore((s) => s.timelineItems);
+  const reorderTimeline = useStudioStore((s) => s.reorderTimeline);
+  const removeFromTimeline = useStudioStore((s) => s.removeFromTimeline);
+  const addToTimeline = useStudioStore((s) => s.addToTimeline);
+  const clearTimeline = useStudioStore((s) => s.clearTimeline);
+
+  // Map store MediaItem → local TimelineItem (add local-only fields)
+  const items: TimelineItem[] = storeItems.map(i => ({
+    id:       i.id,
+    type:     i.type,
+    url:      i.url,
+    duration: i.duration ?? (i.type === 'video' ? 5 : 3),
+    prompt:   i.prompt,
+  }));
+
+  // Helpers that mirror old setItems API but write through to store
+  function setItemDuration(id: string, duration: number) {
+    // store doesn't have per-item update; keep a local override map
+    setDurationOverrides(prev => ({ ...prev, [id]: duration }));
+  }
+
+  const [durationOverrides, setDurationOverrides] = useState<Record<string, number>>({});
+
+  // Merge overrides into items view
+  const mergedItems: TimelineItem[] = items.map(i => ({
+    ...i,
+    duration: durationOverrides[i.id] ?? i.duration,
+  }));
+
   const [musicFile, setMusicFile] = useState<File | null>(null);
   const [transition, setTransition] = useState<TransitionType>('fade');
   const [imageDuration, setImageDuration] = useState(3);
@@ -163,46 +192,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const nameInputRef  = useRef<HTMLInputElement>(null);
   const resultBlobRef = useRef<string | null>(null);
 
-  // Cleanup result blob URL on unmount
-  useEffect(() => {
-    return () => { if (resultBlobRef.current) URL.revokeObjectURL(resultBlobRef.current); };
-  }, []);
-
-  // Load items from pipeline on mount; merge with any already-in-state items.
-  // Do NOT clear sessionStorage here — clearing happens only on export or explicit clear.
-  useEffect(() => {
-    const pipelineItems = getAssembleItems();
-    if (pipelineItems.length > 0) {
-      setItems(prev => {
-        const existingIds = new Set(prev.map(i => i.id));
-        const incoming = pipelineItems
-          .filter(item => !existingIds.has(item.id))
-          .map(item => ({
-            id: item.id,
-            type: item.type,
-            url: item.url,
-            duration: item.duration ?? (item.type === 'video' ? 5 : 3),
-            prompt: item.prompt,
-          }));
-        return [...prev, ...incoming];
-      });
-    }
-  }, []);
-
-  // Keep sessionStorage in sync so items survive route navigation.
-  useEffect(() => {
-    if (items.length > 0) {
-      sessionStorage.setItem('assemble-items', JSON.stringify(
-        items.map(i => ({ id: i.id, type: i.type, url: i.url, duration: i.duration, prompt: i.prompt }))
-      ));
-    } else {
-      sessionStorage.removeItem('assemble-items');
-    }
-  }, [items]);
-
   const totalDuration = Math.max(
     0,
-    items.reduce((s, i) => s + i.duration, 0) - Math.max(0, items.length - 1) * TRANSITION_DUR,
+    mergedItems.reduce((s, i) => s + i.duration, 0) - Math.max(0, mergedItems.length - 1) * TRANSITION_DUR,
   );
 
   // ── File handling ──────────────────────────────────────────────────────────
@@ -214,18 +206,28 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       const isVideo = file.type.startsWith('video/');
       const url = URL.createObjectURL(file);
       const duration = isVideo ? await videoDurationOf(url) : imageDuration;
-      newItems.push({ id: crypto.randomUUID(), type: isVideo ? 'video' : 'image', url, file, duration });
+        newItems.push({ id: crypto.randomUUID(), type: isVideo ? 'video' : 'image', url, file, duration });
     }
-    setItems(prev => [...prev, ...newItems]);
+    for (const item of newItems) {
+      addToTimeline({ type: item.type, url: item.url, duration: item.duration });
+    }
   }
 
   function removeItem(id: string) {
-    setItems(prev => prev.filter(item => item.id !== id));
+    removeFromTimeline(id);
+    setDurationOverrides(prev => { const next = { ...prev }; delete next[id]; return next; });
   }
 
   function applyImageDuration(dur: number) {
     setImageDuration(dur);
-    setItems(prev => prev.map(item => item.type === 'image' ? { ...item, duration: dur } : item));
+    // Apply the new duration to all image items via overrides
+    setDurationOverrides(prev => {
+      const overrides = { ...prev };
+      for (const item of storeItems) {
+        if (item.type === 'image') overrides[item.id] = dur;
+      }
+      return overrides;
+    });
   }
 
   // ── Drag & drop reorder ────────────────────────────────────────────────────
@@ -245,19 +247,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     e.preventDefault();
     const dragIdx = Number(e.dataTransfer.getData('text/plain'));
     if (Number.isNaN(dragIdx) || dragIdx === dropIdx) { setDragOverIdx(null); return; }
-    setItems(prev => {
-      const next = [...prev];
-      const [moved] = next.splice(dragIdx, 1);
-      next.splice(dropIdx, 0, moved);
-      return next;
-    });
+    reorderTimeline(dragIdx, dropIdx);
     setDragOverIdx(null);
   }
 
   // ── Export ─────────────────────────────────────────────────────────────────
 
   async function handleExport() {
-    if (items.length < 2) { setError('Add at least 2 clips to export'); return; }
+    if (mergedItems.length < 2) { setError('Add at least 2 clips to export'); return; }
     setError(null);
     setIsRendering(true);
     setRenderProgress(0);
@@ -267,7 +264,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
     try {
       const slideshowItems: SlideshowItem[] = await Promise.all(
-        items.map(async (item, idx) => {
+        mergedItems.map(async (item, idx) => {
           if (item.type === 'video') {
             const el = await loadVid(item.url);
             return { type: 'video' as const, element: el, duration: item.duration };
@@ -355,7 +352,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               {projectName}
             </button>
           )}
-          {items.length > 0 && (
+          {mergedItems.length > 0 && (
             <span className="flex-shrink-0 text-xs text-gray-600">{totalDuration.toFixed(1)}s</span>
           )}
         </div>
@@ -377,7 +374,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
         <button
           onClick={() => void handleExport()}
-          disabled={isRendering || items.length < 2}
+          disabled={isRendering || mergedItems.length < 2}
           className="flex-shrink-0 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isRendering ? `${renderProgress}%` : 'Export'}
@@ -422,25 +419,25 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             </div>
             <p className="text-xs text-gray-500">{renderProgress}%</p>
           </div>
-        ) : items.length > 0 ? (
+        ) : mergedItems.length > 0 ? (
           <div className="relative">
-            {items[0].type === 'image' ? (
+            {mergedItems[0].type === 'image' ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={items[0].url}
+                src={mergedItems[0].url}
                 alt="Preview"
                 className="max-h-[55vh] max-w-full rounded-xl object-contain opacity-80"
               />
             ) : (
               <video
-                src={items[0].url}
+                src={mergedItems[0].url}
                 className="max-h-[55vh] max-w-full rounded-xl object-contain opacity-80"
                 muted
                 playsInline
               />
             )}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
-              {items.length} {items.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
+              {mergedItems.length} {mergedItems.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
             </div>
           </div>
         ) : (
@@ -467,7 +464,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           className="flex items-center gap-1 overflow-x-auto px-3 py-3"
           style={{ scrollbarWidth: 'thin' }}
         >
-          {items.map((item, idx) => (
+          {mergedItems.map((item, idx) => (
             <div key={item.id} className="flex flex-shrink-0 items-center">
               {/* Drop highlight bar */}
               <div
@@ -515,7 +512,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </div>
 
               {/* Transition arrow */}
-              {idx < items.length - 1 && (
+              {idx < mergedItems.length - 1 && (
                 <span className="flex-shrink-0 px-1 text-[10px] text-gray-700">→</span>
               )}
             </div>

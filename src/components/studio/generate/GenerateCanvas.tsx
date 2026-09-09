@@ -8,21 +8,9 @@ import {
   PRESET_MAP, STYLE_TAGS, ENHANCE_MODES, OUTPUT_FORMATS, QUICK_FILTERS, FLUX_MODELS, EXAMPLE_PROMPTS,
   type PresetKey, type OutputFormat, type FluxModel,
 } from '@/lib/studio/constants';
-import { addToAssemble } from '@/lib/studio/media-context';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface GeneratedImage {
-  id: string;
-  url: string;
-  prompt: string;
-  preset: PresetKey;
-  format: OutputFormat;
-  model: FluxModel;
-  createdAt: number;
-}
+import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 
 interface Props {
   userId: string;
@@ -101,6 +89,12 @@ function IconUpload() {
 export function GenerateCanvas({ userId: _userId }: Props) {
   const router = useRouter();
 
+  // Store
+  const generatedImages = useStudioStore((s) => s.generatedImages);
+  const addImage = useStudioStore((s) => s.addImage);
+  const removeImage = useStudioStore((s) => s.removeImage);
+  const addToTimeline = useStudioStore((s) => s.addToTimeline);
+
   // Prompt
   const [prompt, setPrompt] = useState('');
   const [enhancedPrompt, setEnhancedPrompt] = useState<string | null>(null);
@@ -121,12 +115,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // Generation
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // UI state
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [modalImage, setModalImage] = useState<GeneratedImage | null>(null);
+  const [modalImage, setModalImage] = useState<MediaItem | null>(null);
   const [imageFilters, setImageFilters] = useState<Record<string, string>>({});
   const [copyStates, setCopyStates] = useState<Record<string, boolean>>({});
 
@@ -238,8 +231,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         url = URL.createObjectURL(blob);
       }
 
-      const newImage: GeneratedImage = {
+      const newImage: MediaItem = {
         id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type: 'image',
         url,
         prompt: finalPrompt,
         preset: selectedPreset,
@@ -247,7 +241,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         model: selectedModel,
         createdAt: Date.now(),
       };
-      setGeneratedImages(prev => [newImage, ...prev]);
+      addImage(newImage);
       saveToLibrary({ type: 'image', url, prompt: finalPrompt, model: selectedModel, preset: selectedPreset });
 
       // Track generation + refresh credits
@@ -273,7 +267,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // ── Animate → ─────────────────────────────────────────────────────────────
 
-  async function handleAnimate(img: GeneratedImage) {
+  async function handleAnimate(img: MediaItem) {
     let publicUrl = img.url;
     try {
       if (img.url.startsWith('blob:')) {
@@ -294,13 +288,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // ── Add to Assemble ───────────────────────────────────────────────────────
 
-  function handleAddToAssemble(img: GeneratedImage) {
-    addToAssemble({ type: 'image', url: img.url, prompt: img.prompt });
+  function handleAddToAssemble(img: MediaItem) {
+    addToTimeline({ type: 'image', url: img.url, prompt: img.prompt });
   }
 
   // ── Download ──────────────────────────────────────────────────────────────
 
-  async function handleDownload(img: GeneratedImage) {
+  async function handleDownload(img: MediaItem) {
     try {
       const blob = await fetch(img.url).then(r => r.blob());
       const a = Object.assign(document.createElement('a'), {
@@ -313,16 +307,16 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // ── Copy prompt ───────────────────────────────────────────────────────────
 
-  async function handleCopyPrompt(img: GeneratedImage) {
+  async function handleCopyPrompt(img: MediaItem) {
     try {
-      await navigator.clipboard.writeText(img.prompt);
+      await navigator.clipboard.writeText(img.prompt ?? '');
       setCopyStates(s => ({ ...s, [img.id]: true }));
       setTimeout(() => setCopyStates(s => ({ ...s, [img.id]: false })), 2000);
     } catch { /* silent */ }
   }
 
-  function handleDelete(img: GeneratedImage) {
-    setGeneratedImages(prev => prev.filter(i => i.id !== img.id));
+  function handleDelete(img: MediaItem) {
+    removeImage(img.id);
   }
 
   // ── Filter for image card ─────────────────────────────────────────────────
@@ -505,7 +499,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 // ── ImageCard ────────────────────────────────────────────────────────────────
 
 interface ImageCardProps {
-  img: GeneratedImage;
+  img: MediaItem;
   filter: string;
   copied: boolean;
   activeFilterId: string;
@@ -519,7 +513,7 @@ interface ImageCardProps {
 }
 
 function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onAddToAssemble, onDownload, onCopy, onDelete, onFilterChange }: ImageCardProps) {
-  const preset = PRESET_MAP[img.preset];
+  const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   return (
     <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-colors hover:border-white/20">
       {/* Image */}
@@ -527,7 +521,7 @@ function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onA
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={img.url}
-          alt={img.prompt}
+          alt={img.prompt ?? ''}
           className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           style={{ filter: filter !== 'none' ? filter : undefined }}
         />
@@ -594,7 +588,7 @@ function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onA
 
         {/* Metadata */}
         <p className="mt-2 text-xs text-gray-600">
-          {preset.label} · {preset.display} · {img.format.toUpperCase()} · Flux {img.model}
+          {preset.label} · {preset.display} · {img.format?.toUpperCase()} · Flux {img.model}
         </p>
       </div>
     </div>

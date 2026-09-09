@@ -1,18 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { QUICK_FILTERS, PRESET_MAP, type PresetKey, type OutputFormat, type QuickFilterId } from '@/lib/studio/constants';
-import type { FluxModel } from '@/lib/studio/constants';
+import { QUICK_FILTERS, PRESET_MAP, type PresetKey, type QuickFilterId } from '@/lib/studio/constants';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface ModalImage {
   id: string;
   url: string;
-  prompt: string;
-  preset: PresetKey;
-  format: OutputFormat;
-  model: FluxModel;
+  prompt?: string;
+  preset?: string;
+  format?: string;
+  model?: string;
   createdAt: number;
 }
 
@@ -80,7 +79,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   const [activeFilter, setActiveFilter] = useState<QuickFilterId>('original');
   const [copied, setCopied] = useState(false);
 
-  const preset = PRESET_MAP[img.preset];
+  const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   const cssFilter = QUICK_FILTERS.find(f => f.id === activeFilter)?.filter ?? 'none';
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={img.url}
-            alt={img.prompt}
+            alt={img.prompt ?? ''}
             className="max-h-[80vh] max-w-full rounded-lg object-contain"
             style={{ filter: cssFilter !== 'none' ? cssFilter : undefined }}
           />
@@ -142,7 +141,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
               <span>Size</span><span className="text-white">{preset.display}</span>
             </div>
             <div className="flex justify-between py-0.5">
-              <span>Format</span><span className="text-white">{img.format.toUpperCase()}</span>
+              <span>Format</span><span className="text-white">{img.format?.toUpperCase()}</span>
             </div>
             <div className="flex justify-between py-0.5">
               <span>Model</span><span className="text-white">Flux {img.model}</span>

@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, type ChangeEvent, type DragEvent, type Key
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { VideoSkill } from '@/lib/types';
 import UpgradeModal from '@/components/studio/UpgradeModal';
-import { addToAssemble } from '@/lib/studio/media-context';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
+import { useStudioStore } from '@/lib/studio/store';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -105,6 +105,10 @@ interface Props { userId: string; userEmail: string; }
 export function AnimateCanvas({ userId: _userId }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Store
+  const addVideo = useStudioStore((s) => s.addVideo);
+  const addToTimeline = useStudioStore((s) => s.addToTimeline);
 
   // Pre-fill from query params (pipeline from Generate mode)
   const imageParam = searchParams.get('image');
@@ -299,6 +303,14 @@ export function AnimateCanvas({ userId: _userId }: Props) {
       if (resultUrl) {
         setVideoUrl(resultUrl);
         saveToLibrary({ type: 'video', url: resultUrl, prompt: motionPrompt });
+        addVideo({
+          id: `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          type: 'video',
+          url: resultUrl,
+          prompt: motionPrompt,
+          duration: selectedSkill.duration,
+          createdAt: Date.now(),
+        });
         (window as unknown as Record<string, () => void>).__refreshCredits?.();
       }
     } catch (e) {
@@ -318,7 +330,7 @@ export function AnimateCanvas({ userId: _userId }: Props) {
   // ── Add to Assemble ───────────────────────────────────────────────────────
   function handleAddToAssemble() {
     if (!videoUrl) return;
-    addToAssemble({
+    addToTimeline({
       type: 'video',
       url: videoUrl,
       prompt: motionPrompt,

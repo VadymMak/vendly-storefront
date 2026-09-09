@@ -26,7 +26,7 @@ export function middleware(request: NextRequest) {
 
   if (isMainDomain) {
     // Defense-layer-1 gate for protected routes: require a NextAuth session cookie.
-    const PROTECTED_PATHS = ['/admin', '/test-video', '/dashboard'];
+    const PROTECTED_PATHS = ['/admin', '/studio', '/test-video', '/dashboard'];
     const PROTECTED_API_PATHS = ['/api/user/'];
     const isProtectedPage = PROTECTED_PATHS.some((p) => url.pathname.startsWith(p));
     const isProtectedApi = PROTECTED_API_PATHS.some((p) => url.pathname.startsWith(p));
@@ -41,17 +41,8 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Redirect /shop/[slug] path to subdomain in production
-    const shopPathMatch = url.pathname.match(/^\/shop\/([^/]+)(\/.*)?$/);
-    if (shopPathMatch && currentHost !== 'localhost' && !currentHost.endsWith('.vercel.app')) {
-      const slug = shopPathMatch[1];
-      const rest = shopPathMatch[2] || '';
-      const protocol = request.headers.get('x-forwarded-proto') || 'https';
-      return NextResponse.redirect(
-        `${protocol}://${slug}.${ROOT_DOMAIN}${rest}${url.search}`,
-        301
-      );
-    }
+    // Shop subdomain rewriting is disabled — vendshop.shop is AI Studio only.
+    // /shop/[slug] remains accessible via direct URL for existing stores.
     return NextResponse.next();
   }
 

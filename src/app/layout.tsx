@@ -22,39 +22,14 @@ const playfair = Playfair_Display({
 });
 
 const siteUrl = "https://vendshop.shop";
-const title = "VendShop — Profesionálna webová stránka za 48 hodín";
-const description =
-  "Profesionálny web pre váš biznis. Od €249. Hotové do 48 hodín. AI chatbot, SEO, WhatsApp v cene.";
 
 export const metadata: Metadata = {
-  title,
-  description,
+  title: {
+    default: 'AI Studio — Create Images & Videos with AI',
+    template: '%s | AI Studio',
+  },
+  description: 'AI-powered content creation studio. Generate images with Flux, animate with Kling, assemble clips for Instagram and TikTok.',
   metadataBase: new URL(siteUrl),
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    locale: "sk_SK",
-    url: siteUrl,
-    siteName: "VendShop",
-    title,
-    description,
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "VendShop — online obchod pre malý biznis",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-    images: ["/og-image.png"],
-  },
 };
 
 export default async function RootLayout({
@@ -69,107 +44,7 @@ export default async function RootLayout({
       lang="sk"
       className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "ProfessionalService",
-              name: "VendShop",
-              url: "https://vendshop.shop",
-              priceRange: "€249 - €799",
-              offers: [
-                {
-                  "@type": "Offer",
-                  name: "Landing",
-                  price: "249",
-                  priceCurrency: "EUR",
-                  description:
-                    "Professional website ready in 48 hours. AI chatbot, SEO, WhatsApp included.",
-                },
-                {
-                  "@type": "Offer",
-                  name: "Premium",
-                  price: "399",
-                  priceCurrency: "EUR",
-                  description:
-                    "Premium website with online store, booking, and priority support.",
-                },
-                {
-                  "@type": "Offer",
-                  name: "Individual",
-                  price: "799",
-                  priceCurrency: "EUR",
-                  description:
-                    "Custom design, full e-commerce, CRM, dedicated account manager.",
-                },
-              ],
-              aggregateRating: {
-                "@type": "AggregateRating",
-                ratingValue: "4.9",
-                ratingCount: "47",
-                bestRating: "5",
-              },
-              description:
-                "Professional website for your business. From €249. Ready in 48 hours. AI chatbot, SEO, WhatsApp included.",
-              areaServed: ["SK", "CZ", "UA", "DE"],
-              availableLanguage: ["sk", "en", "uk", "cs", "de"],
-            }),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: [
-                {
-                  "@type": "Question",
-                  name: "How much does a website cost?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Landing package starts at €249 one-time + €29/month maintenance. Premium is €399 + €39/month. Individual custom project from €799 + €49/month.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "How long does it take to create a website?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Standard delivery is 48 hours. Premium and Individual projects take 5-7 business days.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "What is included in the price?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Design, development, AI chatbot, SEO setup, WhatsApp button, hosting, SSL certificate, and 30 days of free support.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "Do I need technical knowledge?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "No. You provide your business information and photos. We handle everything else — design, code, hosting, and launch.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "What happens after the website is launched?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Monthly maintenance includes security updates, content edits (up to 2 hours/month), performance monitoring, and priority support.",
-                  },
-                },
-              ],
-            }),
-          }}
-        />
-      </head>
+      <head />
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider messages={messages}>
           {children}

@@ -8,7 +8,7 @@ import Link from 'next/link';
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') ?? '/test-video';
+  const callbackUrl = searchParams.get('callbackUrl') ?? '/studio';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

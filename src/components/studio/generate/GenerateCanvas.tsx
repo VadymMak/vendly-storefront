@@ -321,6 +321,10 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     } catch { /* silent */ }
   }
 
+  function handleDelete(img: GeneratedImage) {
+    setGeneratedImages(prev => prev.filter(i => i.id !== img.id));
+  }
+
   // ── Filter for image card ─────────────────────────────────────────────────
 
   function filterFor(imgId: string) {
@@ -447,6 +451,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   onAddToAssemble={() => handleAddToAssemble(img)}
                   onDownload={() => handleDownload(img)}
                   onCopy={() => handleCopyPrompt(img)}
+                  onDelete={() => handleDelete(img)}
                   onFilterChange={filterId => setImageFilters(s => ({ ...s, [img.id]: filterId }))}
                   activeFilterId={imageFilters[img.id] ?? 'original'}
                 />
@@ -509,10 +514,11 @@ interface ImageCardProps {
   onAddToAssemble: () => void;
   onDownload: () => void;
   onCopy: () => void;
+  onDelete: () => void;
   onFilterChange: (id: string) => void;
 }
 
-function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onAddToAssemble, onDownload, onCopy, onFilterChange }: ImageCardProps) {
+function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onAddToAssemble, onDownload, onCopy, onDelete, onFilterChange }: ImageCardProps) {
   const preset = PRESET_MAP[img.preset];
   return (
     <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-colors hover:border-white/20">
@@ -525,6 +531,14 @@ function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onA
           className="w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           style={{ filter: filter !== 'none' ? filter : undefined }}
         />
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-gray-300 opacity-0 transition-opacity hover:bg-red-600/80 hover:text-white group-hover:opacity-100"
+          aria-label="Delete image"
+          title="Delete"
+        >
+          ✕
+        </button>
       </div>
 
       {/* Info + actions */}

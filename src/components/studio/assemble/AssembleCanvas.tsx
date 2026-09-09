@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getAssembleItems, clearAssembleItems } from '@/lib/studio/media-context';
+import { getAssembleItems } from '@/lib/studio/media-context';
 import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType } from '@/lib/slideshow-renderer';
@@ -168,20 +168,37 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     return () => { if (resultBlobRef.current) URL.revokeObjectURL(resultBlobRef.current); };
   }, []);
 
-  // Load items from pipeline (sessionStorage) on mount
+  // Load items from pipeline on mount; merge with any already-in-state items.
+  // Do NOT clear sessionStorage here — clearing happens only on export or explicit clear.
   useEffect(() => {
     const pipelineItems = getAssembleItems();
     if (pipelineItems.length > 0) {
-      setItems(pipelineItems.map(item => ({
-        id: item.id,
-        type: item.type,
-        url: item.url,
-        duration: item.duration ?? (item.type === 'video' ? 5 : 3),
-        prompt: item.prompt,
-      })));
-      clearAssembleItems();
+      setItems(prev => {
+        const existingIds = new Set(prev.map(i => i.id));
+        const incoming = pipelineItems
+          .filter(item => !existingIds.has(item.id))
+          .map(item => ({
+            id: item.id,
+            type: item.type,
+            url: item.url,
+            duration: item.duration ?? (item.type === 'video' ? 5 : 3),
+            prompt: item.prompt,
+          }));
+        return [...prev, ...incoming];
+      });
     }
   }, []);
+
+  // Keep sessionStorage in sync so items survive route navigation.
+  useEffect(() => {
+    if (items.length > 0) {
+      sessionStorage.setItem('assemble-items', JSON.stringify(
+        items.map(i => ({ id: i.id, type: i.type, url: i.url, duration: i.duration, prompt: i.prompt }))
+      ));
+    } else {
+      sessionStorage.removeItem('assemble-items');
+    }
+  }, [items]);
 
   const totalDuration = Math.max(
     0,

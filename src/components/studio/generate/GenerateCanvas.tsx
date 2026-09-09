@@ -8,6 +8,9 @@ import {
   PRESET_MAP, STYLE_TAGS, ENHANCE_MODES, OUTPUT_FORMATS, QUICK_FILTERS, FLUX_MODELS, EXAMPLE_PROMPTS,
   type PresetKey, type OutputFormat, type FluxModel,
 } from '@/lib/studio/constants';
+import { addToAssemble } from '@/lib/studio/media-context';
+import { saveToLibrary } from '@/lib/studio/library-store';
+import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -245,6 +248,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       setGeneratedImages(prev => [newImage, ...prev]);
+      saveToLibrary({ type: 'image', url, prompt: finalPrompt, model: selectedModel, preset: selectedPreset });
 
       // Track generation + refresh credits
       fetch('/api/studio/track-generation', {
@@ -291,11 +295,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   // ── Add to Assemble ───────────────────────────────────────────────────────
 
   function handleAddToAssemble(img: GeneratedImage) {
-    try {
-      const existing = JSON.parse(sessionStorage.getItem('assemble_images') ?? '[]') as GeneratedImage[];
-      const next = [img, ...existing.filter(x => x.id !== img.id)].slice(0, 20);
-      sessionStorage.setItem('assemble_images', JSON.stringify(next));
-    } catch { /* ignore storage errors */ }
+    addToAssemble({ type: 'image', url: img.url, prompt: img.prompt });
   }
 
   // ── Download ──────────────────────────────────────────────────────────────
@@ -332,6 +332,10 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      {/* ── Pipeline breadcrumb ───────────────────────────────────────── */}
+      <div className="flex-shrink-0 border-b border-white/5 px-4 py-1.5">
+        <PipelineBreadcrumb />
+      </div>
       {/* ── Prompt bar ─────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-b border-white/10 bg-[#0a0a0f] p-4">
         <div className="flex gap-3">

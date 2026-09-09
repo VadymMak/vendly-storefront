@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getAssembleItems, clearAssembleItems } from '@/lib/studio/media-context';
+import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType } from '@/lib/slideshow-renderer';
 
@@ -308,6 +309,11 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#0a0a0f]">
+
+      {/* ── Pipeline breadcrumb ── */}
+      <div className="flex-shrink-0 border-b border-white/5 px-4 py-1.5">
+        <PipelineBreadcrumb />
+      </div>
 
       {/* ── Header ── */}
       <div className="flex h-12 flex-shrink-0 items-center justify-between gap-4 border-b border-white/10 px-4">

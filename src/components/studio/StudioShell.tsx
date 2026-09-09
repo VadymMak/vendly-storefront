@@ -113,11 +113,13 @@ export function StudioShell({ userEmail, children }: Props) {
     const isActive = pathname === href || pathname.startsWith(href + '/');
     return [
       'flex items-center gap-3 rounded-md py-2.5 transition-colors',
-      collapsed ? 'justify-center px-0' : 'px-2',
+      // Tablet (md): always icon-only. Desktop (lg): full if not collapsed
+      'justify-center px-0',
+      !collapsed && 'lg:justify-start lg:px-2',
       isActive
         ? 'border-l-4 border-green-600 bg-white/5 text-white'
         : 'border-l-4 border-transparent text-gray-400 hover:bg-white/5 hover:text-white',
-    ].join(' ');
+    ].filter(Boolean).join(' ');
   }
 
   const sidebarContent = (
@@ -126,7 +128,7 @@ export function StudioShell({ userEmail, children }: Props) {
         {NAV_TOP.map(({ href, label, Icon }) => (
           <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={navItemClass(href)}>
             <span className="flex-shrink-0"><Icon /></span>
-            {!collapsed && <span className="truncate text-sm font-medium">{label}</span>}
+            {!collapsed && <span className="hidden lg:block truncate text-sm font-medium">{label}</span>}
           </Link>
         ))}
       </nav>
@@ -135,12 +137,12 @@ export function StudioShell({ userEmail, children }: Props) {
         {NAV_BOTTOM.map(({ href, label, Icon }) => (
           <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={navItemClass(href)}>
             <span className="flex-shrink-0"><Icon /></span>
-            {!collapsed && <span className="truncate text-sm font-medium">{label}</span>}
+            {!collapsed && <span className="hidden lg:block truncate text-sm font-medium">{label}</span>}
           </Link>
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-2">
+      <div className="hidden border-t border-white/10 p-2 lg:block">
         <button
           onClick={() => setCollapsed(c => !c)}
           className="flex w-full items-center justify-center py-2 text-gray-500 transition-colors hover:text-white"
@@ -200,7 +202,8 @@ export function StudioShell({ userEmail, children }: Props) {
             'transition-[width,transform] duration-200',
             // Desktop: in flex flow, collapsible
             'hidden md:flex md:flex-col',
-            collapsed ? 'md:w-14' : 'md:w-[200px]',
+            // Tablet (md-lg): always icon-only 56px. Desktop (lg+): depends on collapsed state
+            collapsed ? 'md:w-14' : 'md:w-14 lg:w-[200px]',
             // Mobile: absolute overlay
             mobileOpen
               ? 'fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col'

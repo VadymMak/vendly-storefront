@@ -372,24 +372,17 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           ))}
         </div>
 
-        <button
-          onClick={() => void handleExport()}
-          disabled={isRendering || mergedItems.length < 2}
-          className="flex-shrink-0 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isRendering ? `${renderProgress}%` : 'Export'}
-        </button>
       </div>
 
-      {/* ── Preview ── */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40 p-6">
+      {/* ── Preview — max 50vh so timeline always fits on screen ── */}
+      <div className="relative flex max-h-[50vh] flex-1 items-center justify-center overflow-hidden bg-black/40 p-4">
         {resultUrl ? (
-          <div className="flex flex-col items-center gap-5">
+          <div className="flex flex-col items-center gap-4">
             <video
               src={resultUrl}
               controls
               loop
-              className="max-h-[55vh] max-w-full rounded-xl object-contain"
+              className="max-h-[43vh] max-w-full rounded-xl object-contain"
             />
             <div className="flex items-center gap-3">
               <button
@@ -426,23 +419,23 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               <img
                 src={mergedItems[0].url}
                 alt="Preview"
-                className="max-h-[55vh] max-w-full rounded-xl object-contain opacity-80"
+                className="max-h-[43vh] max-w-full rounded-xl object-contain opacity-80"
               />
             ) : (
               <video
                 src={mergedItems[0].url}
-                className="max-h-[55vh] max-w-full rounded-xl object-contain opacity-80"
+                className="max-h-[43vh] max-w-full rounded-xl object-contain opacity-80"
                 muted
                 playsInline
               />
             )}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
               {mergedItems.length} {mergedItems.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
             </div>
           </div>
         ) : (
           <div
-            className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/15 px-12 py-10 text-gray-600"
+            className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/15 px-10 py-8 text-gray-600"
             onDragOver={e => e.preventDefault()}
             onDrop={e => {
               e.preventDefault();
@@ -568,8 +561,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           />
         </div>
 
-        {/* Controls row */}
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-white/5 px-3 py-2">
+        {/* Controls + Export row */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/5 px-3 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600">Transition</span>
             <select
@@ -584,7 +577,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600">Image duration</span>
+            <span className="text-xs text-gray-600">Duration</span>
             <div className="flex gap-1">
               {IMAGE_DUR_OPTIONS.map(d => (
                 <button
@@ -600,6 +593,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Export — primary action */}
+          <button
+            onClick={() => void handleExport()}
+            disabled={isRendering || mergedItems.length < 2}
+            className="ml-auto flex min-h-[40px] items-center gap-2 rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <IconDownload />
+            {isRendering ? `Exporting ${renderProgress}%` : 'Export Clip'}
+          </button>
         </div>
       </div>
 

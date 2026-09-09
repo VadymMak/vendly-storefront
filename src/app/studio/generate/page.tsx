@@ -1,7 +1,9 @@
-export default function GeneratePage() {
-  return (
-    <div className="flex h-full items-center justify-center text-gray-500">
-      <p>Image Generator — coming in next step</p>
-    </div>
-  );
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { GenerateCanvas } from '@/components/studio/generate/GenerateCanvas';
+
+export default async function GeneratePage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect('/login');
+  return <GenerateCanvas userId={session.user.id} userEmail={session.user.email ?? ''} />;
 }

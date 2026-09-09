@@ -374,8 +374,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
       </div>
 
-      {/* ── Preview — max 50vh so timeline always fits on screen ── */}
-      <div className="relative flex max-h-[50vh] flex-1 items-center justify-center overflow-hidden bg-black/40 p-4">
+      {/* ── Preview — flex-1 fills remaining space; media elements capped at 43vh ── */}
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40 p-4">
         {resultUrl ? (
           <div className="flex flex-col items-center gap-4">
             <video

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { TextOverlay } from '@/lib/slideshow-renderer';
 
 export interface MediaItem {
   id: string;
@@ -29,6 +30,12 @@ interface StudioStore {
   removeFromTimeline: (id: string) => void;
   reorderTimeline: (fromIndex: number, toIndex: number) => void;
   clearTimeline: () => void;
+
+  textOverlays: TextOverlay[];
+  setTextOverlays: (overlays: TextOverlay[]) => void;
+  addTextOverlay: (overlay: TextOverlay) => void;
+  removeTextOverlay: (index: number) => void;
+  updateTextOverlay: (index: number, overlay: TextOverlay) => void;
 }
 
 export const useStudioStore = create<StudioStore>()(
@@ -64,6 +71,19 @@ export const useStudioStore = create<StudioStore>()(
           return { timelineItems: arr };
         }),
       clearTimeline: () => set({ timelineItems: [] }),
+
+      textOverlays: [],
+      setTextOverlays: (overlays) => set({ textOverlays: overlays }),
+      addTextOverlay: (overlay) =>
+        set((s) => ({ textOverlays: [...s.textOverlays, overlay] })),
+      removeTextOverlay: (index) =>
+        set((s) => ({ textOverlays: s.textOverlays.filter((_, i) => i !== index) })),
+      updateTextOverlay: (index, overlay) =>
+        set((s) => {
+          const next = [...s.textOverlays];
+          next[index] = overlay;
+          return { textOverlays: next };
+        }),
     }),
     {
       name: 'studio-session',

@@ -31,7 +31,7 @@ export interface SlideshowItem {
   duration: number;
   motion?: CameraMotion;       // images only
   bgColor?: string;             // color-card only: CSS color string e.g. '#0a0a0a'
-  cardOverlays?: TextOverlay[];  // color-card only: overlays always shown during this item
+  cardOverlays?: TextOverlay[];  // per-scene text overlays (available on all item types)
   style?: VideoStyle;            // per-scene override; if omitted → SlideshowConfig.style
 }
 
@@ -68,9 +68,28 @@ export type OnProgress = (progress: RenderProgress) => void;
 export interface TextOverlay {
   text: string;
   position: 'top' | 'center' | 'bottom';
-  style: 'brand' | 'subtitle' | 'cta';
-  from?: number;  // seconds from clip start; omit = always visible
-  to?: number;    // seconds from clip end; omit = always visible
+  style: 'brand' | 'subtitle' | 'cta' | 'bar' | 'custom';
+  from?: number;
+  to?: number;
+
+  // Custom styling (used when style === 'custom' or 'bar')
+  fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: 'normal' | 'bold';
+  color?: string;
+  backgroundColor?: string;
+  barColor?: string;
+  barHeight?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  paddingX?: number;
+  paddingY?: number;
+  lineTwo?: string;
+  animation?: 'none' | 'fade-in' | 'slide-left' | 'slide-up';
+  animationDuration?: number;
+
+  // Scope
+  scope?: 'global' | 'scene';
+  sceneIndex?: number;
 }
 
 export interface RenderResult {
@@ -307,9 +326,25 @@ function drawTextOverlay(
   overlay: TextOverlay,
   W: number,
   H: number,
+  currentTime?: number,
 ): void {
   ctx.save();
   ctx.shadowBlur = 0;
+
+  // Animation
+  if (currentTime !== undefined && overlay.animation && overlay.animation !== 'none') {
+    const animStart = overlay.from ?? 0;
+    const animDur = overlay.animationDuration ?? 0.5;
+    const elapsed = currentTime - animStart;
+    const progress = Math.max(0, Math.min(1, elapsed / animDur));
+    if (overlay.animation === 'fade-in') {
+      ctx.globalAlpha = progress;
+    } else if (overlay.animation === 'slide-left') {
+      ctx.translate((1 - progress) * W * 0.25, 0);
+    } else if (overlay.animation === 'slide-up') {
+      ctx.translate(0, (1 - progress) * H * 0.08);
+    }
+  }
 
   switch (overlay.style) {
     case 'brand': {
@@ -367,6 +402,88 @@ function drawTextOverlay(
       ctx.shadowBlur = 18;
       ctx.fillStyle = '#FFD700';
       ctx.fillText(overlay.text, W / 2, y);
+      break;
+    }
+
+    case 'bar': {
+      const barH = Math.round(H * (overlay.barHeight ?? 8) / 100);
+      const barColor = overlay.barColor ?? '#E85D04';
+      const padX = Math.round((overlay.paddingX ?? 20) * W / 1080);
+      const barY = overlay.position === 'top' ? 0 : H - barH;
+      const textColor = overlay.color ?? '#FFFFFF';
+      const fontSize = overlay.fontSize
+        ? Math.round(overlay.fontSize * W / 1080)
+        : Math.round(W * 0.032);
+
+      // Bar background
+      ctx.fillStyle = barColor;
+      ctx.fillRect(0, barY, W, barH);
+      // Accent stripe at top of bar
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(0, barY, W, 3);
+
+      ctx.shadowBlur = 0;
+      ctx.textAlign = 'left';
+
+      if (overlay.lineTwo) {
+        const smallSize = Math.round(fontSize * 0.72);
+        const gapY = Math.round(H * 0.005);
+        const totalTextH = fontSize + smallSize + gapY;
+        const lineOneY = barY + (barH - totalTextH) / 2;
+
+        ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = textColor;
+        ctx.fillText(overlay.text, padX, lineOneY);
+
+        ctx.save();
+        ctx.globalAlpha = ctx.globalAlpha * 0.85;
+        ctx.font = `${smallSize}px Arial, Helvetica, sans-serif`;
+        ctx.fillStyle = textColor;
+        ctx.fillText(overlay.lineTwo, padX, lineOneY + fontSize + gapY);
+        ctx.restore();
+      } else {
+        ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = textColor;
+        ctx.fillText(overlay.text, padX, barY + barH / 2);
+      }
+      break;
+    }
+
+    case 'custom': {
+      const scaledSize = overlay.fontSize
+        ? Math.round(overlay.fontSize * W / 1080)
+        : Math.round(W * 0.032);
+      const fontFamily = overlay.fontFamily ?? 'Arial, Helvetica, sans-serif';
+      const fontWeight = overlay.fontWeight ?? 'normal';
+      const color = overlay.color ?? '#FFFFFF';
+      const align = overlay.textAlign ?? 'center';
+      const padX = Math.round((overlay.paddingX ?? 20) * W / 1080);
+      const padY = Math.round((overlay.paddingY ?? 10) * H / 1080);
+
+      ctx.font = `${fontWeight} ${scaledSize}px ${fontFamily}`;
+      ctx.textAlign = align;
+      ctx.textBaseline = 'middle';
+
+      const y = overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.5 : H * 0.88;
+      const x = align === 'left' ? padX : align === 'right' ? W - padX : W / 2;
+
+      if (overlay.backgroundColor) {
+        const m = ctx.measureText(overlay.text);
+        const bgW = m.width + padX * 2;
+        const bgH = scaledSize + padY * 2;
+        const bgX = align === 'left' ? x - padX : align === 'right' ? x - m.width - padX : x - bgW / 2;
+        ctx.fillStyle = overlay.backgroundColor;
+        ctx.beginPath();
+        ctx.roundRect(bgX, y - bgH / 2, bgW, bgH, 4);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = color;
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 8;
+      ctx.fillText(overlay.text, x, y);
       break;
     }
   }
@@ -466,7 +583,7 @@ function drawFrame(
       const showFrom = overlay.from ?? 0;
       const showTo   = overlay.to   ?? Infinity;
       if (t >= showFrom && t <= showTo) {
-        drawTextOverlay(ctx, overlay, W, H);
+        drawTextOverlay(ctx, overlay, W, H, t);
       }
     }
   };
@@ -481,8 +598,8 @@ function drawFrame(
     ctx.filter = 'none';
     applyStyle(ctx, item.style ?? style, W, H);
     renderOverlays();
-    if (item.type === 'color-card' && item.cardOverlays) {
-      for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H);
+    if (item.cardOverlays) {
+      for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H, t);
     }
     if (config.watermark) drawWatermark(ctx, config.watermark, W, H);
     if (config.grain && config.grain > 0) applyFilmGrain(ctx, W, H, config.grain);

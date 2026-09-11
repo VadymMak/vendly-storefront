@@ -146,12 +146,13 @@ function fmtTime(t: number): string {
 
 interface Props {
   musicName: string | null;
+  idbUrls: Record<string, string>;
   onFileAdd: (files: FileList) => void;
 }
 
 type ImportTab = 'generate' | 'animate';
 
-export function NLETimeline({ musicName, onFileAdd }: Props) {
+export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
   const tracks          = useStudioStore(s => s.timelineTracks);
   const zoom            = useStudioStore(s => s.timelineZoom);
   const setZoom         = useStudioStore(s => s.setTimelineZoom);
@@ -594,15 +595,20 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
                           }}
                         >
                           {/* Thumbnail (video/image) */}
-                          {clip.sourceUrl && (clip.type === 'image' || clip.type === 'video') && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={clip.sourceUrl}
-                              alt=""
-                              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
-                              draggable={false}
-                            />
-                          )}
+                          {(clip.type === 'image' || clip.type === 'video') && (() => {
+                            const thumbSrc = clip.sourceUrl?.startsWith('idb://')
+                              ? idbUrls[clip.sourceUrl]
+                              : clip.sourceUrl;
+                            return thumbSrc ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={thumbSrc}
+                                alt=""
+                                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
+                                draggable={false}
+                              />
+                            ) : null;
+                          })()}
 
                           {/* Audio waveform decoration */}
                           {clip.type === 'audio' && (

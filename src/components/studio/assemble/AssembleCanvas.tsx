@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
 import type { TimelineClip } from '@/lib/studio/store';
 import { fileToDataUrl, urlToDataUrl } from '@/lib/studio/media-utils';
+import { saveMediaBlob, loadMediaBlob, clearAllMediaBlobs } from '@/lib/studio/media-db';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
@@ -717,6 +718,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [editingOverlayIdx, setEditingOverlayIdx] = useState<number | null>(null);
   const [draftOverlay, setDraftOverlay]           = useState<TextOverlay | null>(null);
 
+  // IndexedDB blob URL cache: idb://<uuid> → object URL
+  const [idbUrls, setIdbUrls] = useState<Record<string, string>>({});
+
   const musicInputRef  = useRef<HTMLInputElement>(null);
   const nameInputRef   = useRef<HTMLInputElement>(null);
   const resultBlobRef  = useRef<string | null>(null);
@@ -747,6 +751,41 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // ── Resolve idb:// URIs → fresh blob URLs on mount ────────────────────────
+  useEffect(() => {
+    const allClips = timelineTracks.flatMap(t => t.clips);
+    const idbClips = allClips.filter(c => c.sourceUrl?.startsWith('idb://'));
+    if (idbClips.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      const resolved: Record<string, string> = {};
+      for (const clip of idbClips) {
+        const key = clip.sourceUrl!.slice(6); // strip 'idb://'
+        try {
+          const blobUrl = await loadMediaBlob(key);
+          if (blobUrl) resolved[clip.sourceUrl!] = blobUrl;
+        } catch {
+          // missing from IDB — leave unresolved, fallback renders "Loading…"
+        }
+      }
+      if (!cancelled) setIdbUrls(resolved);
+    })();
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Cleanup: revoke blob URLs created from IDB on unmount ─────────────────
+  useEffect(() => {
+    return () => {
+      for (const blobUrl of Object.values(idbUrls)) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idbUrls]);
 
   // Auto-open inspector when a text clip is selected on timeline
   useEffect(() => {
@@ -955,11 +994,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       } else if (isVideo) {
         const blobUrl = URL.createObjectURL(file);
         const dur = await videoDurationOf(blobUrl);
-        // Small videos (≤ 5MB) → data URL for persistence; larger stay as blob
-        let sourceUrl = blobUrl;
+        let sourceUrl: string;
         if (file.size <= 5 * 1024 * 1024) {
+          // Small videos → data URL (survives sessionStorage reload)
           sourceUrl = await fileToDataUrl(file);
           URL.revokeObjectURL(blobUrl);
+        } else {
+          // Large videos → IndexedDB; store idb://<uuid> as sourceUrl
+          const key = crypto.randomUUID();
+          await saveMediaBlob(key, file);
+          const idbUri = `idb://${key}`;
+          // Immediately provide a blob URL for this session
+          setIdbUrls(prev => ({ ...prev, [idbUri]: blobUrl }));
+          sourceUrl = idbUri;
         }
         addClipToTrack(videoTrack.id, { type: 'video', startTime: cursor, duration: dur, sourceUrl });
         cursor += dur;
@@ -1148,6 +1195,12 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   // ── Aspect ratio canvas style ─────────────────────────────────────────────
 
   // ── Per-clip transition style ─────────────────────────────────────────────
+
+  function resolvedUrl(clip: TimelineClip): string | undefined {
+    if (!clip.sourceUrl) return undefined;
+    if (clip.sourceUrl.startsWith('idb://')) return idbUrls[clip.sourceUrl];
+    return clip.sourceUrl;
+  }
 
   function clipLayerStyle(clip: TimelineClip, clipIdx: number): React.CSSProperties {
     const isActive = activeClip?.id === clip.id;
@@ -1608,12 +1661,15 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                   const activeIdx = videoClips.findIndex(c => c.id === activeClip?.id);
                   const nearby = videoClips.filter((_, i) => Math.abs(i - (activeIdx < 0 ? 0 : activeIdx)) <= 2);
                   return nearby.map((clip, i) => {
+                    const srcUrl = resolvedUrl(clip);
+                    const isIdb  = clip.sourceUrl?.startsWith('idb://');
                     if (process.env.NODE_ENV === 'development') {
                       console.log('[Canvas] Rendering clip:', {
                         id: clip.id.slice(0, 8),
                         type: clip.type,
-                        srcPrefix: clip.sourceUrl?.slice(0, 60),
-                        isDataUrl: clip.sourceUrl?.startsWith('data:'),
+                        srcPrefix: srcUrl?.slice(0, 60),
+                        isDataUrl: srcUrl?.startsWith('data:'),
+                        isIdb,
                         isActive: activeClip?.id === clip.id,
                       });
                     }
@@ -1623,10 +1679,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                       className="absolute inset-0"
                       style={clipLayerStyle(clip, videoClips.indexOf(clip))}
                     >
-                      {clip.type === 'image' && clip.sourceUrl && (
+                      {clip.type === 'image' && srcUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={clip.sourceUrl}
+                          src={srcUrl}
                           alt="Preview"
                           className="h-full w-full object-cover"
                           loading="eager"
@@ -1636,10 +1692,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                           }}
                         />
                       )}
-                      {clip.type === 'video' && clip.sourceUrl && (
+                      {clip.type === 'video' && srcUrl && (
                         <video
                           ref={el => { if (el) videoRefsMap.current.set(clip.id, el); else videoRefsMap.current.delete(clip.id); }}
-                          src={clip.sourceUrl}
+                          src={srcUrl}
                           className="h-full w-full object-cover"
                           muted playsInline preload="auto"
                           onError={e => {
@@ -1648,9 +1704,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                           }}
                         />
                       )}
-                      {!clip.sourceUrl && (
+                      {!srcUrl && (
                         <div className="flex h-full w-full items-center justify-center bg-gray-900 text-xs text-gray-600">
-                          {clip.prompt ? clip.prompt.slice(0, 40) : 'No preview'}
+                          {isIdb ? 'Loading video…' : clip.prompt ? clip.prompt.slice(0, 40) : 'No preview'}
                         </div>
                       )}
                     </div>
@@ -1830,6 +1886,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             <button
               onClick={() => {
                 if (confirm('Start a new project? Current timeline will be cleared.')) {
+                  void clearAllMediaBlobs();
                   sessionStorage.removeItem('studio-session');
                   window.location.reload();
                 }
@@ -1854,6 +1911,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           <div className="h-[180px] flex-shrink-0 border-t border-white/10">
             <NLETimeline
               musicName={musicName}
+              idbUrls={idbUrls}
               onFileAdd={files => void handleFileAdd(files)}
             />
           </div>

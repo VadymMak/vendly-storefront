@@ -752,10 +752,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     return () => ro.disconnect();
   }, []);
 
-  // ── Resolve idb:// URIs → fresh blob URLs on mount ────────────────────────
+  // ── Resolve idb:// URIs → fresh blob URLs ────────────────────────────────
+  // Deps include timelineTracks so this re-runs after Zustand hydration
   useEffect(() => {
     const allClips = timelineTracks.flatMap(t => t.clips);
-    const idbClips = allClips.filter(c => c.sourceUrl?.startsWith('idb://'));
+    // Only process idb:// clips that haven't been resolved yet
+    const idbClips = allClips.filter(
+      c => c.sourceUrl?.startsWith('idb://') && !idbUrls[c.sourceUrl]
+    );
     if (idbClips.length === 0) return;
 
     let cancelled = false;
@@ -765,27 +769,24 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         const key = clip.sourceUrl!.slice(6); // strip 'idb://'
         try {
           const blobUrl = await loadMediaBlob(key);
-          if (blobUrl) resolved[clip.sourceUrl!] = blobUrl;
-        } catch {
-          // missing from IDB — leave unresolved, fallback renders "Loading…"
+          if (blobUrl) {
+            resolved[clip.sourceUrl!] = blobUrl;
+            console.log('[IDB] Loaded blob for:', key.slice(0, 8));
+          } else {
+            console.warn('[IDB] No blob found for key:', key.slice(0, 8));
+          }
+        } catch (e) {
+          console.warn('[IDB] Failed to load:', key.slice(0, 8), e);
         }
       }
-      if (!cancelled) setIdbUrls(resolved);
+      if (!cancelled && Object.keys(resolved).length > 0) {
+        setIdbUrls(prev => ({ ...prev, ...resolved }));
+      }
     })();
 
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Cleanup: revoke blob URLs created from IDB on unmount ─────────────────
-  useEffect(() => {
-    return () => {
-      for (const blobUrl of Object.values(idbUrls)) {
-        URL.revokeObjectURL(blobUrl);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idbUrls]);
+  // Re-run when tracks change — catches Zustand hydration AND new clip adds
+  }, [timelineTracks, idbUrls]);
 
   // Auto-open inspector when a text clip is selected on timeline
   useEffect(() => {

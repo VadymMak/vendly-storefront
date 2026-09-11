@@ -527,8 +527,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const storeRemoveOverlay = useStudioStore(s => s.removeTextOverlay);
   const storeUpdateOverlay = useStudioStore(s => s.updateTextOverlay);
 
-  // Init tracks on mount
-  useEffect(() => { initDefaultTracks(); }, [initDefaultTracks]);
+  // Init tracks after Zustand has hydrated from sessionStorage
+  useEffect(() => {
+    const run = () => initDefaultTracks();
+    if (useStudioStore.persist.hasHydrated()) {
+      run();
+    } else {
+      const unsub = useStudioStore.persist.onFinishHydration(run);
+      return unsub;
+    }
+  }, [initDefaultTracks]);
 
   // Derived: video track
   const videoTrack  = timelineTracks.find(t => t.type === 'video');

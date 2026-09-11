@@ -113,7 +113,6 @@ function LibraryCard({
 
 export function LibraryGrid() {
   const router = useRouter();
-  const addToTimeline = useStudioStore((s) => s.addToTimeline);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
@@ -141,7 +140,21 @@ export function LibraryGrid() {
   }
 
   function handleAddToAssemble(item: LibraryItem) {
-    addToTimeline({ type: item.type, url: item.url, prompt: item.prompt });
+    const store = useStudioStore.getState();
+    store.initDefaultTracks();
+    const vt = useStudioStore.getState().timelineTracks.find(t => t.type === 'video');
+    if (vt) {
+      const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
+      const last = sorted.at(-1);
+      const startTime = last ? last.startTime + last.duration : 0;
+      store.addClipToTrack(vt.id, {
+        type: item.type as 'video' | 'image',
+        startTime,
+        duration: item.type === 'video' ? 5 : 3,
+        sourceUrl: item.url,
+        prompt: item.prompt,
+      });
+    }
     router.push('/studio/assemble');
   }
 

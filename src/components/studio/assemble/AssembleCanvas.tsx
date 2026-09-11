@@ -934,16 +934,32 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
       : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' };
 
-  // ── Active text overlay preview (for editing panel) ──────────────────────
+  // ── Active text overlays: only those whose clip spans the current playhead ──
 
-  // Global textOverlays for canvas preview — carries store index (null = draft)
-  const editorPreviewOverlays: Array<{ overlay: TextOverlay; storeIdx: number | null }> = [
-    ...textOverlays
-      .map((o, i) => ({ overlay: o, storeIdx: i }))
-      .filter(({ storeIdx }) => !(editingOverlayIdx !== null && editingOverlayIdx >= 0 && storeIdx === editingOverlayIdx))
-      .filter(({ overlay }) => overlay.scope !== 'scene'),
-    ...(draftOverlay && draftOverlay.scope !== 'scene' ? [{ overlay: draftOverlay, storeIdx: null }] : []),
-  ];
+  type ActiveTextOverlay = { overlay: TextOverlay; clipId: string; storeIdx: number };
+
+  const activeTextOverlays: ActiveTextOverlay[] = (() => {
+    const tt = timelineTracks.find(t => t.type === 'text');
+    const visible: ActiveTextOverlay[] = tt
+      ? tt.clips
+          .filter(c => c.overlayData && playheadTime >= c.startTime && playheadTime < c.startTime + c.duration)
+          .map(c => ({
+            overlay: c.overlayData!,
+            clipId: c.id,
+            storeIdx: textOverlays.findIndex(o => o === c.overlayData || JSON.stringify(o) === JSON.stringify(c.overlayData)),
+          }))
+      : [];
+
+    // Always show the overlay being edited (regardless of playhead)
+    if (editingOverlayIdx !== null && editingOverlayIdx >= 0 && draftOverlay) {
+      const alreadyVisible = visible.some(v => v.storeIdx === editingOverlayIdx);
+      if (!alreadyVisible) {
+        visible.push({ overlay: draftOverlay, clipId: `editing-${editingOverlayIdx}`, storeIdx: editingOverlayIdx });
+      }
+    }
+
+    return visible;
+  })();
 
   // ── Right panel ───────────────────────────────────────────────────────────
 
@@ -1308,28 +1324,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 {!activeClip.sourceUrl && (
                   <div className="flex h-full items-center justify-center text-xs text-gray-600">No preview</div>
                 )}
-                {/* Text track overlays active at playhead (read-only, no drag) */}
-                {activeTextClips.filter(c => c.overlayData).map(c => {
-                  const storeIdx = textOverlays.findIndex(o => JSON.stringify(o) === JSON.stringify(c.overlayData));
-                  return (
-                    <PreviewOverlayItem
-                      key={c.id}
-                      overlay={c.overlayData!}
-                      isSelected={selectedOverlayIdx === storeIdx}
-                      onSelect={() => setSelectedOverlayIdx(storeIdx >= 0 ? storeIdx : null)}
-                      onPositionChange={(x, y) => { if (storeIdx >= 0) handleOverlayPositionChange(storeIdx, x, y); }}
-                      containerRef={canvasRef}
-                    />
-                  );
-                })}
-                {/* Editor live-preview overlays — draggable */}
-                {editorPreviewOverlays.map(({ overlay, storeIdx }, idx) => (
+                {/* Text overlays — visible only during their clip's time range */}
+                {activeTextOverlays.map(({ overlay, clipId, storeIdx }) => (
                   <PreviewOverlayItem
-                    key={storeIdx ?? `draft-${idx}`}
+                    key={clipId}
                     overlay={overlay}
                     isSelected={selectedOverlayIdx === storeIdx}
-                    onSelect={() => setSelectedOverlayIdx(storeIdx)}
-                    onPositionChange={(x, y) => { if (storeIdx !== null) handleOverlayPositionChange(storeIdx, x, y); }}
+                    onSelect={() => setSelectedOverlayIdx(storeIdx >= 0 ? storeIdx : null)}
+                    onPositionChange={(x, y) => { if (storeIdx >= 0) handleOverlayPositionChange(storeIdx, x, y); }}
                     containerRef={canvasRef}
                   />
                 ))}

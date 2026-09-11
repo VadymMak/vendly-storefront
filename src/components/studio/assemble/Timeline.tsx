@@ -679,14 +679,12 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
         <div className="absolute bottom-[60px] left-[110px] z-50 w-64 overflow-hidden rounded-lg border border-white/10 bg-[#0d0d14] shadow-2xl">
           {/* Tabs */}
           <div className="flex border-b border-white/10">
-            <button
-              onClick={() => {
-                fileInputRef.current?.click();
-              }}
-              className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
+            <label
+              htmlFor="timeline-file-upload"
+              className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
             >
               <IconUpload /> Upload
-            </button>
+            </label>
             <button
               onClick={() => setImportTab('generate')}
               className={[
@@ -801,13 +799,14 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
         </span>
       </div>
 
-      {/* Hidden file input */}
+      {/* File input — sr-only keeps it in DOM so .click() and label association work */}
       <input
         ref={fileInputRef}
+        id="timeline-file-upload"
         type="file"
         multiple
         accept="image/*,video/*,audio/*"
-        className="hidden"
+        className="sr-only"
         onChange={e => {
           if (e.target.files) onFileAdd(e.target.files);
           e.target.value = '';

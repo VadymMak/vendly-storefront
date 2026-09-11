@@ -6,6 +6,7 @@ import type { VideoSkill } from '@/lib/types';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore } from '@/lib/studio/store';
+import { AccordionSection } from '@/components/studio/AccordionSection';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -413,88 +414,159 @@ export function AnimateCanvas({ userId: _userId }: Props) {
         {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
       </div>
 
-      {/* ── 3-column body ─────────────────────────────────────────────── */}
+      {/* ── Body: left settings panel + center preview ────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: start frame (300px) */}
-        <div className="hidden w-[300px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-r border-white/10 p-4 md:flex">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-300">Start Frame</h3>
-            {startImageUrl && (
-              <button onClick={clearStartFrame} className="text-xs text-gray-500 hover:text-white">
-                Change
-              </button>
-            )}
-          </div>
-
-          {startImageUrl ? (
-            <div className="relative overflow-hidden rounded-xl border border-white/10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={startImageUrl} alt="Start frame" className="w-full object-cover" />
-              {startImageSource === 'from-generate' && (
-                <div className="absolute left-2 top-2 rounded-full bg-green-600/80 px-2 py-0.5 text-xs text-white">
-                  From Generate
-                </div>
-              )}
-              <button
-                onClick={clearStartFrame}
-                className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-              >
-                <IconX />
-              </button>
-            </div>
-          ) : (
-            <div
-              onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={[
-                'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors',
-                isDragOver ? 'border-green-600/50 bg-green-600/5' : 'border-white/10 hover:border-white/20',
-              ].join(' ')}
-            >
-              {isUploading ? (
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-              ) : (
-                <>
-                  <IconUpload />
-                  <div>
-                    <p className="text-sm text-gray-300">Drop image or click</p>
-                    <p className="text-xs text-gray-500">PNG · JPG · WebP</p>
+        {/* Left panel with accordion sections */}
+        <aside className="hidden w-[240px] flex-shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-[#0d0d14] md:flex">
+          {/* Start Frame */}
+          <AccordionSection title="Start Frame" defaultOpen>
+            {startImageUrl ? (
+              <div className="relative overflow-hidden rounded-xl border border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={startImageUrl} alt="Start frame" className="w-full object-cover" />
+                {startImageSource === 'from-generate' && (
+                  <div className="absolute left-2 top-2 rounded-full bg-green-600/80 px-2 py-0.5 text-xs text-white">
+                    From Generate
                   </div>
-                </>
-              )}
+                )}
+                <button
+                  onClick={clearStartFrame}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                >
+                  <IconX />
+                </button>
+              </div>
+            ) : (
+              <div
+                onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={[
+                  'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 text-center transition-colors',
+                  isDragOver ? 'border-green-600/50 bg-green-600/5' : 'border-white/10 hover:border-white/20',
+                ].join(' ')}
+              >
+                {isUploading ? (
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                ) : (
+                  <>
+                    <IconUpload />
+                    <div>
+                      <p className="text-sm text-gray-300">Drop image or click</p>
+                      <p className="text-xs text-gray-500">PNG · JPG · WebP</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-gray-400">
+              <input
+                type="checkbox"
+                checked={textToVideo}
+                onChange={e => { setTextToVideo(e.target.checked); if (e.target.checked) clearStartFrame(); }}
+                className="h-4 w-4 rounded border-white/20 accent-green-600"
+              />
+              Text-to-video
+            </label>
+            <button
+              onClick={() => router.push('/studio/generate')}
+              className="mt-2 flex items-center gap-1.5 text-xs text-gray-500 hover:text-white"
+            >
+              <IconArrowLeft /> Back to Generate
+            </button>
+          </AccordionSection>
+
+          {/* Platform Preset */}
+          <AccordionSection title="Platform Preset">
+            <div className="flex flex-col gap-1.5">
+              {VIDEO_SKILLS.map(skill => (
+                <button
+                  key={skill.id}
+                  onClick={() => setSelectedSkill(skill)}
+                  className={[
+                    'rounded-lg border px-3 py-2 text-left text-xs transition-colors',
+                    selectedSkill.id === skill.id
+                      ? 'border-green-600/60 bg-green-600/10 text-white'
+                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                  ].join(' ')}
+                >
+                  <div className="font-medium">{skill.label}</div>
+                  <div className="text-gray-500">{skill.aspectRatio} · {skill.duration}s</div>
+                </button>
+              ))}
             </div>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          </AccordionSection>
 
-          {/* Text-to-video toggle */}
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-400">
-            <input
-              type="checkbox"
-              checked={textToVideo}
-              onChange={e => {
-                setTextToVideo(e.target.checked);
-                if (e.target.checked) clearStartFrame();
-              }}
-              className="h-4 w-4 rounded border-white/20 accent-green-600"
-            />
-            Text-to-video (generate frame)
-          </label>
+          {/* Camera Motion */}
+          <AccordionSection title="Camera Motion">
+            <div className="grid grid-cols-2 gap-1.5">
+              {CAMERA_PRESETS.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setCameraPreset(c.id)}
+                  className={[
+                    'rounded-lg border py-1.5 text-xs transition-colors',
+                    cameraPreset === c.id
+                      ? 'border-green-600/60 bg-green-600/10 text-white'
+                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                  ].join(' ')}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </AccordionSection>
 
-          <button
-            onClick={() => router.push('/studio/generate')}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white"
-          >
-            <IconArrowLeft /> Back to Generate
-          </button>
-        </div>
+          {/* Duration */}
+          <AccordionSection title="Duration">
+            <div className="flex gap-1.5">
+              {([5, 10] as const).map(d => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedSkill(s => ({ ...s, duration: d }))}
+                  className={[
+                    'flex-1 rounded-lg border py-2 text-xs font-medium transition-colors',
+                    selectedSkill.duration === d
+                      ? 'border-green-600/60 bg-green-600/10 text-white'
+                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                  ].join(' ')}
+                >
+                  {d}s
+                </button>
+              ))}
+            </div>
+          </AccordionSection>
+
+          {/* Aspect Ratio */}
+          <AccordionSection title="Aspect Ratio">
+            <div className="flex gap-1.5">
+              {(['9:16', '1:1', '16:9'] as const).map(ar => (
+                <button
+                  key={ar}
+                  onClick={() => setSelectedSkill(s => ({ ...s, aspectRatio: ar }))}
+                  className={[
+                    'flex-1 rounded-lg border py-2 text-xs font-medium transition-colors',
+                    selectedSkill.aspectRatio === ar
+                      ? 'border-green-600/60 bg-green-600/10 text-white'
+                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                  ].join(' ')}
+                >
+                  {ar}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 text-xs text-amber-300">
+              💡 5s generates faster with better quality
+            </div>
+          </AccordionSection>
+        </aside>
 
         {/* Center: preview */}
         <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6">
           {isGenerating && (
             <div className="flex flex-col items-center gap-4 text-center">
-              {/* 2-step progress */}
               <div className="flex items-center gap-3">
                 <div
                   className={[
@@ -545,7 +617,6 @@ export function AnimateCanvas({ userId: _userId }: Props) {
                 className="w-full rounded-2xl border border-white/10"
                 style={{ maxHeight: '60vh' }}
               />
-              {/* Actions */}
               <div className="flex flex-wrap justify-center gap-3">
                 <button
                   onClick={handleAddToAssemble}
@@ -586,98 +657,6 @@ export function AnimateCanvas({ userId: _userId }: Props) {
             </div>
           )}
         </div>
-
-        {/* Right panel (280px) */}
-        <aside className="hidden w-[280px] flex-shrink-0 overflow-y-auto border-l border-white/10 bg-[#0d0d14] p-4 lg:block">
-          {/* Skill presets */}
-          <div className="mb-5">
-            <label className="mb-2 block text-xs font-medium text-gray-400">Platform Preset</label>
-            <div className="grid grid-cols-1 gap-1.5">
-              {VIDEO_SKILLS.map(skill => (
-                <button
-                  key={skill.id}
-                  onClick={() => setSelectedSkill(skill)}
-                  className={[
-                    'rounded-lg border px-3 py-2 text-left text-xs transition-colors',
-                    selectedSkill.id === skill.id
-                      ? 'border-green-600/60 bg-green-600/10 text-white'
-                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-                  ].join(' ')}
-                >
-                  <div className="font-medium">{skill.label}</div>
-                  <div className="text-gray-500">{skill.aspectRatio} · {skill.duration}s</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Camera presets */}
-          <div className="mb-5">
-            <label className="mb-2 block text-xs font-medium text-gray-400">Camera Motion</label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {CAMERA_PRESETS.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setCameraPreset(c.id)}
-                  className={[
-                    'rounded-lg border py-1.5 text-xs transition-colors',
-                    cameraPreset === c.id
-                      ? 'border-green-600/60 bg-green-600/10 text-white'
-                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-                  ].join(' ')}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Duration override */}
-          <div className="mb-5">
-            <label className="mb-2 block text-xs font-medium text-gray-400">Duration</label>
-            <div className="flex gap-1.5">
-              {([5, 10] as const).map(d => (
-                <button
-                  key={d}
-                  onClick={() => setSelectedSkill(s => ({ ...s, duration: d }))}
-                  className={[
-                    'flex-1 rounded-lg border py-2 text-xs font-medium transition-colors',
-                    selectedSkill.duration === d
-                      ? 'border-green-600/60 bg-green-600/10 text-white'
-                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-                  ].join(' ')}
-                >
-                  {d}s
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Aspect ratio override */}
-          <div>
-            <label className="mb-2 block text-xs font-medium text-gray-400">Aspect Ratio</label>
-            <div className="flex gap-1.5">
-              {(['9:16', '1:1', '16:9'] as const).map(ar => (
-                <button
-                  key={ar}
-                  onClick={() => setSelectedSkill(s => ({ ...s, aspectRatio: ar }))}
-                  className={[
-                    'flex-1 rounded-lg border py-2 text-xs font-medium transition-colors',
-                    selectedSkill.aspectRatio === ar
-                      ? 'border-green-600/60 bg-green-600/10 text-white'
-                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-                  ].join(' ')}
-                >
-                  {ar}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">
-            💡 Each video costs ~$0.30–0.60. 5s videos generate faster with better quality.
-          </div>
-        </aside>
       </div>
 
       {showUpgrade && <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />}

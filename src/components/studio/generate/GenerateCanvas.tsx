@@ -10,6 +10,7 @@ import {
 } from '@/lib/studio/constants';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
+import { AccordionSection } from '@/components/studio/AccordionSection';
 
 interface Props {
   userId: string;
@@ -410,8 +411,147 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         )}
       </div>
 
-      {/* ── Body: grid + right panel ────────────────────────────────────── */}
+      {/* ── Body: left settings + results grid ─────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Left settings panel with accordion sections */}
+        <aside className="hidden w-[240px] flex-shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-[#0d0d14] lg:flex">
+          <AccordionSection title="Model" defaultOpen>
+            <select
+              value={selectedModel}
+              onChange={e => setSelectedModel(e.target.value as FluxModel)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+            >
+              {FLUX_MODELS.map(m => (
+                <option key={m.value} value={m.value} className="bg-[#0d0d14]">
+                  {m.label} — {m.desc}
+                </option>
+              ))}
+            </select>
+          </AccordionSection>
+
+          <AccordionSection title="Preset" defaultOpen>
+            <div className="grid grid-cols-2 gap-1.5">
+              {(Object.keys(PRESET_MAP) as PresetKey[]).map(key => {
+                const p = PRESET_MAP[key];
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedPreset(key)}
+                    className={[
+                      'rounded-lg border px-2 py-2 text-left text-xs transition-colors',
+                      selectedPreset === key
+                        ? 'border-green-600/60 bg-green-600/10 text-white'
+                        : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                    ].join(' ')}
+                  >
+                    <div className="font-medium">{p.label}</div>
+                    <div className="text-gray-500">{p.display}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </AccordionSection>
+
+          <AccordionSection title="Format">
+            <div className="flex gap-1.5">
+              {OUTPUT_FORMATS.map(f => (
+                <button
+                  key={f}
+                  onClick={() => setOutputFormat(f)}
+                  className={[
+                    'flex-1 rounded-lg border py-1.5 text-xs font-medium uppercase transition-colors',
+                    outputFormat === f
+                      ? 'border-green-600/60 bg-green-600/10 text-white'
+                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                  ].join(' ')}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </AccordionSection>
+
+          <AccordionSection title="Style Tags">
+            <div className="flex flex-wrap gap-1.5">
+              {STYLE_TAGS.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className={[
+                    'rounded-full border px-2.5 py-1 text-xs transition-colors',
+                    activeStyleTags.has(tag)
+                      ? 'border-green-600/60 bg-green-600/10 text-green-400'
+                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
+                  ].join(' ')}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            {activeStyleTags.size > 0 && (
+              <button
+                onClick={() => setActiveStyleTags(new Set())}
+                className="mt-2 text-xs text-gray-500 hover:text-white"
+              >
+                Clear all
+              </button>
+            )}
+          </AccordionSection>
+
+          <AccordionSection title="Enhance Mode">
+            <select
+              value={enhanceMode}
+              onChange={e => setEnhanceMode(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
+            >
+              {ENHANCE_MODES.map(m => (
+                <option key={m.value} value={m.value} className="bg-[#0d0d14]">
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </AccordionSection>
+
+          <AccordionSection title="Reference Image">
+            {referencePreview ? (
+              <div className="relative overflow-hidden rounded-lg border border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={referencePreview} alt="Reference" className="w-full object-cover" style={{ maxHeight: 140 }} />
+                <button
+                  onClick={clearReference}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
+                >
+                  <IconX />
+                </button>
+              </div>
+            ) : (
+              <div
+                onDragOver={e => { e.preventDefault(); setRefDragOver(true); }}
+                onDragLeave={() => setRefDragOver(false)}
+                onDrop={handleRefDrop}
+                onClick={() => refInputRef.current?.click()}
+                className={[
+                  'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-5 text-center transition-colors',
+                  refDragOver
+                    ? 'border-green-600/50 bg-green-600/5'
+                    : 'border-white/10 hover:border-white/20',
+                ].join(' ')}
+              >
+                <IconUpload />
+                <p className="text-xs text-gray-400">Drop or click to upload</p>
+                <p className="text-xs text-gray-600">PNG, JPG, WebP</p>
+              </div>
+            )}
+            <input
+              ref={refInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleRefInputChange}
+            />
+          </AccordionSection>
+        </aside>
+
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto p-4">
           {isGenerating && generatedImages.length === 0 && (
@@ -466,31 +606,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             </div>
           )}
         </div>
-
-        {/* Right panel */}
-        <aside className="hidden w-[320px] flex-shrink-0 overflow-y-auto border-l border-white/10 bg-[#0d0d14] p-4 lg:block">
-          <RightPanel
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            selectedPreset={selectedPreset}
-            onPresetChange={k => setSelectedPreset(k)}
-            outputFormat={outputFormat}
-            onFormatChange={setOutputFormat}
-            enhanceMode={enhanceMode}
-            onEnhanceModeChange={setEnhanceMode}
-            activeStyleTags={activeStyleTags}
-            onTagToggle={toggleTag}
-            referencePreview={referencePreview}
-            refDragOver={refDragOver}
-            onRefDragOver={e => { e.preventDefault(); setRefDragOver(true); }}
-            onRefDragLeave={() => setRefDragOver(false)}
-            onRefDrop={handleRefDrop}
-            onRefClick={() => refInputRef.current?.click()}
-            onClearRef={clearReference}
-            refInputRef={refInputRef}
-            onRefInputChange={handleRefInputChange}
-          />
-        </aside>
       </div>
 
       {/* Modals */}
@@ -615,191 +730,3 @@ function ImageCard({ img, filter, copied, activeFilterId, onOpen, onAnimate, onA
   );
 }
 
-// ── RightPanel ───────────────────────────────────────────────────────────────
-
-interface RightPanelProps {
-  selectedModel: FluxModel;
-  onModelChange: (m: FluxModel) => void;
-  selectedPreset: PresetKey;
-  onPresetChange: (k: PresetKey) => void;
-  outputFormat: OutputFormat;
-  onFormatChange: (f: OutputFormat) => void;
-  enhanceMode: string;
-  onEnhanceModeChange: (m: string) => void;
-  activeStyleTags: Set<string>;
-  onTagToggle: (t: string) => void;
-  referencePreview: string | null;
-  refDragOver: boolean;
-  onRefDragOver: (e: DragEvent<HTMLDivElement>) => void;
-  onRefDragLeave: () => void;
-  onRefDrop: (e: DragEvent<HTMLDivElement>) => void;
-  onRefClick: () => void;
-  onClearRef: () => void;
-  refInputRef: React.RefObject<HTMLInputElement | null>;
-  onRefInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
-}
-
-function RightPanel({
-  selectedModel, onModelChange,
-  selectedPreset, onPresetChange,
-  outputFormat, onFormatChange,
-  enhanceMode, onEnhanceModeChange,
-  activeStyleTags, onTagToggle,
-  referencePreview, refDragOver,
-  onRefDragOver, onRefDragLeave, onRefDrop, onRefClick, onClearRef,
-  refInputRef, onRefInputChange,
-}: RightPanelProps) {
-  return (
-    <div className="flex flex-col gap-5">
-      {/* Model */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-gray-400">Model</label>
-        <select
-          value={selectedModel}
-          onChange={e => onModelChange(e.target.value as FluxModel)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
-        >
-          {FLUX_MODELS.map(m => (
-            <option key={m.value} value={m.value} className="bg-[#0d0d14]">
-              {m.label} — {m.desc}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Aspect ratio presets */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-gray-400">Preset</label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {(Object.keys(PRESET_MAP) as PresetKey[]).map(key => {
-            const p = PRESET_MAP[key];
-            return (
-              <button
-                key={key}
-                onClick={() => onPresetChange(key)}
-                className={[
-                  'rounded-lg border px-2 py-2 text-left text-xs transition-colors',
-                  selectedPreset === key
-                    ? 'border-green-600/60 bg-green-600/10 text-white'
-                    : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-                ].join(' ')}
-              >
-                <div className="font-medium">{p.label}</div>
-                <div className="text-gray-500">{p.display}</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Output format */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-gray-400">Format</label>
-        <div className="flex gap-1.5">
-          {OUTPUT_FORMATS.map(f => (
-            <button
-              key={f}
-              onClick={() => onFormatChange(f)}
-              className={[
-                'flex-1 rounded-lg border py-1.5 text-xs font-medium uppercase transition-colors',
-                outputFormat === f
-                  ? 'border-green-600/60 bg-green-600/10 text-white'
-                  : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-              ].join(' ')}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Style tags */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-gray-400">Style Tags</label>
-        <div className="flex flex-wrap gap-1.5">
-          {STYLE_TAGS.map(tag => (
-            <button
-              key={tag}
-              onClick={() => onTagToggle(tag)}
-              className={[
-                'rounded-full border px-2.5 py-1 text-xs transition-colors',
-                activeStyleTags.has(tag)
-                  ? 'border-green-600/60 bg-green-600/10 text-green-400'
-                  : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white',
-              ].join(' ')}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Enhance mode */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-gray-400">Enhance Mode</label>
-        <select
-          value={enhanceMode}
-          onChange={e => onEnhanceModeChange(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/20"
-        >
-          {ENHANCE_MODES.map(m => (
-            <option key={m.value} value={m.value} className="bg-[#0d0d14]">
-              {m.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Reference image */}
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-gray-400">Reference Image</label>
-        {referencePreview ? (
-          <div className="relative overflow-hidden rounded-lg border border-white/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={referencePreview} alt="Reference" className="w-full object-cover" style={{ maxHeight: 160 }} />
-            <button
-              onClick={onClearRef}
-              className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
-            >
-              <IconX />
-            </button>
-          </div>
-        ) : (
-          <div
-            onDragOver={onRefDragOver}
-            onDragLeave={onRefDragLeave}
-            onDrop={onRefDrop}
-            onClick={onRefClick}
-            className={[
-              'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors',
-              refDragOver
-                ? 'border-green-600/50 bg-green-600/5'
-                : 'border-white/10 hover:border-white/20',
-            ].join(' ')}
-          >
-            <IconUpload />
-            <p className="text-xs text-gray-400">Drop image or click to upload</p>
-            <p className="text-xs text-gray-600">PNG, JPG, WebP</p>
-          </div>
-        )}
-        <input
-          ref={refInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onRefInputChange}
-        />
-      </div>
-
-      {/* Clear all */}
-      {activeStyleTags.size > 0 && (
-        <button
-          onClick={() => { /* clear tags handled inline */ }}
-          className="text-xs text-gray-500 hover:text-white"
-        >
-          Clear style tags
-        </button>
-      )}
-    </div>
-  );
-}

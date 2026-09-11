@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
+import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
 import { NLETimeline } from './Timeline';
@@ -9,7 +10,6 @@ import { NLETimeline } from './Timeline';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type AspectRatio = '9:16' | '1:1' | '16:9';
-type ToolCategory = 'text' | 'transitions' | 'audio' | 'effects' | 'stickers';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -226,15 +226,16 @@ function IconEdit() {
   );
 }
 
-function IconHamburger() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  );
-}
+
+// ── Tool label map ────────────────────────────────────────────────────────────
+
+const TOOL_LABELS: Record<string, string> = {
+  text: 'Text Overlays',
+  transitions: 'Transitions',
+  audio: 'Audio',
+  effects: 'Effects',
+  stickers: 'Stickers',
+};
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -501,19 +502,12 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-const TOOL_CATEGORIES: { id: ToolCategory; label: string; Icon: React.FC<{ size?: number }> }[] = [
-  { id: 'text',        label: 'Text',        Icon: IconText },
-  { id: 'transitions', label: 'Transitions', Icon: IconTransition },
-  { id: 'audio',       label: 'Audio',       Icon: IconMusicNote },
-  { id: 'effects',     label: 'Effects',     Icon: IconEffects },
-  { id: 'stickers',    label: 'Stickers',    Icon: IconSticker },
-];
-
 interface Props {
   userId: string;
 }
 
 export function AssembleCanvas({ userId: _userId }: Props) {
+  const { expandedTool, setExpandedTool } = useSidebarContext();
   // Store — track-based timeline
   const timelineTracks     = useStudioStore(s => s.timelineTracks);
   const initDefaultTracks  = useStudioStore(s => s.initDefaultTracks);
@@ -577,9 +571,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [editingName, setEditingName]       = useState(false);
   const [error, setError]                   = useState<string | null>(null);
 
-  // NLE panel state
-  const [activeToolPanel, setActiveToolPanel] = useState<ToolCategory | null>(null);
-  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+  // Inspector toggle
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   // Text overlay editor state
   const [showTemplates, setShowTemplates]         = useState(false);
@@ -892,41 +885,18 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   // ── Left panel ────────────────────────────────────────────────────────────
 
   function LeftPanelContent() {
-    if (!activeToolPanel) {
-      return (
-        <div className="flex flex-col gap-0.5 p-2">
-          {TOOL_CATEGORIES.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveToolPanel(id)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <Icon size={16} />
-              <span>{label}</span>
-              {id === 'text' && textOverlays.length > 0 && (
-                <span className="ml-auto rounded-full bg-white/10 px-1.5 py-px text-[10px] text-gray-400">{textOverlays.length}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    const cat = TOOL_CATEGORIES.find(c => c.id === activeToolPanel);
-    const CatIcon = cat?.Icon ?? IconText;
-
     return (
       <div className="flex flex-col">
-        <button
-          onClick={() => setActiveToolPanel(null)}
-          className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2 text-xs text-gray-500 transition-colors hover:text-white"
-        >
-          <IconChevronLeft size={14} />
-          <CatIcon size={14} />
-          <span>{cat?.label}</span>
-        </button>
+        <div className="flex items-center justify-between border-b border-white/5 px-3 py-2">
+          <span className="text-xs font-semibold text-gray-300">
+            {expandedTool ? (TOOL_LABELS[expandedTool] ?? expandedTool) : ''}
+          </span>
+          <button onClick={() => setExpandedTool(null)} className="text-gray-500 hover:text-white">
+            <IconX size={14} />
+          </button>
+        </div>
 
-        {activeToolPanel === 'text' && (
+        {expandedTool === 'text' && (
           <div className="flex flex-col gap-2 p-2">
             <button
               onClick={() => { setShowTemplates(v => !v); if (editingOverlayIdx !== null) { setEditingOverlayIdx(null); setDraftOverlay(null); } }}
@@ -972,7 +942,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {activeToolPanel === 'transitions' && (
+        {expandedTool === 'transitions' && (
           <div className="flex flex-col gap-4 p-3">
             <div>
               <div className="mb-1.5 text-[10px] uppercase tracking-wider text-gray-500">Transition type</div>
@@ -1011,7 +981,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {activeToolPanel === 'audio' && (
+        {expandedTool === 'audio' && (
           <div className="flex flex-col gap-3 p-3">
             <div className="text-[10px] uppercase tracking-wider text-gray-500">Background music</div>
             {musicFile ? (
@@ -1047,7 +1017,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {activeToolPanel === 'effects' && (
+        {expandedTool === 'effects' && (
           <div className="flex flex-col gap-4 p-3">
             <div>
               <div className="mb-1.5 text-[10px] uppercase tracking-wider text-gray-500">Aspect ratio</div>
@@ -1069,7 +1039,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {activeToolPanel === 'stickers' && (
+        {expandedTool === 'stickers' && (
           <div className="flex flex-col items-center gap-2 p-6 text-center text-gray-600">
             <IconSticker size={28} />
             <p className="text-xs">Coming soon</p>
@@ -1084,62 +1054,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#0a0a0f]">
 
-      {/* ── Top Tab Bar ──────────────────────────────────────────────────── */}
-      <div className="flex h-10 flex-shrink-0 items-center border-b border-white/10 bg-[#0d0d14] px-2">
-        <button
-          onClick={() => setMobilePanelOpen(o => !o)}
-          className="mr-2 text-gray-500 hover:text-white md:hidden"
-          aria-label="Toggle tool panel"
-        >
-          <IconHamburger />
-        </button>
-
-        <div className="ml-auto flex items-center gap-2 pr-2">
-          {editingName ? (
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={projectName}
-              onChange={e => setProjectName(e.target.value)}
-              onBlur={() => setEditingName(false)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingName(false); }}
-              autoFocus
-              className="min-w-0 w-32 rounded bg-white/10 px-2 py-0.5 text-xs text-white outline-none focus:ring-1 focus:ring-green-600"
-            />
-          ) : (
-            <button onClick={() => setEditingName(true)} className="truncate text-xs text-gray-400 hover:text-white" title="Click to rename">
-              {projectName}
-            </button>
-          )}
-          {totalDuration > 0 && (
-            <span className="rounded-full bg-white/10 px-2 py-px text-[10px] text-gray-500">{totalDuration.toFixed(1)}s</span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Three-panel body ─────────────────────────────────────────────── */}
+      {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Left Tool Panel */}
-        <aside className={[
-          'flex-shrink-0 w-[220px] bg-[#0d0d14] border-r border-white/10 overflow-y-auto',
-          'hidden md:flex md:flex-col',
-        ].join(' ')}>
-          <LeftPanelContent />
-        </aside>
-
-        {/* Mobile panel overlay */}
-        {mobilePanelOpen && (
-          <>
-            <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setMobilePanelOpen(false)} />
-            <aside className="fixed bottom-0 left-0 top-0 z-40 flex w-[220px] flex-col overflow-y-auto bg-[#0d0d14] border-r border-white/10 md:hidden">
-              <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-                <span className="text-xs text-gray-400">Tools</span>
-                <button onClick={() => setMobilePanelOpen(false)} className="text-gray-500 hover:text-white"><IconX size={14} /></button>
-              </div>
-              <LeftPanelContent />
-            </aside>
-          </>
+        {/* Left tool panel — driven by SidebarContext expandedTool */}
+        {expandedTool && (
+          <aside className="flex w-[240px] flex-shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-[#0d0d14]">
+            <LeftPanelContent />
+          </aside>
         )}
 
         {/* Center + Timeline column */}
@@ -1235,6 +1157,20 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </div>
             )}
 
+            {/* Inspector toggle */}
+            <button
+              onClick={() => setInspectorOpen(o => !o)}
+              className={[
+                'absolute right-2 top-2 rounded-md p-1.5 text-gray-500 transition-colors hover:text-white',
+                inspectorOpen ? 'bg-white/10 text-gray-300' : 'hover:bg-white/5',
+              ].join(' ')}
+              title="Toggle inspector"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
+              </svg>
+            </button>
+
             {/* Playback controls */}
             {!resultUrl && !isRendering && (
               <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-sm">
@@ -1292,6 +1228,29 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
           {/* Export Toolbar */}
           <div className="flex flex-shrink-0 items-center gap-1 border-t border-white/10 bg-[#0d0d14] px-3 py-1.5">
+            {/* Project name + duration */}
+            <div className="flex items-center gap-1.5 mr-2">
+              {editingName ? (
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={projectName}
+                  onChange={e => setProjectName(e.target.value)}
+                  onBlur={() => setEditingName(false)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingName(false); }}
+                  autoFocus
+                  className="min-w-0 w-28 rounded bg-white/10 px-2 py-0.5 text-xs text-white outline-none focus:ring-1 focus:ring-green-600"
+                />
+              ) : (
+                <button onClick={() => setEditingName(true)} className="truncate max-w-[120px] text-xs text-gray-400 hover:text-white" title="Click to rename">
+                  {projectName}
+                </button>
+              )}
+              {totalDuration > 0 && (
+                <span className="rounded-full bg-white/10 px-2 py-px text-[10px] text-gray-500">{totalDuration.toFixed(1)}s</span>
+              )}
+            </div>
+            <div className="h-4 w-px bg-white/10 mr-1" />
             {/* Undo/Redo placeholders */}
             <button disabled className="rounded px-2 py-1 text-xs text-gray-700 cursor-not-allowed" title="Undo (Ctrl+Z)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
@@ -1349,17 +1308,11 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         </div>
 
-        {/* Right Inspector Panel */}
-        <aside className="hidden w-[260px] flex-shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-[#0d0d14] md:flex">
-          <RightPanelContent />
-        </aside>
-
-        {/* Mobile right: bottom sheet */}
-        {(editingOverlayIdx !== null || selectedClip) && (
-          <div className="fixed inset-x-0 bottom-0 z-50 max-h-[60vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#0d0d14] shadow-2xl md:hidden">
-            <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20" />
+        {/* Right Inspector Panel — toggleable */}
+        {inspectorOpen && (
+          <aside className="flex w-[260px] flex-shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-[#0d0d14]">
             <RightPanelContent />
-          </div>
+          </aside>
         )}
       </div>
 

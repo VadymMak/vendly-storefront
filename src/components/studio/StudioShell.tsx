@@ -108,6 +108,7 @@ export function StudioShell({ userEmail, children }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isAssembleMode = pathname.startsWith('/studio/assemble');
 
   function navItemClass(href: string) {
     const isActive = pathname === href || pathname.startsWith(href + '/');
@@ -195,29 +196,27 @@ export function StudioShell({ userEmail, children }: Props) {
           />
         )}
 
-        {/* Sidebar */}
-        <aside
-          className={[
-            'flex-shrink-0 overflow-hidden border-r border-white/10 bg-[#0d0d14]',
-            'transition-[width,transform] duration-200',
-            // Desktop: in flex flow, collapsible
-            'hidden md:flex md:flex-col',
-            // Tablet (md-lg): always icon-only 56px. Desktop (lg+): depends on collapsed state
-            collapsed ? 'md:w-14' : 'md:w-14 lg:w-[200px]',
-            // Mobile: absolute overlay
-            mobileOpen
-              ? 'fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col'
-              : '',
-          ].join(' ')}
-        >
-          {sidebarContent}
-        </aside>
+        {/* Sidebar — hidden entirely in Assemble mode */}
+        {!isAssembleMode && (
+          <>
+            <aside
+              className={[
+                'flex-shrink-0 overflow-hidden border-r border-white/10 bg-[#0d0d14]',
+                'transition-[width,transform] duration-200',
+                'hidden md:flex md:flex-col',
+                collapsed ? 'md:w-14' : 'md:w-14 lg:w-[200px]',
+                mobileOpen ? 'fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col' : '',
+              ].join(' ')}
+            >
+              {sidebarContent}
+            </aside>
 
-        {/* Mobile sidebar (separate so it doesn't fight with md:hidden) */}
-        {mobileOpen && (
-          <aside className="fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col overflow-hidden border-r border-white/10 bg-[#0d0d14] md:hidden">
-            {sidebarContent}
-          </aside>
+            {mobileOpen && (
+              <aside className="fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col overflow-hidden border-r border-white/10 bg-[#0d0d14] md:hidden">
+                {sidebarContent}
+              </aside>
+            )}
+          </>
         )}
 
         {/* Main content */}

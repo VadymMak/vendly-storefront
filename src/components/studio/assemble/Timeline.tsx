@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
-import type { TimelineClip, TimelineTrack } from '@/lib/studio/store';
+import type { TimelineClip, TimelineTrack, MediaItem } from '@/lib/studio/store';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -72,6 +72,41 @@ function IconPlus() {
   );
 }
 
+function IconUpload() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="16 16 12 12 8 16"/>
+      <line x1="12" y1="12" x2="12" y2="21"/>
+      <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
+    </svg>
+  );
+}
+
+function IconSparkle() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+    </svg>
+  );
+}
+
+function IconPlay() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
+function IconX() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
 // ── Track color helpers ───────────────────────────────────────────────────────
 
 function trackIcon(type: TimelineTrack['type']) {
@@ -112,6 +147,8 @@ interface Props {
   onFileAdd: (files: FileList) => void;
 }
 
+type ImportTab = 'generate' | 'animate';
+
 export function NLETimeline({ musicFile, onFileAdd }: Props) {
   const tracks          = useStudioStore(s => s.timelineTracks);
   const zoom            = useStudioStore(s => s.timelineZoom);
@@ -121,6 +158,13 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
   const selectedClipId  = useStudioStore(s => s.selectedClipId);
   const setSelected     = useStudioStore(s => s.setSelectedClipId);
   const trimClip        = useStudioStore(s => s.trimClip);
+  const isPlaying       = useStudioStore(s => s.isPlaying);
+  const setIsPlaying    = useStudioStore(s => s.setIsPlaying);
+  const generatedImages = useStudioStore(s => s.generatedImages);
+  const generatedVideos = useStudioStore(s => s.generatedVideos);
+  const addClipToTrack  = useStudioStore(s => s.addClipToTrack);
+  const splitClipFn     = useStudioStore(s => s.splitClip);
+  const removeClipFn    = useStudioStore(s => s.removeClip);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef    = useRef<HTMLDivElement>(null);
@@ -128,6 +172,12 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
   const zoomRef      = useRef(zoom);
   const [draftClip, setDraftClip] = useState<DraftClip | null>(null);
   const [playheadDragging, setPlayheadDragging] = useState(false);
+
+  // Import menu state
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const [importTab, setImportTab] = useState<ImportTab>('generate');
+  // Which + button triggered the menu
+  const importBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // Keep zoomRef current
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -138,6 +188,18 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
     t.clips.reduce((m, c) => Math.max(m, c.startTime + c.duration), max), 0
   );
   const contentWidth = Math.max(totalDuration * zoom + 400, 800);
+
+  // ── Auto-scroll during playback ───────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isPlaying || !scrollRef.current) return;
+    const playheadPx = playheadTime * zoom;
+    const container = scrollRef.current;
+    const visibleEnd = container.scrollLeft + container.clientWidth;
+    if (playheadPx > visibleEnd - 50) {
+      container.scrollLeft = playheadPx - container.clientWidth / 2;
+    }
+  }, [playheadTime, isPlaying, zoom]);
 
   // ── Helper: get time from clientX ─────────────────────────────────────────
 
@@ -220,6 +282,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
 
   const startPlayheadDrag = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    setIsPlaying(false);
     setPlayheadDragging(true);
 
     function onMove(ev: MouseEvent) {
@@ -233,43 +296,9 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [getTimeAt, setPlayheadTime]);
+  }, [getTimeAt, setPlayheadTime, setIsPlaying]);
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
-
-  const playingRef   = useRef(false);
-  const rafRef       = useRef<number | null>(null);
-  const lastTimeRef  = useRef(0);
-  const phTimeRef    = useRef(playheadTime);
-  const totalDurRef  = useRef(totalDuration);
-
-  useEffect(() => { phTimeRef.current = playheadTime; }, [playheadTime]);
-  useEffect(() => { totalDurRef.current = totalDuration; }, [totalDuration]);
-
-  function togglePlayback() {
-    playingRef.current = !playingRef.current;
-    if (playingRef.current) {
-      lastTimeRef.current = performance.now();
-      function frame(now: number) {
-        if (!playingRef.current) return;
-        const dt = (now - lastTimeRef.current) / 1000;
-        lastTimeRef.current = now;
-        const next = Math.min(phTimeRef.current + dt, totalDurRef.current);
-        setPlayheadTime(next);
-        if (next >= totalDurRef.current) {
-          playingRef.current = false;
-          return;
-        }
-        rafRef.current = requestAnimationFrame(frame);
-      }
-      rafRef.current = requestAnimationFrame(frame);
-    } else {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    }
-  }
-
-  const splitClipFn  = useStudioStore(s => s.splitClip);
-  const removeClipFn = useStudioStore(s => s.removeClip);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -278,7 +307,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
 
       if (e.code === 'Space') {
         e.preventDefault();
-        togglePlayback();
+        setIsPlaying(!useStudioStore.getState().isPlaying);
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -303,10 +332,10 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
         const id = useStudioStore.getState().selectedClipId;
         if (id) {
           const ph = useStudioStore.getState().playheadTime;
-          const track = useStudioStore.getState().timelineTracks
+          const clip = useStudioStore.getState().timelineTracks
             .flatMap(t => t.clips).find(c => c.id === id);
-          if (track && ph > track.startTime) {
-            trimClip(id, ph, track.duration - (ph - track.startTime));
+          if (clip && ph > clip.startTime) {
+            trimClip(id, ph, clip.duration - (ph - clip.startTime));
           }
         }
         return;
@@ -325,12 +354,41 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
       }
     }
     window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [removeClipFn, splitClipFn, setZoom, trimClip]);
+  }, [removeClipFn, splitClipFn, setZoom, trimClip, setIsPlaying]);
+
+  // ── Import from store ─────────────────────────────────────────────────────
+
+  const videoTrack = tracks.find(t => t.type === 'video');
+
+  function importFromStore(item: MediaItem) {
+    const vt = tracks.find(t => t.type === 'video');
+    if (!vt) return;
+    const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
+    const last = sorted.at(-1);
+    const startTime = last ? last.startTime + last.duration : 0;
+    addClipToTrack(vt.id, {
+      type: item.type,
+      startTime,
+      duration: item.duration ?? (item.type === 'video' ? 5 : 3),
+      sourceUrl: item.url,
+      prompt: item.prompt,
+    });
+    setShowImportMenu(false);
+  }
+
+  // ── Close import menu on outside click ───────────────────────────────────
+
+  useEffect(() => {
+    if (!showImportMenu) return;
+    function onClickOutside(e: MouseEvent) {
+      if (importBtnRef.current && importBtnRef.current.contains(e.target as Node)) return;
+      setShowImportMenu(false);
+    }
+    window.addEventListener('mousedown', onClickOutside);
+    return () => window.removeEventListener('mousedown', onClickOutside);
+  }, [showImportMenu]);
 
   // ── Render ruler ticks ────────────────────────────────────────────────────
 
@@ -347,13 +405,17 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
     return clip;
   }
 
-  const videoTrack = tracks.find(t => t.type === 'video');
-
   // ── Track rows height total ───────────────────────────────────────────────
 
   const RULER_H = 32;
   const tracksHeight = tracks.reduce((sum, t) => sum + t.height, 0);
   const totalH = RULER_H + tracksHeight;
+
+  // ── End position of video track for + button ──────────────────────────────
+
+  const videoTrackEndPx = videoTrack
+    ? videoTrack.clips.reduce((m, c) => Math.max(m, c.startTime + c.duration), 0) * zoom
+    : 0;
 
   // ── Component ─────────────────────────────────────────────────────────────
 
@@ -396,6 +458,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
               className="sticky top-0 z-20 flex h-8 cursor-crosshair items-end border-b border-white/10 bg-[#0a0a0f] pb-0.5"
               style={{ width: contentWidth }}
               onClick={e => {
+                setIsPlaying(false);
                 setPlayheadTime(getTimeAt(e.clientX));
               }}
             >
@@ -412,7 +475,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
               {/* Playhead handle on ruler */}
               <div
                 className="absolute top-0 z-30 flex cursor-col-resize flex-col items-center"
-                style={{ left: (draftClip ? playheadTime : playheadTime) * zoom - 5 }}
+                style={{ left: playheadTime * zoom - 5 }}
                 onMouseDown={startPlayheadDrag}
               >
                 <div
@@ -431,7 +494,6 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
               />
 
               {tracks.map((track, tIdx) => {
-                // Show music bar on audio track if musicFile present
                 const showMusicBar = track.type === 'audio' && musicFile;
 
                 return (
@@ -460,11 +522,13 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
 
                     {/* Clips */}
                     {track.clips.map(rawClip => {
-                      const clip    = resolvedClip(rawClip);
-                      const w       = Math.max(clip.duration * zoom, 4);
-                      const left    = clip.startTime * zoom;
-                      const isSel   = clip.id === selectedClipId;
-                      const label   =
+                      const clip  = resolvedClip(rawClip);
+                      const w     = Math.max(clip.duration * zoom, 4);
+                      const left  = clip.startTime * zoom;
+                      const isSel = clip.id === selectedClipId;
+                      const isActiveAtPlayhead =
+                        playheadTime >= clip.startTime && playheadTime < clip.startTime + clip.duration;
+                      const label =
                         clip.overlayData?.text ??
                         clip.audioName ??
                         clip.prompt ??
@@ -476,6 +540,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
                           className={[
                             'group absolute inset-y-1 cursor-grab overflow-hidden rounded border text-[10px] font-medium text-white active:cursor-grabbing',
                             clipBg(clip.type, isSel),
+                            isActiveAtPlayhead && !isSel ? 'ring-1 ring-white/20' : '',
                           ].join(' ')}
                           style={{ left, width: w }}
                           onClick={e => { e.stopPropagation(); setSelected(clip.id); }}
@@ -537,12 +602,15 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
 
                     {/* "+" button on empty video track */}
                     {track.type === 'video' && track.clips.length === 0 && (
-                      <button
-                        className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded border border-dashed border-white/15 px-2 py-1 text-[10px] text-gray-600 hover:border-white/25 hover:text-gray-400"
-                        onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                      >
-                        <IconPlus /> Add clips
-                      </button>
+                      <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                        <button
+                          ref={el => { if (el && track.clips.length === 0) importBtnRef.current = el; }}
+                          className="flex items-center gap-1 rounded border border-dashed border-white/15 px-2 py-1 text-[10px] text-gray-600 hover:border-white/25 hover:text-gray-400"
+                          onClick={e => { e.stopPropagation(); setShowImportMenu(v => !v); }}
+                        >
+                          <IconPlus /> Add clips
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -551,16 +619,18 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
               {/* "+" add button on video track end */}
               {videoTrack && videoTrack.clips.length > 0 && (
                 <div
-                  className="absolute top-0 z-5"
+                  className="absolute"
                   style={{
-                    left: videoTrack.clips.reduce((m, c) => Math.max(m, c.startTime + c.duration), 0) * zoom,
+                    left: videoTrackEndPx,
                     height: videoTrack.height,
-                    top: 0,
+                    top: tracks.findIndex(t => t.type === 'video') * 0 +
+                         tracks.slice(0, tracks.findIndex(t => t.type === 'video')).reduce((s, t) => s + t.height, 0),
                   }}
                 >
                   <button
+                    ref={el => { if (el) importBtnRef.current = el; }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-white/15 text-gray-600 hover:border-white/25 hover:text-gray-400"
-                    onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                    onClick={e => { e.stopPropagation(); setShowImportMenu(v => !v); }}
                   >
                     <IconPlus />
                   </button>
@@ -570,6 +640,88 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
           </div>
         </div>
       </div>
+
+      {/* ── Import menu ───────────────────────────────────────────────────── */}
+      {showImportMenu && (
+        <div className="absolute bottom-[60px] left-[110px] z-50 w-64 overflow-hidden rounded-lg border border-white/10 bg-[#0d0d14] shadow-2xl">
+          {/* Tabs */}
+          <div className="flex border-b border-white/10">
+            <button
+              onClick={() => { fileInputRef.current?.click(); setShowImportMenu(false); }}
+              className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
+            >
+              <IconUpload /> Upload
+            </button>
+            <button
+              onClick={() => setImportTab('generate')}
+              className={[
+                'flex flex-1 items-center justify-center gap-1.5 py-2 text-xs transition-colors',
+                importTab === 'generate' ? 'bg-white/5 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-gray-300',
+              ].join(' ')}
+            >
+              <IconSparkle /> Generate
+            </button>
+            <button
+              onClick={() => setImportTab('animate')}
+              className={[
+                'flex flex-1 items-center justify-center gap-1.5 py-2 text-xs transition-colors',
+                importTab === 'animate' ? 'bg-white/5 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-gray-300',
+              ].join(' ')}
+            >
+              <IconPlay /> Animate
+            </button>
+            <button
+              onClick={() => setShowImportMenu(false)}
+              className="px-2 text-gray-600 hover:text-gray-300"
+            >
+              <IconX />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="max-h-40 overflow-y-auto p-2">
+            {importTab === 'generate' && (
+              generatedImages.length === 0 ? (
+                <p className="py-4 text-center text-[10px] text-gray-600">No generated images yet.<br />Go to the Generate tab first.</p>
+              ) : (
+                <div className="grid grid-cols-4 gap-1">
+                  {generatedImages.slice(0, 20).map(img => (
+                    <button
+                      key={img.id}
+                      onClick={() => importFromStore(img)}
+                      className="overflow-hidden rounded border border-white/10 transition-all hover:border-white/30 hover:ring-1 hover:ring-green-500/50"
+                      style={{ aspectRatio: '1/1' }}
+                      title={img.prompt ?? 'Image'}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+            {importTab === 'animate' && (
+              generatedVideos.length === 0 ? (
+                <p className="py-4 text-center text-[10px] text-gray-600">No generated videos yet.<br />Go to the Animate tab first.</p>
+              ) : (
+                <div className="grid grid-cols-4 gap-1">
+                  {generatedVideos.slice(0, 20).map(vid => (
+                    <button
+                      key={vid.id}
+                      onClick={() => importFromStore(vid)}
+                      className="overflow-hidden rounded border border-white/10 transition-all hover:border-white/30 hover:ring-1 hover:ring-green-500/50"
+                      style={{ aspectRatio: '1/1' }}
+                      title={vid.prompt ?? 'Video'}
+                    >
+                      <video src={vid.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Playhead dragging tooltip ─────────────────────────────────────── */}
       {playheadDragging && (

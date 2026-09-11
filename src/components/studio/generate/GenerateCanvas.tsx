@@ -93,7 +93,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const generatedImages = useStudioStore((s) => s.generatedImages);
   const addImage = useStudioStore((s) => s.addImage);
   const removeImage = useStudioStore((s) => s.removeImage);
-  const addToTimeline = useStudioStore((s) => s.addToTimeline);
 
   // Prompt
   const [prompt, setPrompt] = useState('');
@@ -122,6 +121,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [modalImage, setModalImage] = useState<MediaItem | null>(null);
   const [imageFilters, setImageFilters] = useState<Record<string, string>>({});
   const [copyStates, setCopyStates] = useState<Record<string, boolean>>({});
+  const [addedToast, setAddedToast] = useState<string | null>(null);
 
   // ── Reference image handlers ───────────────────────────────────────────────
 
@@ -289,7 +289,25 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   // ── Add to Assemble ───────────────────────────────────────────────────────
 
   function handleAddToAssemble(img: MediaItem) {
-    addToTimeline({ type: 'image', url: img.url, prompt: img.prompt });
+    const store = useStudioStore.getState();
+    store.initDefaultTracks();
+    const vt = useStudioStore.getState().timelineTracks.find(t => t.type === 'video');
+    if (vt) {
+      const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
+      const last = sorted.at(-1);
+      const startTime = last ? last.startTime + last.duration : 0;
+      store.addClipToTrack(vt.id, {
+        type: 'image',
+        startTime,
+        duration: 3,
+        sourceUrl: img.url,
+        prompt: img.prompt,
+      });
+    } else {
+      store.addToTimeline({ type: 'image', url: img.url, prompt: img.prompt });
+    }
+    setAddedToast(img.id);
+    setTimeout(() => setAddedToast(null), 2000);
   }
 
   // ── Download ──────────────────────────────────────────────────────────────
@@ -491,6 +509,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
           onDownload={() => handleDownload(modalImage)}
           onCopy={() => handleCopyPrompt(modalImage)}
         />
+      )}
+      {/* Added to timeline toast */}
+      {addedToast && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-950/90 px-4 py-3 text-sm text-green-300 shadow-xl">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          Added to Assemble timeline
+        </div>
       )}
     </div>
   );

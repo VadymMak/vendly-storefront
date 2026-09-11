@@ -79,6 +79,9 @@ interface StudioStore {
   playheadTime: number;
   setPlayheadTime: (time: number) => void;
 
+  isPlaying: boolean;
+  setIsPlaying: (v: boolean) => void;
+
   timelineZoom: number;
   setTimelineZoom: (zoom: number) => void;
 
@@ -287,6 +290,10 @@ export const useStudioStore = create<StudioStore>()(
       // ── Playhead ─────────────────────────────────────────────────────────
       playheadTime: 0,
       setPlayheadTime: (time) => set({ playheadTime: Math.max(0, time) }),
+
+      // ── Playback ─────────────────────────────────────────────────────────
+      isPlaying: false,
+      setIsPlaying: (v) => set({ isPlaying: v }),
 
       // ── Zoom ─────────────────────────────────────────────────────────────
       timelineZoom: 80,

@@ -108,7 +108,6 @@ export function AnimateCanvas({ userId: _userId }: Props) {
 
   // Store
   const addVideo = useStudioStore((s) => s.addVideo);
-  const addToTimeline = useStudioStore((s) => s.addToTimeline);
 
   // Pre-fill from query params (pipeline from Generate mode)
   const imageParam = searchParams.get('image');
@@ -330,12 +329,23 @@ export function AnimateCanvas({ userId: _userId }: Props) {
   // ── Add to Assemble ───────────────────────────────────────────────────────
   function handleAddToAssemble() {
     if (!videoUrl) return;
-    addToTimeline({
-      type: 'video',
-      url: videoUrl,
-      prompt: motionPrompt,
-      duration: selectedSkill.duration,
-    });
+    const store = useStudioStore.getState();
+    store.initDefaultTracks();
+    const vt = useStudioStore.getState().timelineTracks.find(t => t.type === 'video');
+    if (vt) {
+      const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
+      const last = sorted.at(-1);
+      const startTime = last ? last.startTime + last.duration : 0;
+      store.addClipToTrack(vt.id, {
+        type: 'video',
+        startTime,
+        duration: selectedSkill.duration,
+        sourceUrl: videoUrl,
+        prompt: motionPrompt,
+      });
+    } else {
+      store.addToTimeline({ type: 'video', url: videoUrl, prompt: motionPrompt, duration: selectedSkill.duration });
+    }
     router.push('/studio/assemble');
   }
 

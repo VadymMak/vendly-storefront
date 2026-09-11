@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useStudioStore } from '@/lib/studio/store';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
@@ -31,6 +31,13 @@ const TRANSITION_OPTIONS: { value: TransitionType; label: string }[] = [
 const TRANSITION_DUR = 0.5;
 const FPS = 30;
 const IMAGE_DUR_OPTIONS = [2, 3, 4, 5];
+
+function formatTime(s: number): string {
+  const m   = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  const f   = Math.floor((s % 1) * 10);
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${f}`;
+}
 
 const PRESET_COLORS = [
   '#FFFFFF', '#000000', '#C9A347', '#E85D04',
@@ -544,6 +551,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const removeClipFn       = useStudioStore(s => s.removeClip);
   const splitClipFn        = useStudioStore(s => s.splitClip);
   const playheadTime       = useStudioStore(s => s.playheadTime);
+  const setPlayheadTime    = useStudioStore(s => s.setPlayheadTime);
+  const isPlaying          = useStudioStore(s => s.isPlaying);
+  const setIsPlaying       = useStudioStore(s => s.setIsPlaying);
 
   // Store — text overlays (left panel)
   const textOverlays       = useStudioStore(s => s.textOverlays);
@@ -555,9 +565,20 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   useEffect(() => { initDefaultTracks(); }, [initDefaultTracks]);
 
   // Derived: video track
-  const videoTrack = timelineTracks.find(t => t.type === 'video');
-  const videoClips = [...(videoTrack?.clips ?? [])].sort((a, b) => a.startTime - b.startTime);
+  const videoTrack  = timelineTracks.find(t => t.type === 'video');
+  const textTrack   = timelineTracks.find(t => t.type === 'text');
+  const videoClips  = [...(videoTrack?.clips ?? [])].sort((a, b) => a.startTime - b.startTime);
   const totalDuration = videoClips.reduce((s, c) => Math.max(s, c.startTime + c.duration), 0);
+
+  // Active clip at playhead
+  const activeClip = videoClips.find(c =>
+    playheadTime >= c.startTime && playheadTime < c.startTime + c.duration
+  ) ?? videoClips[0] ?? null;
+
+  // Active text clips from text track
+  const activeTextClips = (textTrack?.clips ?? []).filter(c =>
+    playheadTime >= c.startTime && playheadTime < c.startTime + c.duration
+  );
 
   // Selected clip info (from any track)
   const selectedClip = selectedClipId
@@ -593,9 +614,78 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [editingOverlayIdx, setEditingOverlayIdx] = useState<number | null>(null);
   const [draftOverlay, setDraftOverlay]           = useState<TextOverlay | null>(null);
 
-  const musicInputRef = useRef<HTMLInputElement>(null);
-  const nameInputRef  = useRef<HTMLInputElement>(null);
-  const resultBlobRef = useRef<string | null>(null);
+  const musicInputRef  = useRef<HTMLInputElement>(null);
+  const nameInputRef   = useRef<HTMLInputElement>(null);
+  const resultBlobRef  = useRef<string | null>(null);
+  const videoRef       = useRef<HTMLVideoElement>(null);
+  const animFrameRef   = useRef<number>(0);
+  const lastTimeRef    = useRef<number>(0);
+  const phTimeRef      = useRef(playheadTime);
+  const totalDurRef    = useRef(totalDuration);
+  const activeClipIdRef = useRef<string | null>(null);
+
+  useEffect(() => { phTimeRef.current = playheadTime; }, [playheadTime]);
+  useEffect(() => { totalDurRef.current = totalDuration; }, [totalDuration]);
+
+  // ── Playback RAF loop ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isPlaying) {
+      cancelAnimationFrame(animFrameRef.current);
+      return;
+    }
+    lastTimeRef.current = performance.now();
+    function tick(now: number) {
+      const dt   = (now - lastTimeRef.current) / 1000;
+      lastTimeRef.current = now;
+      const next = Math.min(phTimeRef.current + dt, totalDurRef.current);
+      phTimeRef.current = next;
+      setPlayheadTime(next);
+      if (next >= totalDurRef.current) {
+        setIsPlaying(false);
+        return;
+      }
+      animFrameRef.current = requestAnimationFrame(tick);
+    }
+    animFrameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [isPlaying, setPlayheadTime, setIsPlaying]);
+
+  // ── Video element — seek on scrub ─────────────────────────────────────────
+
+  const seekVideo = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !activeClip || activeClip.type !== 'video') return;
+    const offset = Math.max(0, playheadTime - activeClip.startTime);
+    if (Math.abs(v.currentTime - offset) > 0.15) v.currentTime = offset;
+  }, [playheadTime, activeClip]);
+
+  // Seek when scrubbing (not playing)
+  useEffect(() => {
+    if (isPlaying) return;
+    seekVideo();
+  }, [playheadTime, isPlaying, seekVideo]);
+
+  // On clip change: seek to correct offset and play/pause
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (!activeClip || activeClip.type !== 'video') {
+      v.pause();
+      return;
+    }
+    if (activeClipIdRef.current !== activeClip.id) {
+      activeClipIdRef.current = activeClip.id;
+      const offset = Math.max(0, playheadTime - activeClip.startTime);
+      v.currentTime = offset;
+    }
+    if (isPlaying) {
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeClip?.id, isPlaying]);
 
   // ── File add: goes to video track ─────────────────────────────────────────
 
@@ -647,12 +737,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     }
   }
 
-  const previewOverlays: TextOverlay[] = [
-    ...textOverlays
-      .filter((_, i) => !(editingOverlayIdx !== null && editingOverlayIdx >= 0 && i === editingOverlayIdx))
-      .filter(o => o.scope !== 'scene'),
-    ...(draftOverlay && draftOverlay.scope !== 'scene' ? [draftOverlay] : []),
-  ];
+  // (previewOverlays moved above as editorPreviewOverlays)
 
   // ── Export ─────────────────────────────────────────────────────────────────
 
@@ -742,9 +827,15 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
       : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' };
 
-  // ── Preview clip (first video clip) ──────────────────────────────────────
+  // ── Active text overlay preview (for editing panel) ──────────────────────
 
-  const previewClip = videoClips[0] ?? null;
+  // Global textOverlays for the editor live-preview; combined with text track clips
+  const editorPreviewOverlays = [
+    ...textOverlays
+      .filter((_, i) => !(editingOverlayIdx !== null && editingOverlayIdx >= 0 && i === editingOverlayIdx))
+      .filter(o => o.scope !== 'scene'),
+    ...(draftOverlay && draftOverlay.scope !== 'scene' ? [draftOverlay] : []),
+  ];
 
   // ── Right panel ───────────────────────────────────────────────────────────
 
@@ -1127,27 +1218,55 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 </div>
                 <p className="text-xs text-gray-500">{renderProgress}%</p>
               </div>
-            ) : previewClip ? (
+            ) : activeClip ? (
               <div
                 className="relative overflow-hidden rounded-xl bg-black shadow-2xl"
                 style={canvasStyle}
                 onClick={e => e.stopPropagation()}
               >
-                {previewClip.sourceUrl && (previewClip.type === 'image'
+                {/* Image clip */}
+                {activeClip.type === 'image' && activeClip.sourceUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={previewClip.sourceUrl} alt="Preview" className="h-full w-full object-cover opacity-80" />
-                  : <video src={previewClip.sourceUrl} className="h-full w-full object-cover opacity-80" muted playsInline />
+                  <img src={activeClip.sourceUrl} alt="Preview" className="h-full w-full object-cover" />
                 )}
-                {previewOverlays.length > 0 && (
+                {/* Video clip — single element, seeked via ref */}
+                {activeClip.type === 'video' && activeClip.sourceUrl && (
+                  <video
+                    ref={videoRef}
+                    src={activeClip.sourceUrl}
+                    className="h-full w-full object-cover"
+                    muted playsInline
+                  />
+                )}
+                {/* No source placeholder */}
+                {!activeClip.sourceUrl && (
+                  <div className="flex h-full items-center justify-center text-xs text-gray-600">No preview</div>
+                )}
+                {/* Text track overlays active at playhead */}
+                {activeTextClips.length > 0 && (
                   <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    {previewOverlays.map((overlay, idx) => (
+                    {activeTextClips.filter(c => c.overlayData).map(c => (
+                      <PreviewOverlayItem key={c.id} overlay={c.overlayData!} />
+                    ))}
+                  </div>
+                )}
+                {/* Editor live-preview overlays */}
+                {editorPreviewOverlays.length > 0 && (
+                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                    {editorPreviewOverlays.map((overlay, idx) => (
                       <PreviewOverlayItem key={idx} overlay={overlay} />
                     ))}
                   </div>
                 )}
+                {/* Clip info badge */}
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
                   {videoClips.length} {videoClips.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
                 </div>
+              </div>
+            ) : videoClips.length > 0 ? (
+              <div className="flex flex-col items-center gap-2 text-gray-600">
+                <p className="text-sm">No clip at this time</p>
+                <p className="text-xs">Drag the playhead over a clip to preview it</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/15 px-10 py-8 text-gray-600">
@@ -1156,19 +1275,57 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </div>
             )}
 
-            {/* Playback controls placeholder */}
+            {/* Playback controls */}
             {!resultUrl && !isRendering && (
-              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 px-4 py-1.5 backdrop-blur-sm">
-                <button disabled className="text-gray-700">
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-sm">
+                {/* Go to start */}
+                <button
+                  onClick={() => { setIsPlaying(false); setPlayheadTime(0); }}
+                  className="rounded p-1 text-gray-400 hover:text-white"
+                  title="Go to start"
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                 </button>
-                <button disabled className="text-gray-700">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                {/* Prev frame */}
+                <button
+                  onClick={() => { setIsPlaying(false); setPlayheadTime(Math.max(0, playheadTime - 1 / FPS)); }}
+                  className="rounded p-1 text-gray-400 hover:text-white"
+                  title="Previous frame"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18V6h2v12H6zm4-6l8-6v12z"/></svg>
                 </button>
-                <button disabled className="text-gray-700">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+                {/* Play / Pause */}
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  disabled={videoClips.length === 0}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+                >
+                  {isPlaying
+                    ? <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+                    : <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                  }
                 </button>
-                <span className="text-[10px] text-gray-600">00:00 / {totalDuration.toFixed(1)}s</span>
+                {/* Next frame */}
+                <button
+                  onClick={() => { setIsPlaying(false); setPlayheadTime(Math.min(totalDuration, playheadTime + 1 / FPS)); }}
+                  className="rounded p-1 text-gray-400 hover:text-white"
+                  title="Next frame"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 18V6h-2v12h2zm-4-6L6 6v12z"/></svg>
+                </button>
+                {/* Go to end */}
+                <button
+                  onClick={() => { setIsPlaying(false); setPlayheadTime(totalDuration); }}
+                  className="rounded p-1 text-gray-400 hover:text-white"
+                  title="Go to end"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 6h-2v12h2zM6 18l8.5-6L6 6v12z"/></svg>
+                </button>
+                {/* Time display */}
+                <span className="ml-1 font-mono text-[10px] text-gray-500">
+                  {formatTime(playheadTime)} / {formatTime(totalDuration)}
+                </span>
               </div>
             )}
           </div>

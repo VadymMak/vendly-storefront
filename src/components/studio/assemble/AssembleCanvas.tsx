@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
+import type { TimelineClip } from '@/lib/studio/store';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
@@ -1132,6 +1133,65 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // ── Aspect ratio canvas style ─────────────────────────────────────────────
 
+  // ── Per-clip transition style ─────────────────────────────────────────────
+
+  function clipLayerStyle(clip: TimelineClip, clipIdx: number): React.CSSProperties {
+    const isActive = activeClip?.id === clip.id;
+
+    if (!isPlaying) {
+      return {
+        opacity: isActive ? 1 : 0,
+        transform: 'none',
+        zIndex: isActive ? 1 : 0,
+        pointerEvents: isActive ? 'auto' : 'none',
+      };
+    }
+
+    const clipEnd = clip.startTime + clip.duration;
+    const prevClip = clipIdx > 0 ? videoClips[clipIdx - 1] : null;
+    const nextClip = videoClips[clipIdx + 1];
+
+    let opacity = isActive ? 1 : 0;
+    let transform = 'none';
+    let zIdx = isActive ? 1 : 0;
+
+    // Outgoing: last TRANSITION_DUR of active clip
+    if (isActive && nextClip && playheadTime >= clipEnd - TRANSITION_DUR && playheadTime < clipEnd) {
+      const p = (playheadTime - (clipEnd - TRANSITION_DUR)) / TRANSITION_DUR;
+      switch (transition) {
+        case 'fade':       opacity = 1 - p; break;
+        case 'slide-left': opacity = 1; transform = `translateX(${-p * 100}%)`; break;
+        case 'slide-right':opacity = 1; transform = `translateX(${p * 100}%)`; break;
+        case 'zoom-in':    opacity = 1 - p; transform = `scale(${1 + p * 0.3})`; break;
+        case 'zoom-out':   opacity = 1 - p; transform = `scale(${1 - p * 0.3})`; break;
+      }
+      zIdx = 1;
+    }
+
+    // Incoming: first TRANSITION_DUR of this clip while prevClip is finishing
+    if (!isActive && prevClip) {
+      const prevEnd = prevClip.startTime + prevClip.duration;
+      if (playheadTime >= prevEnd - TRANSITION_DUR && playheadTime < prevEnd) {
+        const p = (playheadTime - (prevEnd - TRANSITION_DUR)) / TRANSITION_DUR;
+        switch (transition) {
+          case 'fade':       opacity = p; break;
+          case 'slide-left': opacity = 1; transform = `translateX(${(1 - p) * 100}%)`; break;
+          case 'slide-right':opacity = 1; transform = `translateX(${-(1 - p) * 100}%)`; break;
+          case 'zoom-in':    opacity = p; transform = `scale(${0.7 + p * 0.3})`; break;
+          case 'zoom-out':   opacity = p; transform = `scale(${1.3 - p * 0.3})`; break;
+        }
+        zIdx = 2;
+      }
+    }
+
+    return {
+      opacity,
+      transform,
+      zIndex: zIdx,
+      pointerEvents: isActive ? 'auto' : 'none',
+    };
+  }
+
   const canvasStyle: React.CSSProperties =
     aspectRatio === '9:16'
       ? { aspectRatio: '9/16', width: 'auto', maxHeight: '100%', maxWidth: '100%' }
@@ -1525,15 +1585,11 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 {(() => {
                   const activeIdx = videoClips.findIndex(c => c.id === activeClip?.id);
                   const nearby = videoClips.filter((_, i) => Math.abs(i - (activeIdx < 0 ? 0 : activeIdx)) <= 2);
-                  return nearby.map(clip => (
+                  return nearby.map((clip, i) => (
                     <div
                       key={clip.id}
-                      className="absolute inset-0 transition-opacity duration-500"
-                      style={{
-                        opacity: activeClip?.id === clip.id ? 1 : 0,
-                        zIndex: activeClip?.id === clip.id ? 1 : 0,
-                        pointerEvents: activeClip?.id === clip.id ? 'auto' : 'none',
-                      }}
+                      className="absolute inset-0"
+                      style={clipLayerStyle(clip, videoClips.indexOf(clip))}
                     >
                       {clip.type === 'image' && clip.sourceUrl && (
                         // eslint-disable-next-line @next/next/no-img-element

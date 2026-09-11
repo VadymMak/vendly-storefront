@@ -87,6 +87,10 @@ export interface TextOverlay {
   animation?: 'none' | 'fade-in' | 'slide-left' | 'slide-up';
   animationDuration?: number;
 
+  // Free XY positioning (percentage 0–100, relative to canvas; undefined = use position preset)
+  x?: number;
+  y?: number;
+
   // Scope
   scope?: 'global' | 'scene';
   sceneIndex?: number;

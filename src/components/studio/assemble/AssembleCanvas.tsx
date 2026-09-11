@@ -239,75 +239,132 @@ const TOOL_LABELS: Record<string, string> = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function PreviewOverlayItem({ overlay }: { overlay: TextOverlay }) {
-  const vert =
-    overlay.position === 'top' ? 'top-3' :
-    overlay.position === 'bottom' ? 'bottom-3' :
-    'top-1/2 -translate-y-1/2';
+function posYDefault(position: TextOverlay['position']): number {
+  if (position === 'top')    return 10;
+  if (position === 'bottom') return 80;
+  return 50;
+}
 
+function renderOverlayContent(overlay: TextOverlay) {
   if (overlay.style === 'bar') {
     return (
-      <div
-        className={`absolute left-0 right-0 px-3 py-1.5 ${overlay.position === 'top' ? 'top-0' : 'bottom-0'}`}
-        style={{ backgroundColor: overlay.barColor ?? '#E85D04' }}
-      >
-        <div className="text-sm font-bold leading-tight" style={{ color: overlay.color ?? '#FFFFFF' }}>
-          {overlay.text}
-        </div>
+      <div className="rounded px-3 py-1.5 whitespace-nowrap" style={{ backgroundColor: overlay.barColor ?? '#E85D04' }}>
+        <div className="text-sm font-bold leading-tight" style={{ color: overlay.color ?? '#FFFFFF' }}>{overlay.text}</div>
         {overlay.lineTwo && (
-          <div className="text-xs leading-tight opacity-80" style={{ color: overlay.color ?? '#FFFFFF' }}>
-            {overlay.lineTwo}
-          </div>
+          <div className="text-xs leading-tight opacity-80" style={{ color: overlay.color ?? '#FFFFFF' }}>{overlay.lineTwo}</div>
         )}
       </div>
     );
   }
   if (overlay.style === 'brand') {
     return (
-      <div
-        className={`absolute left-0 right-0 text-center text-base font-bold ${vert}`}
-        style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: 'Georgia, serif' }}
-      >
+      <div className="whitespace-nowrap text-base font-bold" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: 'Georgia, serif' }}>
         {overlay.text}
       </div>
     );
   }
   if (overlay.style === 'subtitle') {
-    return (
-      <div className={`absolute left-0 right-0 flex justify-center ${vert}`}>
-        <span className="rounded-full bg-black/50 px-3 py-1 text-sm text-white">{overlay.text}</span>
-      </div>
-    );
+    return <span className="rounded-full bg-black/50 px-3 py-1 text-sm text-white whitespace-nowrap">{overlay.text}</span>;
   }
   if (overlay.style === 'cta') {
     return (
-      <div
-        className={`absolute left-0 right-0 text-center text-sm font-bold ${vert}`}
-        style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}
-      >
+      <div className="whitespace-nowrap text-sm font-bold" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
         {overlay.text}
       </div>
     );
   }
-  const alignClass =
-    overlay.textAlign === 'left' ? 'justify-start pl-4' :
-    overlay.textAlign === 'right' ? 'justify-end pr-4' :
-    'justify-center';
   return (
-    <div className={`absolute left-0 right-0 flex ${alignClass} ${vert}`}>
-      <span
-        style={{
-          fontFamily: overlay.fontFamily,
-          fontWeight: overlay.fontWeight,
-          color: overlay.color ?? '#FFFFFF',
-          backgroundColor: overlay.backgroundColor,
-          borderRadius: overlay.backgroundColor ? 4 : undefined,
-          padding: overlay.backgroundColor ? '2px 8px' : undefined,
-          textShadow: '0 1px 4px rgba(0,0,0,0.6)',
-        }}
-      >
-        {overlay.text}
-      </span>
+    <span
+      className="whitespace-nowrap"
+      style={{
+        fontSize: overlay.fontSize ?? 16,
+        fontFamily: overlay.fontFamily ?? 'inherit',
+        fontWeight: overlay.fontWeight ?? 'bold',
+        color: overlay.color ?? '#FFFFFF',
+        backgroundColor: overlay.backgroundColor ?? 'transparent',
+        padding: `${overlay.paddingY ?? 4}px ${overlay.paddingX ?? 12}px`,
+        borderRadius: 4,
+        textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+      }}
+    >
+      {overlay.text}
+    </span>
+  );
+}
+
+interface PreviewOverlayProps {
+  overlay: TextOverlay;
+  isSelected: boolean;
+  onSelect: () => void;
+  onPositionChange: (x: number, y: number) => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function PreviewOverlayItem({ overlay, isSelected, onSelect, onPositionChange, containerRef }: PreviewOverlayProps) {
+  const elRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const posX = overlay.x ?? 50;
+  const posY = overlay.y ?? posYDefault(overlay.position);
+
+  function handleMouseDown(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    onSelect();
+    const container = containerRef.current;
+    if (!container) return;
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: posX, origY: posY };
+
+    function onMove(ev: MouseEvent) {
+      if (!dragRef.current || !container) return;
+      const rect = container.getBoundingClientRect();
+      const dx = ((ev.clientX - dragRef.current.startX) / rect.width)  * 100;
+      const dy = ((ev.clientY - dragRef.current.startY) / rect.height) * 100;
+      const nx = Math.max(5, Math.min(95, dragRef.current.origX + dx));
+      const ny = Math.max(5, Math.min(95, dragRef.current.origY + dy));
+      if (elRef.current) {
+        elRef.current.style.left = `${nx}%`;
+        elRef.current.style.top  = `${ny}%`;
+      }
+    }
+
+    function onUp(ev: MouseEvent) {
+      if (!dragRef.current || !container) return;
+      const rect = container.getBoundingClientRect();
+      const dx = ((ev.clientX - dragRef.current.startX) / rect.width)  * 100;
+      const dy = ((ev.clientY - dragRef.current.startY) / rect.height) * 100;
+      const nx = Math.round(Math.max(5, Math.min(95, dragRef.current.origX + dx)));
+      const ny = Math.round(Math.max(5, Math.min(95, dragRef.current.origY + dy)));
+      onPositionChange(nx, ny);
+      dragRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  return (
+    <div
+      ref={elRef}
+      className={[
+        'absolute cursor-grab select-none active:cursor-grabbing',
+        isSelected ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-transparent rounded' : '',
+      ].join(' ')}
+      style={{ left: `${posX}%`, top: `${posY}%`, transform: 'translate(-50%, -50%)', zIndex: isSelected ? 20 : 10, pointerEvents: 'auto' }}
+      onMouseDown={handleMouseDown}
+      onClick={e => { e.stopPropagation(); onSelect(); }}
+    >
+      {renderOverlayContent(overlay)}
+      {isSelected && (
+        <>
+          <div className="pointer-events-none absolute -left-1 -top-1 h-2.5 w-2.5 rounded-sm border border-green-500 bg-green-500/30" />
+          <div className="pointer-events-none absolute -right-1 -top-1 h-2.5 w-2.5 rounded-sm border border-green-500 bg-green-500/30" />
+          <div className="pointer-events-none absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-sm border border-green-500 bg-green-500/30" />
+          <div className="pointer-events-none absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-sm border border-green-500 bg-green-500/30" />
+        </>
+      )}
     </div>
   );
 }
@@ -396,19 +453,25 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
       </div>
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Position</div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <span className="text-xs text-gray-400">
+            X: {Math.round(draft.x ?? 50)}% · Y: {Math.round(draft.y ?? posYDefault(draft.position))}%
+          </span>
+          <span className="text-[9px] text-gray-600">Drag on canvas</span>
+        </div>
         <div className="flex gap-1">
-          {(['top', 'center', 'bottom'] as const).map(p => (
-            <button
-              key={p}
-              onClick={() => setDraft({ ...draft, position: p })}
-              className={[
-                'rounded px-3 py-1 text-xs capitalize transition-colors',
-                draft.position === p ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15 hover:text-gray-300',
-              ].join(' ')}
-            >
-              {p}
-            </button>
-          ))}
+          <button
+            onClick={() => setDraft({ ...draft, x: 50, y: 10, position: 'top' })}
+            className={['rounded px-2 py-0.5 text-[10px] transition-colors', draft.position === 'top' && draft.y === 10 ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'].join(' ')}
+          >Top</button>
+          <button
+            onClick={() => setDraft({ ...draft, x: 50, y: 50, position: 'center' })}
+            className={['rounded px-2 py-0.5 text-[10px] transition-colors', draft.position === 'center' && draft.y === 50 ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'].join(' ')}
+          >Center</button>
+          <button
+            onClick={() => setDraft({ ...draft, x: 50, y: 80, position: 'bottom' })}
+            className={['rounded px-2 py-0.5 text-[10px] transition-colors', draft.position === 'bottom' && draft.y === 80 ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'].join(' ')}
+          >Bottom</button>
         </div>
       </div>
       <div>
@@ -581,6 +644,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // Inspector toggle
   const [inspectorOpen, setInspectorOpen] = useState(false);
+
+  // Canvas overlay selection
+  const [selectedOverlayIdx, setSelectedOverlayIdx] = useState<number | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Text overlay editor state
   const [showTemplates, setShowTemplates]         = useState(false);
@@ -755,6 +822,28 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     }
   }
 
+  function handleOverlayPositionChange(storeIdx: number, x: number, y: number) {
+    const overlay = textOverlays[storeIdx];
+    if (!overlay) return;
+    const updated = { ...overlay, x, y };
+    storeUpdateOverlay(storeIdx, updated);
+    const tt = timelineTracks.find(t => t.type === 'text');
+    if (tt) {
+      const sorted = [...tt.clips].sort((a, b) => a.startTime - b.startTime);
+      const textClip = sorted[storeIdx];
+      if (textClip) {
+        const store = useStudioStore.getState();
+        store.removeClip(textClip.id);
+        store.addClipToTrack(tt.id, {
+          type: 'text',
+          startTime: textClip.startTime,
+          duration: textClip.duration,
+          overlayData: updated,
+        });
+      }
+    }
+  }
+
   // (previewOverlays moved above as editorPreviewOverlays)
 
   // ── Export ─────────────────────────────────────────────────────────────────
@@ -847,12 +936,13 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // ── Active text overlay preview (for editing panel) ──────────────────────
 
-  // Global textOverlays for the editor live-preview; combined with text track clips
-  const editorPreviewOverlays = [
+  // Global textOverlays for canvas preview — carries store index (null = draft)
+  const editorPreviewOverlays: Array<{ overlay: TextOverlay; storeIdx: number | null }> = [
     ...textOverlays
-      .filter((_, i) => !(editingOverlayIdx !== null && editingOverlayIdx >= 0 && i === editingOverlayIdx))
-      .filter(o => o.scope !== 'scene'),
-    ...(draftOverlay && draftOverlay.scope !== 'scene' ? [draftOverlay] : []),
+      .map((o, i) => ({ overlay: o, storeIdx: i }))
+      .filter(({ storeIdx }) => !(editingOverlayIdx !== null && editingOverlayIdx >= 0 && storeIdx === editingOverlayIdx))
+      .filter(({ overlay }) => overlay.scope !== 'scene'),
+    ...(draftOverlay && draftOverlay.scope !== 'scene' ? [{ overlay: draftOverlay, storeIdx: null }] : []),
   ];
 
   // ── Right panel ───────────────────────────────────────────────────────────
@@ -1163,7 +1253,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           {/* Center Canvas */}
           <div
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40 p-4"
-            onClick={() => { setSelectedClipId(null); setEditingOverlayIdx(null); setDraftOverlay(null); }}
+            onClick={() => { setSelectedClipId(null); setSelectedOverlayIdx(null); setEditingOverlayIdx(null); setDraftOverlay(null); }}
           >
             {resultUrl ? (
               <div className="flex flex-col items-center gap-4">
@@ -1195,6 +1285,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </div>
             ) : activeClip ? (
               <div
+                ref={canvasRef}
                 className="relative overflow-hidden rounded-xl bg-black shadow-2xl"
                 style={canvasStyle}
                 onClick={e => e.stopPropagation()}
@@ -1217,22 +1308,31 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 {!activeClip.sourceUrl && (
                   <div className="flex h-full items-center justify-center text-xs text-gray-600">No preview</div>
                 )}
-                {/* Text track overlays active at playhead */}
-                {activeTextClips.length > 0 && (
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    {activeTextClips.filter(c => c.overlayData).map(c => (
-                      <PreviewOverlayItem key={c.id} overlay={c.overlayData!} />
-                    ))}
-                  </div>
-                )}
-                {/* Editor live-preview overlays */}
-                {editorPreviewOverlays.length > 0 && (
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    {editorPreviewOverlays.map((overlay, idx) => (
-                      <PreviewOverlayItem key={idx} overlay={overlay} />
-                    ))}
-                  </div>
-                )}
+                {/* Text track overlays active at playhead (read-only, no drag) */}
+                {activeTextClips.filter(c => c.overlayData).map(c => {
+                  const storeIdx = textOverlays.findIndex(o => JSON.stringify(o) === JSON.stringify(c.overlayData));
+                  return (
+                    <PreviewOverlayItem
+                      key={c.id}
+                      overlay={c.overlayData!}
+                      isSelected={selectedOverlayIdx === storeIdx}
+                      onSelect={() => setSelectedOverlayIdx(storeIdx >= 0 ? storeIdx : null)}
+                      onPositionChange={(x, y) => { if (storeIdx >= 0) handleOverlayPositionChange(storeIdx, x, y); }}
+                      containerRef={canvasRef}
+                    />
+                  );
+                })}
+                {/* Editor live-preview overlays — draggable */}
+                {editorPreviewOverlays.map(({ overlay, storeIdx }, idx) => (
+                  <PreviewOverlayItem
+                    key={storeIdx ?? `draft-${idx}`}
+                    overlay={overlay}
+                    isSelected={selectedOverlayIdx === storeIdx}
+                    onSelect={() => setSelectedOverlayIdx(storeIdx)}
+                    onPositionChange={(x, y) => { if (storeIdx !== null) handleOverlayPositionChange(storeIdx, x, y); }}
+                    containerRef={canvasRef}
+                  />
+                ))}
                 {/* Clip info badge */}
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
                   {videoClips.length} {videoClips.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
@@ -1266,7 +1366,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
             {/* Playback controls */}
             {!resultUrl && !isRendering && (
-              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-sm">
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm">
                 {/* Go to start */}
                 <button
                   onClick={() => { setIsPlaying(false); setPlayheadTime(0); }}

@@ -373,6 +373,12 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
     const last = sorted.at(-1);
     const startTime = last ? last.startTime + last.duration : 0;
     const dataUrl = await urlToDataUrl(item.url);
+    console.log('[Timeline] importFromStore:', {
+      originalUrl: item.url.slice(0, 80),
+      resultUrl: dataUrl.slice(0, 80),
+      isDataUrl: dataUrl.startsWith('data:'),
+      type: item.type,
+    });
     addClipToTrack(vt.id, {
       type: item.type,
       startTime,

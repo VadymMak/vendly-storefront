@@ -1,3 +1,5 @@
+const MAX_DATA_URL_SIZE = 4 * 1024 * 1024; // 4MB — stay under sessionStorage limit
+
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -7,29 +9,66 @@ export function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function canvasFallback(url: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('No canvas context')); return; }
+      ctx.drawImage(img, 0, 0);
+      try { resolve(canvas.toDataURL('image/webp', 0.85)); }
+      catch { reject(new Error('Canvas tainted')); }
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = url;
+  });
+}
+
 export async function urlToDataUrl(url: string): Promise<string> {
   if (url.startsWith('data:')) return url;
+
+  let blob: Blob | null = null;
+
+  // Try 1: Direct fetch (same-origin or CORS-enabled)
   try {
     const res = await fetch(url);
-    const blob = await res.blob();
-    return fileToDataUrl(new File([blob], 'media', { type: blob.type }));
+    if (res.ok) blob = await res.blob();
   } catch {
-    // CORS fallback: try canvas for images
-    return new Promise<string>(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { resolve(url); return; }
-        ctx.drawImage(img, 0, 0);
-        try { resolve(canvas.toDataURL('image/webp', 0.85)); }
-        catch { resolve(url); }
-      };
-      img.onerror = () => resolve(url);
-      img.src = url;
-    });
+    // CORS or network error — fall through to proxy
   }
+
+  // Try 2: Server-side proxy (bypasses CORS)
+  if (!blob) {
+    try {
+      const proxyUrl = `/api/studio/proxy-media?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (res.ok) blob = await res.blob();
+    } catch {
+      console.warn('[media-utils] Proxy fetch also failed for:', url);
+    }
+  }
+
+  if (blob) {
+    if (blob.size > MAX_DATA_URL_SIZE) {
+      console.warn(`[media-utils] File too large for data URL (${(blob.size / 1024 / 1024).toFixed(1)}MB), keeping original URL:`, url);
+      return url;
+    }
+    return fileToDataUrl(new File([blob], 'media', { type: blob.type }));
+  }
+
+  // Try 3: Canvas fallback for images only
+  if (/\.(jpg|jpeg|png|webp|gif|svg)(\?|$)/i.test(url) || url.includes('image')) {
+    try {
+      return await canvasFallback(url);
+    } catch {
+      // give up
+    }
+  }
+
+  console.warn('[media-utils] All conversion methods failed, returning original URL:', url);
+  return url;
 }

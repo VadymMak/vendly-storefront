@@ -1607,7 +1607,17 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 {(() => {
                   const activeIdx = videoClips.findIndex(c => c.id === activeClip?.id);
                   const nearby = videoClips.filter((_, i) => Math.abs(i - (activeIdx < 0 ? 0 : activeIdx)) <= 2);
-                  return nearby.map((clip, i) => (
+                  return nearby.map((clip, i) => {
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log('[Canvas] Rendering clip:', {
+                        id: clip.id.slice(0, 8),
+                        type: clip.type,
+                        srcPrefix: clip.sourceUrl?.slice(0, 60),
+                        isDataUrl: clip.sourceUrl?.startsWith('data:'),
+                        isActive: activeClip?.id === clip.id,
+                      });
+                    }
+                    return (
                     <div
                       key={clip.id}
                       className="absolute inset-0"
@@ -1644,7 +1654,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                         </div>
                       )}
                     </div>
-                  ));
+                  ); });
                 })()}
                 {/* Text overlays */}
                 <div className="absolute inset-0 z-10">

@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
 import type { TimelineClip, TimelineTrack, MediaItem } from '@/lib/studio/store';
 import type { TextOverlay } from '@/lib/slideshow-renderer';
+import { urlToDataUrl } from '@/lib/studio/media-utils';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -365,17 +366,18 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
 
   const videoTrack = tracks.find(t => t.type === 'video');
 
-  function importFromStore(item: MediaItem) {
+  async function importFromStore(item: MediaItem) {
     const vt = tracks.find(t => t.type === 'video');
     if (!vt) return;
     const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
     const last = sorted.at(-1);
     const startTime = last ? last.startTime + last.duration : 0;
+    const dataUrl = await urlToDataUrl(item.url);
     addClipToTrack(vt.id, {
       type: item.type,
       startTime,
       duration: item.duration ?? (item.type === 'video' ? 5 : 3),
-      sourceUrl: item.url,
+      sourceUrl: dataUrl,
       prompt: item.prompt,
     });
     setShowImportMenu(false);
@@ -724,7 +726,7 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
                   {generatedImages.slice(0, 20).map(img => (
                     <button
                       key={img.id}
-                      onClick={() => importFromStore(img)}
+                      onClick={() => { void importFromStore(img); }}
                       className="overflow-hidden rounded border border-white/10 transition-all hover:border-white/30 hover:ring-1 hover:ring-green-500/50"
                       style={{ aspectRatio: '1/1' }}
                       title={img.prompt ?? 'Image'}
@@ -744,7 +746,7 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
                   {generatedVideos.slice(0, 20).map(vid => (
                     <button
                       key={vid.id}
-                      onClick={() => importFromStore(vid)}
+                      onClick={() => { void importFromStore(vid); }}
                       className="overflow-hidden rounded border border-white/10 transition-all hover:border-white/30 hover:ring-1 hover:ring-green-500/50"
                       style={{ aspectRatio: '1/1' }}
                       title={vid.prompt ?? 'Video'}

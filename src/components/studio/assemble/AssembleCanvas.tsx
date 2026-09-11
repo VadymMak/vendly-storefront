@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
 import type { TimelineClip } from '@/lib/studio/store';
+import { fileToDataUrl, urlToDataUrl } from '@/lib/studio/media-utils';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
@@ -72,15 +73,6 @@ const DEFAULT_DRAFT: TextOverlay = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 function audioDurationOf(url: string): Promise<number> {
   return new Promise(resolve => {
@@ -945,9 +937,15 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           });
         }
       } else if (isVideo) {
-        const url = URL.createObjectURL(file);
-        const dur = await videoDurationOf(url);
-        addClipToTrack(videoTrack.id, { type: 'video', startTime: cursor, duration: dur, sourceUrl: url });
+        const blobUrl = URL.createObjectURL(file);
+        const dur = await videoDurationOf(blobUrl);
+        // Small videos (≤ 5MB) → data URL for persistence; larger stay as blob
+        let sourceUrl = blobUrl;
+        if (file.size <= 5 * 1024 * 1024) {
+          sourceUrl = await fileToDataUrl(file);
+          URL.revokeObjectURL(blobUrl);
+        }
+        addClipToTrack(videoTrack.id, { type: 'video', startTime: cursor, duration: dur, sourceUrl });
         cursor += dur;
       } else {
         // Images → data URL for sessionStorage persistence

@@ -944,16 +944,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             audioName: file.name,
           });
         }
-      } else {
+      } else if (isVideo) {
         const url = URL.createObjectURL(file);
-        const dur = isVideo ? await videoDurationOf(url) : imageDuration;
-        addClipToTrack(videoTrack.id, {
-          type: isVideo ? 'video' : 'image',
-          startTime: cursor,
-          duration: dur,
-          sourceUrl: url,
-        });
+        const dur = await videoDurationOf(url);
+        addClipToTrack(videoTrack.id, { type: 'video', startTime: cursor, duration: dur, sourceUrl: url });
         cursor += dur;
+      } else {
+        // Images → data URL for sessionStorage persistence
+        const dataUrl = await fileToDataUrl(file);
+        addClipToTrack(videoTrack.id, { type: 'image', startTime: cursor, duration: imageDuration, sourceUrl: dataUrl });
+        cursor += imageDuration;
       }
     }
   }
@@ -1194,10 +1194,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   const canvasStyle: React.CSSProperties =
     aspectRatio === '9:16'
-      ? { aspectRatio: '9/16', width: 'auto', maxHeight: '100%', maxWidth: '100%' }
+      ? { aspectRatio: '9/16', width: 'auto', height: '100%', maxHeight: '100%', maxWidth: '100%' }
       : aspectRatio === '1:1'
-      ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: '100%', maxWidth: '100%' }
-      : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: '100%', maxWidth: '100%' };
+      ? { aspectRatio: '1/1', width: 'auto', height: '100%', maxHeight: '100%', maxWidth: '100%' }
+      : { aspectRatio: '16/9', width: '100%', height: '100%', maxHeight: '100%', maxWidth: '100%' };
 
   // ── Active text overlays: only those whose clip spans the current playhead ──
 
@@ -1593,7 +1593,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                     >
                       {clip.type === 'image' && clip.sourceUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={clip.sourceUrl} alt="Preview" className="h-full w-full object-cover" loading="eager" />
+                        <img
+                          src={clip.sourceUrl}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                          loading="eager"
+                          onError={e => {
+                            const parent = (e.target as HTMLElement).parentElement;
+                            if (parent) parent.innerHTML = `<div class="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-900 p-4 text-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span class="text-[10px] text-gray-500">${clip.prompt ? clip.prompt.slice(0, 60) + '…' : 'Image unavailable'}</span></div>`;
+                          }}
+                        />
                       )}
                       {clip.type === 'video' && clip.sourceUrl && (
                         <video
@@ -1601,10 +1610,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                           src={clip.sourceUrl}
                           className="h-full w-full object-cover"
                           muted playsInline preload="auto"
+                          onError={e => {
+                            const parent = (e.target as HTMLElement).parentElement;
+                            if (parent) parent.innerHTML = `<div class="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-900 p-4 text-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span class="text-[10px] text-gray-500">Video unavailable</span></div>`;
+                          }}
                         />
                       )}
-                      {!clip.sourceUrl && activeClip?.id === clip.id && (
-                        <div className="flex h-full items-center justify-center text-xs text-gray-600">No preview</div>
+                      {!clip.sourceUrl && (
+                        <div className="flex h-full w-full items-center justify-center bg-gray-900 text-xs text-gray-600">
+                          {clip.prompt ? clip.prompt.slice(0, 40) : 'No preview'}
+                        </div>
                       )}
                     </div>
                   ));

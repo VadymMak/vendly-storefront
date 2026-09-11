@@ -72,6 +72,14 @@ const DEFAULT_DRAFT: TextOverlay = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function audioDurationOf(url: string): Promise<number> {
+  return new Promise(resolve => {
+    const audio = new Audio(url);
+    audio.addEventListener('loadedmetadata', () => resolve(audio.duration || 5));
+    audio.addEventListener('error', () => resolve(5));
+  });
+}
+
 function videoDurationOf(url: string): Promise<number> {
   return new Promise((resolve) => {
     const v = document.createElement('video');
@@ -742,15 +750,30 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     let cursor = endTime;
     for (const file of arr) {
       const isVideo = file.type.startsWith('video/');
+      const isAudio = file.type.startsWith('audio/');
       const url = URL.createObjectURL(file);
-      const dur = isVideo ? await videoDurationOf(url) : imageDuration;
-      addClipToTrack(videoTrack.id, {
-        type: isVideo ? 'video' : 'image',
-        startTime: cursor,
-        duration: dur,
-        sourceUrl: url,
-      });
-      cursor += dur;
+      if (isAudio) {
+        const audioTrack = timelineTracks.find(t => t.type === 'audio');
+        if (audioTrack) {
+          const dur = await audioDurationOf(url);
+          addClipToTrack(audioTrack.id, {
+            type: 'audio',
+            startTime: 0,
+            duration: dur,
+            sourceUrl: url,
+            audioName: file.name,
+          });
+        }
+      } else {
+        const dur = isVideo ? await videoDurationOf(url) : imageDuration;
+        addClipToTrack(videoTrack.id, {
+          type: isVideo ? 'video' : 'image',
+          startTime: cursor,
+          duration: dur,
+          sourceUrl: url,
+        });
+        cursor += dur;
+      }
     }
   }
 

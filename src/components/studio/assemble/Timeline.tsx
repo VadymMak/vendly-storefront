@@ -680,7 +680,10 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
           {/* Tabs */}
           <div className="flex border-b border-white/10">
             <button
-              onClick={() => { fileInputRef.current?.click(); setShowImportMenu(false); }}
+              onClick={() => {
+                fileInputRef.current?.click();
+                requestAnimationFrame(() => setShowImportMenu(false));
+              }}
               className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
             >
               <IconUpload /> Upload
@@ -804,7 +807,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*"
+        accept="image/*,video/*,audio/*"
         className="hidden"
         onChange={e => { if (e.target.files) { onFileAdd(e.target.files); e.target.value = ''; } }}
       />

@@ -72,6 +72,15 @@ const DEFAULT_DRAFT: TextOverlay = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function audioDurationOf(url: string): Promise<number> {
   return new Promise(resolve => {
     const audio = new Audio(url);
@@ -685,7 +694,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // ── Local state ────────────────────────────────────────────────────────────
 
-  const [musicFile, setMusicFile]           = useState<File | null>(null);
+  const musicDataUrl = useStudioStore(s => s.musicDataUrl);
+  const musicName    = useStudioStore(s => s.musicName);
+  const setMusic     = useStudioStore(s => s.setMusic);
   const [transition, setTransition]         = useState<TransitionType>('fade');
   const [imageDuration, setImageDuration]   = useState(3);
   const [aspectRatio, setAspectRatio]       = useState<AspectRatio>('9:16');
@@ -822,26 +833,27 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioClips]);
 
-  // ── Music file: create/destroy Audio element ───────────────────────────────
+  // ── Music: create/destroy Audio element from data URL ─────────────────────
 
   useEffect(() => {
     const prev = musicAudioRef.current;
     if (prev) { prev.pause(); prev.src = ''; }
     musicAudioRef.current = null;
-    if (!musicFile) return;
-    const url = URL.createObjectURL(musicFile);
-    const el = new Audio(url);
+    if (!musicDataUrl) return;
+    const el = new Audio(musicDataUrl);
     el.preload = 'auto';
+    el.volume = 0.5;
     el.muted = isMutedRef.current;
     musicAudioRef.current = el;
     return () => {
       el.pause(); el.src = '';
-      URL.revokeObjectURL(url);
       if (musicAudioRef.current === el) musicAudioRef.current = null;
     };
-  }, [musicFile]);
+  }, [musicDataUrl]);
 
   // ── Audio: play/pause sync on isPlaying change ────────────────────────────
+
+  const FADE_DURATION = 0.3;
 
   useEffect(() => {
     const map = audioMapRef.current;
@@ -851,22 +863,34 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       if (music) music.pause();
       return;
     }
-    // Start audio clips that are within playhead range
+    // Start audio clips within playhead range
     for (const clip of audioClips) {
       const el = map.get(clip.id);
       if (!el || !clip.sourceUrl) continue;
       const offset = phTimeRef.current - clip.startTime;
       if (offset >= 0 && offset < clip.duration) {
         if (Math.abs(el.currentTime - offset) > 0.2) el.currentTime = offset;
+        // Initial fade volume at clip boundary
+        const timeToEnd = clip.duration - offset;
+        let vol = 1;
+        if (offset < FADE_DURATION) vol = offset / FADE_DURATION;
+        else if (timeToEnd < FADE_DURATION) vol = timeToEnd / FADE_DURATION;
+        el.volume = Math.max(0, Math.min(1, vol));
         el.muted = isMutedRef.current;
         el.play().catch(() => {});
       } else {
         el.pause();
       }
     }
-    // Music file always starts from current playhead
+    // Music always plays from current playhead
     if (music) {
       if (Math.abs(music.currentTime - phTimeRef.current) > 0.2) music.currentTime = phTimeRef.current;
+      const ph = phTimeRef.current;
+      const totalDur = totalDurRef.current;
+      let musicVol = 0.5;
+      if (ph < FADE_DURATION) musicVol = 0.5 * (ph / FADE_DURATION);
+      else if (totalDur > 0 && totalDur - ph < FADE_DURATION) musicVol = 0.5 * ((totalDur - ph) / FADE_DURATION);
+      music.volume = Math.max(0, Math.min(0.5, musicVol));
       music.muted = isMutedRef.current;
       music.play().catch(() => {});
     }
@@ -911,20 +935,23 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     for (const file of arr) {
       const isVideo = file.type.startsWith('video/');
       const isAudio = file.type.startsWith('audio/');
-      const url = URL.createObjectURL(file);
       if (isAudio) {
         const audioTrack = timelineTracks.find(t => t.type === 'audio');
         if (audioTrack) {
-          const dur = await audioDurationOf(url);
+          const dataUrl = await fileToDataUrl(file);
+          const tempUrl = URL.createObjectURL(file);
+          const dur = await audioDurationOf(tempUrl);
+          URL.revokeObjectURL(tempUrl);
           addClipToTrack(audioTrack.id, {
             type: 'audio',
             startTime: 0,
             duration: dur,
-            sourceUrl: url,
+            sourceUrl: dataUrl,
             audioName: file.name,
           });
         }
       } else {
+        const url = URL.createObjectURL(file);
         const dur = isVideo ? await videoDurationOf(url) : imageDuration;
         addClipToTrack(videoTrack.id, {
           type: isVideo ? 'video' : 'image',
@@ -1073,7 +1100,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         transitionType: transition,
         outputSize: ASPECT_SIZES[aspectRatio],
         fps: FPS,
-        musicFile: musicFile ?? undefined,
+        musicFile: musicDataUrl
+          ? await fetch(musicDataUrl).then(r => r.blob()).then(b => new File([b], musicName ?? 'music', { type: b.type }))
+          : undefined,
         textOverlays: globalOverlays.length ? globalOverlays : undefined,
       };
 
@@ -1366,35 +1395,42 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         {expandedTool === 'audio' && (
           <div className="flex flex-col gap-3 p-3">
             <div className="text-[10px] uppercase tracking-wider text-gray-500">Background music</div>
-            {musicFile ? (
+            {musicDataUrl ? (
               <div className="rounded-lg border border-white/10 p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <IconMusicNote size={14} />
-                  <span className="min-w-0 flex-1 truncate text-xs text-green-400">{musicFile.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-green-400">{musicName}</span>
                 </div>
                 <button
-                  onClick={() => { setMusicFile(null); if (musicInputRef.current) musicInputRef.current.value = ''; }}
+                  onClick={() => { setMusic(null, null); if (musicInputRef.current) musicInputRef.current.value = ''; }}
                   className="w-full rounded bg-white/5 py-1 text-xs text-gray-500 hover:bg-white/10 hover:text-gray-300"
                 >
                   Remove
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => musicInputRef.current?.click()}
-                className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-white/15 py-6 text-gray-600 hover:border-white/25 hover:text-gray-400"
+              <label
+                htmlFor="music-file-upload"
+                className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-white/15 py-6 text-gray-600 cursor-pointer hover:border-white/25 hover:text-gray-400"
               >
                 <IconMusicNote size={20} />
                 <span className="text-xs">Add music</span>
                 <span className="text-[10px] text-gray-700">MP3, WAV, M4A</span>
-              </button>
+              </label>
             )}
             <input
               ref={musicInputRef}
+              id="music-file-upload"
               type="file"
               accept="audio/*"
-              className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) setMusicFile(f); }}
+              className="sr-only"
+              onChange={async e => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  const dataUrl = await fileToDataUrl(f);
+                  setMusic(dataUrl, f.name);
+                }
+              }}
             />
           </div>
         )}
@@ -1704,7 +1740,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           {/* NLE Timeline */}
           <div className="h-[180px] flex-shrink-0 border-t border-white/10">
             <NLETimeline
-              musicFile={musicFile}
+              musicName={musicName}
               onFileAdd={files => void handleFileAdd(files)}
             />
           </div>

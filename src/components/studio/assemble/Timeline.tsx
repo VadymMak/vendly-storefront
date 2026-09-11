@@ -144,13 +144,13 @@ function fmtTime(t: number): string {
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface Props {
-  musicFile: File | null;
+  musicName: string | null;
   onFileAdd: (files: FileList) => void;
 }
 
 type ImportTab = 'generate' | 'animate';
 
-export function NLETimeline({ musicFile, onFileAdd }: Props) {
+export function NLETimeline({ musicName, onFileAdd }: Props) {
   const tracks          = useStudioStore(s => s.timelineTracks);
   const zoom            = useStudioStore(s => s.timelineZoom);
   const setZoom         = useStudioStore(s => s.setTimelineZoom);
@@ -496,7 +496,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
               />
 
               {tracks.map((track, tIdx) => {
-                const showMusicBar = track.type === 'audio' && musicFile;
+                const showMusicBar = track.type === 'audio' && musicName;
 
                 return (
                   <div
@@ -548,7 +548,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
                       >
                         <div className="flex h-full items-center gap-1 px-2">
                           <IconMusic />
-                          <span className="truncate text-[9px] text-green-400">{musicFile.name}</span>
+                          <span className="truncate text-[9px] text-green-400">{musicName}</span>
                         </div>
                       </div>
                     )}

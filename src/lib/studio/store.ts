@@ -87,6 +87,10 @@ interface StudioStore {
 
   selectedClipId: string | null;
   setSelectedClipId: (id: string | null) => void;
+
+  musicDataUrl: string | null;
+  musicName: string | null;
+  setMusic: (dataUrl: string | null, name: string | null) => void;
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -302,6 +306,11 @@ export const useStudioStore = create<StudioStore>()(
       // ── Selection ────────────────────────────────────────────────────────
       selectedClipId: null,
       setSelectedClipId: (id) => set({ selectedClipId: id }),
+
+      // ── Music (persisted as data URL) ─────────────────────────────────────
+      musicDataUrl: null,
+      musicName: null,
+      setMusic: (dataUrl, name) => set({ musicDataUrl: dataUrl, musicName: name }),
     }),
     {
       name: 'studio-session',
@@ -313,6 +322,8 @@ export const useStudioStore = create<StudioStore>()(
         textOverlays:    s.textOverlays,
         timelineTracks:  s.timelineTracks,
         timelineZoom:    s.timelineZoom,
+        musicDataUrl:    s.musicDataUrl,
+        musicName:       s.musicName,
       }),
     },
   ),

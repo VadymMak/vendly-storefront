@@ -1134,10 +1134,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   const canvasStyle: React.CSSProperties =
     aspectRatio === '9:16'
-      ? { aspectRatio: '9/16', width: 'auto', height: '100%', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
+      ? { aspectRatio: '9/16', width: 'auto', maxHeight: '100%', maxWidth: '100%' }
       : aspectRatio === '1:1'
-      ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
-      : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' };
+      ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: '100%', maxWidth: '100%' }
+      : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: '100%', maxWidth: '100%' };
 
   // ── Active text overlays: only those whose clip spans the current playhead ──
 
@@ -1478,6 +1478,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         {/* Center + Timeline column */}
         <div className="flex flex-1 flex-col overflow-hidden">
 
+          {/* Canvas area + Playback controls */}
+          <div className="flex min-h-0 flex-1 flex-col">
+
           {/* Center Canvas */}
           <div
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40 p-4"
@@ -1589,71 +1592,74 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </svg>
             </button>
 
-            {/* Playback controls */}
-            {!resultUrl && !isRendering && (
-              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm">
-                {/* Go to start */}
-                <button
-                  onClick={() => { setIsPlaying(false); setPlayheadTime(0); }}
-                  className="rounded p-1 text-gray-400 hover:text-white"
-                  title="Go to start"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-                </button>
-                {/* Prev frame */}
-                <button
-                  onClick={() => { setIsPlaying(false); setPlayheadTime(Math.max(0, playheadTime - 1 / FPS)); }}
-                  className="rounded p-1 text-gray-400 hover:text-white"
-                  title="Previous frame"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18V6h2v12H6zm4-6l8-6v12z"/></svg>
-                </button>
-                {/* Play / Pause */}
-                <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  disabled={videoClips.length === 0}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
-                >
-                  {isPlaying
-                    ? <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
-                    : <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-                  }
-                </button>
-                {/* Next frame */}
-                <button
-                  onClick={() => { setIsPlaying(false); setPlayheadTime(Math.min(totalDuration, playheadTime + 1 / FPS)); }}
-                  className="rounded p-1 text-gray-400 hover:text-white"
-                  title="Next frame"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 18V6h-2v12h2zm-4-6L6 6v12z"/></svg>
-                </button>
-                {/* Go to end */}
-                <button
-                  onClick={() => { setIsPlaying(false); setPlayheadTime(totalDuration); }}
-                  className="rounded p-1 text-gray-400 hover:text-white"
-                  title="Go to end"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 6h-2v12h2zM6 18l8.5-6L6 6v12z"/></svg>
-                </button>
-                {/* Time display */}
-                <span className="ml-1 font-mono text-[10px] text-gray-500">
-                  {formatTime(playheadTime)} / {formatTime(totalDuration)}
-                </span>
-                {/* Mute toggle */}
-                <button
-                  onClick={() => setIsMuted(m => !m)}
-                  className={`ml-auto rounded p-1 transition-colors ${isMuted ? 'text-red-400 hover:text-red-300' : 'text-gray-400 hover:text-white'}`}
-                  title={isMuted ? 'Unmute audio' : 'Mute audio'}
-                >
-                  {isMuted
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
-                  }
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* Playback controls — static bar below canvas */}
+          {!resultUrl && !isRendering && videoClips.length > 0 && (
+            <div className="flex shrink-0 items-center justify-center gap-1.5 border-t border-white/10 bg-[#0a0a12] px-3 py-2">
+              {/* Go to start */}
+              <button
+                onClick={() => { setIsPlaying(false); setPlayheadTime(0); }}
+                className="rounded p-1 text-gray-400 hover:text-white"
+                title="Go to start"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+              </button>
+              {/* Prev frame */}
+              <button
+                onClick={() => { setIsPlaying(false); setPlayheadTime(Math.max(0, playheadTime - 1 / FPS)); }}
+                className="rounded p-1 text-gray-400 hover:text-white"
+                title="Previous frame"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18V6h2v12H6zm4-6l8-6v12z"/></svg>
+              </button>
+              {/* Play / Pause */}
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                disabled={videoClips.length === 0}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              >
+                {isPlaying
+                  ? <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>
+                  : <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                }
+              </button>
+              {/* Next frame */}
+              <button
+                onClick={() => { setIsPlaying(false); setPlayheadTime(Math.min(totalDuration, playheadTime + 1 / FPS)); }}
+                className="rounded p-1 text-gray-400 hover:text-white"
+                title="Next frame"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 18V6h-2v12h2zm-4-6L6 6v12z"/></svg>
+              </button>
+              {/* Go to end */}
+              <button
+                onClick={() => { setIsPlaying(false); setPlayheadTime(totalDuration); }}
+                className="rounded p-1 text-gray-400 hover:text-white"
+                title="Go to end"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 6h-2v12h2zM6 18l8.5-6L6 6v12z"/></svg>
+              </button>
+              {/* Time display */}
+              <span className="ml-1 font-mono text-[10px] text-gray-500">
+                {formatTime(playheadTime)} / {formatTime(totalDuration)}
+              </span>
+              {/* Mute toggle */}
+              <button
+                onClick={() => setIsMuted(m => !m)}
+                className={`ml-auto rounded p-1 transition-colors ${isMuted ? 'text-red-400 hover:text-red-300' : 'text-gray-400 hover:text-white'}`}
+                title={isMuted ? 'Unmute audio' : 'Mute audio'}
+              >
+                {isMuted
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
+                }
+              </button>
+            </div>
+          )}
+
+          </div>{/* end Canvas area + Playback controls */}
 
           {/* Export Toolbar */}
           <div className="flex flex-shrink-0 items-center gap-1 border-t border-white/10 bg-[#0d0d14] px-3 py-1.5">

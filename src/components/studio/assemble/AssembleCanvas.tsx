@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
@@ -727,12 +727,11 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const musicInputRef  = useRef<HTMLInputElement>(null);
   const nameInputRef   = useRef<HTMLInputElement>(null);
   const resultBlobRef  = useRef<string | null>(null);
-  const videoRef       = useRef<HTMLVideoElement>(null);
+  const videoRefsMap   = useRef<Map<string, HTMLVideoElement>>(new Map());
   const animFrameRef   = useRef<number>(0);
   const lastTimeRef    = useRef<number>(0);
   const phTimeRef      = useRef(playheadTime);
   const totalDurRef    = useRef(totalDuration);
-  const activeClipIdRef = useRef<string | null>(null);
   const audioMapRef    = useRef<Map<string, HTMLAudioElement>>(new Map());
   const musicAudioRef  = useRef<HTMLAudioElement | null>(null);
   const isMutedRef     = useRef(false);
@@ -770,34 +769,28 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isPlaying, setPlayheadTime, setIsPlaying]);
 
-  // ── Video element — seek on scrub ─────────────────────────────────────────
+  // ── Video elements — seek on scrub ───────────────────────────────────────
 
-  const seekVideo = useCallback(() => {
-    const v = videoRef.current;
-    if (!v || !activeClip || activeClip.type !== 'video') return;
-    const offset = Math.max(0, playheadTime - activeClip.startTime);
-    if (Math.abs(v.currentTime - offset) > 0.15) v.currentTime = offset;
-  }, [playheadTime, activeClip]);
-
-  // Seek when scrubbing (not playing)
   useEffect(() => {
     if (isPlaying) return;
-    seekVideo();
-  }, [playheadTime, isPlaying, seekVideo]);
-
-  // On clip change: seek to correct offset and play/pause
-  useEffect(() => {
-    const v = videoRef.current;
+    if (!activeClip || activeClip.type !== 'video') return;
+    const v = videoRefsMap.current.get(activeClip.id);
     if (!v) return;
-    if (!activeClip || activeClip.type !== 'video') {
-      v.pause();
-      return;
+    const offset = Math.max(0, playheadTime - activeClip.startTime);
+    if (Math.abs(v.currentTime - offset) > 0.15) v.currentTime = offset;
+  }, [playheadTime, isPlaying, activeClip]);
+
+  // On clip change or play/pause: seek active video and pause all others
+  useEffect(() => {
+    // Pause all non-active video elements
+    for (const [id, v] of videoRefsMap.current.entries()) {
+      if (id !== activeClip?.id && !v.paused) v.pause();
     }
-    if (activeClipIdRef.current !== activeClip.id) {
-      activeClipIdRef.current = activeClip.id;
-      const offset = Math.max(0, playheadTime - activeClip.startTime);
-      v.currentTime = offset;
-    }
+    if (!activeClip || activeClip.type !== 'video') return;
+    const v = videoRefsMap.current.get(activeClip.id);
+    if (!v) return;
+    const offset = Math.max(0, playheadTime - activeClip.startTime);
+    if (Math.abs(v.currentTime - offset) > 0.2) v.currentTime = offset;
     if (isPlaying) {
       v.play().catch(() => {});
     } else {
@@ -1518,51 +1511,62 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 </div>
                 <p className="text-xs text-gray-500">{renderProgress}%</p>
               </div>
-            ) : activeClip ? (
+            ) : videoClips.length > 0 ? (
               <div
                 ref={canvasRef}
                 className="relative overflow-hidden rounded-xl bg-black shadow-2xl"
                 style={canvasStyle}
                 onClick={e => e.stopPropagation()}
               >
-                {/* Image clip */}
-                {activeClip.type === 'image' && activeClip.sourceUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={activeClip.sourceUrl} alt="Preview" className="h-full w-full object-cover" />
-                )}
-                {/* Video clip — single element, seeked via ref */}
-                {activeClip.type === 'video' && activeClip.sourceUrl && (
-                  <video
-                    ref={videoRef}
-                    src={activeClip.sourceUrl}
-                    className="h-full w-full object-cover"
-                    muted playsInline
-                  />
-                )}
-                {/* No source placeholder */}
-                {!activeClip.sourceUrl && (
-                  <div className="flex h-full items-center justify-center text-xs text-gray-600">No preview</div>
-                )}
-                {/* Text overlays — visible only during their clip's time range */}
-                {activeTextOverlays.map(({ overlay, clipId, storeIdx }) => (
-                  <PreviewOverlayItem
-                    key={clipId}
-                    overlay={overlay}
-                    isSelected={selectedOverlayIdx === storeIdx}
-                    onSelect={() => setSelectedOverlayIdx(storeIdx >= 0 ? storeIdx : null)}
-                    onPositionChange={(x, y) => { if (storeIdx >= 0) handleOverlayPositionChange(storeIdx, x, y); }}
-                    containerRef={canvasRef}
-                  />
-                ))}
+                {/* Preloaded clip layers — active ± 2 neighbors always in DOM */}
+                {(() => {
+                  const activeIdx = videoClips.findIndex(c => c.id === activeClip?.id);
+                  const nearby = videoClips.filter((_, i) => Math.abs(i - (activeIdx < 0 ? 0 : activeIdx)) <= 2);
+                  return nearby.map(clip => (
+                    <div
+                      key={clip.id}
+                      className="absolute inset-0 transition-opacity duration-500"
+                      style={{
+                        opacity: activeClip?.id === clip.id ? 1 : 0,
+                        zIndex: activeClip?.id === clip.id ? 1 : 0,
+                        pointerEvents: activeClip?.id === clip.id ? 'auto' : 'none',
+                      }}
+                    >
+                      {clip.type === 'image' && clip.sourceUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={clip.sourceUrl} alt="Preview" className="h-full w-full object-cover" loading="eager" />
+                      )}
+                      {clip.type === 'video' && clip.sourceUrl && (
+                        <video
+                          ref={el => { if (el) videoRefsMap.current.set(clip.id, el); else videoRefsMap.current.delete(clip.id); }}
+                          src={clip.sourceUrl}
+                          className="h-full w-full object-cover"
+                          muted playsInline preload="auto"
+                        />
+                      )}
+                      {!clip.sourceUrl && activeClip?.id === clip.id && (
+                        <div className="flex h-full items-center justify-center text-xs text-gray-600">No preview</div>
+                      )}
+                    </div>
+                  ));
+                })()}
+                {/* Text overlays */}
+                <div className="absolute inset-0 z-10">
+                  {activeTextOverlays.map(({ overlay, clipId, storeIdx }) => (
+                    <PreviewOverlayItem
+                      key={clipId}
+                      overlay={overlay}
+                      isSelected={selectedOverlayIdx === storeIdx}
+                      onSelect={() => setSelectedOverlayIdx(storeIdx >= 0 ? storeIdx : null)}
+                      onPositionChange={(x, y) => { if (storeIdx >= 0) handleOverlayPositionChange(storeIdx, x, y); }}
+                      containerRef={canvasRef}
+                    />
+                  ))}
+                </div>
                 {/* Clip info badge */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
+                <div className="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
                   {videoClips.length} {videoClips.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
                 </div>
-              </div>
-            ) : videoClips.length > 0 ? (
-              <div className="flex flex-col items-center gap-2 text-gray-600">
-                <p className="text-sm">No clip at this time</p>
-                <p className="text-xs">Drag the playhead over a clip to preview it</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/15 px-10 py-8 text-gray-600">

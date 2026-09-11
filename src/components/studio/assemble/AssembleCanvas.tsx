@@ -1,21 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useStudioStore } from '@/lib/studio/store';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
+import { NLETimeline } from './Timeline';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface TimelineItem {
-  id: string;
-  type: 'image' | 'video';
-  url: string;
-  file?: File;
-  duration: number;
-  prompt?: string;
-}
 
 type AspectRatio = '9:16' | '1:1' | '16:9';
 type ToolCategory = 'text' | 'transitions' | 'audio' | 'effects' | 'stickers';
@@ -195,14 +187,6 @@ function IconChevronLeft({ size = 14 }: { size?: number }) {
   );
 }
 
-function IconPlus({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  );
-}
-
 function IconPlusSmall() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
@@ -298,7 +282,6 @@ function PreviewOverlayItem({ overlay }: { overlay: TextOverlay }) {
       </div>
     );
   }
-
   if (overlay.style === 'brand') {
     return (
       <div
@@ -309,7 +292,6 @@ function PreviewOverlayItem({ overlay }: { overlay: TextOverlay }) {
       </div>
     );
   }
-
   if (overlay.style === 'subtitle') {
     return (
       <div className={`absolute left-0 right-0 flex justify-center ${vert}`}>
@@ -317,7 +299,6 @@ function PreviewOverlayItem({ overlay }: { overlay: TextOverlay }) {
       </div>
     );
   }
-
   if (overlay.style === 'cta') {
     return (
       <div
@@ -328,12 +309,10 @@ function PreviewOverlayItem({ overlay }: { overlay: TextOverlay }) {
       </div>
     );
   }
-
   const alignClass =
     overlay.textAlign === 'left' ? 'justify-start pl-4' :
     overlay.textAlign === 'right' ? 'justify-end pr-4' :
     'justify-center';
-
   return (
     <div className={`absolute left-0 right-0 flex ${alignClass} ${vert}`}>
       <span
@@ -391,12 +370,10 @@ interface EditorProps {
 }
 
 function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: EditorProps) {
-  const showColors = draft.style === 'bar' || draft.style === 'custom';
+  const showColors  = draft.style === 'bar' || draft.style === 'custom';
   const showLineTwo = draft.style === 'bar';
-
   return (
     <div className="space-y-3 px-3 py-3">
-      {/* Text */}
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Text</div>
         <input
@@ -408,7 +385,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           autoFocus
         />
       </div>
-
       {showLineTwo && (
         <div>
           <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Second line</div>
@@ -421,8 +397,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           />
         </div>
       )}
-
-      {/* Style */}
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Style</div>
         <div className="flex flex-wrap gap-1">
@@ -440,8 +414,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           ))}
         </div>
       </div>
-
-      {/* Position */}
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Position</div>
         <div className="flex gap-1">
@@ -459,8 +431,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           ))}
         </div>
       </div>
-
-      {/* Scope */}
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Scope</div>
         <div className="flex flex-wrap items-center gap-1">
@@ -489,17 +459,13 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
               className="rounded bg-white/10 px-2 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-green-600/60"
             >
               {sceneCount > 0
-                ? Array.from({ length: sceneCount }, (_, i) => (
-                    <option key={i} value={i}>Scene {i + 1}</option>
-                  ))
+                ? Array.from({ length: sceneCount }, (_, i) => <option key={i} value={i}>Scene {i + 1}</option>)
                 : <option value={0}>Scene 1</option>
               }
             </select>
           )}
         </div>
       </div>
-
-      {/* Colors */}
       {showColors && (
         <div className="space-y-2">
           <ColorSwatchPicker
@@ -518,8 +484,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           />
         </div>
       )}
-
-      {/* Animation */}
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Animation</div>
         <div className="flex flex-wrap gap-1">
@@ -537,8 +501,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           ))}
         </div>
       </div>
-
-      {/* Actions */}
       <div className="flex gap-2 pt-1">
         <button
           onClick={onSave}
@@ -560,10 +522,6 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-interface Props {
-  userId: string;
-}
-
 const TOOL_CATEGORIES: { id: ToolCategory; label: string; Icon: React.FC<{ size?: number }> }[] = [
   { id: 'text',        label: 'Text',        Icon: IconText },
   { id: 'transitions', label: 'Transitions', Icon: IconTransition },
@@ -572,30 +530,46 @@ const TOOL_CATEGORIES: { id: ToolCategory; label: string; Icon: React.FC<{ size?
   { id: 'stickers',    label: 'Stickers',    Icon: IconSticker },
 ];
 
+interface Props {
+  userId: string;
+}
+
 export function AssembleCanvas({ userId: _userId }: Props) {
-  const storeItems         = useStudioStore((s) => s.timelineItems);
-  const reorderTimeline    = useStudioStore((s) => s.reorderTimeline);
-  const removeFromTimeline = useStudioStore((s) => s.removeFromTimeline);
-  const addToTimeline      = useStudioStore((s) => s.addToTimeline);
-  const textOverlays       = useStudioStore((s) => s.textOverlays);
-  const storeAddOverlay    = useStudioStore((s) => s.addTextOverlay);
-  const storeRemoveOverlay = useStudioStore((s) => s.removeTextOverlay);
-  const storeUpdateOverlay = useStudioStore((s) => s.updateTextOverlay);
+  // Store — track-based timeline
+  const timelineTracks     = useStudioStore(s => s.timelineTracks);
+  const initDefaultTracks  = useStudioStore(s => s.initDefaultTracks);
+  const addClipToTrack     = useStudioStore(s => s.addClipToTrack);
+  const selectedClipId     = useStudioStore(s => s.selectedClipId);
+  const setSelectedClipId  = useStudioStore(s => s.setSelectedClipId);
+  const removeClipFn       = useStudioStore(s => s.removeClip);
+  const splitClipFn        = useStudioStore(s => s.splitClip);
+  const playheadTime       = useStudioStore(s => s.playheadTime);
 
-  const items: TimelineItem[] = storeItems.map(i => ({
-    id:       i.id,
-    type:     i.type,
-    url:      i.url,
-    duration: i.duration ?? (i.type === 'video' ? 5 : 3),
-    prompt:   i.prompt,
-  }));
+  // Store — text overlays (left panel)
+  const textOverlays       = useStudioStore(s => s.textOverlays);
+  const storeAddOverlay    = useStudioStore(s => s.addTextOverlay);
+  const storeRemoveOverlay = useStudioStore(s => s.removeTextOverlay);
+  const storeUpdateOverlay = useStudioStore(s => s.updateTextOverlay);
 
-  const [durationOverrides, setDurationOverrides] = useState<Record<string, number>>({});
+  // Init tracks on mount
+  useEffect(() => { initDefaultTracks(); }, [initDefaultTracks]);
 
-  const mergedItems: TimelineItem[] = items.map(i => ({
-    ...i,
-    duration: durationOverrides[i.id] ?? i.duration,
-  }));
+  // Derived: video track
+  const videoTrack = timelineTracks.find(t => t.type === 'video');
+  const videoClips = [...(videoTrack?.clips ?? [])].sort((a, b) => a.startTime - b.startTime);
+  const totalDuration = videoClips.reduce((s, c) => Math.max(s, c.startTime + c.duration), 0);
+
+  // Selected clip info (from any track)
+  const selectedClip = selectedClipId
+    ? timelineTracks.flatMap(t => t.clips).find(c => c.id === selectedClipId) ?? null
+    : null;
+
+  // Can split = selected clip exists AND playhead is within its range
+  const canSplit = selectedClip !== null
+    && playheadTime > selectedClip.startTime
+    && playheadTime < selectedClip.startTime + selectedClip.duration;
+
+  // ── Local state ────────────────────────────────────────────────────────────
 
   const [musicFile, setMusicFile]           = useState<File | null>(null);
   const [transition, setTransition]         = useState<TransitionType>('fade');
@@ -609,80 +583,39 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [projectName, setProjectName]       = useState('Untitled Clip');
   const [editingName, setEditingName]       = useState(false);
   const [error, setError]                   = useState<string | null>(null);
-  const [dragOverIdx, setDragOverIdx]       = useState<number | null>(null);
 
   // NLE panel state
-  const [activeToolPanel, setActiveToolPanel]     = useState<ToolCategory | null>(null);
-  const [selectedClipId, setSelectedClipId]       = useState<string | null>(null);
-  const [mobilePanelOpen, setMobilePanelOpen]     = useState(false);
+  const [activeToolPanel, setActiveToolPanel] = useState<ToolCategory | null>(null);
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 
   // Text overlay editor state
   const [showTemplates, setShowTemplates]         = useState(false);
   const [editingOverlayIdx, setEditingOverlayIdx] = useState<number | null>(null);
   const [draftOverlay, setDraftOverlay]           = useState<TextOverlay | null>(null);
 
-  const fileInputRef  = useRef<HTMLInputElement>(null);
   const musicInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef  = useRef<HTMLInputElement>(null);
   const resultBlobRef = useRef<string | null>(null);
 
-  const totalDuration = Math.max(
-    0,
-    mergedItems.reduce((s, i) => s + i.duration, 0) - Math.max(0, mergedItems.length - 1) * TRANSITION_DUR,
-  );
-
-  // ── File handling ──────────────────────────────────────────────────────────
+  // ── File add: goes to video track ─────────────────────────────────────────
 
   async function handleFileAdd(files: FileList | File[]) {
+    if (!videoTrack) return;
     const arr = Array.from(files);
-    const newItems: TimelineItem[] = [];
+    const endTime = videoClips.reduce((m, c) => Math.max(m, c.startTime + c.duration), 0);
+    let cursor = endTime;
     for (const file of arr) {
       const isVideo = file.type.startsWith('video/');
       const url = URL.createObjectURL(file);
-      const duration = isVideo ? await videoDurationOf(url) : imageDuration;
-      newItems.push({ id: crypto.randomUUID(), type: isVideo ? 'video' : 'image', url, file, duration });
+      const dur = isVideo ? await videoDurationOf(url) : imageDuration;
+      addClipToTrack(videoTrack.id, {
+        type: isVideo ? 'video' : 'image',
+        startTime: cursor,
+        duration: dur,
+        sourceUrl: url,
+      });
+      cursor += dur;
     }
-    for (const item of newItems) {
-      addToTimeline({ type: item.type, url: item.url, duration: item.duration });
-    }
-  }
-
-  function removeItem(id: string) {
-    removeFromTimeline(id);
-    setDurationOverrides(prev => { const next = { ...prev }; delete next[id]; return next; });
-    if (selectedClipId === id) setSelectedClipId(null);
-  }
-
-  function applyImageDuration(dur: number) {
-    setImageDuration(dur);
-    setDurationOverrides(prev => {
-      const overrides = { ...prev };
-      for (const item of storeItems) {
-        if (item.type === 'image') overrides[item.id] = dur;
-      }
-      return overrides;
-    });
-  }
-
-  // ── Drag & drop reorder ────────────────────────────────────────────────────
-
-  function handleDragStart(e: React.DragEvent, idx: number) {
-    e.dataTransfer.setData('text/plain', String(idx));
-    e.dataTransfer.effectAllowed = 'move';
-  }
-
-  function handleDragOver(e: React.DragEvent, idx: number) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverIdx(idx);
-  }
-
-  function handleDrop(e: React.DragEvent, dropIdx: number) {
-    e.preventDefault();
-    const dragIdx = Number(e.dataTransfer.getData('text/plain'));
-    if (Number.isNaN(dragIdx) || dragIdx === dropIdx) { setDragOverIdx(null); return; }
-    reorderTimeline(dragIdx, dropIdx);
-    setDragOverIdx(null);
   }
 
   // ── Text overlay management ────────────────────────────────────────────────
@@ -724,7 +657,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   // ── Export ─────────────────────────────────────────────────────────────────
 
   async function handleExport() {
-    if (mergedItems.length < 2) { setError('Add at least 2 clips to export'); return; }
+    if (videoClips.length < 2) { setError('Add at least 2 clips to export'); return; }
     setError(null);
     setIsRendering(true);
     setRenderProgress(0);
@@ -733,23 +666,26 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     setResultUrl(null);
 
     try {
-      const globalOverlays   = textOverlays.filter(o => o.scope !== 'scene');
+      const globalOverlays  = textOverlays.filter(o => o.scope !== 'scene');
       const perSceneOverlays = textOverlays.filter(o => o.scope === 'scene');
 
       const slideshowItems: SlideshowItem[] = await Promise.all(
-        mergedItems.map(async (item, idx) => {
+        videoClips.map(async (clip, idx) => {
           const sceneOverlays = perSceneOverlays.filter(o => o.sceneIndex === idx);
           const cardOverlays  = sceneOverlays.length ? sceneOverlays : undefined;
 
-          if (item.type === 'video') {
-            const el = await loadVid(item.url);
-            return { type: 'video' as const, element: el, duration: item.duration, cardOverlays };
+          if (!clip.sourceUrl) {
+            return { type: 'image' as const, element: await loadImg(''), duration: clip.duration, motion: DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length], cardOverlays };
           }
-          const el = await loadImg(item.url);
+          if (clip.type === 'video') {
+            const el = await loadVid(clip.sourceUrl);
+            return { type: 'video' as const, element: el, duration: clip.duration, cardOverlays };
+          }
+          const el = await loadImg(clip.sourceUrl);
           return {
             type: 'image' as const,
             element: el,
-            duration: item.duration,
+            duration: clip.duration,
             motion: DEFAULT_SEQUENCE[idx % DEFAULT_SEQUENCE.length],
             cardOverlays,
           };
@@ -797,84 +733,88 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     setRenderProgress(0);
   }
 
-  // ── Selected clip info ─────────────────────────────────────────────────────
+  // ── Aspect ratio canvas style ─────────────────────────────────────────────
 
-  const selectedClip = selectedClipId ? mergedItems.find(i => i.id === selectedClipId) ?? null : null;
+  const canvasStyle: React.CSSProperties =
+    aspectRatio === '9:16'
+      ? { aspectRatio: '9/16', width: 'auto', height: '100%', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
+      : aspectRatio === '1:1'
+      ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
+      : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' };
 
-  // ── Right panel content ────────────────────────────────────────────────────
+  // ── Preview clip (first video clip) ──────────────────────────────────────
+
+  const previewClip = videoClips[0] ?? null;
+
+  // ── Right panel ───────────────────────────────────────────────────────────
 
   function RightPanelContent() {
     if (editingOverlayIdx !== null && draftOverlay) {
       return (
         <>
-          <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">
-            Text Overlay
-          </div>
+          <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">Text Overlay</div>
           <OverlayEditorPanel
             draft={draftOverlay}
             setDraft={setDraftOverlay}
             onSave={saveOverlay}
             onCancel={() => { setEditingOverlayIdx(null); setDraftOverlay(null); }}
-            sceneCount={mergedItems.length}
+            sceneCount={videoClips.length}
           />
         </>
       );
     }
-
     if (selectedClip) {
       return (
         <>
-          <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">
-            Clip Properties
-          </div>
+          <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">Properties</div>
           <div className="p-3 space-y-3">
-            {/* Thumbnail */}
-            <div className="overflow-hidden rounded-lg border border-white/10 aspect-video bg-black">
-              {selectedClip.type === 'image' ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={selectedClip.url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <video src={selectedClip.url} className="h-full w-full object-cover" muted playsInline />
-              )}
-            </div>
-
-            {/* Type badge */}
+            {selectedClip.sourceUrl && (selectedClip.type === 'image' || selectedClip.type === 'video') && (
+              <div className="overflow-hidden rounded-lg border border-white/10 bg-black" style={{ aspectRatio: '16/9' }}>
+                {selectedClip.type === 'image'
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={selectedClip.sourceUrl} alt="" className="h-full w-full object-cover" />
+                  : <video src={selectedClip.sourceUrl} className="h-full w-full object-cover" muted playsInline />
+                }
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <span className="rounded bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-wider text-gray-400">
-                {selectedClip.type}
-              </span>
-              <span className="text-xs text-gray-600">{selectedClip.duration.toFixed(1)}s</span>
+              <span className="rounded bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-wider text-gray-400">{selectedClip.type}</span>
+              <span className="text-xs text-gray-600">{selectedClip.duration.toFixed(1)}s @ {selectedClip.startTime.toFixed(1)}s</span>
             </div>
-
-            {/* Duration */}
             <div>
-              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Duration (seconds)</div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Start (s)</div>
               <input
-                type="number"
-                min={0.5}
-                max={30}
-                step={0.5}
-                value={durationOverrides[selectedClip.id] ?? selectedClip.duration}
+                type="number" min={0} step={0.1}
+                value={selectedClip.startTime}
                 onChange={e => {
                   const v = parseFloat(e.target.value);
-                  if (!isNaN(v) && v > 0) setDurationOverrides(prev => ({ ...prev, [selectedClip.id]: v }));
+                  if (!isNaN(v)) useStudioStore.getState().trimClip(selectedClip.id, v, selectedClip.duration);
                 }}
                 className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-green-600/60"
               />
             </div>
-
-            {/* Remove */}
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Duration (s)</div>
+              <input
+                type="number" min={0.1} step={0.1}
+                value={selectedClip.duration}
+                onChange={e => {
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v) && v > 0) useStudioStore.getState().trimClip(selectedClip.id, selectedClip.startTime, v);
+                }}
+                className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-green-600/60"
+              />
+            </div>
             <button
-              onClick={() => removeItem(selectedClip.id)}
+              onClick={() => removeClipFn(selectedClip.id)}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300"
             >
-              <IconX size={12} /> Remove from timeline
+              <IconX size={12} /> Remove clip
             </button>
           </div>
         </>
       );
     }
-
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-gray-600">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -886,7 +826,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     );
   }
 
-  // ── Left panel tool content ────────────────────────────────────────────────
+  // ── Left panel ────────────────────────────────────────────────────────────
 
   function LeftPanelContent() {
     if (!activeToolPanel) {
@@ -901,9 +841,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               <Icon size={16} />
               <span>{label}</span>
               {id === 'text' && textOverlays.length > 0 && (
-                <span className="ml-auto rounded-full bg-white/10 px-1.5 py-px text-[10px] text-gray-400">
-                  {textOverlays.length}
-                </span>
+                <span className="ml-auto rounded-full bg-white/10 px-1.5 py-px text-[10px] text-gray-400">{textOverlays.length}</span>
               )}
             </button>
           ))}
@@ -916,7 +854,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
     return (
       <div className="flex flex-col">
-        {/* Back button */}
         <button
           onClick={() => setActiveToolPanel(null)}
           className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2 text-xs text-gray-500 transition-colors hover:text-white"
@@ -926,19 +863,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           <span>{cat?.label}</span>
         </button>
 
-        {/* Text panel */}
         {activeToolPanel === 'text' && (
           <div className="flex flex-col gap-2 p-2">
             <button
-              onClick={() => {
-                setShowTemplates(v => !v);
-                if (editingOverlayIdx !== null) { setEditingOverlayIdx(null); setDraftOverlay(null); }
-              }}
+              onClick={() => { setShowTemplates(v => !v); if (editingOverlayIdx !== null) { setEditingOverlayIdx(null); setDraftOverlay(null); } }}
               className="flex items-center gap-1 rounded bg-white/5 px-2 py-1.5 text-xs text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <IconPlusSmall /> Add overlay
             </button>
-
             {showTemplates && (
               <div className="flex flex-wrap gap-1.5 px-1">
                 {OVERLAY_TEMPLATES.map(tpl => (
@@ -958,7 +890,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 </button>
               </div>
             )}
-
             {textOverlays.length > 0 && (
               <div className="space-y-1 px-1">
                 {textOverlays.map((overlay, idx) => (
@@ -966,32 +897,18 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                     <span className="min-w-0 flex-1 truncate text-xs text-white">
                       {overlay.text.slice(0, 24)}{overlay.text.length > 24 ? '…' : ''}
                     </span>
-                    <button
-                      onClick={() => openEditor(idx)}
-                      className="flex-shrink-0 text-gray-600 transition-colors hover:text-white"
-                      title="Edit"
-                    >
-                      <IconEdit />
-                    </button>
-                    <button
-                      onClick={() => removeOverlay(idx)}
-                      className="flex-shrink-0 text-gray-600 transition-colors hover:text-red-400"
-                      title="Remove"
-                    >
-                      <IconX size={12} />
-                    </button>
+                    <button onClick={() => openEditor(idx)} className="flex-shrink-0 text-gray-600 hover:text-white" title="Edit"><IconEdit /></button>
+                    <button onClick={() => removeOverlay(idx)} className="flex-shrink-0 text-gray-600 hover:text-red-400" title="Remove"><IconX size={12} /></button>
                   </div>
                 ))}
               </div>
             )}
-
             {textOverlays.length === 0 && !showTemplates && (
               <p className="px-1 text-xs text-gray-700">No overlays yet. Click &quot;Add overlay&quot; to start.</p>
             )}
           </div>
         )}
 
-        {/* Transitions panel */}
         {activeToolPanel === 'transitions' && (
           <div className="flex flex-col gap-4 p-3">
             <div>
@@ -1011,14 +928,13 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 ))}
               </div>
             </div>
-
             <div>
-              <div className="mb-1.5 text-[10px] uppercase tracking-wider text-gray-500">Image duration</div>
-              <div className="flex gap-1 flex-wrap">
+              <div className="mb-1.5 text-[10px] uppercase tracking-wider text-gray-500">Default image duration</div>
+              <div className="flex flex-wrap gap-1">
                 {IMAGE_DUR_OPTIONS.map(d => (
                   <button
                     key={d}
-                    onClick={() => applyImageDuration(d)}
+                    onClick={() => setImageDuration(d)}
                     className={[
                       'rounded px-3 py-1.5 text-xs transition-colors',
                       imageDuration === d ? 'bg-green-600/20 text-green-400' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300',
@@ -1032,7 +948,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {/* Audio panel */}
         {activeToolPanel === 'audio' && (
           <div className="flex flex-col gap-3 p-3">
             <div className="text-[10px] uppercase tracking-wider text-gray-500">Background music</div>
@@ -1044,7 +959,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 </div>
                 <button
                   onClick={() => { setMusicFile(null); if (musicInputRef.current) musicInputRef.current.value = ''; }}
-                  className="w-full rounded bg-white/5 py-1 text-xs text-gray-500 transition-colors hover:bg-white/10 hover:text-gray-300"
+                  className="w-full rounded bg-white/5 py-1 text-xs text-gray-500 hover:bg-white/10 hover:text-gray-300"
                 >
                   Remove
                 </button>
@@ -1052,7 +967,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             ) : (
               <button
                 onClick={() => musicInputRef.current?.click()}
-                className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-white/15 py-6 text-gray-600 transition-colors hover:border-white/25 hover:text-gray-400"
+                className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-white/15 py-6 text-gray-600 hover:border-white/25 hover:text-gray-400"
               >
                 <IconMusicNote size={20} />
                 <span className="text-xs">Add music</span>
@@ -1069,7 +984,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {/* Effects panel */}
         {activeToolPanel === 'effects' && (
           <div className="flex flex-col gap-4 p-3">
             <div>
@@ -1092,7 +1006,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
         )}
 
-        {/* Stickers panel */}
         {activeToolPanel === 'stickers' && (
           <div className="flex flex-col items-center gap-2 p-6 text-center text-gray-600">
             <IconSticker size={28} />
@@ -1103,23 +1016,13 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     );
   }
 
-  // ── Canvas aspect ratio styles ─────────────────────────────────────────────
-
-  const canvasStyle: React.CSSProperties =
-    aspectRatio === '9:16'
-      ? { aspectRatio: '9/16', width: 'auto', height: '100%', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
-      : aspectRatio === '1:1'
-      ? { aspectRatio: '1/1', width: 'auto', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' }
-      : { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: 'calc(100% - 32px)', maxWidth: 'calc(100% - 32px)' };
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[#0a0a0f]">
 
-      {/* ── Top Tab Bar ────────────────────────────────────────────────────── */}
+      {/* ── Top Tab Bar ──────────────────────────────────────────────────── */}
       <div className="flex h-10 flex-shrink-0 items-center border-b border-white/10 bg-[#0d0d14] px-2">
-        {/* Mobile left panel toggle */}
         <button
           onClick={() => setMobilePanelOpen(o => !o)}
           className="mr-2 text-gray-500 hover:text-white md:hidden"
@@ -1128,32 +1031,18 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           <IconHamburger />
         </button>
 
-        {/* Tabs */}
         <nav className="flex items-center gap-1">
-          <Link
-            href="/studio/generate"
-            className="flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-gray-500 transition-colors hover:text-gray-300"
-          >
-            <IconSparkle />
-            <span className="hidden sm:inline">Generate</span>
+          <Link href="/studio/generate" className="flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-gray-500 transition-colors hover:text-gray-300">
+            <IconSparkle /><span className="hidden sm:inline">Generate</span>
           </Link>
-          <Link
-            href="/studio/animate"
-            className="flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-gray-500 transition-colors hover:text-gray-300"
-          >
-            <IconPlay />
-            <span className="hidden sm:inline">Animate</span>
+          <Link href="/studio/animate" className="flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-gray-500 transition-colors hover:text-gray-300">
+            <IconPlay /><span className="hidden sm:inline">Animate</span>
           </Link>
-          <Link
-            href="/studio/assemble"
-            className="flex h-10 items-center gap-1.5 border-b-2 border-green-500 px-3 text-sm font-medium text-white"
-          >
-            <IconScissors />
-            <span className="hidden sm:inline">Assemble</span>
+          <Link href="/studio/assemble" className="flex h-10 items-center gap-1.5 border-b-2 border-green-500 px-3 text-sm font-medium text-white">
+            <IconScissors /><span className="hidden sm:inline">Assemble</span>
           </Link>
         </nav>
 
-        {/* Project name + duration */}
         <div className="ml-auto flex items-center gap-2 pr-2">
           {editingName ? (
             <input
@@ -1167,33 +1056,24 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               className="min-w-0 w-32 rounded bg-white/10 px-2 py-0.5 text-xs text-white outline-none focus:ring-1 focus:ring-green-600"
             />
           ) : (
-            <button
-              onClick={() => setEditingName(true)}
-              className="truncate text-xs text-gray-400 hover:text-white"
-              title="Click to rename"
-            >
+            <button onClick={() => setEditingName(true)} className="truncate text-xs text-gray-400 hover:text-white" title="Click to rename">
               {projectName}
             </button>
           )}
-          {mergedItems.length > 0 && (
-            <span className="rounded-full bg-white/10 px-2 py-px text-[10px] text-gray-500">
-              {totalDuration.toFixed(1)}s
-            </span>
+          {totalDuration > 0 && (
+            <span className="rounded-full bg-white/10 px-2 py-px text-[10px] text-gray-500">{totalDuration.toFixed(1)}s</span>
           )}
         </div>
       </div>
 
-      {/* ── Three-panel body ────────────────────────────────────────────────── */}
+      {/* ── Three-panel body ─────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Left Tool Panel ─────────────────────────────────────────────── */}
-        <aside
-          className={[
-            'flex-shrink-0 w-[220px] bg-[#0d0d14] border-r border-white/10 overflow-y-auto',
-            'hidden md:flex md:flex-col',
-            mobilePanelOpen ? 'fixed bottom-0 left-0 top-0 z-40 flex flex-col' : '',
-          ].join(' ')}
-        >
+        {/* Left Tool Panel */}
+        <aside className={[
+          'flex-shrink-0 w-[220px] bg-[#0d0d14] border-r border-white/10 overflow-y-auto',
+          'hidden md:flex md:flex-col',
+        ].join(' ')}>
           <LeftPanelContent />
         </aside>
 
@@ -1211,7 +1091,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </>
         )}
 
-        {/* ── Center + Timeline column ─────────────────────────────────────── */}
+        {/* Center + Timeline column */}
         <div className="flex flex-1 flex-col overflow-hidden">
 
           {/* Center Canvas */}
@@ -1221,13 +1101,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           >
             {resultUrl ? (
               <div className="flex flex-col items-center gap-4">
-                <video
-                  src={resultUrl}
-                  controls
-                  loop
-                  className="max-h-full max-w-full rounded-xl object-contain"
-                  style={{ maxHeight: 'calc(100% - 80px)' }}
-                />
+                <video src={resultUrl} controls loop className="max-h-full max-w-full rounded-xl object-contain" style={{ maxHeight: 'calc(100% - 80px)' }} />
                 <div className="flex items-center gap-3">
                   <button
                     onClick={e => { e.stopPropagation(); handleDownload(); }}
@@ -1249,36 +1123,21 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                   {renderPhase === 'audio' ? 'Adding music…' : 'Rendering…'}
                 </p>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-green-600 transition-all duration-300"
-                    style={{ width: `${renderProgress}%` }}
-                  />
+                  <div className="h-full rounded-full bg-green-600 transition-all duration-300" style={{ width: `${renderProgress}%` }} />
                 </div>
                 <p className="text-xs text-gray-500">{renderProgress}%</p>
               </div>
-            ) : mergedItems.length > 0 ? (
+            ) : previewClip ? (
               <div
                 className="relative overflow-hidden rounded-xl bg-black shadow-2xl"
                 style={canvasStyle}
                 onClick={e => e.stopPropagation()}
               >
-                {mergedItems[0].type === 'image' ? (
+                {previewClip.sourceUrl && (previewClip.type === 'image'
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={mergedItems[0].url}
-                    alt="Preview"
-                    className="h-full w-full object-cover opacity-80"
-                  />
-                ) : (
-                  <video
-                    src={mergedItems[0].url}
-                    className="h-full w-full object-cover opacity-80"
-                    muted
-                    playsInline
-                  />
+                  ? <img src={previewClip.sourceUrl} alt="Preview" className="h-full w-full object-cover opacity-80" />
+                  : <video src={previewClip.sourceUrl} className="h-full w-full object-cover opacity-80" muted playsInline />
                 )}
-
-                {/* CSS text overlay preview */}
                 {previewOverlays.length > 0 && (
                   <div className="pointer-events-none absolute inset-0 overflow-hidden">
                     {previewOverlays.map((overlay, idx) => (
@@ -1286,36 +1145,27 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                     ))}
                   </div>
                 )}
-
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-xs text-gray-400">
-                  {mergedItems.length} {mergedItems.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
+                  {videoClips.length} {videoClips.length === 1 ? 'clip' : 'clips'} · {totalDuration.toFixed(1)}s
                 </div>
               </div>
             ) : (
-              <div
-                className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/15 px-10 py-8 text-gray-600"
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => {
-                  e.preventDefault();
-                  if (e.dataTransfer.files.length) void handleFileAdd(e.dataTransfer.files);
-                }}
-              >
+              <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/15 px-10 py-8 text-gray-600">
                 <IconFilm />
-                <p className="text-sm">Drop images or videos here</p>
-                <p className="text-xs text-gray-700">or add clips from the timeline below</p>
+                <p className="text-sm">Add clips from the timeline below</p>
               </div>
             )}
 
             {/* Playback controls placeholder */}
             {!resultUrl && !isRendering && (
               <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 px-4 py-1.5 backdrop-blur-sm">
-                <button disabled className="text-gray-700" title="Skip back">
+                <button disabled className="text-gray-700">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                 </button>
-                <button disabled className="text-gray-700" title="Play">
+                <button disabled className="text-gray-700">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                 </button>
-                <button disabled className="text-gray-700" title="Skip forward">
+                <button disabled className="text-gray-700">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
                 </button>
                 <span className="text-[10px] text-gray-600">00:00 / {totalDuration.toFixed(1)}s</span>
@@ -1324,24 +1174,48 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
 
           {/* Export Toolbar */}
-          <div className="flex flex-shrink-0 items-center gap-2 border-t border-white/10 bg-[#0d0d14] px-3 py-1.5">
-            <button disabled className="rounded px-2.5 py-1 text-xs text-gray-700 cursor-not-allowed" title="Undo">
+          <div className="flex flex-shrink-0 items-center gap-1 border-t border-white/10 bg-[#0d0d14] px-3 py-1.5">
+            {/* Undo/Redo placeholders */}
+            <button disabled className="rounded px-2 py-1 text-xs text-gray-700 cursor-not-allowed" title="Undo (Ctrl+Z)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
             </button>
-            <button disabled className="rounded px-2.5 py-1 text-xs text-gray-700 cursor-not-allowed" title="Redo">
+            <button disabled className="rounded px-2 py-1 text-xs text-gray-700 cursor-not-allowed" title="Redo">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/></svg>
             </button>
             <div className="mx-1 h-4 w-px bg-white/10" />
-            <button disabled className="rounded px-2.5 py-1 text-xs text-gray-700 cursor-not-allowed" title="Split">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7l7 5-7 5"/><path d="M19 7l-7 5 7 5"/></svg>
-            </button>
-            <button disabled className="rounded px-2.5 py-1 text-xs text-gray-700 cursor-not-allowed" title="Delete">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+
+            {/* Split */}
+            <button
+              onClick={() => { if (selectedClipId && canSplit) splitClipFn(selectedClipId, playheadTime); }}
+              disabled={!canSplit}
+              title="Split at playhead (S)"
+              className={[
+                'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
+                canSplit ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+              ].join(' ')}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7l7 5-7 5"/><path d="M19 7l-7 5 7 5"/></svg>
+              Split
             </button>
 
+            {/* Delete */}
+            <button
+              onClick={() => { if (selectedClipId) removeClipFn(selectedClipId); }}
+              disabled={!selectedClipId}
+              title="Delete selected (Del)"
+              className={[
+                'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
+                selectedClipId ? 'text-red-400 hover:bg-red-500/10' : 'cursor-not-allowed text-gray-700',
+              ].join(' ')}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Delete
+            </button>
+
+            {/* Export */}
             <button
               onClick={() => void handleExport()}
-              disabled={isRendering || mergedItems.length < 2}
+              disabled={isRendering || videoClips.length < 2}
               className="ml-auto flex items-center gap-2 rounded-lg bg-green-600 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <IconDownload />
@@ -1349,113 +1223,21 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             </button>
           </div>
 
-          {/* Timeline */}
-          <div className="h-[180px] flex-shrink-0 overflow-y-auto border-t border-white/10 bg-[#0d0d14]">
-            {/* Clips row */}
-            <div
-              className="flex items-center gap-1 overflow-x-auto px-3 py-3"
-              style={{ scrollbarWidth: 'thin' }}
-            >
-              {mergedItems.map((item, idx) => (
-                <div key={item.id} className="flex flex-shrink-0 items-center">
-                  <div
-                    className={[
-                      'flex-shrink-0 h-[68px] rounded transition-all duration-100',
-                      dragOverIdx === idx ? 'w-1 bg-green-500 mr-1' : 'w-0',
-                    ].join(' ')}
-                  />
-                  <div
-                    draggable
-                    onDragStart={e => handleDragStart(e, idx)}
-                    onDragOver={e => handleDragOver(e, idx)}
-                    onDrop={e => handleDrop(e, idx)}
-                    onDragLeave={() => setDragOverIdx(null)}
-                    onDragEnd={() => setDragOverIdx(null)}
-                    onClick={() => { setSelectedClipId(item.id); setEditingOverlayIdx(null); setDraftOverlay(null); }}
-                    className={[
-                      'group relative flex-shrink-0 h-[68px] w-[108px] cursor-pointer overflow-hidden rounded-lg border transition-colors active:cursor-grabbing',
-                      selectedClipId === item.id
-                        ? 'border-green-500'
-                        : dragOverIdx === idx
-                        ? 'border-green-500/50'
-                        : 'border-white/10 hover:border-white/25',
-                    ].join(' ')}
-                  >
-                    {item.type === 'image' ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.url} alt="" className="h-full w-full object-cover" draggable={false} />
-                    ) : (
-                      <video src={item.url} className="h-full w-full object-cover" muted playsInline />
-                    )}
-                    <div className="absolute bottom-1 left-1 rounded bg-black/75 px-1 py-px text-[10px] leading-tight text-white">
-                      {item.duration.toFixed(1)}s
-                    </div>
-                    {item.type === 'video' && (
-                      <div className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-px text-[9px] text-gray-300">▶</div>
-                    )}
-                    <button
-                      onClick={e => { e.stopPropagation(); removeItem(item.id); }}
-                      className="absolute right-1 top-1 hidden rounded-full bg-black/75 p-0.5 text-white hover:bg-black group-hover:flex"
-                      title="Remove clip"
-                    >
-                      <IconX size={11} />
-                    </button>
-                  </div>
-                  {idx < mergedItems.length - 1 && (
-                    <span className="flex-shrink-0 px-1 text-[10px] text-gray-700">→</span>
-                  )}
-                </div>
-              ))}
-
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex h-[68px] w-[68px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 text-gray-600 transition-colors hover:border-white/25 hover:text-gray-400"
-              >
-                <IconPlus size={20} />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,video/*"
-                className="hidden"
-                onChange={e => { if (e.target.files) void handleFileAdd(e.target.files); e.target.value = ''; }}
-              />
-            </div>
-
-            {/* Music row */}
-            <div className="flex items-center gap-2 border-t border-white/5 px-3 py-2">
-              <span className="text-gray-600"><IconMusicNote size={15} /></span>
-              {musicFile ? (
-                <>
-                  <div className="flex-1 truncate rounded bg-white/5 px-2.5 py-1.5 text-xs text-gray-300">
-                    <span className="text-green-500">♪</span> {musicFile.name}
-                  </div>
-                  <button
-                    onClick={() => { setMusicFile(null); if (musicInputRef.current) musicInputRef.current.value = ''; }}
-                    className="text-xs text-gray-600 hover:text-gray-400"
-                  >
-                    Remove
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => musicInputRef.current?.click()}
-                  className="text-xs text-gray-600 hover:text-gray-400"
-                >
-                  Add music (MP3, WAV)
-                </button>
-              )}
-            </div>
+          {/* NLE Timeline */}
+          <div className="h-[180px] flex-shrink-0 border-t border-white/10">
+            <NLETimeline
+              musicFile={musicFile}
+              onFileAdd={files => void handleFileAdd(files)}
+            />
           </div>
         </div>
 
-        {/* ── Right Inspector Panel ────────────────────────────────────────── */}
+        {/* Right Inspector Panel */}
         <aside className="hidden w-[260px] flex-shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-[#0d0d14] md:flex">
           <RightPanelContent />
         </aside>
 
-        {/* Mobile right panel: bottom sheet when item selected */}
+        {/* Mobile right: bottom sheet */}
         {(editingOverlayIdx !== null || selectedClip) && (
           <div className="fixed inset-x-0 bottom-0 z-50 max-h-[60vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#0d0d14] shadow-2xl md:hidden">
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20" />
@@ -1468,9 +1250,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       {error && (
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-950/90 px-4 py-3 text-sm text-red-300 shadow-xl">
           {error}
-          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-300">
-            <IconX size={14} />
-          </button>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-300"><IconX size={14} /></button>
         </div>
       )}
     </div>

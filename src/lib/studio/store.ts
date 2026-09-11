@@ -14,6 +14,32 @@ export interface MediaItem {
   createdAt: number;
 }
 
+// ── Timeline types ────────────────────────────────────────────────────────────
+
+export interface TimelineClip {
+  id: string;
+  trackId: string;
+  type: 'image' | 'video' | 'text' | 'audio';
+  startTime: number;
+  duration: number;
+  sourceUrl?: string;
+  prompt?: string;
+  overlayData?: TextOverlay;
+  audioName?: string;
+}
+
+export interface TimelineTrack {
+  id: string;
+  type: 'video' | 'text' | 'audio';
+  label: string;
+  clips: TimelineClip[];
+  locked: boolean;
+  visible: boolean;
+  height: number;
+}
+
+// ── Store interface ───────────────────────────────────────────────────────────
+
 interface StudioStore {
   generatedImages: MediaItem[];
   addImage: (item: MediaItem) => void;
@@ -36,11 +62,54 @@ interface StudioStore {
   addTextOverlay: (overlay: TextOverlay) => void;
   removeTextOverlay: (index: number) => void;
   updateTextOverlay: (index: number, overlay: TextOverlay) => void;
+
+  // ── Multi-track timeline ──────────────────────────────────────────────────
+  timelineTracks: TimelineTrack[];
+  initDefaultTracks: () => void;
+  addTrack: (type: 'video' | 'text' | 'audio') => void;
+  removeTrack: (trackId: string) => void;
+
+  addClipToTrack: (trackId: string, clip: Omit<TimelineClip, 'id' | 'trackId'>) => void;
+  removeClip: (clipId: string) => void;
+  moveClip: (clipId: string, newTrackId: string, newStartTime: number) => void;
+  trimClip: (clipId: string, newStartTime: number, newDuration: number) => void;
+  splitClip: (clipId: string, splitTime: number) => void;
+  clearAllTracks: () => void;
+
+  playheadTime: number;
+  setPlayheadTime: (time: number) => void;
+
+  timelineZoom: number;
+  setTimelineZoom: (zoom: number) => void;
+
+  selectedClipId: string | null;
+  setSelectedClipId: (id: string | null) => void;
 }
+
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+function uid(): string {
+  return crypto.randomUUID();
+}
+
+function makeTrack(type: 'video' | 'text' | 'audio', label: string): TimelineTrack {
+  return {
+    id: uid(),
+    type,
+    label,
+    clips: [],
+    locked: false,
+    visible: true,
+    height: type === 'video' ? 56 : 36,
+  };
+}
+
+// ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useStudioStore = create<StudioStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      // ── Images ──────────────────────────────────────────────────────────────
       generatedImages: [],
       addImage: (item) =>
         set((s) => ({ generatedImages: [item, ...s.generatedImages].slice(0, 100) })),
@@ -48,6 +117,7 @@ export const useStudioStore = create<StudioStore>()(
         set((s) => ({ generatedImages: s.generatedImages.filter((i) => i.id !== id) })),
       clearImages: () => set({ generatedImages: [] }),
 
+      // ── Videos ──────────────────────────────────────────────────────────────
       generatedVideos: [],
       addVideo: (item) =>
         set((s) => ({ generatedVideos: [item, ...s.generatedVideos].slice(0, 50) })),
@@ -55,10 +125,11 @@ export const useStudioStore = create<StudioStore>()(
         set((s) => ({ generatedVideos: s.generatedVideos.filter((i) => i.id !== id) })),
       clearVideos: () => set({ generatedVideos: [] }),
 
+      // ── Legacy timeline items (kept for migration) ────────────────────────
       timelineItems: [],
       addToTimeline: (item) =>
         set((s) => {
-          const next: MediaItem = { ...item, id: crypto.randomUUID(), createdAt: Date.now() };
+          const next: MediaItem = { ...item, id: uid(), createdAt: Date.now() };
           return { timelineItems: [...s.timelineItems, next].slice(0, 30) };
         }),
       removeFromTimeline: (id) =>
@@ -72,6 +143,7 @@ export const useStudioStore = create<StudioStore>()(
         }),
       clearTimeline: () => set({ timelineItems: [] }),
 
+      // ── Text overlays ────────────────────────────────────────────────────
       textOverlays: [],
       setTextOverlays: (overlays) => set({ textOverlays: overlays }),
       addTextOverlay: (overlay) =>
@@ -84,10 +156,157 @@ export const useStudioStore = create<StudioStore>()(
           next[index] = overlay;
           return { textOverlays: next };
         }),
+
+      // ── Multi-track timeline ─────────────────────────────────────────────
+      timelineTracks: [],
+
+      initDefaultTracks: () => {
+        const { timelineTracks, timelineItems, textOverlays } = get();
+        if (timelineTracks.length > 0) return;
+
+        const videoTrack = makeTrack('video', 'Video 1');
+        const textTrack  = makeTrack('text', 'Text');
+        const audioTrack = makeTrack('audio', 'Audio');
+
+        // Migrate legacy timelineItems → video clips
+        let cursor = 0;
+        for (const item of timelineItems) {
+          const dur = item.duration ?? (item.type === 'video' ? 5 : 3);
+          videoTrack.clips.push({
+            id: uid(),
+            trackId: videoTrack.id,
+            type: item.type,
+            startTime: cursor,
+            duration: dur,
+            sourceUrl: item.url,
+            prompt: item.prompt,
+          });
+          cursor += dur;
+        }
+
+        // Migrate text overlays → text clips (span full video duration or 3s each)
+        const totalVideoDur = cursor || 10;
+        let textCursor = 0;
+        for (const overlay of textOverlays) {
+          const dur = overlay.scope === 'scene' ? 3 : totalVideoDur;
+          textTrack.clips.push({
+            id: uid(),
+            trackId: textTrack.id,
+            type: 'text',
+            startTime: textCursor,
+            duration: dur,
+            overlayData: overlay,
+          });
+          if (overlay.scope === 'scene') textCursor += dur;
+        }
+
+        set({ timelineTracks: [videoTrack, textTrack, audioTrack] });
+      },
+
+      addTrack: (type) =>
+        set((s) => {
+          const count = s.timelineTracks.filter(t => t.type === type).length;
+          const label = type === 'video' ? `Video ${count + 1}` : type === 'text' ? 'Text' : 'Audio';
+          return { timelineTracks: [...s.timelineTracks, makeTrack(type, label)] };
+        }),
+
+      removeTrack: (trackId) =>
+        set((s) => ({ timelineTracks: s.timelineTracks.filter(t => t.id !== trackId) })),
+
+      // ── Clip operations ──────────────────────────────────────────────────
+      addClipToTrack: (trackId, clip) =>
+        set((s) => {
+          const newClip: TimelineClip = { ...clip, id: uid(), trackId };
+          return {
+            timelineTracks: s.timelineTracks.map(t =>
+              t.id === trackId ? { ...t, clips: [...t.clips, newClip] } : t
+            ),
+          };
+        }),
+
+      removeClip: (clipId) =>
+        set((s) => ({
+          timelineTracks: s.timelineTracks.map(t => ({
+            ...t,
+            clips: t.clips.filter(c => c.id !== clipId),
+          })),
+          selectedClipId: s.selectedClipId === clipId ? null : s.selectedClipId,
+        })),
+
+      moveClip: (clipId, newTrackId, newStartTime) =>
+        set((s) => {
+          let movingClip: TimelineClip | null = null;
+          const withoutClip = s.timelineTracks.map(t => {
+            const found = t.clips.find(c => c.id === clipId);
+            if (found) { movingClip = found; }
+            return { ...t, clips: t.clips.filter(c => c.id !== clipId) };
+          });
+          if (!movingClip) return s;
+          const updated = { ...(movingClip as TimelineClip), trackId: newTrackId, startTime: newStartTime };
+          return {
+            timelineTracks: withoutClip.map(t =>
+              t.id === newTrackId ? { ...t, clips: [...t.clips, updated] } : t
+            ),
+          };
+        }),
+
+      trimClip: (clipId, newStartTime, newDuration) =>
+        set((s) => ({
+          timelineTracks: s.timelineTracks.map(t => ({
+            ...t,
+            clips: t.clips.map(c =>
+              c.id === clipId
+                ? { ...c, startTime: Math.max(0, newStartTime), duration: Math.max(0.1, newDuration) }
+                : c
+            ),
+          })),
+        })),
+
+      splitClip: (clipId, splitTime) =>
+        set((s) => {
+          let splitResult: { left: TimelineClip; right: TimelineClip } | null = null;
+          const tracks = s.timelineTracks.map(t => {
+            const clip = t.clips.find(c => c.id === clipId);
+            if (!clip) return t;
+            if (splitTime <= clip.startTime || splitTime >= clip.startTime + clip.duration) return t;
+            const leftDur  = splitTime - clip.startTime;
+            const rightDur = clip.duration - leftDur;
+            const left:  TimelineClip = { ...clip, id: uid(), duration: leftDur };
+            const right: TimelineClip = { ...clip, id: uid(), startTime: splitTime, duration: rightDur };
+            splitResult = { left, right };
+            return { ...t, clips: [...t.clips.filter(c => c.id !== clipId), left, right] };
+          });
+          return splitResult ? { timelineTracks: tracks, selectedClipId: null } : s;
+        }),
+
+      clearAllTracks: () =>
+        set((s) => ({
+          timelineTracks: s.timelineTracks.map(t => ({ ...t, clips: [] })),
+        })),
+
+      // ── Playhead ─────────────────────────────────────────────────────────
+      playheadTime: 0,
+      setPlayheadTime: (time) => set({ playheadTime: Math.max(0, time) }),
+
+      // ── Zoom ─────────────────────────────────────────────────────────────
+      timelineZoom: 80,
+      setTimelineZoom: (zoom) => set({ timelineZoom: Math.min(400, Math.max(20, zoom)) }),
+
+      // ── Selection ────────────────────────────────────────────────────────
+      selectedClipId: null,
+      setSelectedClipId: (id) => set({ selectedClipId: id }),
     }),
     {
       name: 'studio-session',
       storage: createJSONStorage(() => sessionStorage),
+      partialize: (s) => ({
+        generatedImages: s.generatedImages,
+        generatedVideos: s.generatedVideos,
+        timelineItems:   s.timelineItems,
+        textOverlays:    s.textOverlays,
+        timelineTracks:  s.timelineTracks,
+        timelineZoom:    s.timelineZoom,
+      }),
     },
   ),
 );

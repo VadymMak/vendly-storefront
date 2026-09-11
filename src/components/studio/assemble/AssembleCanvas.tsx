@@ -658,7 +658,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   // Derived: video track
   const videoTrack  = timelineTracks.find(t => t.type === 'video');
   const textTrack   = timelineTracks.find(t => t.type === 'text');
+  const audioTrack  = timelineTracks.find(t => t.type === 'audio');
   const videoClips  = [...(videoTrack?.clips ?? [])].sort((a, b) => a.startTime - b.startTime);
+  const audioClips  = audioTrack?.clips ?? [];
   const totalDuration = videoClips.reduce((s, c) => Math.max(s, c.startTime + c.duration), 0);
 
   // Active clip at playhead
@@ -699,6 +701,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   // Inspector toggle
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
+  // Mute toggle for audio preview
+  const [isMuted, setIsMuted] = useState(false);
+
   // Canvas overlay selection
   const [selectedOverlayIdx, setSelectedOverlayIdx] = useState<number | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -717,6 +722,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const phTimeRef      = useRef(playheadTime);
   const totalDurRef    = useRef(totalDuration);
   const activeClipIdRef = useRef<string | null>(null);
+  const audioMapRef    = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const musicAudioRef  = useRef<HTMLAudioElement | null>(null);
+  const isMutedRef     = useRef(false);
 
   useEffect(() => { phTimeRef.current = playheadTime; }, [playheadTime]);
   useEffect(() => { totalDurRef.current = totalDuration; }, [totalDuration]);
@@ -786,6 +794,112 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeClip?.id, isPlaying]);
+
+  // ── Audio: keep isMutedRef in sync ───────────────────────────────────────
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+    for (const el of audioMapRef.current.values()) el.muted = isMuted;
+    if (musicAudioRef.current) musicAudioRef.current.muted = isMuted;
+  }, [isMuted]);
+
+  // ── Audio clips: create/destroy HTMLAudioElement per clip ─────────────────
+
+  useEffect(() => {
+    const map = audioMapRef.current;
+    const currentIds = new Set(audioClips.map(c => c.id));
+    for (const [id, el] of map) {
+      if (!currentIds.has(id)) { el.pause(); el.src = ''; map.delete(id); }
+    }
+    for (const clip of audioClips) {
+      if (!map.has(clip.id) && clip.sourceUrl) {
+        const el = new Audio(clip.sourceUrl);
+        el.preload = 'auto';
+        el.muted = isMutedRef.current;
+        map.set(clip.id, el);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioClips]);
+
+  // ── Music file: create/destroy Audio element ───────────────────────────────
+
+  useEffect(() => {
+    const prev = musicAudioRef.current;
+    if (prev) { prev.pause(); prev.src = ''; }
+    musicAudioRef.current = null;
+    if (!musicFile) return;
+    const url = URL.createObjectURL(musicFile);
+    const el = new Audio(url);
+    el.preload = 'auto';
+    el.muted = isMutedRef.current;
+    musicAudioRef.current = el;
+    return () => {
+      el.pause(); el.src = '';
+      URL.revokeObjectURL(url);
+      if (musicAudioRef.current === el) musicAudioRef.current = null;
+    };
+  }, [musicFile]);
+
+  // ── Audio: play/pause sync on isPlaying change ────────────────────────────
+
+  useEffect(() => {
+    const map = audioMapRef.current;
+    const music = musicAudioRef.current;
+    if (!isPlaying) {
+      for (const el of map.values()) el.pause();
+      if (music) music.pause();
+      return;
+    }
+    // Start audio clips that are within playhead range
+    for (const clip of audioClips) {
+      const el = map.get(clip.id);
+      if (!el || !clip.sourceUrl) continue;
+      const offset = phTimeRef.current - clip.startTime;
+      if (offset >= 0 && offset < clip.duration) {
+        if (Math.abs(el.currentTime - offset) > 0.2) el.currentTime = offset;
+        el.muted = isMutedRef.current;
+        el.play().catch(() => {});
+      } else {
+        el.pause();
+      }
+    }
+    // Music file always starts from current playhead
+    if (music) {
+      if (Math.abs(music.currentTime - phTimeRef.current) > 0.2) music.currentTime = phTimeRef.current;
+      music.muted = isMutedRef.current;
+      music.play().catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]);
+
+  // ── Audio: seek when scrubbing ────────────────────────────────────────────
+
+  useEffect(() => {
+    if (isPlaying) return;
+    const map = audioMapRef.current;
+    for (const clip of audioClips) {
+      const el = map.get(clip.id);
+      if (!el) continue;
+      const offset = playheadTime - clip.startTime;
+      if (offset >= 0 && offset < clip.duration && Math.abs(el.currentTime - offset) > 0.15) {
+        el.currentTime = offset;
+      }
+    }
+    const music = musicAudioRef.current;
+    if (music && Math.abs(music.currentTime - playheadTime) > 0.15) music.currentTime = playheadTime;
+  }, [playheadTime, isPlaying, audioClips]);
+
+  // ── Audio: cleanup on unmount ─────────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      for (const el of audioMapRef.current.values()) { el.pause(); el.src = ''; }
+      audioMapRef.current.clear();
+      const music = musicAudioRef.current;
+      if (music) { music.pause(); music.src = ''; }
+    };
+  }, []);
 
   // ── File add: goes to video track ─────────────────────────────────────────
 
@@ -1486,6 +1600,17 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 <span className="ml-1 font-mono text-[10px] text-gray-500">
                   {formatTime(playheadTime)} / {formatTime(totalDuration)}
                 </span>
+                {/* Mute toggle */}
+                <button
+                  onClick={() => setIsMuted(m => !m)}
+                  className={`ml-auto rounded p-1 transition-colors ${isMuted ? 'text-red-400 hover:text-red-300' : 'text-gray-400 hover:text-white'}`}
+                  title={isMuted ? 'Unmute audio' : 'Mute audio'}
+                >
+                  {isMuted
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
+                  }
+                </button>
               </div>
             )}
           </div>

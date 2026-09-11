@@ -179,7 +179,8 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [importTab, setImportTab] = useState<ImportTab>('generate');
   // Which + button triggered the menu
-  const importBtnRef = useRef<HTMLButtonElement | null>(null);
+  const importBtnRef  = useRef<HTMLButtonElement | null>(null);
+  const importMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Keep zoomRef current
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -385,7 +386,9 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
   useEffect(() => {
     if (!showImportMenu) return;
     function onClickOutside(e: MouseEvent) {
-      if (importBtnRef.current && importBtnRef.current.contains(e.target as Node)) return;
+      const target = e.target as Node;
+      if (importBtnRef.current?.contains(target)) return;
+      if (importMenuRef.current?.contains(target)) return;
       setShowImportMenu(false);
     }
     window.addEventListener('mousedown', onClickOutside);
@@ -676,7 +679,7 @@ export function NLETimeline({ musicName, onFileAdd }: Props) {
 
       {/* ── Import menu ───────────────────────────────────────────────────── */}
       {showImportMenu && (
-        <div className="absolute bottom-[60px] left-[110px] z-50 w-64 overflow-hidden rounded-lg border border-white/10 bg-[#0d0d14] shadow-2xl">
+        <div ref={importMenuRef} className="absolute bottom-[60px] left-[110px] z-50 w-64 overflow-hidden rounded-lg border border-white/10 bg-[#0d0d14] shadow-2xl">
           {/* Tabs */}
           <div className="flex border-b border-white/10">
             <label

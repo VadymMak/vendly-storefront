@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
 import type { TimelineClip, TimelineTrack, MediaItem } from '@/lib/studio/store';
+import type { TextOverlay } from '@/lib/slideshow-renderer';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -172,6 +173,7 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
   const zoomRef      = useRef(zoom);
   const [draftClip, setDraftClip] = useState<DraftClip | null>(null);
   const [playheadDragging, setPlayheadDragging] = useState(false);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   // Import menu state
   const [showImportMenu, setShowImportMenu] = useState(false);
@@ -501,11 +503,42 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
                     key={track.id}
                     data-track-id={track.id}
                     className={[
-                      'relative flex-shrink-0 border-b border-white/5',
+                      'relative flex-shrink-0 border-b border-white/5 transition-colors',
                       tIdx % 2 === 0 ? 'bg-white/[0.02]' : 'bg-transparent',
+                      dropTarget === track.id ? 'bg-purple-500/10' : '',
                     ].join(' ')}
                     style={{ height: track.height, width: contentWidth }}
                     onClick={e => { e.stopPropagation(); setSelected(null); }}
+                    onDragOver={e => {
+                      if (track.type !== 'text') return;
+                      if (!e.dataTransfer.types.includes('application/x-studio-text')) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'copy';
+                    }}
+                    onDragEnter={e => {
+                      if (track.type !== 'text') return;
+                      if (!e.dataTransfer.types.includes('application/x-studio-text')) return;
+                      e.preventDefault();
+                      setDropTarget(track.id);
+                    }}
+                    onDragLeave={() => setDropTarget(null)}
+                    onDrop={e => {
+                      if (track.type !== 'text') return;
+                      e.preventDefault();
+                      setDropTarget(null);
+                      const raw = e.dataTransfer.getData('application/x-studio-text');
+                      if (!raw) return;
+                      try {
+                        const overlay = JSON.parse(raw) as unknown as TextOverlay;
+                        const startTime = snap(getTimeAt(e.clientX));
+                        addClipToTrack(track.id, {
+                          type: 'text',
+                          startTime,
+                          duration: 3,
+                          overlayData: overlay,
+                        });
+                      } catch { /* invalid data */ }
+                    }}
                   >
                     {/* Music placeholder bar */}
                     {showMusicBar && (

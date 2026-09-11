@@ -254,10 +254,12 @@ function posYDefault(position: TextOverlay['position']): number {
 }
 
 function renderOverlayContent(overlay: TextOverlay) {
+  const fs = overlay.fontSize ? `${overlay.fontSize}px` : undefined;
+  const fw = overlay.fontWeight ?? 'bold';
   if (overlay.style === 'bar') {
     return (
       <div className="rounded px-3 py-1.5 whitespace-nowrap" style={{ backgroundColor: overlay.barColor ?? '#E85D04' }}>
-        <div className="text-sm font-bold leading-tight" style={{ color: overlay.color ?? '#FFFFFF' }}>{overlay.text}</div>
+        <div className="leading-tight" style={{ color: overlay.color ?? '#FFFFFF', fontSize: fs, fontWeight: fw }}>{overlay.text}</div>
         {overlay.lineTwo && (
           <div className="text-xs leading-tight opacity-80" style={{ color: overlay.color ?? '#FFFFFF' }}>{overlay.lineTwo}</div>
         )}
@@ -266,17 +268,21 @@ function renderOverlayContent(overlay: TextOverlay) {
   }
   if (overlay.style === 'brand') {
     return (
-      <div className="whitespace-nowrap text-base font-bold" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: 'Georgia, serif' }}>
+      <div className="whitespace-nowrap" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: 'Georgia, serif', fontSize: fs ?? '1rem', fontWeight: fw }}>
         {overlay.text}
       </div>
     );
   }
   if (overlay.style === 'subtitle') {
-    return <span className="rounded-full bg-black/50 px-3 py-1 text-sm text-white whitespace-nowrap">{overlay.text}</span>;
+    return (
+      <span className="rounded-full bg-black/50 px-3 py-1 text-white whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal' }}>
+        {overlay.text}
+      </span>
+    );
   }
   if (overlay.style === 'cta') {
     return (
-      <div className="whitespace-nowrap text-sm font-bold" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+      <div className="whitespace-nowrap" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs ?? '0.875rem', fontWeight: fw }}>
         {overlay.text}
       </div>
     );
@@ -287,7 +293,7 @@ function renderOverlayContent(overlay: TextOverlay) {
       style={{
         fontSize: overlay.fontSize ?? 16,
         fontFamily: overlay.fontFamily ?? 'inherit',
-        fontWeight: overlay.fontWeight ?? 'bold',
+        fontWeight: fw,
         color: overlay.color ?? '#FFFFFF',
         backgroundColor: overlay.backgroundColor ?? 'transparent',
         padding: `${overlay.paddingY ?? 4}px ${overlay.paddingX ?? 12}px`,
@@ -457,6 +463,46 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
               {s === 'bar' ? 'Lower Third' : s === 'cta' ? 'CTA' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font Size</div>
+        <div className="flex items-center gap-2">
+          <input
+            type="range" min={10} max={72} step={1}
+            value={draft.fontSize ?? 16}
+            onChange={e => setDraft({ ...draft, fontSize: Number(e.target.value) })}
+            className="h-1 flex-1 cursor-pointer accent-green-500"
+          />
+          <input
+            type="number" min={10} max={72}
+            value={draft.fontSize ?? 16}
+            onChange={e => setDraft({ ...draft, fontSize: Math.max(10, Math.min(72, Number(e.target.value) || 16)) })}
+            className="w-12 rounded bg-white/10 px-1.5 py-0.5 text-center text-[11px] text-white outline-none focus:ring-1 focus:ring-green-600/60"
+          />
+          <span className="text-[10px] text-gray-600">px</span>
+        </div>
+        <div className="mt-1 flex gap-1">
+          {[14, 18, 24, 32, 48].map(size => (
+            <button
+              key={size}
+              onClick={() => setDraft({ ...draft, fontSize: size })}
+              className={['rounded px-1.5 py-0.5 text-[10px] transition-colors', (draft.fontSize ?? 16) === size ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'].join(' ')}
+            >{size}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Weight</div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setDraft({ ...draft, fontWeight: 'normal' })}
+            className={['rounded px-2.5 py-1 text-xs transition-colors', (draft.fontWeight ?? 'bold') === 'normal' ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15'].join(' ')}
+          >Normal</button>
+          <button
+            onClick={() => setDraft({ ...draft, fontWeight: 'bold' })}
+            className={['rounded px-2.5 py-1 text-xs font-bold transition-colors', (draft.fontWeight ?? 'bold') === 'bold' ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15'].join(' ')}
+          >Bold</button>
         </div>
       </div>
       <div>

@@ -682,7 +682,6 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
             <button
               onClick={() => {
                 fileInputRef.current?.click();
-                requestAnimationFrame(() => setShowImportMenu(false));
               }}
               className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
             >
@@ -809,7 +808,11 @@ export function NLETimeline({ musicFile, onFileAdd }: Props) {
         multiple
         accept="image/*,video/*,audio/*"
         className="hidden"
-        onChange={e => { if (e.target.files) { onFileAdd(e.target.files); e.target.value = ''; } }}
+        onChange={e => {
+          if (e.target.files) onFileAdd(e.target.files);
+          e.target.value = '';
+          setShowImportMenu(false);
+        }}
       />
     </div>
   );

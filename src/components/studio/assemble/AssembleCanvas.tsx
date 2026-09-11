@@ -720,6 +720,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const musicInputRef  = useRef<HTMLInputElement>(null);
   const nameInputRef   = useRef<HTMLInputElement>(null);
   const resultBlobRef  = useRef<string | null>(null);
+  const canvasAreaRef  = useRef<HTMLDivElement>(null);
+  const [canvasArea, setCanvasArea] = useState({ w: 0, h: 0 });
   const videoRefsMap   = useRef<Map<string, HTMLVideoElement>>(new Map());
   const animFrameRef   = useRef<number>(0);
   const lastTimeRef    = useRef<number>(0);
@@ -731,6 +733,20 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   useEffect(() => { phTimeRef.current = playheadTime; }, [playheadTime]);
   useEffect(() => { totalDurRef.current = totalDuration; }, [totalDuration]);
+
+  // ── Measure canvas area for JS-computed canvas size ───────────────────────
+  useEffect(() => {
+    const el = canvasAreaRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setCanvasArea({ w: width, h: height });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Auto-open inspector when a text clip is selected on timeline
   useEffect(() => {
@@ -1190,12 +1206,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     };
   }
 
-  const canvasStyle: React.CSSProperties =
-    aspectRatio === '9:16'
-      ? { aspectRatio: '9/16', width: 'auto', height: '100%', maxHeight: '100%', maxWidth: '100%' }
-      : aspectRatio === '1:1'
-      ? { aspectRatio: '1/1', width: 'auto', height: '100%', maxHeight: '100%', maxWidth: '100%' }
-      : { aspectRatio: '16/9', width: '100%', height: '100%', maxHeight: '100%', maxWidth: '100%' };
+  const arNum = aspectRatio === '9:16' ? 9 / 16 : aspectRatio === '1:1' ? 1 : 16 / 9;
+  const pad = 32;
+  const availW = Math.max(0, canvasArea.w - pad);
+  const availH = Math.max(0, canvasArea.h - pad);
+  let cW = 0, cH = 0;
+  if (availW > 0 && availH > 0) {
+    if (availW / availH > arNum) { cH = availH; cW = cH * arNum; }
+    else { cW = availW; cH = cW / arNum; }
+  }
+  const canvasStyle: React.CSSProperties = {
+    width: `${Math.round(cW)}px`,
+    height: `${Math.round(cH)}px`,
+  };
 
   // ── Active text overlays: only those whose clip spans the current playhead ──
 
@@ -1541,7 +1564,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
           {/* Center Canvas */}
           <div
-            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40 p-4"
+            ref={canvasAreaRef}
+            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40"
             onClick={() => { setSelectedClipId(null); setSelectedOverlayIdx(null); setEditingOverlayIdx(null); setDraftOverlay(null); }}
           >
             {resultUrl ? (
@@ -1572,7 +1596,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 </div>
                 <p className="text-xs text-gray-500">{renderProgress}%</p>
               </div>
-            ) : videoClips.length > 0 ? (
+            ) : videoClips.length > 0 && cW > 0 && cH > 0 ? (
               <div
                 ref={canvasRef}
                 className="relative overflow-hidden rounded-xl bg-black shadow-2xl"

@@ -83,13 +83,13 @@ function IconChevronRight() {
 
 // ── Nav config ───────────────────────────────────────────────────────────────
 
-const NAV_TOP = [
+const PIPELINE_TABS = [
   { href: '/studio/generate', label: 'Generate', Icon: IconSparkle },
   { href: '/studio/animate',  label: 'Animate',  Icon: IconPlay },
   { href: '/studio/assemble', label: 'Assemble', Icon: IconScissors },
 ] as const;
 
-const NAV_BOTTOM = [
+const NAV_SIDEBAR = [
   { href: '/studio/library',  label: 'Library',  Icon: IconGrid },
   { href: '/studio/settings', label: 'Settings', Icon: IconGear },
 ] as const;
@@ -108,7 +108,6 @@ export function StudioShell({ userEmail, children }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const isAssembleMode = pathname.startsWith('/studio/assemble');
 
   function navItemClass(href: string) {
     const isActive = pathname === href || pathname.startsWith(href + '/');
@@ -126,16 +125,7 @@ export function StudioShell({ userEmail, children }: Props) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <nav className="flex flex-1 flex-col gap-1 p-2 pt-4">
-        {NAV_TOP.map(({ href, label, Icon }) => (
-          <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={navItemClass(href)}>
-            <span className="flex-shrink-0"><Icon /></span>
-            {!collapsed && <span className="hidden lg:block truncate text-sm font-medium">{label}</span>}
-          </Link>
-        ))}
-      </nav>
-
-      <nav className="flex flex-col gap-1 p-2">
-        {NAV_BOTTOM.map(({ href, label, Icon }) => (
+        {NAV_SIDEBAR.map(({ href, label, Icon }) => (
           <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={navItemClass(href)}>
             <span className="flex-shrink-0"><Icon /></span>
             {!collapsed && <span className="hidden lg:block truncate text-sm font-medium">{label}</span>}
@@ -186,6 +176,29 @@ export function StudioShell({ userEmail, children }: Props) {
         </div>
       </header>
 
+      {/* ── Pipeline tabs ─────────────────────────────────────────────────── */}
+      <div className="flex h-10 flex-shrink-0 items-center border-b border-white/10 bg-[#0d0d14] px-2">
+        <nav className="flex items-center gap-1">
+          {PIPELINE_TABS.map(({ href, label, Icon }) => {
+            const isActive = pathname === href || pathname.startsWith(href + '/');
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={[
+                  'flex h-10 items-center gap-1.5 border-b-2 px-3 text-sm transition-colors',
+                  isActive
+                    ? 'border-green-500 font-medium text-white'
+                    : 'border-transparent text-gray-500 hover:text-gray-300',
+                ].join(' ')}
+              >
+                <Icon /><span className="hidden sm:inline">{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
       {/* ── Body ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Mobile overlay backdrop */}
@@ -196,28 +209,26 @@ export function StudioShell({ userEmail, children }: Props) {
           />
         )}
 
-        {/* Sidebar — hidden entirely in Assemble mode */}
-        {!isAssembleMode && (
-          <>
-            <aside
-              className={[
-                'flex-shrink-0 overflow-hidden border-r border-white/10 bg-[#0d0d14]',
-                'transition-[width,transform] duration-200',
-                'hidden md:flex md:flex-col',
-                collapsed ? 'md:w-14' : 'md:w-14 lg:w-[200px]',
-                mobileOpen ? 'fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col' : '',
-              ].join(' ')}
-            >
+        {/* Sidebar — Library + Settings */}
+        <>
+          <aside
+            className={[
+              'flex-shrink-0 overflow-hidden border-r border-white/10 bg-[#0d0d14]',
+              'transition-[width,transform] duration-200',
+              'hidden md:flex md:flex-col',
+              collapsed ? 'md:w-14' : 'md:w-14 lg:w-[200px]',
+              mobileOpen ? 'fixed bottom-0 left-0 top-24 z-40 flex w-[200px] flex-col' : '',
+            ].join(' ')}
+          >
+            {sidebarContent}
+          </aside>
+
+          {mobileOpen && (
+            <aside className="fixed bottom-0 left-0 top-24 z-40 flex w-[200px] flex-col overflow-hidden border-r border-white/10 bg-[#0d0d14] md:hidden">
               {sidebarContent}
             </aside>
-
-            {mobileOpen && (
-              <aside className="fixed bottom-0 left-0 top-14 z-40 flex w-[200px] flex-col overflow-hidden border-r border-white/10 bg-[#0d0d14] md:hidden">
-                {sidebarContent}
-              </aside>
-            )}
-          </>
-        )}
+          )}
+        </>
 
         {/* Main content */}
         <main className="flex-1 overflow-auto">

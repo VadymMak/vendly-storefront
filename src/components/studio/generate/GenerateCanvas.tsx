@@ -9,7 +9,6 @@ import {
   type PresetKey, type OutputFormat, type FluxModel,
 } from '@/lib/studio/constants';
 import { saveToLibrary } from '@/lib/studio/library-store';
-import { PipelineBreadcrumb } from '@/components/studio/PipelineBreadcrumb';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 
 interface Props {
@@ -348,10 +347,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* ── Pipeline breadcrumb ───────────────────────────────────────── */}
-      <div className="flex-shrink-0 border-b border-white/5 px-4 py-1.5">
-        <PipelineBreadcrumb />
-      </div>
       {/* ── Prompt bar ─────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-b border-white/10 bg-[#0a0a0f] p-4">
         <div className="flex gap-3">

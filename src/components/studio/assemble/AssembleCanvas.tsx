@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { useStudioStore } from '@/lib/studio/store';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
@@ -108,33 +107,6 @@ function loadVid(url: string): Promise<HTMLVideoElement> {
 }
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
-
-function IconSparkle() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-    </svg>
-  );
-}
-
-function IconPlay() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function IconScissors() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="6" cy="6" r="3" />
-      <circle cx="6" cy="18" r="3" />
-      <path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" />
-    </svg>
-  );
-}
 
 function IconText({ size = 16 }: { size?: number }) {
   return (
@@ -1121,18 +1093,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         >
           <IconHamburger />
         </button>
-
-        <nav className="flex items-center gap-1">
-          <Link href="/studio/generate" className="flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-gray-500 transition-colors hover:text-gray-300">
-            <IconSparkle /><span className="hidden sm:inline">Generate</span>
-          </Link>
-          <Link href="/studio/animate" className="flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm text-gray-500 transition-colors hover:text-gray-300">
-            <IconPlay /><span className="hidden sm:inline">Animate</span>
-          </Link>
-          <Link href="/studio/assemble" className="flex h-10 items-center gap-1.5 border-b-2 border-green-500 px-3 text-sm font-medium text-white">
-            <IconScissors /><span className="hidden sm:inline">Assemble</span>
-          </Link>
-        </nav>
 
         <div className="ml-auto flex items-center gap-2 pr-2">
           {editingName ? (

@@ -10,12 +10,13 @@ interface Props {
 interface KeyRecord { provider: string; keyHint: string }
 
 export function SettingsCanvas({ userEmail }: Props) {
-  const [fluxKey, setFluxKey]         = useState('');
-  const [xaiKey, setXaiKey]           = useState('');
-  const [openaiKey, setOpenaiKey]     = useState('');
+  const [fluxKey, setFluxKey]           = useState('');
+  const [xaiKey, setXaiKey]             = useState('');
+  const [openaiKey, setOpenaiKey]       = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
-  const [klingKey, setKlingKey]       = useState('');
-  const [klingSecret, setKlingSecret] = useState('');
+  const [bflKey, setBflKey]             = useState('');
+  const [klingKey, setKlingKey]         = useState('');
+  const [klingSecret, setKlingSecret]   = useState('');
   const [hints, setHints]           = useState<Record<string, string>>({});
   const [isSaving, setIsSaving]     = useState(false);
   const [saveMsg, setSaveMsg]       = useState<{ ok: boolean; text: string } | null>(null);
@@ -49,6 +50,7 @@ export function SettingsCanvas({ userEmail }: Props) {
     if (xaiKey.trim())       toSave.push(['xai', xaiKey.trim()]);
     if (openaiKey.trim())    toSave.push(['openai', openaiKey.trim()]);
     if (anthropicKey.trim()) toSave.push(['anthropic', anthropicKey.trim()]);
+    if (bflKey.trim())       toSave.push(['bfl', bflKey.trim()]);
     if (klingKey.trim())     toSave.push(['kling_key', klingKey.trim()]);
     if (klingSecret.trim())  toSave.push(['kling_secret', klingSecret.trim()]);
     if (!toSave.length) return;
@@ -59,7 +61,7 @@ export function SettingsCanvas({ userEmail }: Props) {
       await Promise.all(toSave.map(([p, k]) => saveProviderKey(p, k)));
       setSaveMsg({ ok: true, text: 'Keys saved successfully' });
       setFluxKey(''); setXaiKey(''); setOpenaiKey(''); setAnthropicKey('');
-      setKlingKey(''); setKlingSecret('');
+      setBflKey(''); setKlingKey(''); setKlingSecret('');
     } catch (err) {
       setSaveMsg({ ok: false, text: err instanceof Error ? err.message : 'Failed to save — please try again' });
     } finally {
@@ -170,6 +172,22 @@ export function SettingsCanvas({ userEmail }: Props) {
               />
             </div>
 
+            {/* BFL */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">BFL API Key (Flux Direct)</label>
+              <p className="mb-1 text-[10px] text-gray-600">Black Forest Labs — direct Flux Pro image generation</p>
+              {hints.bfl && !bflKey && (
+                <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.bfl}</p>
+              )}
+              <input
+                type="password"
+                value={bflKey}
+                onChange={e => setBflKey(e.target.value)}
+                placeholder={hints.bfl ? 'Replace saved key…' : 'bfl-...'}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25"
+              />
+            </div>
+
             {/* Kling */}
             <div>
               <label className="mb-1 block text-xs text-gray-400">Kling API Key</label>
@@ -206,7 +224,7 @@ export function SettingsCanvas({ userEmail }: Props) {
 
             <button
               onClick={handleSaveKeys}
-              disabled={isSaving || (!fluxKey && !xaiKey && !openaiKey && !anthropicKey && !klingKey && !klingSecret)}
+              disabled={isSaving || (!fluxKey && !xaiKey && !openaiKey && !anthropicKey && !bflKey && !klingKey && !klingSecret)}
               className="min-h-[44px] rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? 'Saving…' : 'Save API Keys'}

@@ -8,6 +8,7 @@ import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokGenerate } from '@/lib/xai-client';
+import { bflGenerate, aspectToSize } from '@/lib/bfl-client';
 
 interface GenerateBody {
   prompt:          string;
@@ -17,7 +18,7 @@ interface GenerateBody {
   target_height?:  number;
   output_format?:  'webp' | 'png' | 'jpeg';
   website?:        string;
-  provider?:       'flux' | 'flux-dev' | 'grok' | 'flux-redux';
+  provider?:       'flux' | 'flux-dev' | 'grok' | 'flux-redux' | 'flux-pro';
   reference_image?: string;
 }
 
@@ -207,6 +208,45 @@ export async function POST(request: Request) {
     }
   }
 
+  // ── BFL Flux Pro path (direct Black Forest Labs API) ─────────────────────────
+  if (body.provider === 'flux-pro') {
+    const bflKeyRecord = await db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'bfl' } },
+      select: { encryptedKey: true },
+    });
+    const bflApiKey = bflKeyRecord
+      ? decrypt(bflKeyRecord.encryptedKey)
+      : (process.env.BFL_API_KEY ?? null);
+
+    if (!bflApiKey) {
+      return NextResponse.json(
+        { error: 'BFL API key not configured. Add it in Settings → API Keys or set BFL_API_KEY env variable.' },
+        { status: 400 },
+      );
+    }
+
+    const creditCheck = await checkCredits(session.user.id, 'image');
+    if (!creditCheck.allowed) {
+      return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
+    }
+
+    try {
+      const { width, height } = aspectToSize(aspect_ratio);
+      const bflOutputFormat = requested_format === 'webp' ? 'png' : requested_format;
+      const bflUrl = await bflGenerate(bflApiKey, {
+        prompt,
+        width,
+        height,
+        outputFormat: bflOutputFormat,
+      });
+
+      return await processImageResponse(bflUrl, targetW, targetH, requested_format, 'flux-pro');
+    } catch (err) {
+      console.error('[flux-pro] BFL error:', err);
+      return NextResponse.json({ error: 'BFL generation failed' }, { status: 500 });
+    }
+  }
+
   // ── Flux Dev path (Good quality) ─────────────────────────────────────────────
   if (body.provider === 'flux-dev') {
     const devKeyRecord = await db.userApiKey.findUnique({
@@ -291,6 +331,10 @@ export async function POST(request: Request) {
       });
     } catch (err) {
       console.error('[flux-dev] Replicate error:', err);
+      if (isQuotaError(err)) {
+        const bflFallback = await tryBflFallback(session.user.id, prompt, aspect_ratio, targetW, targetH, requested_format);
+        if (bflFallback) return bflFallback;
+      }
       return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
     }
   }
@@ -402,6 +446,91 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error('Replicate error:', err);
+    if (isQuotaError(err)) {
+      const bflFallback = await tryBflFallback(session.user.id, prompt, aspect_ratio, targetW, targetH, requested_format);
+      if (bflFallback) return bflFallback;
+    }
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function isQuotaError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return (
+    msg.includes('402') ||
+    msg.includes('429') ||
+    msg.includes('quota') ||
+    msg.includes('insufficient') ||
+    msg.includes('rate limit') ||
+    msg.includes('payment required')
+  );
+}
+
+async function processImageResponse(
+  imageUrl:   string,
+  targetW:    number | undefined,
+  targetH:    number | undefined,
+  format:     'webp' | 'png' | 'jpeg',
+  prefix:     string,
+): Promise<Response> {
+  const imgRes  = await fetch(imageUrl);
+  const buf     = Buffer.from(await imgRes.arrayBuffer());
+  const pipe    = sharp(buf);
+
+  if (targetW && targetH) pipe.resize(targetW, targetH, { fit: 'fill' });
+
+  let out:         Buffer;
+  let contentType: string;
+  let ext:         string;
+
+  if (format === 'jpeg') {
+    out = await pipe.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+    contentType = 'image/jpeg'; ext = 'jpg';
+  } else if (format === 'png') {
+    out = await pipe.png({ compressionLevel: 8 }).toBuffer();
+    contentType = 'image/png'; ext = 'png';
+  } else {
+    out = await pipe.webp({ quality: 90 }).toBuffer();
+    contentType = 'image/webp'; ext = 'webp';
+  }
+
+  const name = targetW && targetH
+    ? `${prefix}-${targetW}x${targetH}-${Date.now()}.${ext}`
+    : `${prefix}-${Date.now()}.${ext}`;
+
+  return new Response(new Uint8Array(out), {
+    headers: {
+      'Content-Type':        contentType,
+      'Content-Disposition': `inline; filename="${name}"`,
+      'Cache-Control':       'no-store',
+    },
+  });
+}
+
+async function tryBflFallback(
+  userId:    string,
+  prompt:    string,
+  ratio:     string,
+  targetW:   number | undefined,
+  targetH:   number | undefined,
+  format:    'webp' | 'png' | 'jpeg',
+): Promise<Response | null> {
+  try {
+    const rec = await db.userApiKey.findUnique({
+      where: { userId_provider: { userId, provider: 'bfl' } },
+      select: { encryptedKey: true },
+    });
+    const apiKey = rec ? decrypt(rec.encryptedKey) : (process.env.BFL_API_KEY ?? null);
+    if (!apiKey) return null;
+
+    const { width, height } = aspectToSize(ratio);
+    const bflFormat = format === 'webp' ? 'png' : format;
+    const url = await bflGenerate(apiKey, { prompt, width, height, outputFormat: bflFormat });
+    return processImageResponse(url, targetW, targetH, format, 'flux-pro-fallback');
+  } catch (fallbackErr) {
+    console.error('[generate-image] BFL fallback failed:', fallbackErr);
+    return null;
   }
 }

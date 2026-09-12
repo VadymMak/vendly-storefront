@@ -10,11 +10,11 @@ const KEY_PREFIXES: Record<string, string> = {
   openai:       'sk-',
   xai:          'xai-',
   elevenlabs:   'sk_',
-  // kling keys have no fixed prefix
+  // bfl and kling keys have no fixed prefix
 };
 
 const saveSchema = z.object({
-  provider: z.enum(['replicate', 'anthropic', 'openai', 'xai', 'elevenlabs', 'kling_key', 'kling_secret']),
+  provider: z.enum(['replicate', 'anthropic', 'openai', 'xai', 'elevenlabs', 'bfl', 'kling_key', 'kling_secret']),
   key:      z.string().min(10),
 });
 

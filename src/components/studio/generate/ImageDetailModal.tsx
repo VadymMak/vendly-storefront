@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { QUICK_FILTERS, PRESET_MAP, type PresetKey, type QuickFilterId } from '@/lib/studio/constants';
 import { InpaintEditor } from './InpaintEditor';
+import { SceneCreator } from './SceneCreator';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   const [copied, setCopied] = useState(false);
   const [showInpaint, setShowInpaint] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [showSceneCreator, setShowSceneCreator] = useState(false);
 
   const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   const cssFilter = QUICK_FILTERS.find(f => f.id === activeFilter)?.filter ?? 'none';
@@ -242,6 +244,12 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
               )}
             </button>
             <button
+              onClick={() => setShowSceneCreator(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-800"
+            >
+              Create Scene
+            </button>
+            <button
               onClick={onAnimate}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
             >
@@ -280,6 +288,13 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
           setShowInpaint(false);
           onInpaintResult?.(url);
         }}
+      />
+    )}
+    {showSceneCreator && (
+      <SceneCreator
+        cutoutUrl={img.url}
+        onClose={() => setShowSceneCreator(false)}
+        onResult={(url) => { setShowSceneCreator(false); onInpaintResult?.(url); }}
       />
     )}
     </>

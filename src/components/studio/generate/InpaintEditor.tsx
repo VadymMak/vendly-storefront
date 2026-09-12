@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, type MouseEvent } from 'react';
+import { SceneCreator } from './SceneCreator';
 
 interface InpaintEditorProps {
   imageUrl: string;
@@ -32,6 +33,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [showSceneCreator, setShowSceneCreator] = useState(false);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -219,6 +221,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
   }
 
   return (
+    <>
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm"
       onClick={onClose}
@@ -302,6 +305,15 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
               >
                 Try Again
               </button>
+              <div className="border-t border-white/10 pt-2">
+                <p className="mb-2 text-[10px] text-gray-500">Place this result in a new scene:</p>
+                <button
+                  onClick={() => setShowSceneCreator(true)}
+                  className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700"
+                >
+                  Create Scene
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -454,5 +466,13 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
         </div>
       </div>
     </div>
+    {showSceneCreator && result && (
+      <SceneCreator
+        cutoutUrl={result}
+        onClose={() => setShowSceneCreator(false)}
+        onResult={(url) => { setShowSceneCreator(false); setResult(url); }}
+      />
+    )}
+    </>
   );
 }

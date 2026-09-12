@@ -1,434 +1,95 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, type MouseEvent } from 'react';
+import { useState } from 'react';
 
 interface SceneCreatorProps {
   cutoutUrl: string;
   onClose: () => void;
   onResult: (url: string) => void;
+  galleryImages?: string[];
 }
 
-interface SceneSize {
-  label: string;
-  width: number;
-  height: number;
-  icon: string;
-}
-
-const SCENE_SIZES: SceneSize[] = [
-  { label: 'Square', width: 1024, height: 1024, icon: '⬜' },
-  { label: 'Landscape', width: 1280, height: 832, icon: '▬' },
-  { label: 'Portrait', width: 832, height: 1280, icon: '▮' },
-  { label: 'Wide 16:9', width: 1344, height: 768, icon: '▭' },
-  { label: 'Insta Story', width: 832, height: 1472, icon: '📱' },
+const ASPECT_RATIOS = [
+  { label: 'Square', value: '1:1', icon: '⬜' },
+  { label: 'Landscape', value: '3:2', icon: '▬' },
+  { label: 'Portrait', value: '2:3', icon: '▮' },
+  { label: 'Wide', value: '16:9', icon: '▭' },
+  { label: 'Story', value: '9:16', icon: '📱' },
 ];
 
-function IconX() {
+const SCENE_PRESETS = [
+  { label: 'Restaurant Table', prompt: 'Product placed on an elegant marble table in a warm restaurant setting, soft ambient lighting, shallow depth of field' },
+  { label: 'Studio White', prompt: 'Product on clean white surface, professional studio lighting, soft shadows, minimalist' },
+  { label: 'Nature', prompt: 'Product placed on natural stone surface outdoors, golden hour sunlight, blurred green foliage background' },
+  { label: 'Kitchen', prompt: 'Product on modern kitchen countertop, bright natural light from window, lifestyle photography' },
+  { label: 'Luxury', prompt: 'Product on dark marble surface with gold accents, dramatic rim lighting, premium aesthetic' },
+  { label: 'Beach', prompt: 'Product on sandy beach surface, ocean waves in background, bright sunny day, tropical vibes' },
+];
+
+function IconX({ size = 14 }: { size?: number }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
 
-function Spinner() {
-  return (
-    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" />
-    </svg>
-  );
-}
-
-function drawCheckerboard(ctx: CanvasRenderingContext2D, w: number, h: number, cellSize = 16) {
-  ctx.fillStyle = '#2a2a3e';
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#353550';
-  for (let y = 0; y < h; y += cellSize) {
-    for (let x = 0; x < w; x += cellSize) {
-      if ((Math.floor(x / cellSize) + Math.floor(y / cellSize)) % 2 === 0) {
-        ctx.fillRect(x, y, cellSize, cellSize);
-      }
-    }
-  }
-}
-
-const HANDLE_SIZE = 10;
-type HandleCorner = 'tl' | 'tr' | 'bl' | 'br';
-
-function getHandleRects(
-  x: number, y: number, w: number, h: number, handleSize: number
-): Record<HandleCorner, { x: number; y: number; w: number; h: number }> {
-  const hs = handleSize;
-  return {
-    tl: { x: x - hs / 2, y: y - hs / 2, w: hs, h: hs },
-    tr: { x: x + w - hs / 2, y: y - hs / 2, w: hs, h: hs },
-    bl: { x: x - hs / 2, y: y + h - hs / 2, w: hs, h: hs },
-    br: { x: x + w - hs / 2, y: y + h - hs / 2, w: hs, h: hs },
-  };
-}
-
-function hitTestHandle(
-  mx: number, my: number,
-  x: number, y: number, w: number, h: number,
-  handleSize: number
-): HandleCorner | null {
-  const handles = getHandleRects(x, y, w, h, handleSize);
-  for (const [corner, rect] of Object.entries(handles) as [HandleCorner, { x: number; y: number; w: number; h: number }][]) {
-    if (mx >= rect.x && mx <= rect.x + rect.w && my >= rect.y && my <= rect.y + rect.h) {
-      return corner;
-    }
-  }
-  return null;
-}
-
-type ProcessingStep = null | 'generating-bg' | 'compositing' | 'blending';
-
 export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cutoutImgRef = useRef<HTMLImageElement | null>(null);
-
-  const [sceneSize, setSceneSize] = useState<SceneSize>(SCENE_SIZES[0]);
-  const [objPos, setObjPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [objScale, setObjScale] = useState(1);
-  const [displayScale, setDisplayScale] = useState(1);
+  const [images, setImages] = useState<string[]>([cutoutUrl]);
+  const [addUrlInput, setAddUrlInput] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [guidance, setGuidance] = useState(5);
-  const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
+  const [aspectRatio, setAspectRatio] = useState('1:1');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
 
-  const isDraggingRef = useRef(false);
-  const isResizingRef = useRef(false);
-  const resizeCornerRef = useRef<HandleCorner | null>(null);
-  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const resizeStartRef = useRef<{ mouseX: number; mouseY: number; scale: number }>({ mouseX: 0, mouseY: 0, scale: 1 });
-
-  useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      cutoutImgRef.current = img;
-      const fitScale = Math.min(
-        (sceneSize.width * 0.5) / img.width,
-        (sceneSize.height * 0.7) / img.height,
-        1
-      );
-      setObjScale(fitScale);
-      setObjPos({
-        x: (sceneSize.width - img.width * fitScale) / 2,
-        y: (sceneSize.height - img.height * fitScale) / 2,
-      });
-    };
-    img.src = cutoutUrl;
-  }, [cutoutUrl, sceneSize.width, sceneSize.height]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const maxW = container.clientWidth - 32;
-    const maxH = container.clientHeight - 32;
-    const scale = Math.min(maxW / sceneSize.width, maxH / sceneSize.height, 1);
-    setDisplayScale(scale);
-  }, [sceneSize]);
-
-  const renderCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const img = cutoutImgRef.current;
-    if (!canvas || !img) return;
-
-    const ctx = canvas.getContext('2d')!;
-    const sw = sceneSize.width;
-    const sh = sceneSize.height;
-    canvas.width = sw;
-    canvas.height = sh;
-
-    drawCheckerboard(ctx, sw, sh, 20);
-
-    const drawW = img.width * objScale;
-    const drawH = img.height * objScale;
-    ctx.drawImage(img, objPos.x, objPos.y, drawW, drawH);
-
-    const handleSize = HANDLE_SIZE / displayScale;
-
-    ctx.strokeStyle = 'rgba(22, 163, 74, 0.8)';
-    ctx.lineWidth = 2 / displayScale;
-    ctx.setLineDash([6 / displayScale, 4 / displayScale]);
-    ctx.strokeRect(objPos.x, objPos.y, drawW, drawH);
-    ctx.setLineDash([]);
-
-    ctx.fillStyle = '#16a34a';
-    for (const rect of Object.values(getHandleRects(objPos.x, objPos.y, drawW, drawH, handleSize))) {
-      ctx.beginPath();
-      ctx.roundRect(rect.x, rect.y, rect.w, rect.h, 2 / displayScale);
-      ctx.fill();
-    }
-  }, [sceneSize, objPos, objScale, displayScale]);
-
-  useEffect(() => { renderCanvas(); }, [renderCanvas]);
-
-  function toSceneCoords(e: MouseEvent<HTMLCanvasElement>): { x: number; y: number } {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.clientY - rect.top) * (canvas.height / rect.height),
-    };
-  }
-
-  function isInsideObject(sx: number, sy: number): boolean {
-    const img = cutoutImgRef.current;
-    if (!img) return false;
-    const drawW = img.width * objScale;
-    const drawH = img.height * objScale;
-    return sx >= objPos.x && sx <= objPos.x + drawW && sy >= objPos.y && sy <= objPos.y + drawH;
-  }
-
-  function handleMouseDown(e: MouseEvent<HTMLCanvasElement>) {
-    const pos = toSceneCoords(e);
-    const img = cutoutImgRef.current;
-    if (!img) return;
-    const drawW = img.width * objScale;
-    const drawH = img.height * objScale;
-    const handleSize = HANDLE_SIZE / displayScale;
-    const corner = hitTestHandle(pos.x, pos.y, objPos.x, objPos.y, drawW, drawH, handleSize);
-    if (corner) {
-      isResizingRef.current = true;
-      resizeCornerRef.current = corner;
-      resizeStartRef.current = { mouseX: pos.x, mouseY: pos.y, scale: objScale };
+  function addImage() {
+    const url = addUrlInput.trim();
+    if (!url.startsWith('http')) {
+      setError('Image URL must start with http');
       return;
     }
-    if (isInsideObject(pos.x, pos.y)) {
-      isDraggingRef.current = true;
-      dragOffsetRef.current = { x: pos.x - objPos.x, y: pos.y - objPos.y };
-    }
-  }
-
-  function handleMouseMove(e: MouseEvent<HTMLCanvasElement>) {
-    const pos = toSceneCoords(e);
-    const img = cutoutImgRef.current;
-    if (!img) return;
-
-    if (isDraggingRef.current) {
-      setObjPos({ x: pos.x - dragOffsetRef.current.x, y: pos.y - dragOffsetRef.current.y });
+    if (images.length >= 5) {
+      setError('Maximum 5 images per scene');
       return;
     }
-
-    if (isResizingRef.current) {
-      const start = resizeStartRef.current;
-      const cx = objPos.x + (img.width * start.scale) / 2;
-      const cy = objPos.y + (img.height * start.scale) / 2;
-      const startDist = Math.sqrt((start.mouseX - cx) ** 2 + (start.mouseY - cy) ** 2);
-      const currentDist = Math.sqrt((pos.x - cx) ** 2 + (pos.y - cy) ** 2);
-      if (startDist > 0) {
-        const newScale = Math.max(0.05, Math.min(3, start.scale * (currentDist / startDist)));
-        const oldW = img.width * objScale;
-        const oldH = img.height * objScale;
-        const newW = img.width * newScale;
-        const newH = img.height * newScale;
-        setObjPos(prev => ({ x: prev.x + (oldW - newW) / 2, y: prev.y + (oldH - newH) / 2 }));
-        setObjScale(newScale);
-      }
+    if (images.includes(url)) {
+      setError('This image is already added');
       return;
     }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const drawW = img.width * objScale;
-    const drawH = img.height * objScale;
-    const handleSize = HANDLE_SIZE / displayScale;
-    const corner = hitTestHandle(pos.x, pos.y, objPos.x, objPos.y, drawW, drawH, handleSize);
-    if (corner) {
-      canvas.style.cursor = corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize';
-    } else if (isInsideObject(pos.x, pos.y)) {
-      canvas.style.cursor = 'grab';
-    } else {
-      canvas.style.cursor = 'default';
-    }
+    setImages(prev => [...prev, url]);
+    setAddUrlInput('');
+    setError(null);
   }
 
-  function handleMouseUp() {
-    isDraggingRef.current = false;
-    isResizingRef.current = false;
-    resizeCornerRef.current = null;
+  function removeImage(url: string) {
+    if (images.length === 1) return;
+    setImages(prev => prev.filter(u => u !== url));
   }
 
-  // ── Pass 1: Generate background image ───────────────────────────────────
-  async function generateBackground(): Promise<string> {
-    const ratio = sceneSize.width / sceneSize.height;
-    let aspectRatio = '1:1';
-    if (ratio > 1.5) aspectRatio = '16:9';
-    else if (ratio > 1.1) aspectRatio = '4:3';
-    else if (ratio < 0.65) aspectRatio = '9:16';
-    else if (ratio < 0.9) aspectRatio = '3:4';
-
-    const res = await fetch('/api/generate-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: `${prompt}, empty scene, no objects in foreground, background only, professional photography`,
-        aspect_ratio: aspectRatio,
-        output_format: 'png',
-        provider: 'flux-dev',
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Background generation failed' })) as { error?: string };
-      throw new Error(err.error || 'Background generation failed');
-    }
-
-    const buffer = await res.arrayBuffer();
-    const base64 = btoa(
-      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
-    const contentType = res.headers.get('content-type') || 'image/png';
-    return `data:${contentType};base64,${base64}`;
-  }
-
-  // ── Pass 2a: Composite cutout onto background + build edge mask ──────────
-  function compositeOnBackground(bgDataUrl: string): Promise<{ image: Blob; mask: Blob }> {
-    return new Promise((resolve, reject) => {
-      const bgImg = new Image();
-      bgImg.crossOrigin = 'anonymous';
-      bgImg.onload = () => {
-        const cutout = cutoutImgRef.current!;
-        const sw = sceneSize.width;
-        const sh = sceneSize.height;
-        const drawW = cutout.width * objScale;
-        const drawH = cutout.height * objScale;
-
-        // IMAGE: background + cutout composited
-        const imgCanvas = document.createElement('canvas');
-        imgCanvas.width = sw;
-        imgCanvas.height = sh;
-        const imgCtx = imgCanvas.getContext('2d')!;
-        imgCtx.drawImage(bgImg, 0, 0, sw, sh);
-        imgCtx.drawImage(cutout, objPos.x, objPos.y, drawW, drawH);
-
-        // MASK: thin border ring around cutout edges only
-        // Strategy: draw enlarged silhouette (white), punch hole with slightly shrunken silhouette (black)
-        // Result: only the 15px ring around the object edges is white (= blend here)
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = sw;
-        maskCanvas.height = sh;
-        const maskCtx = maskCanvas.getContext('2d')!;
-
-        // All black = preserve everything by default
-        maskCtx.fillStyle = '#000000';
-        maskCtx.fillRect(0, 0, sw, sh);
-
-        const borderWidth = 15;
-
-        // Draw enlarged silhouette at outer border → these pixels become candidates for white
-        const outerScale = 1 + (borderWidth * 2) / Math.max(drawW, drawH);
-        const outerW = drawW * outerScale;
-        const outerH = drawH * outerScale;
-        const outerX = objPos.x - (outerW - drawW) / 2;
-        const outerY = objPos.y - (outerH - drawH) / 2;
-
-        const outerCanvas = document.createElement('canvas');
-        outerCanvas.width = sw;
-        outerCanvas.height = sh;
-        const outerCtx = outerCanvas.getContext('2d')!;
-        outerCtx.drawImage(cutout, outerX, outerY, outerW, outerH);
-        const outerData = outerCtx.getImageData(0, 0, sw, sh);
-
-        // Draw shrunken silhouette → inner area to preserve (black)
-        const innerScale = Math.max(0.01, 1 - (4 / Math.max(drawW, drawH)));
-        const innerW = drawW * innerScale;
-        const innerH = drawH * innerScale;
-        const innerX = objPos.x + (drawW - innerW) / 2;
-        const innerY = objPos.y + (drawH - innerH) / 2;
-
-        const innerCanvas = document.createElement('canvas');
-        innerCanvas.width = sw;
-        innerCanvas.height = sh;
-        const innerCtx = innerCanvas.getContext('2d')!;
-        innerCtx.drawImage(cutout, innerX, innerY, innerW, innerH);
-        const innerData = innerCtx.getImageData(0, 0, sw, sh);
-
-        const mData = maskCtx.getImageData(0, 0, sw, sh);
-
-        for (let i = 0; i < outerData.data.length; i += 4) {
-          // Where outer silhouette has alpha → candidate for edge ring
-          if (outerData.data[i + 3] > 5) {
-            mData.data[i] = 255;
-            mData.data[i + 1] = 255;
-            mData.data[i + 2] = 255;
-            mData.data[i + 3] = 255;
-          }
-          // Where inner (eroded) silhouette has alpha → object interior, stay black
-          if (innerData.data[i + 3] > 30) {
-            mData.data[i] = 0;
-            mData.data[i + 1] = 0;
-            mData.data[i + 2] = 0;
-            mData.data[i + 3] = 255;
-          }
-        }
-        maskCtx.putImageData(mData, 0, 0);
-
-        function canvasToBlob(canvas: HTMLCanvasElement): Blob {
-          const dataUrl = canvas.toDataURL('image/png');
-          const binary = atob(dataUrl.split(',')[1]);
-          const array = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
-          return new Blob([array], { type: 'image/png' });
-        }
-
-        resolve({ image: canvasToBlob(imgCanvas), mask: canvasToBlob(maskCanvas) });
-      };
-      bgImg.onerror = () => reject(new Error('Failed to load background image'));
-      bgImg.src = bgDataUrl;
-    });
-  }
-
-  async function handleGenerate() {
-    if (!prompt.trim()) {
-      alert('Please describe the scene you want to create');
-      return;
-    }
+  async function handleCreateScene() {
+    if (!prompt.trim() || images.length === 0) return;
+    setIsProcessing(true);
+    setError(null);
 
     try {
-      // ── Pass 1: Generate background ──────────────────────────────────
-      setProcessingStep('generating-bg');
-      const bgDataUrl = await generateBackground();
+      const res = await fetch('/api/studio/scene-compose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrls: images, prompt: prompt.trim(), aspectRatio }),
+      });
 
-      // ── Pass 2a: Composite cutout onto background ────────────────────
-      setProcessingStep('compositing');
-      const { image, mask } = await compositeOnBackground(bgDataUrl);
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error || 'Scene composition failed');
 
-      // ── Pass 2b: Edge blend via Flux Fill Pro ────────────────────────
-      setProcessingStep('blending');
-      const fd = new FormData();
-      fd.append('image', image, 'scene-composite.png');
-      fd.append('mask', mask, 'scene-edge-mask.png');
-      fd.append('prompt', `${prompt}, seamless integration, natural lighting, realistic shadows`);
-      fd.append('guidance', guidance.toString());
-
-      const res = await fetch('/api/studio/inpaint', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const err = await res.json() as { error?: string };
-        throw new Error(err.error || 'Edge blending failed');
-      }
-      const data = await res.json() as { url: string };
-      setResult(data.url);
+      setResult(data.url!);
     } catch (err) {
-      console.error('[SceneCreator] Error:', err);
-      alert(err instanceof Error ? err.message : 'Scene generation failed');
+      setError(err instanceof Error ? err.message : 'Failed to create scene');
     } finally {
-      setProcessingStep(null);
+      setIsProcessing(false);
     }
   }
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  const scalePercent = Math.round(objScale * 100);
-  const isProcessing = processingStep !== null;
 
   return (
     <div
@@ -436,7 +97,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
       onClick={onClose}
     >
       <div
-        className="relative flex h-[90vh] w-[95vw] max-w-7xl overflow-hidden rounded-xl bg-[#1a1a2e]"
+        className="relative flex h-[90vh] w-[95vw] max-w-5xl overflow-hidden rounded-xl bg-[#1a1a2e]"
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -446,28 +107,66 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
           <IconX />
         </button>
 
-        {/* Left: Canvas */}
-        <div ref={containerRef} className="flex flex-1 items-center justify-center p-4">
+        {/* Left: Image previews / Result */}
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
           {result ? (
-            <div className="text-center">
-              <p className="mb-2 text-xs text-gray-400">Scene</p>
+            <>
+              <p className="text-xs text-gray-400">Generated Scene</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={result} alt="Generated scene" className="max-h-[70vh] rounded-lg" />
-            </div>
+              <img src={result} alt="Generated scene" className="max-h-[70vh] max-w-full rounded-lg shadow-xl" />
+            </>
           ) : (
-            <canvas
-              ref={canvasRef}
-              style={{ width: sceneSize.width * displayScale, height: sceneSize.height * displayScale, borderRadius: 8 }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            />
+            <>
+              <p className="text-xs font-medium text-gray-400">
+                {images.length === 1 ? 'Your cutout' : `${images.length} images`}
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {images.map((url, i) => (
+                  <div key={url} className="group relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`Image ${i + 1}`}
+                      className="h-40 w-40 rounded-lg object-contain bg-black/30 border border-white/10"
+                    />
+                    {images.length > 1 && (
+                      <button
+                        onClick={() => removeImage(url)}
+                        className="absolute -right-2 -top-2 hidden rounded-full bg-red-600 p-1 text-white group-hover:flex"
+                      >
+                        <IconX size={10} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {images.length < 5 && (
+                <div className="flex w-full max-w-sm gap-2">
+                  <input
+                    type="text"
+                    value={addUrlInput}
+                    onChange={e => setAddUrlInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addImage(); }}
+                    placeholder="Paste another image URL..."
+                    className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:border-purple-600/50 focus:outline-none"
+                  />
+                  <button
+                    onClick={addImage}
+                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:bg-white/5"
+                  >
+                    + Add
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-gray-600">
+                Up to 5 images. Grok AI will compose them into one scene.
+              </p>
+            </>
           )}
         </div>
 
         {/* Right: Controls */}
-        <div className="flex w-[300px] flex-col gap-4 overflow-y-auto border-l border-white/10 bg-[#12121f] p-4">
+        <div className="flex w-[320px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-l border-white/10 bg-[#12121f] p-4">
           {result ? (
             <>
               <h3 className="text-sm font-medium text-white">Scene Result</h3>
@@ -478,7 +177,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
                 Use Result
               </button>
               <button
-                onClick={() => setResult(null)}
+                onClick={() => { setResult(null); setError(null); }}
                 className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
               >
                 Try Again
@@ -488,155 +187,87 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
             <>
               <h3 className="text-sm font-medium text-white">Scene Creator</h3>
               <p className="text-[10px] text-gray-500">
-                Position your object, describe the scene, and AI will generate the environment around it.
+                Powered by Grok AI — shadows, lighting, and perspective handled natively. Requires xAI API key in Settings.
               </p>
 
-              {/* Canvas size */}
+              {/* Scene presets */}
               <div>
-                <label className="text-xs text-gray-400">Canvas Size</label>
-                <div className="mt-1 grid grid-cols-2 gap-1.5">
-                  {SCENE_SIZES.map((size) => (
+                <label className="text-xs text-gray-400">Quick Scenes</label>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {SCENE_PRESETS.map(preset => (
                     <button
-                      key={size.label}
-                      onClick={() => setSceneSize(size)}
-                      className={`rounded-lg px-2 py-1.5 text-xs transition-colors ${
-                        sceneSize.label === size.label
-                          ? 'bg-green-600 text-white'
-                          : 'border border-white/10 text-gray-400 hover:bg-white/5'
+                      key={preset.label}
+                      onClick={() => setPrompt(preset.prompt)}
+                      className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                        prompt === preset.prompt
+                          ? 'border-purple-600/60 bg-purple-600/20 text-purple-300'
+                          : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                       }`}
                     >
-                      <span className="mr-1">{size.icon}</span>
-                      {size.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-1 text-[10px] text-gray-600">{sceneSize.width} × {sceneSize.height}px</p>
-              </div>
-
-              {/* Object size */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs text-gray-400">Object Size</label>
-                  <span className="text-xs font-mono text-gray-500">{scalePercent}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="200"
-                  value={scalePercent}
-                  onChange={e => {
-                    const newScale = parseInt(e.target.value) / 100;
-                    const img = cutoutImgRef.current;
-                    if (img) {
-                      const oldW = img.width * objScale;
-                      const oldH = img.height * objScale;
-                      setObjPos(prev => ({
-                        x: prev.x + (oldW - img.width * newScale) / 2,
-                        y: prev.y + (oldH - img.height * newScale) / 2,
-                      }));
-                    }
-                    setObjScale(newScale);
-                  }}
-                  className="mt-1 w-full accent-green-500"
-                />
-              </div>
-
-              {/* Quick position */}
-              <div>
-                <label className="text-xs text-gray-400">Quick Position</label>
-                <div className="mt-1 grid grid-cols-3 gap-1">
-                  {[
-                    { label: '↖', align: 'tl' }, { label: '↑', align: 'tc' }, { label: '↗', align: 'tr' },
-                    { label: '←', align: 'ml' }, { label: '●', align: 'mc' }, { label: '→', align: 'mr' },
-                    { label: '↙', align: 'bl' }, { label: '↓', align: 'bc' }, { label: '↘', align: 'br' },
-                  ].map(({ label, align }) => (
-                    <button
-                      key={align}
-                      onClick={() => {
-                        const img = cutoutImgRef.current;
-                        if (!img) return;
-                        const ow = img.width * objScale;
-                        const oh = img.height * objScale;
-                        const sw = sceneSize.width;
-                        const sh = sceneSize.height;
-                        const pad = 20;
-                        const positions: Record<string, { x: number; y: number }> = {
-                          tl: { x: pad, y: pad }, tc: { x: (sw - ow) / 2, y: pad }, tr: { x: sw - ow - pad, y: pad },
-                          ml: { x: pad, y: (sh - oh) / 2 }, mc: { x: (sw - ow) / 2, y: (sh - oh) / 2 }, mr: { x: sw - ow - pad, y: (sh - oh) / 2 },
-                          bl: { x: pad, y: sh - oh - pad }, bc: { x: (sw - ow) / 2, y: sh - oh - pad }, br: { x: sw - ow - pad, y: sh - oh - pad },
-                        };
-                        setObjPos(positions[align]);
-                      }}
-                      className="rounded border border-white/10 py-1.5 text-xs text-gray-400 hover:bg-white/5"
-                    >
-                      {label}
+                      {preset.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="border-t border-white/10" />
-
-              {/* Guidance */}
+              {/* Scene description */}
               <div>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs text-gray-400">Prompt Strength</label>
-                  <span className="text-xs font-mono text-gray-500">{guidance}</span>
-                </div>
-                <input
-                  type="range"
-                  min="2"
-                  max="5"
-                  step="0.5"
-                  value={guidance}
-                  onChange={e => setGuidance(parseFloat(e.target.value))}
-                  className="mt-1 w-full accent-green-500"
-                />
-                <div className="flex justify-between text-[10px] text-gray-600">
-                  <span>Natural</span>
-                  <span>Follow prompt</span>
-                </div>
-              </div>
-
-              {/* Prompt */}
-              <div>
-                <label className="text-xs text-gray-400">Describe the scene</label>
+                <label className="text-xs text-gray-400">Scene Description</label>
                 <textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
-                  placeholder="e.g. marble table in Italian restaurant, warm candlelight, bokeh background, evening ambiance..."
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-green-600/50 focus:outline-none"
+                  placeholder="Describe where to place the object(s) — surface, environment, lighting, mood..."
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-purple-600/50 focus:outline-none"
                   rows={4}
                 />
               </div>
 
+              {/* Aspect ratio */}
+              <div>
+                <label className="text-xs text-gray-400">Aspect Ratio</label>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ASPECT_RATIOS.map(ar => (
+                    <button
+                      key={ar.value}
+                      onClick={() => setAspectRatio(ar.value)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                        aspectRatio === ar.value
+                          ? 'bg-purple-600 text-white'
+                          : 'border border-white/10 text-gray-400 hover:bg-white/5'
+                      }`}
+                    >
+                      <span className="mr-1">{ar.icon}</span>
+                      {ar.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {error && (
+                <p className="rounded-lg border border-red-600/30 bg-red-600/10 px-3 py-2 text-xs text-red-400">
+                  {error}
+                </p>
+              )}
+
               <button
-                onClick={handleGenerate}
-                disabled={isProcessing || !prompt.trim()}
-                className="rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                onClick={handleCreateScene}
+                disabled={isProcessing || !prompt.trim() || images.length === 0}
+                className="rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
               >
-                {processingStep === 'generating-bg' ? (
+                {isProcessing ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Spinner />
-                    Step 1/3: Generating background...
-                  </span>
-                ) : processingStep === 'compositing' ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Spinner />
-                    Step 2/3: Compositing...
-                  </span>
-                ) : processingStep === 'blending' ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Spinner />
-                    Step 3/3: Blending edges...
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" />
+                    </svg>
+                    Creating scene... 15–30 sec
                   </span>
                 ) : (
-                  'Generate Scene'
+                  '🎬 Create Scene'
                 )}
               </button>
 
               <p className="text-[10px] text-gray-600">
-                Two-pass AI: generates a clean background first, composites your object, then blends edges with Flux Fill Pro for photorealistic results.
+                One AI call — Grok generates shadows, reflections, and lighting natively. No canvas compositing.
               </p>
             </>
           )}

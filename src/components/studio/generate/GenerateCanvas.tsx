@@ -586,15 +586,17 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               className="hidden"
               onChange={handleRefInputChange}
             />
-            <input
-              ref={inpaintInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleInpaintUpload}
-            />
           </AccordionSection>
         </aside>
+
+        {/* Hidden input for inpaint upload — MUST be outside AccordionSection */}
+        <input
+          ref={inpaintInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleInpaintUpload}
+        />
 
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto p-4">

@@ -83,13 +83,23 @@ export async function POST(req: Request) {
     const xaiKeyRecord = await db.userApiKey.findUnique({
       where: { userId_provider: { userId: session.user.id, provider: 'xai' } },
     });
-    if (!xaiKeyRecord) {
-      return NextResponse.json({ error: 'xAI API key not configured' }, { status: 400 });
+
+    let xaiKey: string | null = null;
+    if (xaiKeyRecord?.encryptedKey) {
+      xaiKey = decrypt(xaiKeyRecord.encryptedKey);
     }
-    const xaiKey = decrypt(xaiKeyRecord.encryptedKey);
+    if (!xaiKey) {
+      xaiKey = process.env.XAI_API_KEY ?? null;
+    }
+    if (!xaiKey) {
+      return NextResponse.json(
+        { error: 'xAI API key not configured. Add it in Settings → API Keys or set XAI_API_KEY env variable.' },
+        { status: 400 },
+      );
+    }
     if (!xaiKey.startsWith('xai-')) {
       return NextResponse.json(
-        { error: 'Invalid xAI API key — please delete it in Settings and re-enter a valid key starting with "xai-"' },
+        { error: 'Invalid xAI API key — must start with "xai-"' },
         { status: 400 },
       );
     }

@@ -1,40 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { clearLibrary } from '@/lib/studio/library-store';
 
 interface Props {
   userEmail: string;
 }
 
+interface KeyRecord { provider: string; keyHint: string }
+
 export function SettingsCanvas({ userEmail }: Props) {
-  const [fluxKey, setFluxKey] = useState('');
-  const [klingKey, setKlingKey] = useState('');
+  const [fluxKey, setFluxKey]       = useState('');
+  const [xaiKey, setXaiKey]         = useState('');
+  const [klingKey, setKlingKey]     = useState('');
   const [klingSecret, setKlingSecret] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [hints, setHints]           = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving]     = useState(false);
+  const [saveMsg, setSaveMsg]       = useState<{ ok: boolean; text: string } | null>(null);
   const [libraryCleared, setLibraryCleared] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/user/api-keys')
+      .then(r => r.ok ? r.json() : [])
+      .then((keys: KeyRecord[]) => {
+        const map: Record<string, string> = {};
+        for (const k of keys) map[k.provider] = k.keyHint;
+        setHints(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function saveProviderKey(provider: string, key: string) {
+    const res = await fetch('/api/user/api-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, key }),
+    });
+    const data = await res.json() as { keyHint?: string; error?: string };
+    if (!res.ok) throw new Error(data.error ?? 'Failed to save');
+    setHints(prev => ({ ...prev, [provider]: data.keyHint! }));
+  }
+
   async function handleSaveKeys() {
-    const body: Record<string, string> = {};
-    if (fluxKey.trim())   body.fluxKey   = fluxKey.trim();
-    if (klingKey.trim())  body.klingKey  = klingKey.trim();
-    if (klingSecret.trim()) body.klingSecret = klingSecret.trim();
-    if (!Object.keys(body).length) return;
+    const toSave: Array<[string, string]> = [];
+    if (fluxKey.trim()) toSave.push(['replicate', fluxKey.trim()]);
+    if (xaiKey.trim())  toSave.push(['xai', xaiKey.trim()]);
+    if (!toSave.length) return;
 
     setIsSaving(true);
     setSaveMsg(null);
     try {
-      const res = await fetch('/api/studio/byok-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error('Failed to save');
+      await Promise.all(toSave.map(([p, k]) => saveProviderKey(p, k)));
       setSaveMsg({ ok: true, text: 'Keys saved successfully' });
-      setFluxKey(''); setKlingKey(''); setKlingSecret('');
-    } catch {
-      setSaveMsg({ ok: false, text: 'Failed to save — please try again' });
+      setFluxKey(''); setXaiKey('');
+    } catch (err) {
+      setSaveMsg({ ok: false, text: err instanceof Error ? err.message : 'Failed to save — please try again' });
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(null), 4000);
@@ -82,16 +102,38 @@ export function SettingsCanvas({ userEmail }: Props) {
           <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">API Keys (Bring Your Own Key)</h2>
           <p className="text-xs text-gray-600">Use your own API keys for unlimited usage. Keys are encrypted at rest.</p>
           <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+
+            {/* Replicate (Flux) */}
             <div>
               <label className="mb-1 block text-xs text-gray-400">Flux API Key (Replicate)</label>
+              {hints.replicate && !fluxKey && (
+                <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.replicate}</p>
+              )}
               <input
                 type="password"
                 value={fluxKey}
                 onChange={e => setFluxKey(e.target.value)}
-                placeholder="r8_..."
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25 focus:bg-white/8"
+                placeholder={hints.replicate ? 'Replace saved key…' : 'r8_...'}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25"
               />
             </div>
+
+            {/* xAI (Grok) */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">xAI API Key (Grok)</label>
+              {hints.xai && !xaiKey && (
+                <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.xai}</p>
+              )}
+              <input
+                type="password"
+                value={xaiKey}
+                onChange={e => setXaiKey(e.target.value)}
+                placeholder={hints.xai ? 'Replace saved key…' : 'xai-...'}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25"
+              />
+            </div>
+
+            {/* Kling */}
             <div>
               <label className="mb-1 block text-xs text-gray-400">Kling API Key</label>
               <input
@@ -121,7 +163,7 @@ export function SettingsCanvas({ userEmail }: Props) {
 
             <button
               onClick={handleSaveKeys}
-              disabled={isSaving || (!fluxKey && !klingKey && !klingSecret)}
+              disabled={isSaving || (!fluxKey && !xaiKey)}
               className="min-h-[44px] rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? 'Saving…' : 'Save API Keys'}

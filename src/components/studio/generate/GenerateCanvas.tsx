@@ -110,6 +110,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [refDragOver, setRefDragOver] = useState(false);
+  const [strength, setStrength] = useState(0.75);
   const refInputRef = useRef<HTMLInputElement>(null);
 
   // Generation
@@ -199,7 +200,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         fd.append('prompt', finalPrompt);
         fd.append('referenceImage', referenceImage);
         fd.append('aspectRatio', preset.aspect_ratio);
-        fd.append('strength', '0.75');
+        fd.append('strength', strength.toString());
         const res = await fetch('/api/studio/generate-with-reference', { method: 'POST', body: fd });
         if (!res.ok) {
           const e = await res.json() as { error?: string; needsUpgrade?: boolean };
@@ -256,7 +257,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, enhancedPrompt, isGenerating, selectedPreset, outputFormat, selectedModel, referenceImage]);
+  }, [prompt, enhancedPrompt, isGenerating, selectedPreset, outputFormat, selectedModel, referenceImage, strength]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -392,7 +393,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               ) : (
                 <>
                   <IconSparkle />
-                  Generate
+                  {referenceImage ? 'Edit Image' : 'Generate'}
                   <span className="text-xs font-normal opacity-70">~1 credit</span>
                 </>
               )}
@@ -512,11 +513,14 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             </select>
           </AccordionSection>
 
-          <AccordionSection title="Reference Image">
+          <AccordionSection title="Reference Image (Edit Mode)">
+            <p className="mb-2 text-xs text-gray-500">
+              Upload a photo to edit it with your prompt. Lower strength = subtle changes, higher = more creative.
+            </p>
             {referencePreview ? (
               <div className="relative overflow-hidden rounded-lg border border-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={referencePreview} alt="Reference" className="w-full object-cover" style={{ maxHeight: 140 }} />
+                <img src={referencePreview} alt="Reference" className="w-full object-contain rounded" style={{ maxHeight: 200 }} />
                 <button
                   onClick={clearReference}
                   className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-black/80"
@@ -540,6 +544,27 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 <IconUpload />
                 <p className="text-xs text-gray-400">Drop or click to upload</p>
                 <p className="text-xs text-gray-600">PNG, JPG, WebP</p>
+              </div>
+            )}
+            {referenceImage && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-gray-400">Edit Strength</label>
+                  <span className="text-xs font-mono text-gray-500">{strength.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.0"
+                  step="0.05"
+                  value={strength}
+                  onChange={(e) => setStrength(parseFloat(e.target.value))}
+                  className="w-full accent-green-500"
+                />
+                <div className="flex justify-between text-[10px] text-gray-600">
+                  <span>Subtle edit</span>
+                  <span>Major change</span>
+                </div>
               </div>
             )}
             <input

@@ -771,7 +771,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           const blobUrl = await loadMediaBlob(key);
           if (blobUrl) {
             resolved[clip.sourceUrl!] = blobUrl;
-            console.log('[IDB] Loaded blob for:', key.slice(0, 8));
           } else {
             console.warn('[IDB] No blob found for key:', key.slice(0, 8));
           }
@@ -1700,16 +1699,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                   return nearby.map((clip, i) => {
                     const srcUrl = resolvedUrl(clip);
                     const isIdb  = clip.sourceUrl?.startsWith('idb://');
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log('[Canvas] Rendering clip:', {
-                        id: clip.id.slice(0, 8),
-                        type: clip.type,
-                        srcPrefix: srcUrl?.slice(0, 60),
-                        isDataUrl: srcUrl?.startsWith('data:'),
-                        isIdb,
-                        isActive: activeClip?.id === clip.id,
-                      });
-                    }
                     return (
                     <div
                       key={clip.id}

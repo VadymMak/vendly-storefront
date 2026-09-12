@@ -70,8 +70,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    console.log('[scene-compose] Calling Grok multi-image edit with', imageUrls.length, 'images');
-
     const resultUrl = await grokMultiImageEdit(xaiKey, imageUrls, prompt.trim(), aspectRatio);
 
     const imgRes = await fetch(resultUrl);
@@ -85,7 +83,6 @@ export async function POST(req: Request) {
       { access: 'public', contentType },
     );
 
-    console.log('[scene-compose] Done:', blob.url);
     return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error('[scene-compose] Error:', err);

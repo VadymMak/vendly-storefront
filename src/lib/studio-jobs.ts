@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
-import { getVideoProvider } from '@/lib/video';
+import { getVideoProvider, KlingDirectProvider } from '@/lib/video';
 
 export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit';
 export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
@@ -33,6 +33,7 @@ export async function createJob(params: {
 export async function refreshJobStatus(
   jobId: string,
   replicateKey: string,
+  klingCompositeKey?: string,
 ): Promise<{ status: JobStatus; outputUrl?: string; error?: string }> {
   const job = await db.studioJob.findUnique({ where: { id: jobId } });
   if (!job) throw new Error('Job not found');
@@ -53,7 +54,7 @@ export async function refreshJobStatus(
   // type is always a Replicate prediction, so it must not go through the
   // video provider (a non-Replicate one would not recognise the id).
   const polled = job.type === 'video'
-    ? await pollVideoPrediction(job.predictionId, replicateKey)
+    ? await pollVideoPrediction(job.predictionId, replicateKey, klingCompositeKey)
     : await pollReplicatePrediction(job.predictionId, replicateKey);
 
   // Backend unreachable — keep the current status and retry on the next poll.
@@ -110,8 +111,18 @@ function toJobStatus(status: string): JobStatus {
 async function pollVideoPrediction(
   predictionId: string,
   apiKey:       string,
+  klingKey?:    string,
 ): Promise<PolledPrediction | null> {
   try {
+    if (predictionId.startsWith('kling-direct:')) {
+      const taskId = predictionId.replace('kling-direct:', '');
+      const result = await new KlingDirectProvider().pollVideo(taskId, klingKey ?? '');
+      return {
+        status:    toJobStatus(result.status),
+        outputUrl: result.videoUrl,
+        error:     result.error,
+      };
+    }
     const result = await getVideoProvider().pollVideo(predictionId, apiKey);
     return {
       status:    toJobStatus(result.status),

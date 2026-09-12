@@ -49,6 +49,8 @@ export function SettingsCanvas({ userEmail }: Props) {
     if (xaiKey.trim())       toSave.push(['xai', xaiKey.trim()]);
     if (openaiKey.trim())    toSave.push(['openai', openaiKey.trim()]);
     if (anthropicKey.trim()) toSave.push(['anthropic', anthropicKey.trim()]);
+    if (klingKey.trim())     toSave.push(['kling_key', klingKey.trim()]);
+    if (klingSecret.trim())  toSave.push(['kling_secret', klingSecret.trim()]);
     if (!toSave.length) return;
 
     setIsSaving(true);
@@ -57,6 +59,7 @@ export function SettingsCanvas({ userEmail }: Props) {
       await Promise.all(toSave.map(([p, k]) => saveProviderKey(p, k)));
       setSaveMsg({ ok: true, text: 'Keys saved successfully' });
       setFluxKey(''); setXaiKey(''); setOpenaiKey(''); setAnthropicKey('');
+      setKlingKey(''); setKlingSecret('');
     } catch (err) {
       setSaveMsg({ ok: false, text: err instanceof Error ? err.message : 'Failed to save — please try again' });
     } finally {
@@ -170,21 +173,27 @@ export function SettingsCanvas({ userEmail }: Props) {
             {/* Kling */}
             <div>
               <label className="mb-1 block text-xs text-gray-400">Kling API Key</label>
+              {hints.kling_key && !klingKey && (
+                <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.kling_key}</p>
+              )}
               <input
                 type="password"
                 value={klingKey}
                 onChange={e => setKlingKey(e.target.value)}
-                placeholder="Enter key…"
+                placeholder={hints.kling_key ? 'Replace saved key…' : 'Enter key…'}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25"
               />
             </div>
             <div>
               <label className="mb-1 block text-xs text-gray-400">Kling API Secret</label>
+              {hints.kling_secret && !klingSecret && (
+                <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.kling_secret}</p>
+              )}
               <input
                 type="password"
                 value={klingSecret}
                 onChange={e => setKlingSecret(e.target.value)}
-                placeholder="Enter secret…"
+                placeholder={hints.kling_secret ? 'Replace saved secret…' : 'Enter secret…'}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25"
               />
             </div>
@@ -197,7 +206,7 @@ export function SettingsCanvas({ userEmail }: Props) {
 
             <button
               onClick={handleSaveKeys}
-              disabled={isSaving || (!fluxKey && !xaiKey && !openaiKey && !anthropicKey)}
+              disabled={isSaving || (!fluxKey && !xaiKey && !openaiKey && !anthropicKey && !klingKey && !klingSecret)}
               className="min-h-[44px] rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? 'Saving…' : 'Save API Keys'}

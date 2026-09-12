@@ -7,7 +7,7 @@ import { checkCredits, getOrCreateCredits, getVideoCreditCost } from '@/lib/cred
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
-import { getVideoProvider, VideoProviderError } from '@/lib/video';
+import { getVideoProvider, KlingDirectProvider, VideoProviderError } from '@/lib/video';
 
 const generateSchema = z.object({
   prompt:          z.string().min(1),
@@ -85,21 +85,48 @@ export async function POST(request: Request) {
     : (process.env.REPLICATE_API_TOKEN ?? '');
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
+  const videoReq = {
+    prompt:          body.prompt,
+    startImage:      body.startImage,
+    aspectRatio:     body.aspectRatio,
+    duration:        body.duration,
+    referenceImages: body.referenceImages,
+  };
+
   // ── Create prediction — returns immediately, polled via the job record ────
   let prediction;
   try {
-    prediction = await getVideoProvider().createVideo({
-      prompt:          body.prompt,
-      startImage:      body.startImage,
-      aspectRatio:     body.aspectRatio,
-      duration:        body.duration,
-      referenceImages: body.referenceImages,
-    }, replicateKey);
+    prediction = await getVideoProvider().createVideo(videoReq, replicateKey);
   } catch (error) {
-    if (error instanceof VideoProviderError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+    // On quota/rate errors try Kling Direct API as fallback
+    if (isQuotaError(error)) {
+      const [klingKeyRec, klingSecretRec] = await Promise.all([
+        db.userApiKey.findUnique({
+          where: { userId_provider: { userId: session.user.id, provider: 'kling_key' } },
+          select: { encryptedKey: true },
+        }),
+        db.userApiKey.findUnique({
+          where: { userId_provider: { userId: session.user.id, provider: 'kling_secret' } },
+          select: { encryptedKey: true },
+        }),
+      ]);
+      if (klingKeyRec && klingSecretRec) {
+        const compositeKey = `${decrypt(klingKeyRec.encryptedKey)}:${decrypt(klingSecretRec.encryptedKey)}`;
+        const directProvider = new KlingDirectProvider();
+        const raw = await directProvider.createVideo(videoReq, compositeKey);
+        prediction = { ...raw, predictionId: `kling-direct:${raw.predictionId}` };
+      } else {
+        if (error instanceof VideoProviderError) {
+          return NextResponse.json({ error: error.message }, { status: error.status });
+        }
+        throw error;
+      }
+    } else {
+      if (error instanceof VideoProviderError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
     }
-    throw error;
   }
 
   if (prediction.status === 'failed') {
@@ -122,4 +149,12 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ jobId, predictionId: prediction.predictionId });
+}
+
+function isQuotaError(error: unknown): boolean {
+  if (error instanceof VideoProviderError) {
+    return error.status === 402 || error.status === 429;
+  }
+  const msg = error instanceof Error ? error.message.toLowerCase() : '';
+  return msg.includes('quota') || msg.includes('insufficient') || msg.includes('rate limit');
 }

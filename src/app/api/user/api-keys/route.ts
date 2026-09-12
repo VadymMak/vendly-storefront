@@ -5,15 +5,16 @@ import { encrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 
 const KEY_PREFIXES: Record<string, string> = {
-  replicate:   'r8_',
-  anthropic:   'sk-ant-',
-  openai:      'sk-',
-  xai:         'xai-',
-  elevenlabs:  'sk_',
+  replicate:    'r8_',
+  anthropic:    'sk-ant-',
+  openai:       'sk-',
+  xai:          'xai-',
+  elevenlabs:   'sk_',
+  // kling keys have no fixed prefix
 };
 
 const saveSchema = z.object({
-  provider: z.enum(['replicate', 'anthropic', 'openai', 'xai', 'elevenlabs']),
+  provider: z.enum(['replicate', 'anthropic', 'openai', 'xai', 'elevenlabs', 'kling_key', 'kling_secret']),
   key:      z.string().min(10),
 });
 

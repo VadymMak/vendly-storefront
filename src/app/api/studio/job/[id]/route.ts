@@ -29,22 +29,37 @@ export async function GET(
     return NextResponse.json({ error: 'Job not found' }, { status: 404 });
   }
 
-  // Video predictions are created under the user's own Replicate account.
-  // Use their key for status polling; fall back to platform key for platform-created jobs.
-  const keyRecord = await db.userApiKey.findUnique({
-    where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
-    select: { encryptedKey: true },
-  });
+  // Load all keys needed for polling — Replicate for standard jobs,
+  // Kling key+secret for kling-direct: prefixed predictions.
+  const [keyRecord, klingKeyRec, klingSecretRec] = await Promise.all([
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+      select: { encryptedKey: true },
+    }),
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'kling_key' } },
+      select: { encryptedKey: true },
+    }),
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'kling_secret' } },
+      select: { encryptedKey: true },
+    }),
+  ]);
+
   const replicateKey = keyRecord
     ? decrypt(keyRecord.encryptedKey)
     : (process.env.REPLICATE_API_TOKEN ?? '');
 
-  if (!replicateKey) {
+  const klingCompositeKey = (klingKeyRec && klingSecretRec)
+    ? `${decrypt(klingKeyRec.encryptedKey)}:${decrypt(klingSecretRec.encryptedKey)}`
+    : undefined;
+
+  if (!replicateKey && !job.predictionId.startsWith('kling-direct:')) {
     return NextResponse.json({ error: 'No Replicate API key available' }, { status: 500 });
   }
 
   try {
-    const result = await refreshJobStatus(job.id, replicateKey);
+    const result = await refreshJobStatus(job.id, replicateKey, klingCompositeKey);
     return NextResponse.json(result);
   } catch (err) {
     console.error('[studio/job]', err);

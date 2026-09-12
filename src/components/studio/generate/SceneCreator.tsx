@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface SceneCreatorProps {
   cutoutUrl: string;
@@ -36,6 +37,7 @@ function IconX({ size = 14 }: { size?: number }) {
 }
 
 export function SceneCreator({ cutoutUrl, onClose, onResult, galleryImages = [] }: SceneCreatorProps) {
+  const router = useRouter();
   const [images, setImages] = useState<string[]>([cutoutUrl]);
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -230,7 +232,10 @@ export function SceneCreator({ cutoutUrl, onClose, onResult, galleryImages = [] 
                 💾 Save
               </button>
               <button
-                onClick={() => { onResult(result); onClose(); }}
+                onClick={() => {
+                  router.push(`/studio/animate?image=${encodeURIComponent(result)}`);
+                  onClose();
+                }}
                 className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
               >
                 🎬 Animate

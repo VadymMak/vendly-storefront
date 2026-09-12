@@ -11,6 +11,7 @@ import {
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import { AccordionSection } from '@/components/studio/AccordionSection';
+import { InpaintEditor } from './InpaintEditor';
 
 interface Props {
   userId: string;
@@ -113,6 +114,10 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [strength, setStrength] = useState(0.75);
   const refInputRef = useRef<HTMLInputElement>(null);
 
+  // Inpaint upload
+  const [inpaintImage, setInpaintImage] = useState<string | null>(null);
+  const inpaintInputRef = useRef<HTMLInputElement>(null);
+
   // Generation
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +153,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     setReferenceImage(null);
     setReferencePreview(null);
     if (refInputRef.current) refInputRef.current.value = '';
+  }
+
+  function handleInpaintUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    setInpaintImage(URL.createObjectURL(file));
+    e.target.value = '';
   }
 
   // ── Style tag toggle ──────────────────────────────────────────────────────
@@ -574,6 +586,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               className="hidden"
               onChange={handleRefInputChange}
             />
+            <input
+              ref={inpaintInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleInpaintUpload}
+            />
           </AccordionSection>
         </aside>
 
@@ -604,10 +623,31 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   </button>
                 ))}
               </div>
+              {/* Upload to Inpaint */}
+              <div className="mt-6 border-t border-white/10 pt-6">
+                <button
+                  onClick={() => inpaintInputRef.current?.click()}
+                  className="rounded-full border border-purple-500/30 bg-purple-600/10 px-6 py-2.5 text-sm text-purple-300 transition-colors hover:bg-purple-600/20"
+                >
+                  Upload photo to Inpaint / Edit
+                </button>
+                <p className="mt-2 text-xs text-gray-600">
+                  Paint a mask over what you want to change
+                </p>
+              </div>
             </div>
           )}
 
           {generatedImages.length > 0 && (
+            <>
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={() => inpaintInputRef.current?.click()}
+                className="rounded-lg border border-purple-500/20 px-3 py-1.5 text-xs text-purple-400 transition-colors hover:bg-purple-600/10"
+              >
+                Upload &amp; Inpaint
+              </button>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {isGenerating && (
                 <div className="aspect-square animate-pulse rounded-xl bg-white/5" />
@@ -629,6 +669,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 />
               ))}
             </div>
+            </>
           )}
         </div>
       </div>
@@ -655,6 +696,27 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               createdAt: Date.now(),
             });
             setModalImage(null);
+          }}
+        />
+      )}
+      {inpaintImage && (
+        <InpaintEditor
+          imageUrl={inpaintImage}
+          onClose={() => {
+            URL.revokeObjectURL(inpaintImage);
+            setInpaintImage(null);
+          }}
+          onResult={(url) => {
+            addImage({
+              id: crypto.randomUUID(),
+              type: 'image',
+              url,
+              prompt: '[Inpainted upload]',
+              model: 'flux-fill-pro',
+              createdAt: Date.now(),
+            });
+            URL.revokeObjectURL(inpaintImage);
+            setInpaintImage(null);
           }}
         />
       )}

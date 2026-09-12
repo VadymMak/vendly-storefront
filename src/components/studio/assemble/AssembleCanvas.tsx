@@ -1630,9 +1630,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             onClick={() => { setSelectedClipId(null); setSelectedOverlayIdx(null); setEditingOverlayIdx(null); setDraftOverlay(null); }}
           >
             {resultUrl ? (
-              <div className="flex flex-col items-center gap-4">
-                <video src={resultUrl} controls loop className="max-h-full max-w-full rounded-xl object-contain" style={{ maxHeight: 'calc(100% - 80px)' }} />
-                <div className="flex items-center gap-3">
+              <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-6">
+                <video src={resultUrl} controls loop className="max-w-full rounded-xl object-contain" style={{ maxHeight: 'calc(100% - 80px)', maxWidth: '90%' }} />
+                <div className="flex flex-shrink-0 items-center gap-3">
                   <button
                     onClick={e => { e.stopPropagation(); handleDownload(); }}
                     className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"

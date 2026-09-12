@@ -643,6 +643,19 @@ export function GenerateCanvas({ userId: _userId }: Props) {
           onAddToAssemble={() => handleAddToAssemble(modalImage)}
           onDownload={() => handleDownload(modalImage)}
           onCopy={() => handleCopyPrompt(modalImage)}
+          onInpaintResult={(url: string) => {
+            addImage({
+              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type: 'image',
+              url,
+              prompt: `[Inpainted] ${modalImage.prompt ?? ''}`,
+              preset: modalImage.preset,
+              format: modalImage.format ?? 'webp',
+              model: 'flux-fill-pro',
+              createdAt: Date.now(),
+            });
+            setModalImage(null);
+          }}
         />
       )}
       {/* Added to timeline toast */}

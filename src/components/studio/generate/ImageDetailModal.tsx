@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { QUICK_FILTERS, PRESET_MAP, type PresetKey, type QuickFilterId } from '@/lib/studio/constants';
+import { InpaintEditor } from './InpaintEditor';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface Props {
   onAddToAssemble: () => void;
   onDownload: () => void;
   onCopy: () => void;
+  onInpaintResult?: (url: string) => void;
 }
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
@@ -73,11 +75,21 @@ function IconCopy() {
   );
 }
 
+function IconBrush() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 114.03 4.03l-8.06 8.08" />
+      <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 00-3-3.02z" />
+    </svg>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onDownload, onCopy }: Props) {
+export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onDownload, onCopy, onInpaintResult }: Props) {
   const [activeFilter, setActiveFilter] = useState<QuickFilterId>('original');
   const [copied, setCopied] = useState(false);
+  const [showInpaint, setShowInpaint] = useState(false);
 
   const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   const cssFilter = QUICK_FILTERS.find(f => f.id === activeFilter)?.filter ?? 'none';
@@ -97,6 +109,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   }
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
       onClick={onClose}
@@ -176,6 +189,13 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
           {/* Actions */}
           <div className="flex flex-col gap-2">
             <button
+              onClick={() => setShowInpaint(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+            >
+              <IconBrush />
+              Inpaint / Edit
+            </button>
+            <button
               onClick={onAnimate}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
             >
@@ -206,5 +226,16 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
         </div>
       </div>
     </div>
+    {showInpaint && (
+      <InpaintEditor
+        imageUrl={img.url}
+        onClose={() => setShowInpaint(false)}
+        onResult={(url) => {
+          setShowInpaint(false);
+          onInpaintResult?.(url);
+        }}
+      />
+    )}
+    </>
   );
 }

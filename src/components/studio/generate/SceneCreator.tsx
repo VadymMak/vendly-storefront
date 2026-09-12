@@ -177,6 +177,33 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
                 Use Result
               </button>
               <button
+                onClick={async () => {
+                  const res = await fetch(result);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `scene-${Date.now()}.jpg`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
+              >
+                💾 Save
+              </button>
+              <button
+                onClick={() => { onResult(result); onClose(); }}
+                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
+              >
+                🎬 Animate
+              </button>
+              <button
+                onClick={() => { onResult(result); onClose(); }}
+                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
+              >
+                ✏️ Edit
+              </button>
+              <button
                 onClick={() => { setResult(null); setError(null); }}
                 className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
               >

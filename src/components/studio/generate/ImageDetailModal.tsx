@@ -94,6 +94,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   const [showInpaint, setShowInpaint] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
   const [showSceneCreator, setShowSceneCreator] = useState(false);
+  const [cutoutUrl, setCutoutUrl] = useState<string | null>(null);
 
   const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   const cssFilter = QUICK_FILTERS.find(f => f.id === activeFilter)?.filter ?? 'none';
@@ -125,6 +126,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
         throw new Error(err.error || 'Remove background failed');
       }
       const data = await res.json() as { url: string };
+      setCutoutUrl(data.url);
       onInpaintResult?.(data.url);
     } catch (err) {
       console.error('[RemoveBg] Error:', err);
@@ -153,14 +155,44 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
         </button>
 
         {/* Image */}
-        <div className="flex flex-1 items-center justify-center overflow-hidden bg-black/40 p-4">
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black/40 p-4">
+          {cutoutUrl && (
+            <span className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-gray-300">
+              ✂️ Background Removed
+            </span>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={img.url}
+            src={cutoutUrl ?? img.url}
             alt={img.prompt ?? ''}
             className="max-h-[80vh] max-w-full rounded-lg object-contain"
-            style={{ filter: cssFilter !== 'none' ? cssFilter : undefined }}
+            style={{ filter: !cutoutUrl && cssFilter !== 'none' ? cssFilter : undefined }}
           />
+          {cutoutUrl && (
+            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
+              <button
+                onClick={async () => {
+                  const res = await fetch(cutoutUrl);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `cutout-${Date.now()}.png`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700"
+              >
+                💾 Save Cutout
+              </button>
+              <button
+                onClick={() => setCutoutUrl(null)}
+                className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:bg-white/5"
+              >
+                Show Original
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}

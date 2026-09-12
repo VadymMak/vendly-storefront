@@ -7,12 +7,13 @@ import { z } from 'zod/v4';
 const KEY_PREFIXES: Record<string, string> = {
   replicate:   'r8_',
   anthropic:   'sk-ant-',
+  openai:      'sk-',
   xai:         'xai-',
   elevenlabs:  'sk_',
 };
 
 const saveSchema = z.object({
-  provider: z.enum(['replicate', 'anthropic', 'xai', 'elevenlabs']),
+  provider: z.enum(['replicate', 'anthropic', 'openai', 'xai', 'elevenlabs']),
   key:      z.string().min(10),
 });
 

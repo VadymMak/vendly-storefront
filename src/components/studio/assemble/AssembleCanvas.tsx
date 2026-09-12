@@ -1124,14 +1124,43 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     setResultUrl(null);
 
     try {
-      const globalOverlays  = textOverlays.filter(o => o.scope !== 'scene');
-      const perSceneOverlays = textOverlays.filter(o => o.scope === 'scene');
-
       // Resolve idb:// URLs to blob URLs before passing to renderer
       const resolvedClips = videoClips.map(clip => ({
         ...clip,
         sourceUrl: resolvedUrl(clip) ?? clip.sourceUrl,
       }));
+
+      // Build renderer-timeline startTimes for each video clip (sequential, no gaps)
+      const rendererStarts: number[] = [];
+      let rendererCursor = 0;
+      for (const clip of resolvedClips) {
+        rendererStarts.push(rendererCursor);
+        rendererCursor += clip.duration;
+      }
+
+      // Map assemble-timeline time → renderer-timeline time
+      function toRendererTime(assembleT: number): number {
+        for (let i = 0; i < videoClips.length; i++) {
+          const vc = videoClips[i];
+          if (assembleT <= vc.startTime + vc.duration) {
+            return rendererStarts[i] + Math.min(Math.max(0, assembleT - vc.startTime), vc.duration);
+          }
+        }
+        return rendererCursor; // past the end
+      }
+
+      // Build timed overlays from text track clips (these carry the real startTime/duration)
+      const textClips = [...(textTrack?.clips ?? [])].sort((a, b) => a.startTime - b.startTime);
+      const timedOverlays = textClips
+        .filter(c => c.overlayData != null)
+        .map(c => ({
+          ...c.overlayData!,
+          from: toRendererTime(c.startTime),
+          to: toRendererTime(c.startTime + c.duration),
+        }));
+
+      const globalOverlays  = timedOverlays.filter(o => o.scope !== 'scene');
+      const perSceneOverlays = timedOverlays.filter(o => o.scope === 'scene');
 
       const slideshowItems: SlideshowItem[] = await Promise.all(
         resolvedClips.map(async (clip, idx) => {

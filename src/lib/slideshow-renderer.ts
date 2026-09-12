@@ -603,7 +603,13 @@ function drawFrame(
     applyStyle(ctx, item.style ?? style, W, H);
     renderOverlays();
     if (item.cardOverlays) {
-      for (const ov of item.cardOverlays) drawTextOverlay(ctx, ov, W, H, t);
+      for (const ov of item.cardOverlays) {
+        const showFrom = ov.from ?? 0;
+        const showTo   = ov.to   ?? Infinity;
+        if (t >= showFrom && t <= showTo) {
+          drawTextOverlay(ctx, ov, W, H, t);
+        }
+      }
     }
     if (config.watermark) drawWatermark(ctx, config.watermark, W, H);
     if (config.grain && config.grain > 0) applyFilmGrain(ctx, W, H, config.grain);

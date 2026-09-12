@@ -936,7 +936,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       music.play().catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying]);
+  }, [isPlaying, audioClips.length, musicDataUrl]);
 
   // ── Audio: seek when scrubbing ────────────────────────────────────────────
 

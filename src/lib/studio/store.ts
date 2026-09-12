@@ -314,16 +314,30 @@ export const useStudioStore = create<StudioStore>()(
     }),
     {
       name: 'studio-session',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => ({
+        getItem: (name: string) => {
+          try { return sessionStorage.getItem(name); } catch { return null; }
+        },
+        setItem: (name: string, value: string) => {
+          try {
+            sessionStorage.setItem(name, value);
+          } catch {
+            // QuotaExceededError — store works in-memory, state just won't survive reload
+            console.warn('[studio-store] sessionStorage quota exceeded, state not persisted');
+          }
+        },
+        removeItem: (name: string) => {
+          try { sessionStorage.removeItem(name); } catch { /* ignore */ }
+        },
+      })),
       partialize: (s) => ({
-        generatedImages: s.generatedImages,
-        generatedVideos: s.generatedVideos,
-        timelineItems:   s.timelineItems,
-        textOverlays:    s.textOverlays,
-        timelineTracks:  s.timelineTracks,
-        timelineZoom:    s.timelineZoom,
-        musicDataUrl:    s.musicDataUrl,
-        musicName:       s.musicName,
+        // Omit musicDataUrl (can be 3-10 MB base64) and generated arrays
+        // to stay well within the 5 MB sessionStorage limit.
+        timelineItems:  s.timelineItems,
+        textOverlays:   s.textOverlays,
+        timelineTracks: s.timelineTracks,
+        timelineZoom:   s.timelineZoom,
+        musicName:      s.musicName,
       }),
     },
   ),

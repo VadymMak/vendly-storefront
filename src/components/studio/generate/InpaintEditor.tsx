@@ -412,6 +412,43 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
               >
                 {isProcessing ? 'Processing...' : 'Remove Object'}
               </button>
+
+              <div className="border-t border-white/10 pt-2">
+                <p className="mb-2 text-[10px] text-gray-600">Or remove the entire background:</p>
+                <button
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    try {
+                      const imageCanvas = imageCanvasRef.current!;
+                      const imageDataUrl = imageCanvas.toDataURL('image/png');
+                      const imageBinary = atob(imageDataUrl.split(',')[1]);
+                      const imageArray = new Uint8Array(imageBinary.length);
+                      for (let i = 0; i < imageBinary.length; i++) imageArray[i] = imageBinary.charCodeAt(i);
+                      const imageBlob = new Blob([imageArray], { type: 'image/png' });
+
+                      const fd = new FormData();
+                      fd.append('image', imageBlob, 'image.png');
+
+                      const res = await fetch('/api/studio/remove-bg', { method: 'POST', body: fd });
+                      if (!res.ok) {
+                        const err = await res.json() as { error?: string };
+                        throw new Error(err.error || 'Remove background failed');
+                      }
+                      const data = await res.json() as { url: string };
+                      setResult(data.url);
+                    } catch (err) {
+                      console.error('[RemoveBg] Error:', err);
+                      alert(err instanceof Error ? err.message : 'Failed');
+                    } finally {
+                      setIsProcessing(false);
+                    }
+                  }}
+                  disabled={isProcessing}
+                  className="w-full rounded-lg border border-orange-600/30 bg-orange-600/10 px-4 py-2.5 text-sm text-orange-400 hover:bg-orange-600/20 disabled:opacity-50"
+                >
+                  {isProcessing ? 'Processing...' : 'Remove Background'}
+                </button>
+              </div>
             </>
           )}
         </div>

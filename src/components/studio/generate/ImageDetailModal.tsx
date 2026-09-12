@@ -90,6 +90,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   const [activeFilter, setActiveFilter] = useState<QuickFilterId>('original');
   const [copied, setCopied] = useState(false);
   const [showInpaint, setShowInpaint] = useState(false);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
 
   const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   const cssFilter = QUICK_FILTERS.find(f => f.id === activeFilter)?.filter ?? 'none';
@@ -106,6 +107,28 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
     onCopy();
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleRemoveBg() {
+    setIsRemovingBg(true);
+    try {
+      const imgRes = await fetch(img.url);
+      const imgBlob = await imgRes.blob();
+      const fd = new FormData();
+      fd.append('image', imgBlob, 'image.png');
+      const res = await fetch('/api/studio/remove-bg', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error || 'Remove background failed');
+      }
+      const data = await res.json() as { url: string };
+      onInpaintResult?.(data.url);
+    } catch (err) {
+      console.error('[RemoveBg] Error:', err);
+      alert(err instanceof Error ? err.message : 'Remove background failed');
+    } finally {
+      setIsRemovingBg(false);
+    }
   }
 
   return (
@@ -194,6 +217,29 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
             >
               <IconBrush />
               Inpaint / Edit
+            </button>
+            <button
+              onClick={handleRemoveBg}
+              disabled={isRemovingBg}
+              className="flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+            >
+              {isRemovingBg ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" />
+                  </svg>
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M2 2l20 20" />
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M7 7l10 10" />
+                  </svg>
+                  Remove Background
+                </>
+              )}
             </button>
             <button
               onClick={onAnimate}

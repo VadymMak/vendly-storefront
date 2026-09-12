@@ -807,6 +807,11 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       const next = Math.min(phTimeRef.current + dt, totalDurRef.current);
       phTimeRef.current = next;
       setPlayheadTime(next);
+      // Correct music drift if it falls more than 0.5s behind the playhead
+      const music = musicAudioRef.current;
+      if (music && !music.paused && Math.abs(music.currentTime - next) > 0.5) {
+        music.currentTime = next;
+      }
       if (next >= totalDurRef.current) {
         setIsPlaying(false);
         return;
@@ -910,7 +915,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       if (!el || !clip.sourceUrl) continue;
       const offset = phTimeRef.current - clip.startTime;
       if (offset >= 0 && offset < clip.duration) {
-        if (Math.abs(el.currentTime - offset) > 0.2) el.currentTime = offset;
+        el.currentTime = offset;
         // Initial fade volume at clip boundary
         const timeToEnd = clip.duration - offset;
         let vol = 1;
@@ -918,14 +923,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         else if (timeToEnd < FADE_DURATION) vol = timeToEnd / FADE_DURATION;
         el.volume = Math.max(0, Math.min(1, vol));
         el.muted = isMutedRef.current;
-        el.play().catch(() => {});
+        el.play().catch(() => {
+          setTimeout(() => { el.play().catch(() => {}); }, 50);
+        });
       } else {
         el.pause();
       }
     }
     // Music always plays from current playhead
     if (music) {
-      if (Math.abs(music.currentTime - phTimeRef.current) > 0.2) music.currentTime = phTimeRef.current;
+      music.currentTime = phTimeRef.current;
       const ph = phTimeRef.current;
       const totalDur = totalDurRef.current;
       let musicVol = 0.5;
@@ -933,7 +940,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       else if (totalDur > 0 && totalDur - ph < FADE_DURATION) musicVol = 0.5 * ((totalDur - ph) / FADE_DURATION);
       music.volume = Math.max(0, Math.min(0.5, musicVol));
       music.muted = isMutedRef.current;
-      music.play().catch(() => {});
+      music.play().catch(() => {
+        setTimeout(() => { music.play().catch(() => {}); }, 50);
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, audioClips.length, musicDataUrl]);

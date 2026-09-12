@@ -32,6 +32,14 @@ function IconX() {
   );
 }
 
+function Spinner() {
+  return (
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" />
+    </svg>
+  );
+}
+
 function drawCheckerboard(ctx: CanvasRenderingContext2D, w: number, h: number, cellSize = 16) {
   ctx.fillStyle = '#2a2a3e';
   ctx.fillRect(0, 0, w, h);
@@ -74,6 +82,8 @@ function hitTestHandle(
   return null;
 }
 
+type ProcessingStep = null | 'generating-bg' | 'compositing' | 'blending';
+
 export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,7 +95,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
   const [displayScale, setDisplayScale] = useState(1);
   const [prompt, setPrompt] = useState('');
   const [guidance, setGuidance] = useState(5);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
   const [result, setResult] = useState<string | null>(null);
 
   const isDraggingRef = useRef(false);
@@ -243,81 +253,134 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
     resizeCornerRef.current = null;
   }
 
-  function exportForInpaint(): { image: Blob; mask: Blob } {
-    const img = cutoutImgRef.current!;
-    const sw = sceneSize.width;
-    const sh = sceneSize.height;
-    const drawW = img.width * objScale;
-    const drawH = img.height * objScale;
+  // ── Pass 1: Generate background image ───────────────────────────────────
+  async function generateBackground(): Promise<string> {
+    const ratio = sceneSize.width / sceneSize.height;
+    let aspectRatio = '1:1';
+    if (ratio > 1.5) aspectRatio = '16:9';
+    else if (ratio > 1.1) aspectRatio = '4:3';
+    else if (ratio < 0.65) aspectRatio = '9:16';
+    else if (ratio < 0.9) aspectRatio = '3:4';
 
-    // Image: cutout on white background
-    const imgCanvas = document.createElement('canvas');
-    imgCanvas.width = sw;
-    imgCanvas.height = sh;
-    const imgCtx = imgCanvas.getContext('2d')!;
-    imgCtx.fillStyle = '#ffffff';
-    imgCtx.fillRect(0, 0, sw, sh);
-    imgCtx.drawImage(img, objPos.x, objPos.y, drawW, drawH);
+    const res = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: `${prompt}, empty scene, no objects in foreground, background only, professional photography`,
+        aspect_ratio: aspectRatio,
+        output_format: 'png',
+        provider: 'flux-dev',
+      }),
+    });
 
-    // Mask: read alpha from cutout, invert — transparent areas → white (generate), object → black (preserve)
-    const maskCanvas = document.createElement('canvas');
-    maskCanvas.width = sw;
-    maskCanvas.height = sh;
-    const maskCtx = maskCanvas.getContext('2d')!;
-    maskCtx.fillStyle = '#ffffff';
-    maskCtx.fillRect(0, 0, sw, sh);
-
-    const alphaCanvas = document.createElement('canvas');
-    alphaCanvas.width = sw;
-    alphaCanvas.height = sh;
-    const alphaCtx = alphaCanvas.getContext('2d')!;
-    alphaCtx.drawImage(img, objPos.x, objPos.y, drawW, drawH);
-    const alphaData = alphaCtx.getImageData(0, 0, sw, sh);
-    const maskData = maskCtx.getImageData(0, 0, sw, sh);
-
-    for (let i = 0; i < alphaData.data.length; i += 4) {
-      if (alphaData.data[i + 3] > 10) {
-        maskData.data[i] = 0;
-        maskData.data[i + 1] = 0;
-        maskData.data[i + 2] = 0;
-        maskData.data[i + 3] = 255;
-      }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Background generation failed' })) as { error?: string };
+      throw new Error(err.error || 'Background generation failed');
     }
-    maskCtx.putImageData(maskData, 0, 0);
 
-    // Feather: 3px gray zone around edges for natural blending
-    const feathered = maskCtx.getImageData(0, 0, sw, sh);
-    const original = new Uint8ClampedArray(feathered.data);
-    const featherRadius = 3;
-    for (let y = featherRadius; y < sh - featherRadius; y++) {
-      for (let x = featherRadius; x < sw - featherRadius; x++) {
-        const idx = (y * sw + x) * 4;
-        if (original[idx] === 255) {
-          let nearBlack = false;
-          outer: for (let dy = -featherRadius; dy <= featherRadius; dy++) {
-            for (let dx = -featherRadius; dx <= featherRadius; dx++) {
-              if (original[((y + dy) * sw + (x + dx)) * 4] === 0) { nearBlack = true; break outer; }
-            }
+    const buffer = await res.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    const contentType = res.headers.get('content-type') || 'image/png';
+    return `data:${contentType};base64,${base64}`;
+  }
+
+  // ── Pass 2a: Composite cutout onto background + build edge mask ──────────
+  function compositeOnBackground(bgDataUrl: string): Promise<{ image: Blob; mask: Blob }> {
+    return new Promise((resolve, reject) => {
+      const bgImg = new Image();
+      bgImg.crossOrigin = 'anonymous';
+      bgImg.onload = () => {
+        const cutout = cutoutImgRef.current!;
+        const sw = sceneSize.width;
+        const sh = sceneSize.height;
+        const drawW = cutout.width * objScale;
+        const drawH = cutout.height * objScale;
+
+        // IMAGE: background + cutout composited
+        const imgCanvas = document.createElement('canvas');
+        imgCanvas.width = sw;
+        imgCanvas.height = sh;
+        const imgCtx = imgCanvas.getContext('2d')!;
+        imgCtx.drawImage(bgImg, 0, 0, sw, sh);
+        imgCtx.drawImage(cutout, objPos.x, objPos.y, drawW, drawH);
+
+        // MASK: thin border ring around cutout edges only
+        // Strategy: draw enlarged silhouette (white), punch hole with slightly shrunken silhouette (black)
+        // Result: only the 15px ring around the object edges is white (= blend here)
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = sw;
+        maskCanvas.height = sh;
+        const maskCtx = maskCanvas.getContext('2d')!;
+
+        // All black = preserve everything by default
+        maskCtx.fillStyle = '#000000';
+        maskCtx.fillRect(0, 0, sw, sh);
+
+        const borderWidth = 15;
+
+        // Draw enlarged silhouette at outer border → these pixels become candidates for white
+        const outerScale = 1 + (borderWidth * 2) / Math.max(drawW, drawH);
+        const outerW = drawW * outerScale;
+        const outerH = drawH * outerScale;
+        const outerX = objPos.x - (outerW - drawW) / 2;
+        const outerY = objPos.y - (outerH - drawH) / 2;
+
+        const outerCanvas = document.createElement('canvas');
+        outerCanvas.width = sw;
+        outerCanvas.height = sh;
+        const outerCtx = outerCanvas.getContext('2d')!;
+        outerCtx.drawImage(cutout, outerX, outerY, outerW, outerH);
+        const outerData = outerCtx.getImageData(0, 0, sw, sh);
+
+        // Draw shrunken silhouette → inner area to preserve (black)
+        const innerScale = Math.max(0.01, 1 - (4 / Math.max(drawW, drawH)));
+        const innerW = drawW * innerScale;
+        const innerH = drawH * innerScale;
+        const innerX = objPos.x + (drawW - innerW) / 2;
+        const innerY = objPos.y + (drawH - innerH) / 2;
+
+        const innerCanvas = document.createElement('canvas');
+        innerCanvas.width = sw;
+        innerCanvas.height = sh;
+        const innerCtx = innerCanvas.getContext('2d')!;
+        innerCtx.drawImage(cutout, innerX, innerY, innerW, innerH);
+        const innerData = innerCtx.getImageData(0, 0, sw, sh);
+
+        const mData = maskCtx.getImageData(0, 0, sw, sh);
+
+        for (let i = 0; i < outerData.data.length; i += 4) {
+          // Where outer silhouette has alpha → candidate for edge ring
+          if (outerData.data[i + 3] > 5) {
+            mData.data[i] = 255;
+            mData.data[i + 1] = 255;
+            mData.data[i + 2] = 255;
+            mData.data[i + 3] = 255;
           }
-          if (nearBlack) {
-            feathered.data[idx] = 80;
-            feathered.data[idx + 1] = 80;
-            feathered.data[idx + 2] = 80;
+          // Where inner (eroded) silhouette has alpha → object interior, stay black
+          if (innerData.data[i + 3] > 30) {
+            mData.data[i] = 0;
+            mData.data[i + 1] = 0;
+            mData.data[i + 2] = 0;
+            mData.data[i + 3] = 255;
           }
         }
-      }
-    }
-    maskCtx.putImageData(feathered, 0, 0);
+        maskCtx.putImageData(mData, 0, 0);
 
-    function canvasToBlob(c: HTMLCanvasElement): Blob {
-      const dataUrl = c.toDataURL('image/png');
-      const binary = atob(dataUrl.split(',')[1]);
-      const array = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
-      return new Blob([array], { type: 'image/png' });
-    }
+        function canvasToBlob(canvas: HTMLCanvasElement): Blob {
+          const dataUrl = canvas.toDataURL('image/png');
+          const binary = atob(dataUrl.split(',')[1]);
+          const array = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+          return new Blob([array], { type: 'image/png' });
+        }
 
-    return { image: canvasToBlob(imgCanvas), mask: canvasToBlob(maskCanvas) };
+        resolve({ image: canvasToBlob(imgCanvas), mask: canvasToBlob(maskCanvas) });
+      };
+      bgImg.onerror = () => reject(new Error('Failed to load background image'));
+      bgImg.src = bgDataUrl;
+    });
   }
 
   async function handleGenerate() {
@@ -325,18 +388,28 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
       alert('Please describe the scene you want to create');
       return;
     }
-    setIsProcessing(true);
+
     try {
-      const { image, mask } = exportForInpaint();
+      // ── Pass 1: Generate background ──────────────────────────────────
+      setProcessingStep('generating-bg');
+      const bgDataUrl = await generateBackground();
+
+      // ── Pass 2a: Composite cutout onto background ────────────────────
+      setProcessingStep('compositing');
+      const { image, mask } = await compositeOnBackground(bgDataUrl);
+
+      // ── Pass 2b: Edge blend via Flux Fill Pro ────────────────────────
+      setProcessingStep('blending');
       const fd = new FormData();
-      fd.append('image', image, 'scene-image.png');
-      fd.append('mask', mask, 'scene-mask.png');
-      fd.append('prompt', prompt);
+      fd.append('image', image, 'scene-composite.png');
+      fd.append('mask', mask, 'scene-edge-mask.png');
+      fd.append('prompt', `${prompt}, seamless integration, natural lighting, realistic shadows`);
       fd.append('guidance', guidance.toString());
+
       const res = await fetch('/api/studio/inpaint', { method: 'POST', body: fd });
       if (!res.ok) {
         const err = await res.json() as { error?: string };
-        throw new Error(err.error || 'Scene generation failed');
+        throw new Error(err.error || 'Edge blending failed');
       }
       const data = await res.json() as { url: string };
       setResult(data.url);
@@ -344,7 +417,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
       console.error('[SceneCreator] Error:', err);
       alert(err instanceof Error ? err.message : 'Scene generation failed');
     } finally {
-      setIsProcessing(false);
+      setProcessingStep(null);
     }
   }
 
@@ -355,6 +428,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
   }, [onClose]);
 
   const scalePercent = Math.round(objScale * 100);
+  const isProcessing = processingStep !== null;
 
   return (
     <div
@@ -541,12 +615,20 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
                 disabled={isProcessing || !prompt.trim()}
                 className="rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {isProcessing ? (
+                {processingStep === 'generating-bg' ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" />
-                    </svg>
-                    Generating Scene...
+                    <Spinner />
+                    Step 1/3: Generating background...
+                  </span>
+                ) : processingStep === 'compositing' ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Spinner />
+                    Step 2/3: Compositing...
+                  </span>
+                ) : processingStep === 'blending' ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Spinner />
+                    Step 3/3: Blending edges...
                   </span>
                 ) : (
                   'Generate Scene'
@@ -554,7 +636,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
               </button>
 
               <p className="text-[10px] text-gray-600">
-                Uses Flux Fill Pro to create the environment around your object.
+                Two-pass AI: generates a clean background first, composites your object, then blends edges with Flux Fill Pro for photorealistic results.
               </p>
             </>
           )}

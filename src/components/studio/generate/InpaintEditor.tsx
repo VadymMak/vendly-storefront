@@ -189,16 +189,16 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     setIsProcessing(true);
     try {
       const imageCanvas = imageCanvasRef.current!;
-      const imageDataUrl = imageCanvas.toDataURL('image/webp', 0.9);
+      const imageDataUrl = imageCanvas.toDataURL('image/png');
       const imageBinary = atob(imageDataUrl.split(',')[1]);
       const imageArray = new Uint8Array(imageBinary.length);
       for (let i = 0; i < imageBinary.length; i++) imageArray[i] = imageBinary.charCodeAt(i);
-      const imageBlob = new Blob([imageArray], { type: 'image/webp' });
+      const imageBlob = new Blob([imageArray], { type: 'image/png' });
 
       const maskBlob = exportMask();
 
       const fd = new FormData();
-      fd.append('image', imageBlob, 'image.webp');
+      fd.append('image', imageBlob, 'image.png');
       fd.append('mask', maskBlob, 'mask.png');
       fd.append('prompt', removeOnly ? '' : prompt);
       fd.append('guidance', guidance.toString());
@@ -236,7 +236,8 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
 
         {/* Left: Canvas area */}
         <div ref={containerRef} className="flex flex-1 items-center justify-center p-4">
-          {result ? (
+          {/* Result view */}
+          {result && (
             <div className="flex gap-4">
               <div className="text-center">
                 <p className="mb-2 text-xs text-gray-400">Original</p>
@@ -249,27 +250,32 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
                 <img src={result} alt="Result" className="max-h-[70vh] rounded-lg" />
               </div>
             </div>
-          ) : (
-            <div
-              className="relative"
-              style={{ width: imageDimensions.w || undefined, height: imageDimensions.h || undefined }}
-            >
-              <canvas
-                ref={imageCanvasRef}
-                className="absolute inset-0 rounded-lg"
-                style={{ width: '100%', height: '100%' }}
-              />
-              <canvas
-                ref={maskCanvasRef}
-                className="absolute inset-0 cursor-crosshair rounded-lg"
-                style={{ width: '100%', height: '100%' }}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-              />
-            </div>
           )}
+
+          {/* Canvas — always in DOM, hidden when result is showing */}
+          <div
+            className="relative"
+            style={{
+              width: imageDimensions.w || undefined,
+              height: imageDimensions.h || undefined,
+              display: result ? 'none' : undefined,
+            }}
+          >
+            <canvas
+              ref={imageCanvasRef}
+              className="absolute inset-0 rounded-lg"
+              style={{ width: '100%', height: '100%' }}
+            />
+            <canvas
+              ref={maskCanvasRef}
+              className="absolute inset-0 cursor-crosshair rounded-lg"
+              style={{ width: '100%', height: '100%' }}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+            />
+          </div>
         </div>
 
         {/* Right: Tools sidebar */}
@@ -284,7 +290,14 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
                 Use Result
               </button>
               <button
-                onClick={() => setResult(null)}
+                onClick={() => {
+                  setResult(null);
+                  const maskCanvas = maskCanvasRef.current;
+                  if (maskCanvas) {
+                    maskCanvas.getContext('2d')!.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+                  }
+                  setHistory([]);
+                }}
                 className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
               >
                 Try Again

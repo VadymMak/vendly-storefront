@@ -22,10 +22,12 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const [imageDimensions, setImageDimensions] = useState({ w: 0, h: 0 });
   const [brushSize, setBrushSize] = useState(30);
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
+  const [guidance, setGuidance] = useState(5);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -78,19 +80,19 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     const ctx = canvas.getContext('2d')!;
     setHistory(prev => [...prev.slice(-19), ctx.getImageData(0, 0, canvas.width, canvas.height)]);
     isDrawingRef.current = true;
-    paintAt(e);
+    const pos = getCanvasCoords(e);
+    lastPosRef.current = pos;
+    drawAt(pos.x, pos.y);
   }
 
-  function paintAt(e: MouseEvent<HTMLCanvasElement>) {
+  function drawAt(x: number, y: number) {
     const canvas = maskCanvasRef.current!;
     const ctx = canvas.getContext('2d')!;
-    const { x, y } = getCanvasCoords(e);
     const rect = canvas.getBoundingClientRect();
     const scaledBrush = brushSize * (canvas.width / rect.width);
 
     ctx.beginPath();
     ctx.arc(x, y, scaledBrush / 2, 0, Math.PI * 2);
-
     if (tool === 'brush') {
       ctx.fillStyle = 'rgba(255, 50, 50, 0.5)';
       ctx.fill();
@@ -104,11 +106,39 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
 
   function draw(e: MouseEvent<HTMLCanvasElement>) {
     if (!isDrawingRef.current) return;
-    paintAt(e);
+    const canvas = maskCanvasRef.current!;
+    const ctx = canvas.getContext('2d')!;
+    const pos = getCanvasCoords(e);
+    const rect = canvas.getBoundingClientRect();
+    const scaledBrush = brushSize * (canvas.width / rect.width);
+
+    if (lastPosRef.current && tool === 'brush') {
+      ctx.beginPath();
+      ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.lineWidth = scaledBrush;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(255, 50, 50, 0.5)';
+      ctx.stroke();
+    } else if (lastPosRef.current && tool === 'eraser') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.lineWidth = scaledBrush;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    lastPosRef.current = pos;
   }
 
   function stopDrawing() {
     isDrawingRef.current = false;
+    lastPosRef.current = null;
   }
 
   function handleUndo() {
@@ -171,6 +201,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
       fd.append('image', imageBlob, 'image.webp');
       fd.append('mask', maskBlob, 'mask.png');
       fd.append('prompt', removeOnly ? '' : prompt);
+      fd.append('guidance', guidance.toString());
 
       const res = await fetch('/api/studio/inpaint', { method: 'POST', body: fd });
       if (!res.ok) {
@@ -315,6 +346,27 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
                 >
                   Undo
                 </button>
+              </div>
+
+              {/* Guidance */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-gray-400">Prompt Strength</label>
+                  <span className="text-xs font-mono text-gray-500">{guidance}</span>
+                </div>
+                <input
+                  type="range"
+                  min="2"
+                  max="5"
+                  step="0.5"
+                  value={guidance}
+                  onChange={e => setGuidance(parseFloat(e.target.value))}
+                  className="mt-1 w-full accent-green-500"
+                />
+                <div className="flex justify-between text-[10px] text-gray-600">
+                  <span>Natural</span>
+                  <span>Follow prompt</span>
+                </div>
               </div>
 
               <div className="border-t border-white/10" />

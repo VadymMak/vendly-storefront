@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 interface SceneCreatorProps {
   cutoutUrl: string;
@@ -35,37 +35,50 @@ function IconX({ size = 14 }: { size?: number }) {
   );
 }
 
-export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps) {
+export function SceneCreator({ cutoutUrl, onClose, onResult, galleryImages = [] }: SceneCreatorProps) {
   const [images, setImages] = useState<string[]>([cutoutUrl]);
-  const [addUrlInput, setAddUrlInput] = useState('');
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false);
 
-  function addImage() {
-    const url = addUrlInput.trim();
-    if (!url.startsWith('http')) {
-      setError('Image URL must start with http');
-      return;
-    }
-    if (images.length >= 5) {
-      setError('Maximum 5 images per scene');
-      return;
-    }
-    if (images.includes(url)) {
-      setError('This image is already added');
-      return;
-    }
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  function addImageUrl(url: string) {
+    if (images.length >= 5) { setError('Maximum 5 images per scene'); return; }
+    if (images.includes(url)) { setError('This image is already added'); return; }
     setImages(prev => [...prev, url]);
-    setAddUrlInput('');
     setError(null);
   }
 
   function removeImage(url: string) {
     if (images.length === 1) return;
     setImages(prev => prev.filter(u => u !== url));
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (images.length >= 5) { setError('Maximum 5 images per scene'); return; }
+
+    setIsUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload-studio-image', { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      addImageUrl(data.url!);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+    }
   }
 
   async function handleCreateScene() {
@@ -82,7 +95,6 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
 
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok) throw new Error(data.error || 'Scene composition failed');
-
       setResult(data.url!);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create scene');
@@ -90,6 +102,9 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
       setIsProcessing(false);
     }
   }
+
+  // Gallery images not yet added to scene (exclude already-added ones)
+  const availableGallery = galleryImages.filter(u => !images.includes(u));
 
   return (
     <div
@@ -108,7 +123,7 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
         </button>
 
         {/* Left: Image previews / Result */}
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 overflow-y-auto p-6">
           {result ? (
             <>
               <p className="text-xs text-gray-400">Generated Scene</p>
@@ -119,7 +134,10 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
             <>
               <p className="text-xs font-medium text-gray-400">
                 {images.length === 1 ? 'Your cutout' : `${images.length} images`}
+                <span className="ml-1 text-gray-600">({images.length}/5)</span>
               </p>
+
+              {/* Thumbnails */}
               <div className="flex flex-wrap justify-center gap-3">
                 {images.map((url, i) => (
                   <div key={url} className="group relative">
@@ -127,12 +145,12 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
                     <img
                       src={url}
                       alt={`Image ${i + 1}`}
-                      className="h-40 w-40 rounded-lg object-contain bg-black/30 border border-white/10"
+                      className="h-40 w-40 rounded-lg border border-white/10 bg-black/30 object-contain"
                     />
                     {images.length > 1 && (
                       <button
                         onClick={() => removeImage(url)}
-                        className="absolute -right-2 -top-2 hidden rounded-full bg-red-600 p-1 text-white group-hover:flex"
+                        className="absolute -right-2 -top-2 hidden items-center justify-center rounded-full bg-red-600 p-1 text-white group-hover:flex"
                       >
                         <IconX size={10} />
                       </button>
@@ -140,24 +158,44 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
                   </div>
                 ))}
               </div>
+
+              {/* Add image buttons */}
               {images.length < 5 && (
-                <div className="flex w-full max-w-sm gap-2">
+                <div className="flex gap-2">
                   <input
-                    type="text"
-                    value={addUrlInput}
-                    onChange={e => setAddUrlInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') addImage(); }}
-                    placeholder="Paste another image URL..."
-                    className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:border-purple-600/50 focus:outline-none"
+                    ref={uploadInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
                   />
                   <button
-                    onClick={addImage}
-                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:bg-white/5"
+                    onClick={() => uploadInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 disabled:opacity-50"
                   >
-                    + Add
+                    {isUploading ? (
+                      <>
+                        <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" />
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : (
+                      '📁 Upload'
+                    )}
                   </button>
+                  {availableGallery.length > 0 && (
+                    <button
+                      onClick={() => setShowGalleryPicker(true)}
+                      className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:bg-white/5"
+                    >
+                      🖼 From Gallery
+                    </button>
+                  )}
                 </div>
               )}
+
               <p className="text-[10px] text-gray-600">
                 Up to 5 images. Grok AI will compose them into one scene.
               </p>
@@ -294,12 +332,67 @@ export function SceneCreator({ cutoutUrl, onClose, onResult }: SceneCreatorProps
               </button>
 
               <p className="text-[10px] text-gray-600">
-                One AI call — Grok generates shadows, reflections, and lighting natively. No canvas compositing.
+                One AI call — Grok generates shadows, reflections, and lighting natively.
               </p>
             </>
           )}
         </div>
       </div>
+
+      {/* Gallery Picker overlay */}
+      {showGalleryPicker && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowGalleryPicker(false)}
+        >
+          <div
+            className="relative w-[90vw] max-w-2xl rounded-xl border border-white/10 bg-[#1a1a2e] p-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="mb-1 text-sm font-medium text-white">Pick from Gallery</h3>
+            <p className="mb-4 text-[10px] text-gray-500">
+              Click images to add them. Selected: {images.length}/5
+            </p>
+            <div className="grid max-h-[55vh] grid-cols-4 gap-2 overflow-y-auto">
+              {availableGallery.map(url => {
+                const selected = images.includes(url);
+                return (
+                  <button
+                    key={url}
+                    onClick={() => {
+                      if (selected) {
+                        removeImage(url);
+                      } else {
+                        addImageUrl(url);
+                      }
+                    }}
+                    className={`relative overflow-hidden rounded-lg border-2 transition-colors ${
+                      selected ? 'border-purple-500' : 'border-transparent hover:border-white/30'
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="aspect-square w-full object-cover" />
+                    {selected && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-purple-600/40">
+                        <span className="text-xl text-white">✓</span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              {error && <p className="mr-auto text-xs text-red-400">{error}</p>}
+              <button
+                onClick={() => { setShowGalleryPicker(false); setError(null); }}
+                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

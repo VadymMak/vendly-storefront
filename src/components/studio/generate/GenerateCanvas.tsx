@@ -699,6 +699,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             });
             setModalImage(null);
           }}
+          galleryImages={generatedImages.filter(i => i.type === 'image').map(i => i.url)}
         />
       )}
       {inpaintImage && (

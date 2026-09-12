@@ -25,6 +25,7 @@ interface Props {
   onDownload: () => void;
   onCopy: () => void;
   onInpaintResult?: (url: string) => void;
+  galleryImages?: string[];
 }
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ function IconBrush() {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onDownload, onCopy, onInpaintResult }: Props) {
+export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onDownload, onCopy, onInpaintResult, galleryImages }: Props) {
   const [activeFilter, setActiveFilter] = useState<QuickFilterId>('original');
   const [copied, setCopied] = useState(false);
   const [showInpaint, setShowInpaint] = useState(false);
@@ -295,6 +296,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
         cutoutUrl={img.url}
         onClose={() => setShowSceneCreator(false)}
         onResult={(url) => { setShowSceneCreator(false); onInpaintResult?.(url); }}
+        galleryImages={galleryImages}
       />
     )}
     </>

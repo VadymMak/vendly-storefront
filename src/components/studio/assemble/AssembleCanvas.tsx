@@ -98,7 +98,7 @@ function loadImg(url: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error(`Failed to load image: ${url.substring(0, 100)}`));
     img.src = url;
   });
 }
@@ -112,7 +112,7 @@ function loadVid(url: string): Promise<HTMLVideoElement> {
     v.preload = 'auto';
     v.src = url;
     v.onloadedmetadata = () => resolve(v);
-    v.onerror = reject;
+    v.onerror = () => reject(new Error(`Failed to load video: ${url.substring(0, 100)}`));
     v.load();
   });
 }
@@ -1127,8 +1127,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       const globalOverlays  = textOverlays.filter(o => o.scope !== 'scene');
       const perSceneOverlays = textOverlays.filter(o => o.scope === 'scene');
 
+      // Resolve idb:// URLs to blob URLs before passing to renderer
+      const resolvedClips = videoClips.map(clip => ({
+        ...clip,
+        sourceUrl: resolvedUrl(clip) ?? clip.sourceUrl,
+      }));
+
       const slideshowItems: SlideshowItem[] = await Promise.all(
-        videoClips.map(async (clip, idx) => {
+        resolvedClips.map(async (clip, idx) => {
           const sceneOverlays = perSceneOverlays.filter(o => o.sceneIndex === idx);
           const cardOverlays  = sceneOverlays.length ? sceneOverlays : undefined;
 
@@ -1172,7 +1178,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       setResultUrl(url);
       setResultMime(result.mimeType);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Render failed');
+      console.error('[Export] Render error:', err);
+      setError(err instanceof Error ? err.message : 'Render failed — check console for details');
     } finally {
       setIsRendering(false);
     }

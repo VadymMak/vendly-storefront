@@ -64,18 +64,9 @@ export async function POST(req: Request) {
     where: { userId_provider: { userId: session.user.id, provider: 'xai' } },
     select: { encryptedKey: true },
   });
-  if (!xaiKeyRecord) {
-    return NextResponse.json(
-      { error: 'xAI API key not configured. Add it in Settings → API Keys.' },
-      { status: 400 },
-    );
-  }
-  const xaiKey = decrypt(xaiKeyRecord.encryptedKey);
-  if (!xaiKey.startsWith('xai-')) {
-    return NextResponse.json(
-      { error: 'Invalid xAI API key — please re-enter a valid key starting with "xai-"' },
-      { status: 400 },
-    );
+  const xaiKey = xaiKeyRecord ? decrypt(xaiKeyRecord.encryptedKey) : (process.env.XAI_API_KEY ?? '');
+  if (!xaiKey || !xaiKey.startsWith('xai-')) {
+    return NextResponse.json({ error: 'xAI API key not configured' }, { status: 400 });
   }
 
   try {

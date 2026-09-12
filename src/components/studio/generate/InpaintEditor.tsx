@@ -293,6 +293,22 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
                 Use Result
               </button>
               <button
+                onClick={async () => {
+                  if (!result) return;
+                  const res = await fetch(result);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `edited-${Date.now()}.png`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5"
+              >
+                💾 Save
+              </button>
+              <button
                 onClick={() => {
                   setResult(null);
                   const maskCanvas = maskCanvasRef.current;

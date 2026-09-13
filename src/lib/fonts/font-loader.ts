@@ -40,6 +40,14 @@ export async function loadGoogleFont(family: string, weight: number = 400): Prom
   return promise;
 }
 
+/** Load font in both normal (400) and bold (700) weights in parallel */
+export async function loadGoogleFontBoth(family: string): Promise<void> {
+  await Promise.all([
+    loadGoogleFont(family, 400),
+    loadGoogleFont(family, 700),
+  ]);
+}
+
 export async function loadCustomFont(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const family = 'Custom-' + file.name

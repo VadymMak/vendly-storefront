@@ -14,7 +14,7 @@ import { TextPropertiesPanel } from './TextPropertiesPanel';
 import { TextFrame } from './TextFrame';
 import { TEXT_PRESETS, PRESET_CATEGORIES, PRESET_CATEGORY_LABELS } from '@/lib/fonts/text-presets';
 import type { PresetCategory } from '@/lib/fonts/text-presets';
-import { loadGoogleFont } from '@/lib/fonts/font-loader';
+import { loadGoogleFont, loadGoogleFontBoth } from '@/lib/fonts/font-loader';
 import { AutoAssembleModal } from './AutoAssembleModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -429,7 +429,7 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
   function applyPreset(preset: { style: Partial<TextOverlay>; requiredFonts?: string[] }) {
     setDraft({ ...draft, ...preset.style });
     if (preset.requiredFonts) {
-      preset.requiredFonts.forEach(f => loadGoogleFont(f).catch(() => {}));
+      preset.requiredFonts.forEach(f => loadGoogleFontBoth(f).catch(() => {}));
     }
   }
 
@@ -1239,6 +1239,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     setResultUrl(null);
 
     try {
+      // Pre-load all overlay fonts (400 + 700) before export so ctx.font resolves correctly
+      const overlayFonts = new Set<string>();
+      const textClipsAll = timelineTracks.find(t => t.type === 'text')?.clips ?? [];
+      for (const clip of textClipsAll) {
+        if (clip.overlayData?.fontFamily) overlayFonts.add(clip.overlayData.fontFamily);
+      }
+      await Promise.all([...overlayFonts].map(f => loadGoogleFontBoth(f).catch(() => {})));
+
       // Resolve idb:// URLs to blob URLs before passing to renderer
       const resolvedClips = videoClips.map(clip => ({
         ...clip,

@@ -3,7 +3,7 @@
  * Uses Canvas + MediaRecorder — zero server CPU, runs entirely in browser.
  * Primary target: Chrome desktop (H.264 MP4). Falls back to WebM.
  *
- * Video items: played in real-time via video.play() — no per-frame seeking.
+ * Video items: seeked per-frame (video.currentTime = offset) — accurate frame capture.
  * Image items: drawn with Ken Burns camera motion at frameInterval pace.
  *
  * Two-pass when audio is present:
@@ -1205,25 +1205,22 @@ export async function renderSlideshow(
   recorder.start(500);
 
   const frameInterval = 1000 / fps;
-  const startedVideos = new Set<number>();
-
   for (let frame = 0; frame < totalFrames; frame++) {
     const t          = frame / fps;
     const frameStart = performance.now();
 
+    // Seek video clips to exact frame position (no real-time play)
     for (let i = 0; i < items.length; i++) {
       if (items[i].type !== 'video') continue;
       const video     = items[i].element as HTMLVideoElement;
       const itemStart = startTimes[i];
       const itemEnd   = startTimes[i] + items[i].duration;
 
-      if (t >= itemStart && t < itemEnd && !startedVideos.has(i)) {
-        video.currentTime = 0;
-        void video.play().catch(() => { /* autoplay policy — continue with static frame */ });
-        startedVideos.add(i);
-      } else if (t >= itemEnd && startedVideos.has(i)) {
-        video.pause();
-        startedVideos.delete(i);
+      if (t >= itemStart && t < itemEnd) {
+        const videoOffset = t - itemStart;
+        if (Math.abs(video.currentTime - videoOffset) > 0.02) {
+          await seekVideoToTime(video, videoOffset).catch(() => {});
+        }
       }
     }
 
@@ -1233,11 +1230,9 @@ export async function renderSlideshow(
 
     const elapsed  = performance.now() - frameStart;
     const waitTime = Math.max(0, frameInterval - elapsed);
-    await new Promise<void>((r) => setTimeout(r, waitTime));
-  }
-
-  for (const idx of startedVideos) {
-    (items[idx].element as HTMLVideoElement).pause();
+    if (waitTime > 0) {
+      await new Promise<void>((r) => setTimeout(r, waitTime));
+    }
   }
 
   recorder.stop();

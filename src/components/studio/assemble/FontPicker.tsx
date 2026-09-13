@@ -7,7 +7,7 @@ import {
   type FontCategory,
   type FontEntry,
 } from '@/lib/fonts/font-categories';
-import { loadGoogleFont, loadCustomFont } from '@/lib/fonts/font-loader';
+import { loadGoogleFont, loadGoogleFontBoth, loadCustomFont } from '@/lib/fonts/font-loader';
 
 interface FontPickerProps {
   value: string;
@@ -31,7 +31,7 @@ function FontItem({ entry, selected, onSelect }: FontItemProps) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    loadGoogleFont(entry.family, 400)
+    loadGoogleFontBoth(entry.family)
       .then(() => { if (!cancelled) { setLoaded(true); setLoading(false); } })
       .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

@@ -333,9 +333,13 @@ export const useStudioStore = create<StudioStore>()(
       partialize: (s) => ({
         // Omit musicDataUrl (can be 3-10 MB base64) and generated arrays
         // to stay well within the 5 MB sessionStorage limit.
+        // Strip sourceUrl (base64 images/videos) and overlayData from clips.
         timelineItems:  s.timelineItems,
         textOverlays:   s.textOverlays,
-        timelineTracks: s.timelineTracks,
+        timelineTracks: s.timelineTracks.map(t => ({
+          ...t,
+          clips: t.clips.map(({ sourceUrl: _s, overlayData: _o, ...rest }) => rest),
+        })),
         timelineZoom:   s.timelineZoom,
         musicName:      s.musicName,
       }),

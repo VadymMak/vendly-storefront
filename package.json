@@ -27,6 +27,7 @@
     "prisma": "^6.19.2",
     "puppeteer-core": "^24.41.0",
     "react": "19.2.4",
+    "react-colorful": "^5.8.1",
     "react-dom": "19.2.4",
     "replicate": "^1.4.0",
     "resend": "^6.9.4",

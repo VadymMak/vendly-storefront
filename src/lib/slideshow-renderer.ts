@@ -94,6 +94,22 @@ export interface TextOverlay {
   // Scope
   scope?: 'global' | 'scene';
   sceneIndex?: number;
+
+  // Extended text properties (Prompt 59)
+  strokeColor?: string;
+  strokeWidth?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  bgShape?: 'none' | 'rect' | 'rounded' | 'pill';
+  bgShapeColor?: string;
+  bgShapeOpacity?: number;
+  bgShapePadding?: number;
+  letterSpacing?: number;
+  lineHeight?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase';
+  opacity?: number;
 }
 
 export interface RenderResult {
@@ -325,6 +341,29 @@ function itemFilter(item: SlideshowItem, globalCssFilter: string): string {
   return globalCssFilter;
 }
 
+function drawTextWithSpacing(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  spacing: number,
+  stroke = false,
+): void {
+  let totalWidth = 0;
+  for (const ch of text) totalWidth += ctx.measureText(ch).width;
+  totalWidth += spacing * Math.max(0, text.length - 1);
+
+  let cx = x - totalWidth / 2;
+  for (const ch of text) {
+    const charW = ctx.measureText(ch).width;
+    const drawX = cx + charW / 2;
+    ctx.textAlign = 'center';
+    if (stroke) ctx.strokeText(ch, drawX, y);
+    else ctx.fillText(ch, drawX, y);
+    cx += charW + spacing;
+  }
+}
+
 function drawTextOverlay(
   ctx: CanvasRenderingContext2D,
   overlay: TextOverlay,
@@ -459,36 +498,107 @@ function drawTextOverlay(
     case 'custom': {
       const scaledSize = overlay.fontSize
         ? Math.round(overlay.fontSize * W / 1080)
-        : Math.round(W * 0.032);
-      const fontFamily = overlay.fontFamily ?? 'Arial, Helvetica, sans-serif';
-      const fontWeight = overlay.fontWeight ?? 'normal';
-      const color = overlay.color ?? '#FFFFFF';
-      const align = overlay.textAlign ?? 'center';
-      const padX = Math.round((overlay.paddingX ?? 20) * W / 1080);
-      const padY = Math.round((overlay.paddingY ?? 10) * H / 1080);
+        : Math.round(W * 0.04);
+      const fontFamily  = overlay.fontFamily ?? 'Arial, Helvetica, sans-serif';
+      const fontWeight  = overlay.fontWeight === 'normal' ? '' : 'bold';
+      const align       = overlay.textAlign ?? 'center';
+      const padX        = Math.round((overlay.paddingX ?? 20) * W / 1080);
+      const letterSpacing = overlay.letterSpacing
+        ? Math.round(overlay.letterSpacing * W / 1080)
+        : 0;
 
-      ctx.font = `${fontWeight} ${scaledSize}px ${fontFamily}`;
-      ctx.textAlign = align;
-      ctx.textBaseline = 'middle';
+      // Text transform
+      let displayText = overlay.text;
+      if (overlay.textTransform === 'uppercase') displayText = displayText.toUpperCase();
+      else if (overlay.textTransform === 'lowercase') displayText = displayText.toLowerCase();
 
-      const y = overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.5 : H * 0.88;
-      const x = align === 'left' ? padX : align === 'right' ? W - padX : W / 2;
+      ctx.save();
 
-      if (overlay.backgroundColor) {
-        const m = ctx.measureText(overlay.text);
-        const bgW = m.width + padX * 2;
-        const bgH = scaledSize + padY * 2;
-        const bgX = align === 'left' ? x - padX : align === 'right' ? x - m.width - padX : x - bgW / 2;
-        ctx.fillStyle = overlay.backgroundColor;
-        ctx.beginPath();
-        ctx.roundRect(bgX, y - bgH / 2, bgW, bgH, 4);
-        ctx.fill();
+      if (overlay.opacity !== undefined && overlay.opacity < 1) {
+        ctx.globalAlpha = overlay.opacity;
       }
 
-      ctx.fillStyle = color;
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 8;
-      ctx.fillText(overlay.text, x, y);
+      ctx.font = `${fontWeight} ${scaledSize}px ${fontFamily}`.trim();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Position
+      const posX = overlay.x !== undefined
+        ? (overlay.x / 100) * W
+        : align === 'left' ? padX : align === 'right' ? W - padX : W / 2;
+      const posY = overlay.y !== undefined
+        ? (overlay.y / 100) * H
+        : overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.5 : H * 0.88;
+
+      // Metrics for bg shape
+      const metrics   = ctx.measureText(displayText);
+      const textW     = metrics.width + letterSpacing * Math.max(0, displayText.length - 1);
+      const textH     = scaledSize * (overlay.lineHeight ?? 1.2);
+
+      // 1. Background shape
+      const bgShapeColor = overlay.bgShapeColor ?? overlay.backgroundColor;
+      const bgShape      = overlay.bgShape ?? (bgShapeColor ? 'rounded' : 'none');
+      if (bgShape !== 'none' && bgShapeColor) {
+        const pad    = overlay.bgShapePadding
+          ? Math.round(overlay.bgShapePadding * W / 1080)
+          : Math.round(scaledSize * 0.5);
+        const shapeW = textW + pad * 2;
+        const shapeH = textH + pad * 2;
+        const shapeX = posX - shapeW / 2;
+        const shapeY = posY - shapeH / 2;
+
+        ctx.save();
+        ctx.globalAlpha = ctx.globalAlpha * (overlay.bgShapeOpacity ?? 0.8);
+        ctx.fillStyle   = bgShapeColor;
+        if (bgShape === 'rect') {
+          ctx.fillRect(shapeX, shapeY, shapeW, shapeH);
+        } else if (bgShape === 'rounded') {
+          ctx.beginPath();
+          ctx.roundRect(shapeX, shapeY, shapeW, shapeH, Math.min(shapeH / 4, 12));
+          ctx.fill();
+        } else if (bgShape === 'pill') {
+          ctx.beginPath();
+          ctx.roundRect(shapeX, shapeY, shapeW, shapeH, shapeH / 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 2. Shadow
+      if (overlay.shadowColor && (overlay.shadowBlur || overlay.shadowOffsetX || overlay.shadowOffsetY)) {
+        ctx.shadowColor   = overlay.shadowColor;
+        ctx.shadowBlur    = overlay.shadowBlur    ? Math.round(overlay.shadowBlur    * W / 1080) : 0;
+        ctx.shadowOffsetX = overlay.shadowOffsetX ? Math.round(overlay.shadowOffsetX * W / 1080) : 2;
+        ctx.shadowOffsetY = overlay.shadowOffsetY ? Math.round(overlay.shadowOffsetY * W / 1080) : 2;
+      }
+
+      // 3. Text fill
+      ctx.fillStyle = overlay.color ?? '#FFFFFF';
+      if (letterSpacing > 0) {
+        drawTextWithSpacing(ctx, displayText, posX, posY, letterSpacing, false);
+      } else {
+        ctx.fillText(displayText, posX, posY);
+      }
+
+      // 4. Reset shadow before stroke
+      ctx.shadowColor   = 'transparent';
+      ctx.shadowBlur    = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // 5. Stroke
+      if (overlay.strokeColor && (overlay.strokeWidth ?? 0) > 0) {
+        ctx.strokeStyle = overlay.strokeColor;
+        ctx.lineWidth   = Math.round((overlay.strokeWidth ?? 1) * W / 1080);
+        ctx.lineJoin    = 'round';
+        if (letterSpacing > 0) {
+          drawTextWithSpacing(ctx, displayText, posX, posY, letterSpacing, true);
+        } else {
+          ctx.strokeText(displayText, posX, posY);
+        }
+      }
+
+      ctx.restore();
       break;
     }
   }

@@ -10,6 +10,7 @@ import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
 import { NLETimeline } from './Timeline';
 import { FontPicker } from './FontPicker';
+import { TextPropertiesPanel } from './TextPropertiesPanel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,10 +43,6 @@ function formatTime(s: number): string {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${f}`;
 }
 
-const PRESET_COLORS = [
-  '#FFFFFF', '#000000', '#C9A347', '#E85D04',
-  '#EF4444', '#3B82F6', '#22C55E', '#A855F7',
-];
 
 const OVERLAY_TEMPLATES: Array<{ label: string; overlay: TextOverlay }> = [
   {
@@ -387,34 +384,6 @@ function PreviewOverlayItem({ overlay, isSelected, onSelect, onPositionChange, c
   );
 }
 
-function ColorSwatchPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <div className="mb-1 text-[10px] text-gray-600">{label}</div>
-      <div className="flex flex-wrap items-center gap-1">
-        {PRESET_COLORS.map(c => (
-          <button
-            key={c}
-            onClick={() => onChange(c)}
-            className={[
-              'h-5 w-5 rounded border transition-transform hover:scale-110',
-              value === c ? 'border-white/60 ring-1 ring-white/30' : 'border-white/10',
-            ].join(' ')}
-            style={{ backgroundColor: c }}
-            title={c}
-          />
-        ))}
-        <input
-          type="text"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-20 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none focus:ring-1 focus:ring-green-600/60 placeholder:text-gray-700"
-          placeholder="#FFFFFF"
-        />
-      </div>
-    </div>
-  );
-}
 
 interface EditorProps {
   draft: TextOverlay;
@@ -425,7 +394,6 @@ interface EditorProps {
 }
 
 function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: EditorProps) {
-  const showColors  = draft.style === 'bar' || draft.style === 'custom';
   const showLineTwo = draft.style === 'bar';
   return (
     <div className="space-y-3 px-3 py-3">
@@ -574,24 +542,10 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           )}
         </div>
       </div>
-      {showColors && (
-        <div className="space-y-2">
-          <ColorSwatchPicker
-            label={draft.style === 'bar' ? 'Bar color' : 'Background color'}
-            value={draft.style === 'bar' ? (draft.barColor ?? '#E85D04') : (draft.backgroundColor ?? '')}
-            onChange={v =>
-              draft.style === 'bar'
-                ? setDraft({ ...draft, barColor: v || undefined })
-                : setDraft({ ...draft, backgroundColor: v || undefined })
-            }
-          />
-          <ColorSwatchPicker
-            label="Text color"
-            value={draft.color ?? '#FFFFFF'}
-            onChange={v => setDraft({ ...draft, color: v || undefined })}
-          />
-        </div>
-      )}
+      <TextPropertiesPanel
+        draft={draft}
+        onChange={(updates) => setDraft({ ...draft, ...updates })}
+      />
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Animation</div>
         <div className="flex flex-wrap gap-1">

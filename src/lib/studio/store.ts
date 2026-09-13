@@ -333,12 +333,19 @@ export const useStudioStore = create<StudioStore>()(
       partialize: (s) => ({
         // Omit musicDataUrl (can be 3-10 MB base64) and generated arrays
         // to stay well within the 5 MB sessionStorage limit.
-        // Strip sourceUrl (base64 images/videos) and overlayData from clips.
+        // Keep idb:// keys (< 50 bytes); strip data:/blob: URLs (can be MBs).
         timelineItems:  s.timelineItems,
         textOverlays:   s.textOverlays,
         timelineTracks: s.timelineTracks.map(t => ({
           ...t,
-          clips: t.clips.map(({ sourceUrl: _s, overlayData: _o, ...rest }) => rest),
+          clips: t.clips.map(c => {
+            const { overlayData: _o, ...rest } = c;
+            if (rest.sourceUrl && !rest.sourceUrl.startsWith('idb://')) {
+              const { sourceUrl: _s, ...lightClip } = rest;
+              return lightClip;
+            }
+            return rest;
+          }),
         })),
         timelineZoom:   s.timelineZoom,
         musicName:      s.musicName,

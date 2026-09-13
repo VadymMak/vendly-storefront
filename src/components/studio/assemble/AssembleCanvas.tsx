@@ -1082,41 +1082,39 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       if (isAudio) {
         const audioTrack = timelineTracks.find(t => t.type === 'audio');
         if (audioTrack) {
-          const dataUrl = await fileToDataUrl(file);
-          const tempUrl = URL.createObjectURL(file);
-          const dur = await audioDurationOf(tempUrl);
-          URL.revokeObjectURL(tempUrl);
+          const blobUrl = URL.createObjectURL(file);
+          const dur = await audioDurationOf(blobUrl);
+          // Audio → IndexedDB
+          const key = crypto.randomUUID();
+          await saveMediaBlob(key, file);
+          const idbUri = `idb://${key}`;
+          setIdbUrls(prev => ({ ...prev, [idbUri]: blobUrl }));
           addClipToTrack(audioTrack.id, {
             type: 'audio',
             startTime: 0,
             duration: dur,
-            sourceUrl: dataUrl,
+            sourceUrl: idbUri,
             audioName: file.name,
           });
         }
       } else if (isVideo) {
         const blobUrl = URL.createObjectURL(file);
         const dur = await videoDurationOf(blobUrl);
-        let sourceUrl: string;
-        if (file.size <= 5 * 1024 * 1024) {
-          // Small videos → data URL (survives sessionStorage reload)
-          sourceUrl = await fileToDataUrl(file);
-          URL.revokeObjectURL(blobUrl);
-        } else {
-          // Large videos → IndexedDB; store idb://<uuid> as sourceUrl
-          const key = crypto.randomUUID();
-          await saveMediaBlob(key, file);
-          const idbUri = `idb://${key}`;
-          // Immediately provide a blob URL for this session
-          setIdbUrls(prev => ({ ...prev, [idbUri]: blobUrl }));
-          sourceUrl = idbUri;
-        }
-        addClipToTrack(videoTrack.id, { type: 'video', startTime: cursor, duration: dur, sourceUrl });
+        // All videos → IndexedDB; store idb://<uuid> as sourceUrl
+        const key = crypto.randomUUID();
+        await saveMediaBlob(key, file);
+        const idbUri = `idb://${key}`;
+        setIdbUrls(prev => ({ ...prev, [idbUri]: blobUrl }));
+        addClipToTrack(videoTrack.id, { type: 'video', startTime: cursor, duration: dur, sourceUrl: idbUri });
         cursor += dur;
       } else {
-        // Images → data URL for sessionStorage persistence
-        const dataUrl = await fileToDataUrl(file);
-        addClipToTrack(videoTrack.id, { type: 'image', startTime: cursor, duration: imageDuration, sourceUrl: dataUrl });
+        // Images → IndexedDB; store idb://<uuid> as sourceUrl
+        const key = crypto.randomUUID();
+        await saveMediaBlob(key, file);
+        const idbUri = `idb://${key}`;
+        const blobUrl = URL.createObjectURL(file);
+        setIdbUrls(prev => ({ ...prev, [idbUri]: blobUrl }));
+        addClipToTrack(videoTrack.id, { type: 'image', startTime: cursor, duration: imageDuration, sourceUrl: idbUri });
         cursor += imageDuration;
       }
     }

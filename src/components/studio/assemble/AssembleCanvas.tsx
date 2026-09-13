@@ -1131,19 +1131,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     } else if (editingOverlayIdx !== null && editingOverlayIdx >= 0) {
       storeUpdateOverlay(editingOverlayIdx, draftOverlay);
 
+      // Update clip overlayData in-place (preserves clip ID, no unmount/remount)
       const tt = timelineTracks.find(t => t.type === 'text');
       if (tt) {
         const sorted = [...tt.clips].sort((a, b) => a.startTime - b.startTime);
         const textClip = sorted[editingOverlayIdx];
         if (textClip) {
-          const store = useStudioStore.getState();
-          store.removeClip(textClip.id);
-          store.addClipToTrack(tt.id, {
-            type: 'text',
-            startTime: textClip.startTime,
-            duration: textClip.duration,
-            overlayData: draftOverlay,
-          });
+          useStudioStore.setState((s) => ({
+            timelineTracks: s.timelineTracks.map(t =>
+              t.id === tt.id
+                ? { ...t, clips: t.clips.map(c => c.id === textClip.id ? { ...c, overlayData: draftOverlay } : c) }
+                : t
+            ),
+          }));
         }
       }
     }
@@ -1408,14 +1408,18 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     const visible: ActiveTextOverlay[] = tt
       ? tt.clips
           .filter(c => c.overlayData && playheadTime >= c.startTime && playheadTime < c.startTime + c.duration)
-          .map(c => ({
-            overlay: c.overlayData!,
-            clipId: c.id,
-            storeIdx: textOverlays.findIndex(o => o === c.overlayData || JSON.stringify(o) === JSON.stringify(c.overlayData)),
-          }))
+          .map(c => {
+            const storeIdx = textOverlays.findIndex(o => o === c.overlayData || JSON.stringify(o) === JSON.stringify(c.overlayData));
+            // Show draft (live preview) when this overlay is being edited
+            const overlayToShow =
+              editingOverlayIdx !== null && storeIdx === editingOverlayIdx && draftOverlay
+                ? draftOverlay
+                : c.overlayData!;
+            return { overlay: overlayToShow, clipId: c.id, storeIdx };
+          })
       : [];
 
-    // Always show the overlay being edited (regardless of playhead)
+    // Also show the edited overlay when playhead is outside its clip range
     if (editingOverlayIdx !== null && editingOverlayIdx >= 0 && draftOverlay) {
       const alreadyVisible = visible.some(v => v.storeIdx === editingOverlayIdx);
       if (!alreadyVisible) {

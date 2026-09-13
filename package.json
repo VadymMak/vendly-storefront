@@ -20,6 +20,7 @@
     "@vercel/blob": "^2.3.1",
     "bcryptjs": "^3.0.3",
     "dcraw": "^1.0.3",
+    "mp4-muxer": "^5.2.2",
     "next": "16.2.1",
     "next-auth": "5.0.0-beta.30",
     "next-intl": "^4.8.3",

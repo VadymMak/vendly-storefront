@@ -1,9 +1,10 @@
 /**
  * Client-side slideshow video renderer.
- * Uses Canvas + MediaRecorder — zero server CPU, runs entirely in browser.
- * Primary target: Chrome desktop (H.264 MP4). Falls back to WebM.
+ * Uses Canvas + WebCodecs (VideoEncoder + mp4-muxer) — zero server CPU, runs entirely in browser.
+ * Falls back to Canvas + MediaRecorder when WebCodecs is not available.
  *
- * Video items: seeked per-frame (video.currentTime = offset) — accurate frame capture.
+ * Video items: seeked per-frame via WebCodecs VideoEncoder with explicit microsecond timestamps.
+ * Falls back to MediaRecorder + per-frame seek if WebCodecs unavailable.
  * Image items: drawn with Ken Burns camera motion at frameInterval pace.
  *
  * Two-pass when audio is present:
@@ -11,6 +12,8 @@
  *             Audio starts at recording start, not after encoding delay.
  *   Pass 2 — play Pass-1 video + mix audio in real-time → final blob.
  */
+
+import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 
 export type TransitionType = 'fade' | 'slide-left' | 'slide-right' | 'zoom-in' | 'zoom-out';
 
@@ -289,9 +292,17 @@ function drawItemAtRect(
 // Used only in the preload phase — not during the rendering loop.
 async function seekVideoToTime(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    const onSeeked = () => { video.removeEventListener('seeked', onSeeked); video.removeEventListener('error', onError); resolve(); };
-    const onError  = () => { video.removeEventListener('seeked', onSeeked); video.removeEventListener('error', onError); reject(new Error('Video seek failed')); };
     if (Math.abs(video.currentTime - time) < 0.01) { resolve(); return; }
+    let done = false;
+    const cleanup = () => {
+      video.removeEventListener('seeked', onSeeked);
+      video.removeEventListener('error', onError);
+      clearTimeout(timer);
+    };
+    const onSeeked = () => { if (done) return; done = true; cleanup(); resolve(); };
+    const onError  = () => { if (done) return; done = true; cleanup(); reject(new Error('Video seek failed')); };
+    // If seeked doesn't fire within 2s, proceed with whatever frame is ready
+    const timer = setTimeout(() => { if (done) return; done = true; cleanup(); resolve(); }, 2000);
     video.addEventListener('seeked', onSeeked);
     video.addEventListener('error', onError);
     video.currentTime = time;
@@ -1124,6 +1135,156 @@ async function addAudioToVideo(
   });
 }
 
+// ── WebCodecs Pass 1 renderer ─────────────────────────────────────────────────
+
+/**
+ * Render Pass 1 using WebCodecs — deterministic timestamps, frame-accurate output.
+ * Render speed does NOT affect output duration — key difference from MediaRecorder.
+ */
+async function renderPass1WebCodecs(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  config: SlideshowConfig,
+  items: SlideshowItem[],
+  startTimes: number[],
+  totalFrames: number,
+  fps: number,
+  W: number,
+  H: number,
+  onProgress: OnProgress,
+  progressMax: number,
+): Promise<Blob> {
+  const frameDurationUs = Math.round(1_000_000 / fps);
+
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({
+    target,
+    video: { codec: 'avc', width: W, height: H },
+    fastStart: 'in-memory',
+  });
+
+  const codecCandidates = ['avc1.640028', 'avc1.4d0028', 'avc1.42E01E', 'avc1.42001f'];
+  let selectedCodec: string | null = null;
+  for (const codec of codecCandidates) {
+    const support = await VideoEncoder.isConfigSupported({ codec, width: W, height: H, bitrate: 8_000_000, framerate: fps });
+    if (support.supported) { selectedCodec = codec; break; }
+  }
+  if (!selectedCodec) throw new Error('No supported H.264 video encoder found');
+
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta ?? {}),
+    error: (e) => console.error('[WebCodecs] Encoder error:', e),
+  });
+  encoder.configure({ codec: selectedCodec, width: W, height: H, bitrate: 8_000_000, framerate: fps });
+
+  const MAX_QUEUE = 30;
+
+  for (let frame = 0; frame < totalFrames; frame++) {
+    const t = frame / fps;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type !== 'video') continue;
+      const video     = items[i].element as HTMLVideoElement;
+      const itemStart = startTimes[i];
+      const itemEnd   = startTimes[i] + items[i].duration;
+      if (t >= itemStart && t < itemEnd) {
+        const videoOffset = t - itemStart;
+        if (Math.abs(video.currentTime - videoOffset) > 0.02) {
+          await seekVideoToTime(video, videoOffset).catch(() => {});
+        }
+      }
+    }
+
+    drawFrame(ctx, config, startTimes, frame);
+
+    const videoFrame = new VideoFrame(canvas, { timestamp: frame * frameDurationUs });
+
+    while (encoder.encodeQueueSize >= MAX_QUEUE) {
+      await new Promise<void>((resolve) => {
+        encoder.addEventListener('dequeue', () => resolve(), { once: true });
+      });
+    }
+
+    encoder.encode(videoFrame, { keyFrame: frame % (fps * 2) === 0 });
+    videoFrame.close();
+
+    onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * progressMax), phase: 'rendering' });
+  }
+
+  await encoder.flush();
+  encoder.close();
+  muxer.finalize();
+
+  return new Blob([target.buffer], { type: 'video/mp4' });
+}
+
+// ── MediaRecorder fallback Pass 1 renderer ────────────────────────────────────
+
+/**
+ * Fallback Pass 1 renderer using MediaRecorder.
+ * Used when WebCodecs is not available (older browsers, Firefox).
+ */
+async function renderPass1MediaRecorder(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  config: SlideshowConfig,
+  items: SlideshowItem[],
+  startTimes: number[],
+  totalFrames: number,
+  fps: number,
+  onProgress: OnProgress,
+  progressMax: number,
+): Promise<Blob> {
+  const mimeType = [
+    'video/mp4; codecs="avc1.42E01E"',
+    'video/mp4',
+    'video/webm; codecs=vp9',
+    'video/webm',
+  ].find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
+
+  const videoStream = canvas.captureStream(fps);
+  const chunks: Blob[] = [];
+  const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: 8_000_000 });
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+  const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
+
+  drawFrame(ctx, config, startTimes, 0);
+  recorder.start(500);
+
+  const frameInterval = 1000 / fps;
+  for (let frame = 0; frame < totalFrames; frame++) {
+    const t = frame / fps;
+    const frameStart = performance.now();
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type !== 'video') continue;
+      const video     = items[i].element as HTMLVideoElement;
+      const itemStart = startTimes[i];
+      const itemEnd   = startTimes[i] + items[i].duration;
+      if (t >= itemStart && t < itemEnd) {
+        const videoOffset = t - itemStart;
+        if (Math.abs(video.currentTime - videoOffset) > 0.02) {
+          await seekVideoToTime(video, videoOffset).catch(() => {});
+        }
+      }
+    }
+
+    drawFrame(ctx, config, startTimes, frame);
+
+    onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * progressMax), phase: 'rendering' });
+
+    const elapsed = performance.now() - frameStart;
+    const waitTime = Math.max(0, frameInterval - elapsed);
+    if (waitTime > 0) await new Promise<void>((r) => setTimeout(r, waitTime));
+  }
+
+  recorder.stop();
+  videoStream.getTracks().forEach((t) => t.stop());
+  await stopped;
+
+  return new Blob(chunks, { type: mimeType });
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function renderSlideshow(
@@ -1179,78 +1340,58 @@ export async function renderSlideshow(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // Pick MIME type — prefer H.264 MP4, fall back to WebM
-  const mimeType = [
+  const hasAudio = !!config.audioFile || !!config.musicFile;
+  const pass1Max = hasAudio ? 70 : 100;
+
+  // ── Pass 1: video-only rendering ──────────────────────────────────────────────
+  // WebCodecs: deterministic timestamps → frame-accurate output (preferred).
+  // MediaRecorder: wall-clock based → fallback for browsers without WebCodecs.
+
+  let videoBlob: Blob;
+  let mimeType: string;
+
+  const webCodecsAvailable = typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined';
+
+  if (webCodecsAvailable) {
+    try {
+      videoBlob = await renderPass1WebCodecs(
+        canvas, ctx, config, items, startTimes, totalFrames, fps, W, H, onProgress, pass1Max,
+      );
+      mimeType = 'video/mp4';
+      console.log('[export] Pass 1 completed via WebCodecs — frame-accurate MP4');
+    } catch (err) {
+      console.warn('[export] WebCodecs failed, falling back to MediaRecorder:', err);
+      videoBlob = await renderPass1MediaRecorder(
+        canvas, ctx, config, items, startTimes, totalFrames, fps, onProgress, pass1Max,
+      );
+      mimeType = videoBlob.type || 'video/webm';
+    }
+  } else {
+    console.log('[export] WebCodecs not available, using MediaRecorder fallback');
+    videoBlob = await renderPass1MediaRecorder(
+      canvas, ctx, config, items, startTimes, totalFrames, fps, onProgress, pass1Max,
+    );
+    mimeType = videoBlob.type || 'video/webm';
+  }
+
+  onProgress({ currentFrame: totalFrames, totalFrames, percent: pass1Max, phase: 'rendering' });
+
+  if (!hasAudio) return { blob: videoBlob, mimeType };
+
+  // ── Pass 2: add audio in real-time ────────────────────────────────────────────
+  // MediaRecorder for audio mixing — pick a mimeType it supports
+  const audioPassMime = [
     'video/mp4; codecs="avc1.42E01E"',
     'video/mp4',
     'video/webm; codecs=vp9',
     'video/webm',
   ].find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
 
-  const hasAudio = !!config.audioFile || !!config.musicFile;
-  const pass1Max = hasAudio ? 70 : 100;
-
-  // ── Pass 1: video-only (no AudioContext, no audio track in MediaStream) ──────
-  // Filters are applied to image items via itemFilter() as in the working build.
-  // Audio is deferred to Pass 2 so its start time is never affected by encoding.
-
-  const videoStream = canvas.captureStream(fps);
-  const chunks: Blob[] = [];
-  const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: 8_000_000 });
-  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-
-  const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
-
-  drawFrame(ctx, config, startTimes, 0);
-  recorder.start(500);
-
-  const frameInterval = 1000 / fps;
-  for (let frame = 0; frame < totalFrames; frame++) {
-    const t          = frame / fps;
-    const frameStart = performance.now();
-
-    // Seek video clips to exact frame position (no real-time play)
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type !== 'video') continue;
-      const video     = items[i].element as HTMLVideoElement;
-      const itemStart = startTimes[i];
-      const itemEnd   = startTimes[i] + items[i].duration;
-
-      if (t >= itemStart && t < itemEnd) {
-        const videoOffset = t - itemStart;
-        if (Math.abs(video.currentTime - videoOffset) > 0.02) {
-          await seekVideoToTime(video, videoOffset).catch(() => {});
-        }
-      }
-    }
-
-    drawFrame(ctx, config, startTimes, frame);
-
-    onProgress({ currentFrame: frame, totalFrames, percent: Math.round((frame / totalFrames) * pass1Max), phase: 'rendering' });
-
-    const elapsed  = performance.now() - frameStart;
-    const waitTime = Math.max(0, frameInterval - elapsed);
-    if (waitTime > 0) {
-      await new Promise<void>((r) => setTimeout(r, waitTime));
-    }
-  }
-
-  recorder.stop();
-  videoStream.getTracks().forEach((t) => t.stop());
-  await stopped;
-
-  onProgress({ currentFrame: totalFrames, totalFrames, percent: pass1Max, phase: 'rendering' });
-
-  const videoBlob = new Blob(chunks, { type: mimeType });
-
-  if (!hasAudio) return { blob: videoBlob, mimeType };
-
-  // ── Pass 2: add audio in real-time ────────────────────────────────────────────
   const finalBlob = await addAudioToVideo(
     videoBlob,
     config.audioFile ?? null,
     config.musicFile ?? null,
-    mimeType,
+    audioPassMime,
     (p) => {
       onProgress({
         currentFrame: totalFrames,
@@ -1264,5 +1405,5 @@ export async function renderSlideshow(
 
   onProgress({ currentFrame: totalFrames, totalFrames, percent: 100, phase: 'audio' });
 
-  return { blob: finalBlob, mimeType };
+  return { blob: finalBlob, mimeType: audioPassMime };
 }

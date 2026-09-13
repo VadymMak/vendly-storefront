@@ -266,7 +266,7 @@ function renderOverlayContent(overlay: TextOverlay) {
   if (overlay.style === 'bar') {
     return (
       <div className="rounded px-3 py-1.5 whitespace-nowrap" style={{ backgroundColor: overlay.barColor ?? '#E85D04' }}>
-        <div className="leading-tight" style={{ color: overlay.color ?? '#FFFFFF', fontSize: fs, fontWeight: fw }}>{overlay.text}</div>
+        <div className="leading-tight" style={{ color: overlay.color ?? '#FFFFFF', fontSize: fs, fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>{overlay.text}</div>
         {overlay.lineTwo && (
           <div className="text-xs leading-tight opacity-80" style={{ color: overlay.color ?? '#FFFFFF' }}>{overlay.lineTwo}</div>
         )}
@@ -275,21 +275,21 @@ function renderOverlayContent(overlay: TextOverlay) {
   }
   if (overlay.style === 'brand') {
     return (
-      <div className="whitespace-nowrap" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: 'Georgia, serif', fontSize: fs ?? '1rem', fontWeight: fw }}>
+      <div className="whitespace-nowrap" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', serif` : 'Georgia, serif', fontSize: fs ?? '1rem', fontWeight: fw }}>
         {overlay.text}
       </div>
     );
   }
   if (overlay.style === 'subtitle') {
     return (
-      <span className="rounded-full bg-black/50 px-3 py-1 text-white whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal' }}>
+      <span className="rounded-full bg-black/50 px-3 py-1 text-white whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
         {overlay.text}
       </span>
     );
   }
   if (overlay.style === 'cta') {
     return (
-      <div className="whitespace-nowrap" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs ?? '0.875rem', fontWeight: fw }}>
+      <div className="whitespace-nowrap" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs ?? '0.875rem', fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
         {overlay.text}
       </div>
     );
@@ -454,6 +454,7 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-green-600/60 placeholder:text-gray-700"
           placeholder="Enter text..."
           autoFocus
+          style={{ fontFamily: draft.fontFamily ? `'${draft.fontFamily}', sans-serif` : undefined }}
         />
       </div>
       {showLineTwo && (
@@ -1834,7 +1835,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                   ); });
                 })()}
                 {/* Text overlays */}
-                <div className="absolute inset-0 z-10">
+                <div className="pointer-events-none absolute inset-0 z-10">
                   {activeTextOverlays.map(({ overlay, clipId, storeIdx }) => (
                     <TextFrame
                       key={clipId}

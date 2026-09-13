@@ -138,7 +138,7 @@ export const DEFAULT_SEQUENCE: CameraMotion[] = [
   'pan-down',
 ];
 
-interface MotionPreset {
+export interface MotionPreset {
   startScale: number;
   endScale:   number;
   startPanX:  number;
@@ -147,7 +147,7 @@ interface MotionPreset {
   endPanY:    number;
 }
 
-const MOTION_PRESETS: Record<CameraMotion, MotionPreset> = {
+export const MOTION_PRESETS: Record<CameraMotion, MotionPreset> = {
   'zoom-in':       { startScale: 1.00, endScale: 1.15, startPanX:  0.00, startPanY:  0.00, endPanX:  0.04, endPanY: -0.04 },
   'zoom-out':      { startScale: 1.18, endScale: 1.00, startPanX:  0.04, startPanY:  0.04, endPanX:  0.00, endPanY:  0.00 },
   'pan-right':     { startScale: 1.10, endScale: 1.10, startPanX: -0.15, startPanY:  0.00, endPanX:  0.15, endPanY:  0.00 },

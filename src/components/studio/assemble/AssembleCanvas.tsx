@@ -6,7 +6,7 @@ import type { TimelineClip } from '@/lib/studio/store';
 import { fileToDataUrl, urlToDataUrl } from '@/lib/studio/media-utils';
 import { saveMediaBlob, loadMediaBlob, clearAllMediaBlobs } from '@/lib/studio/media-db';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
-import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
+import { renderSlideshow, DEFAULT_SEQUENCE, MOTION_PRESETS } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
 import { NLETimeline } from './Timeline';
 import { FontPicker } from './FontPicker';
@@ -40,6 +40,27 @@ const TRANSITION_OPTIONS: { value: TransitionType; label: string }[] = [
 const TRANSITION_DUR = 0.5;
 const FPS = 30;
 const IMAGE_DUR_OPTIONS = [2, 3, 4, 5];
+
+function easeInOutCubic(t: number): number {
+  const c = Math.max(0, Math.min(1, t));
+  return c < 0.5 ? 4 * c * c * c : 1 - Math.pow(-2 * c + 2, 3) / 2;
+}
+
+function getKenBurnsTransform(
+  clipStartTime: number,
+  clipDuration: number,
+  clipIdx: number,
+  currentTime: number,
+): string {
+  const motionType = DEFAULT_SEQUENCE[clipIdx % DEFAULT_SEQUENCE.length];
+  const preset = MOTION_PRESETS[motionType];
+  const progress = Math.max(0, Math.min(1, (currentTime - clipStartTime) / clipDuration));
+  const eased = easeInOutCubic(progress);
+  const scale = preset.startScale + (preset.endScale - preset.startScale) * eased;
+  const panX  = (preset.startPanX + (preset.endPanX - preset.startPanX) * eased) * 100;
+  const panY  = (preset.startPanY + (preset.endPanY - preset.startPanY) * eased) * 100;
+  return `scale(${scale.toFixed(4)}) translate(${panX.toFixed(2)}%, ${panY.toFixed(2)}%)`;
+}
 
 function formatTime(s: number): string {
   const m   = Math.floor(s / 60);
@@ -1339,7 +1360,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         transform: 'none',
         zIndex: isActive ? 1 : 0,
         pointerEvents: isActive ? 'auto' : 'none',
-      };
+        transition: 'none',
+        willChange: 'auto',
+      } as React.CSSProperties;
     }
 
     const clipEnd = clip.startTime + clip.duration;
@@ -1384,7 +1407,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       transform,
       zIndex: zIdx,
       pointerEvents: isActive ? 'auto' : 'none',
-    };
+      transition: 'opacity 0.08s linear, transform 0.08s linear',
+      willChange: 'opacity, transform',
+    } as React.CSSProperties;
   }
 
   const arNum = aspectRatio === '9:16' ? 9 / 16 : aspectRatio === '1:1' ? 1 : 16 / 9;
@@ -1776,18 +1801,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 style={canvasStyle}
                 onClick={e => e.stopPropagation()}
               >
-                {/* Preloaded clip layers — active ± 2 neighbors always in DOM */}
+                {/* Preloaded clip layers — active ± 3 neighbors always in DOM */}
                 {(() => {
                   const activeIdx = videoClips.findIndex(c => c.id === activeClip?.id);
-                  const nearby = videoClips.filter((_, i) => Math.abs(i - (activeIdx < 0 ? 0 : activeIdx)) <= 2);
-                  return nearby.map((clip, i) => {
+                  const nearby = videoClips.filter((_, i) => Math.abs(i - (activeIdx < 0 ? 0 : activeIdx)) <= 3);
+                  return nearby.map((clip) => {
                     const srcUrl = resolvedUrl(clip);
                     const isIdb  = clip.sourceUrl?.startsWith('idb://');
+                    const globalIdx = videoClips.indexOf(clip);
                     return (
                     <div
                       key={clip.id}
-                      className="absolute inset-0"
-                      style={clipLayerStyle(clip, videoClips.indexOf(clip))}
+                      className="absolute inset-0 overflow-hidden"
+                      style={clipLayerStyle(clip, globalIdx)}
                     >
                       {clip.type === 'image' && srcUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -1796,6 +1822,12 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                           alt="Preview"
                           className="h-full w-full object-cover"
                           loading="eager"
+                          style={isPlaying ? {
+                            transform: getKenBurnsTransform(clip.startTime, clip.duration, globalIdx, playheadTime),
+                            transformOrigin: 'center center',
+                            transition: 'transform 0.1s linear',
+                            willChange: 'transform',
+                          } : undefined}
                           onError={e => {
                             const parent = (e.target as HTMLElement).parentElement;
                             if (parent) parent.innerHTML = `<div class="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-900 p-4 text-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span class="text-[10px] text-gray-500">${clip.prompt ? clip.prompt.slice(0, 60) + '…' : 'Image unavailable'}</span></div>`;

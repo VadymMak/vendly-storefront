@@ -1757,25 +1757,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/40"
             onClick={() => { setSelectedClipId(null); setSelectedOverlayIdx(null); setEditingOverlayIdx(null); setDraftOverlay(null); }}
           >
-            {resultUrl ? (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-6">
-                <video src={resultUrl} controls loop className="max-w-full rounded-xl object-contain" style={{ maxHeight: 'calc(100% - 80px)', maxWidth: '90%' }} />
-                <div className="flex flex-shrink-0 items-center gap-3">
-                  <button
-                    onClick={e => { e.stopPropagation(); handleDownload(); }}
-                    className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
-                  >
-                    <IconDownload /> Download MP4
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); handleStartOver(); }}
-                    className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 hover:border-white/20 hover:text-white"
-                  >
-                    <IconRefresh /> Start over
-                  </button>
-                </div>
-              </div>
-            ) : isRendering ? (
+            {isRendering ? (
               <div className="flex w-full max-w-xs flex-col items-center gap-4">
                 <p className="text-sm font-medium text-white">
                   {renderPhase === 'audio' ? 'Adding music…' : 'Rendering…'}
@@ -2053,6 +2035,52 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </aside>
         )}
       </div>
+
+      {/* Export Preview Modal */}
+      {resultUrl && !isRendering && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => { setResultUrl(null); setRenderProgress(0); }}
+        >
+          <div
+            className="relative flex max-h-[90vh] w-full max-w-3xl flex-col items-center gap-4 rounded-2xl bg-gray-900 p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => { setResultUrl(null); setRenderProgress(0); }}
+              className="absolute right-3 top-3 rounded-full p-1.5 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
+              title="Close preview"
+            >
+              <IconX size={20} />
+            </button>
+            <h3 className="text-sm font-medium text-gray-300">Export Preview</h3>
+            <video
+              src={resultUrl}
+              controls
+              autoPlay
+              loop
+              className="max-h-[65vh] w-full rounded-xl object-contain"
+            />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+              >
+                <IconDownload /> Download MP4
+              </button>
+              <button
+                onClick={() => { setResultUrl(null); setRenderProgress(0); }}
+                className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-gray-400 transition-colors hover:border-white/20 hover:text-white"
+              >
+                Close &amp; Continue Editing
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-600">
+              Close this preview to continue editing. Export again anytime.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Error toast */}
       {error && (

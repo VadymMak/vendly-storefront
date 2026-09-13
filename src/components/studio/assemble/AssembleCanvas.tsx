@@ -11,6 +11,7 @@ import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from
 import { NLETimeline } from './Timeline';
 import { FontPicker } from './FontPicker';
 import { TextPropertiesPanel } from './TextPropertiesPanel';
+import { TextFrame } from './TextFrame';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1058,10 +1059,15 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     }
   }
 
-  function handleOverlayPositionChange(storeIdx: number, x: number, y: number) {
+  function handleOverlayUpdate(storeIdx: number, updates: Partial<TextOverlay>) {
+    // If editing this overlay, update the draft state too
+    if (editingOverlayIdx !== null && draftOverlay && storeIdx === editingOverlayIdx) {
+      setDraftOverlay({ ...draftOverlay, ...updates });
+    }
+    if (storeIdx < 0) return;
     const overlay = textOverlays[storeIdx];
     if (!overlay) return;
-    const updated = { ...overlay, x, y };
+    const updated = { ...overlay, ...updates };
     storeUpdateOverlay(storeIdx, updated);
     const tt = timelineTracks.find(t => t.type === 'text');
     if (tt) {
@@ -1078,6 +1084,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         });
       }
     }
+  }
+
+  function handleOverlayPositionChange(storeIdx: number, x: number, y: number) {
+    handleOverlayUpdate(storeIdx, { x, y });
   }
 
   // (previewOverlays moved above as editorPreviewOverlays)
@@ -1712,14 +1722,17 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 {/* Text overlays */}
                 <div className="absolute inset-0 z-10">
                   {activeTextOverlays.map(({ overlay, clipId, storeIdx }) => (
-                    <PreviewOverlayItem
+                    <TextFrame
                       key={clipId}
                       overlay={overlay}
                       isSelected={selectedOverlayIdx === storeIdx}
                       onSelect={() => setSelectedOverlayIdx(storeIdx >= 0 ? storeIdx : null)}
-                      onPositionChange={(x, y) => { if (storeIdx >= 0) handleOverlayPositionChange(storeIdx, x, y); }}
+                      onPositionChange={(x, y) => handleOverlayPositionChange(storeIdx, x, y)}
+                      onChange={(updates) => handleOverlayUpdate(storeIdx, updates)}
                       containerRef={canvasRef}
-                    />
+                    >
+                      {renderOverlayContent(overlay)}
+                    </TextFrame>
                   ))}
                 </div>
                 {/* Clip info badge */}

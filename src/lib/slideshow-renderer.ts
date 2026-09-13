@@ -110,6 +110,11 @@ export interface TextOverlay {
   lineHeight?: number;
   textTransform?: 'none' | 'uppercase' | 'lowercase';
   opacity?: number;
+
+  // Resizable frame (Prompt 60)
+  width?: number;    // % of canvas width (for future text-wrap)
+  height?: number;   // % of canvas height
+  rotation?: number; // degrees, applied in canvas renderer
 }
 
 export interface RenderResult {
@@ -529,6 +534,15 @@ function drawTextOverlay(
       const posY = overlay.y !== undefined
         ? (overlay.y / 100) * H
         : overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.5 : H * 0.88;
+
+      // Rotation transform around text center
+      const rotDeg = overlay.rotation ?? 0;
+      if (rotDeg !== 0) {
+        const rad = (rotDeg * Math.PI) / 180;
+        ctx.translate(posX, posY);
+        ctx.rotate(rad);
+        ctx.translate(-posX, -posY);
+      }
 
       // Metrics for bg shape
       const metrics   = ctx.measureText(displayText);

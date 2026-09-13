@@ -309,6 +309,21 @@ async function seekVideoToTime(video: HTMLVideoElement, time: number): Promise<v
   });
 }
 
+/**
+ * Wait for the browser's video decoder to present the current frame.
+ * Uses requestVideoFrameCallback (Chrome 83+) to ensure decoded pixels are
+ * available for ctx.drawImage() after a seek. Falls back to setTimeout(0).
+ */
+async function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
+  if ('requestVideoFrameCallback' in video) {
+    return new Promise<void>((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (video as any).requestVideoFrameCallback(() => resolve());
+    });
+  }
+  return new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
 // ── Frame state ───────────────────────────────────────────────────────────────
 //
 // Overlapping model with variable per-item durations:
@@ -1182,17 +1197,26 @@ async function renderPass1WebCodecs(
   for (let frame = 0; frame < totalFrames; frame++) {
     const t = frame / fps;
 
+    // Seek all active video items and wait for frame decode
+    let didSeekAny = false;
+    const activeVideos: HTMLVideoElement[] = [];
     for (let i = 0; i < items.length; i++) {
       if (items[i].type !== 'video') continue;
       const video     = items[i].element as HTMLVideoElement;
       const itemStart = startTimes[i];
       const itemEnd   = startTimes[i] + items[i].duration;
       if (t >= itemStart && t < itemEnd) {
+        activeVideos.push(video);
         const videoOffset = t - itemStart;
         if (Math.abs(video.currentTime - videoOffset) > 0.02) {
           await seekVideoToTime(video, videoOffset).catch(() => {});
+          didSeekAny = true;
         }
       }
+    }
+    // Wait for browser to decode new frame pixels (seeked event != decoded pixels)
+    if (didSeekAny) {
+      await Promise.all(activeVideos.map(v => waitForVideoFrame(v)));
     }
 
     drawFrame(ctx, config, startTimes, frame);

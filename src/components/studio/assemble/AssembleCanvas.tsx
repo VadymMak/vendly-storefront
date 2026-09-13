@@ -814,6 +814,17 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // IndexedDB blob URL cache: idb://<uuid> → object URL
   const [idbUrls, setIdbUrls] = useState<Record<string, string>>({});
+  const idbUrlsRef = useRef<Record<string, string>>({});
+  // Keep ref in sync with state so effects can read it without adding idbUrls to deps
+  useEffect(() => { idbUrlsRef.current = idbUrls; }, [idbUrls]);
+  // Revoke all blob URLs on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      Object.values(idbUrlsRef.current).forEach(url => {
+        try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+      });
+    };
+  }, []);
 
   const musicInputRef  = useRef<HTMLInputElement>(null);
   const nameInputRef   = useRef<HTMLInputElement>(null);
@@ -847,19 +858,18 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   }, []);
 
   // ── Resolve idb:// URIs → fresh blob URLs ────────────────────────────────
-  // Deps include timelineTracks so this re-runs after Zustand hydration
+  // Runs when timelineTracks change (Zustand hydration or new clip adds).
+  // Does NOT include idbUrls in deps — uses ref to avoid re-trigger loops.
   useEffect(() => {
     const allClips = timelineTracks.flatMap(t => t.clips);
-    // Only process idb:// clips that haven't been resolved yet
-    const idbClips = allClips.filter(
-      c => c.sourceUrl?.startsWith('idb://') && !idbUrls[c.sourceUrl]
-    );
+    const idbClips = allClips.filter(c => c.sourceUrl?.startsWith('idb://'));
     if (idbClips.length === 0) return;
 
     let cancelled = false;
     void (async () => {
       const resolved: Record<string, string> = {};
       for (const clip of idbClips) {
+        if (idbUrlsRef.current[clip.sourceUrl!]) continue;
         const key = clip.sourceUrl!.slice(6); // strip 'idb://'
         try {
           const blobUrl = await loadMediaBlob(key);
@@ -878,8 +888,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     })();
 
     return () => { cancelled = true; };
-  // Re-run when tracks change — catches Zustand hydration AND new clip adds
-  }, [timelineTracks, idbUrls]);
+  }, [timelineTracks]);
 
   // Auto-open inspector when a text clip is selected on timeline
   useEffect(() => {
@@ -1510,7 +1519,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               Edit Text
             </button>
             <button
-              onClick={() => removeClipFn(selectedClip.id)}
+              onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300"
             >
               <IconX size={12} /> Remove clip
@@ -1566,7 +1575,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               />
             </div>
             <button
-              onClick={() => removeClipFn(selectedClip.id)}
+              onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300"
             >
               <IconX size={12} /> Remove clip
@@ -2029,7 +2038,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
             {/* Delete */}
             <button
-              onClick={() => { if (selectedClipId) removeClipFn(selectedClipId); }}
+              onClick={e => { e.stopPropagation(); const id = useStudioStore.getState().selectedClipId; if (id) removeClipFn(id); }}
               disabled={!selectedClipId}
               title="Delete selected (Del)"
               className={[

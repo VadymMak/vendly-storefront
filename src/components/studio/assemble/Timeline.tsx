@@ -316,6 +316,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
         const id = useStudioStore.getState().selectedClipId;
         if (id) removeClipFn(id);
         return;
@@ -360,8 +361,9 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [removeClipFn, splitClipFn, setZoom, trimClip, setIsPlaying]);
+  // All state reads use getState() inside the handler — no stale closures.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Import from store ─────────────────────────────────────────────────────
 
@@ -464,7 +466,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
           ref={scrollRef}
           className="flex-1 overflow-x-auto overflow-y-hidden"
           style={{ height: totalH }}
-          onClick={() => setSelected(null)}
+          onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}
         >
           <div className="relative" style={{ width: contentWidth, height: totalH }}>
             {/* Ruler */}
@@ -520,7 +522,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
                       dropTarget === track.id ? 'bg-purple-500/10' : '',
                     ].join(' ')}
                     style={{ height: track.height, width: contentWidth }}
-                    onClick={e => { e.stopPropagation(); setSelected(null); }}
+                    onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}
                     onDragOver={e => {
                       if (track.type !== 'text') return;
                       if (!e.dataTransfer.types.includes('application/x-studio-text')) return;

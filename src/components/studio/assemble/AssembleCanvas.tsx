@@ -74,6 +74,7 @@ const DEFAULT_DRAFT: TextOverlay = {
   position: 'bottom',
   scope: 'global',
   animation: 'none',
+  fontSize: 48,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -260,36 +261,37 @@ function posYDefault(position: TextOverlay['position']): number {
   return 50;
 }
 
-function renderOverlayContent(overlay: TextOverlay) {
-  const fs = overlay.fontSize ? `${overlay.fontSize}px` : undefined;
+function renderOverlayContent(overlay: TextOverlay, scale: number = 1) {
+  const rawSize = overlay.fontSize ?? 48;
+  const fs = `${Math.round(rawSize * scale)}px`;
   const fw = overlay.fontWeight ?? 'bold';
   if (overlay.style === 'bar') {
     return (
-      <div className="rounded px-3 py-1.5 whitespace-nowrap" style={{ backgroundColor: overlay.barColor ?? '#E85D04' }}>
+      <div className="rounded whitespace-nowrap" style={{ backgroundColor: overlay.barColor ?? '#E85D04', padding: `${Math.round(6 * scale)}px ${Math.round(12 * scale)}px` }}>
         <div className="leading-tight" style={{ color: overlay.color ?? '#FFFFFF', fontSize: fs, fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>{overlay.text}</div>
         {overlay.lineTwo && (
-          <div className="text-xs leading-tight opacity-80" style={{ color: overlay.color ?? '#FFFFFF' }}>{overlay.lineTwo}</div>
+          <div className="leading-tight opacity-80" style={{ color: overlay.color ?? '#FFFFFF', fontSize: `${Math.round(Math.max(10, rawSize * 0.7) * scale)}px` }}>{overlay.lineTwo}</div>
         )}
       </div>
     );
   }
   if (overlay.style === 'brand') {
     return (
-      <div className="whitespace-nowrap" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', serif` : 'Georgia, serif', fontSize: fs ?? '1rem', fontWeight: fw }}>
+      <div className="whitespace-nowrap" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', serif` : 'Georgia, serif', fontSize: fs, fontWeight: fw }}>
         {overlay.text}
       </div>
     );
   }
   if (overlay.style === 'subtitle') {
     return (
-      <span className="rounded-full bg-black/50 px-3 py-1 text-white whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
+      <span className="rounded-full bg-black/50 text-white whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined, padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px` }}>
         {overlay.text}
       </span>
     );
   }
   if (overlay.style === 'cta') {
     return (
-      <div className="whitespace-nowrap" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs ?? '0.875rem', fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
+      <div className="whitespace-nowrap" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs, fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
         {overlay.text}
       </div>
     );
@@ -298,13 +300,13 @@ function renderOverlayContent(overlay: TextOverlay) {
     <span
       className="whitespace-nowrap"
       style={{
-        fontSize: overlay.fontSize ?? 16,
+        fontSize: fs,
         fontFamily: overlay.fontFamily ?? 'inherit',
         fontWeight: fw,
         color: overlay.color ?? '#FFFFFF',
         backgroundColor: overlay.backgroundColor ?? 'transparent',
-        padding: `${overlay.paddingY ?? 4}px ${overlay.paddingX ?? 12}px`,
-        borderRadius: 4,
+        padding: `${Math.round((overlay.paddingY ?? 4) * scale)}px ${Math.round((overlay.paddingX ?? 12) * scale)}px`,
+        borderRadius: Math.round(4 * scale),
         textShadow: '0 1px 4px rgba(0,0,0,0.6)',
       }}
     >
@@ -497,25 +499,25 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font Size</div>
         <div className="flex items-center gap-2">
           <input
-            type="range" min={10} max={72} step={1}
-            value={draft.fontSize ?? 16}
+            type="range" min={16} max={200} step={1}
+            value={draft.fontSize ?? 48}
             onChange={e => setDraft({ ...draft, fontSize: Number(e.target.value) })}
             className="h-1 flex-1 cursor-pointer accent-green-500"
           />
           <input
-            type="number" min={10} max={72}
-            value={draft.fontSize ?? 16}
-            onChange={e => setDraft({ ...draft, fontSize: Math.max(10, Math.min(72, Number(e.target.value) || 16)) })}
+            type="number" min={16} max={200}
+            value={draft.fontSize ?? 48}
+            onChange={e => setDraft({ ...draft, fontSize: Math.max(16, Math.min(200, Number(e.target.value) || 48)) })}
             className="w-12 rounded bg-white/10 px-1.5 py-0.5 text-center text-[11px] text-white outline-none focus:ring-1 focus:ring-green-600/60"
           />
-          <span className="text-[10px] text-gray-600">px</span>
+          <span className="text-[10px] text-gray-600">pt</span>
         </div>
         <div className="mt-1 flex gap-1">
-          {[14, 18, 24, 32, 48].map(size => (
+          {[36, 48, 72, 96, 128].map(size => (
             <button
               key={size}
               onClick={() => setDraft({ ...draft, fontSize: size })}
-              className={['rounded px-1.5 py-0.5 text-[10px] transition-colors', (draft.fontSize ?? 16) === size ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'].join(' ')}
+              className={['rounded px-1.5 py-0.5 text-[10px] transition-colors', (draft.fontSize ?? 48) === size ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'].join(' ')}
             >{size}</button>
           ))}
         </div>
@@ -1832,7 +1834,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                       onChange={(updates) => handleOverlayUpdate(storeIdx, updates)}
                       containerRef={canvasRef}
                     >
-                      {renderOverlayContent(overlay)}
+                      {renderOverlayContent(overlay, cW > 0 ? cW / 1080 : 0.35)}
                     </TextFrame>
                   ))}
                 </div>
@@ -2059,7 +2061,10 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               controls
               autoPlay
               loop
+              playsInline
+              preload="auto"
               className="max-h-[65vh] w-full rounded-xl object-contain"
+              style={{ backgroundColor: '#000' }}
             />
             <div className="flex items-center gap-3">
               <button

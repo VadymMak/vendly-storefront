@@ -15,6 +15,7 @@ import { TextFrame } from './TextFrame';
 import { TEXT_PRESETS, PRESET_CATEGORIES, PRESET_CATEGORY_LABELS } from '@/lib/fonts/text-presets';
 import type { PresetCategory } from '@/lib/fonts/text-presets';
 import { loadGoogleFont } from '@/lib/fonts/font-loader';
+import { AutoAssembleModal } from './AutoAssembleModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -243,11 +244,12 @@ function IconEdit() {
 // ── Tool label map ────────────────────────────────────────────────────────────
 
 const TOOL_LABELS: Record<string, string> = {
-  text: 'Text Overlays',
+  text:        'Text Overlays',
   transitions: 'Transitions',
-  audio: 'Audio',
-  effects: 'Effects',
-  stickers: 'Stickers',
+  audio:       'Audio',
+  effects:     'Effects',
+  stickers:    'Stickers',
+  'auto-edit': 'Auto Edit',
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -1710,6 +1712,12 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           <div className="flex flex-col items-center gap-2 p-6 text-center text-gray-600">
             <IconSticker size={28} />
             <p className="text-xs">Coming soon</p>
+          </div>
+        )}
+
+        {expandedTool === 'auto-edit' && (
+          <div className="flex-1 overflow-y-auto">
+            <AutoAssembleModal onClose={() => setExpandedTool(null)} />
           </div>
         )}
       </div>

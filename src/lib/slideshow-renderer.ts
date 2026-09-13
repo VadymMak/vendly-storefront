@@ -428,6 +428,7 @@ function drawTextOverlay(
 
       ctx.shadowBlur = 0;
       ctx.textAlign = 'left';
+      const barFontFamily = overlay.fontFamily ?? 'Arial, Helvetica, sans-serif';
 
       if (overlay.lineTwo) {
         const smallSize = Math.round(fontSize * 0.72);
@@ -435,19 +436,19 @@ function drawTextOverlay(
         const totalTextH = fontSize + smallSize + gapY;
         const lineOneY = barY + (barH - totalTextH) / 2;
 
-        ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`;
+        ctx.font = `bold ${fontSize}px ${barFontFamily}`;
         ctx.textBaseline = 'top';
         ctx.fillStyle = textColor;
         ctx.fillText(overlay.text, padX, lineOneY);
 
         ctx.save();
         ctx.globalAlpha = ctx.globalAlpha * 0.85;
-        ctx.font = `${smallSize}px Arial, Helvetica, sans-serif`;
+        ctx.font = `${smallSize}px ${barFontFamily}`;
         ctx.fillStyle = textColor;
         ctx.fillText(overlay.lineTwo, padX, lineOneY + fontSize + gapY);
         ctx.restore();
       } else {
-        ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`;
+        ctx.font = `bold ${fontSize}px ${barFontFamily}`;
         ctx.textBaseline = 'middle';
         ctx.fillStyle = textColor;
         ctx.fillText(overlay.text, padX, barY + barH / 2);

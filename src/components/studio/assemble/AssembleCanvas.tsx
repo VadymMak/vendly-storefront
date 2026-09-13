@@ -9,6 +9,7 @@ import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
 import { NLETimeline } from './Timeline';
+import { FontPicker } from './FontPicker';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -451,6 +452,13 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
           />
         </div>
       )}
+      <div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font</div>
+        <FontPicker
+          value={draft.fontFamily ?? 'Arial'}
+          onChange={(family) => setDraft({ ...draft, fontFamily: family })}
+        />
+      </div>
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Style</div>
         <div className="flex flex-wrap gap-1">

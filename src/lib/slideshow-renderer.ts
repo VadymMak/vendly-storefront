@@ -459,36 +459,54 @@ function drawTextOverlay(
 
   switch (overlay.style) {
     case 'brand': {
-      const fontSize = Math.round(W * 0.055);
-      ctx.font = `bold ${fontSize}px Georgia, 'Times New Roman', serif`;
+      const fontSize = overlay.fontSize
+        ? Math.round(overlay.fontSize * W / 1080)
+        : Math.round(W * 0.055);
+      const fontFamily = overlay.fontFamily
+        ? `'${overlay.fontFamily}', serif`
+        : "Georgia, 'Times New Roman', serif";
+      const fontWeight = overlay.fontWeight ?? 'bold';
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const y = overlay.position === 'top' ? H * 0.14 : overlay.position === 'bottom' ? H * 0.86 : H * 0.5;
+      const posX = overlay.x !== undefined ? (overlay.x / 100) * W : W / 2;
+      const posY = overlay.y !== undefined
+        ? (overlay.y / 100) * H
+        : overlay.position === 'top' ? H * 0.14 : overlay.position === 'bottom' ? H * 0.86 : H * 0.5;
       ctx.shadowColor = 'rgba(0,0,0,0.85)';
       ctx.shadowBlur = 24;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 2;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText(overlay.text, W / 2, y);
+      ctx.fillStyle = overlay.color ?? '#FFFFFF';
+      ctx.fillText(overlay.text, posX, posY);
       const metrics = ctx.measureText(overlay.text);
       const lineW = Math.min(metrics.width * 0.4, W * 0.25);
       ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillRect(W / 2 - lineW / 2, y + fontSize * 0.7, lineW, 1.5);
+      ctx.fillStyle = overlay.color ? `${overlay.color}99` : 'rgba(255,255,255,0.6)';
+      ctx.fillRect(posX - lineW / 2, posY + fontSize * 0.7, lineW, 1.5);
       break;
     }
 
     case 'subtitle': {
-      const fontSize = Math.round(W * 0.032);
-      ctx.font = `${fontSize}px Arial, Helvetica, sans-serif`;
+      const fontSize = overlay.fontSize
+        ? Math.round(overlay.fontSize * W / 1080)
+        : Math.round(W * 0.032);
+      const fontFamily = overlay.fontFamily
+        ? `'${overlay.fontFamily}', sans-serif`
+        : 'Arial, Helvetica, sans-serif';
+      const fontWeight = overlay.fontWeight ?? 'normal';
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      const y = overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.55 : H * 0.91;
+      const posX = overlay.x !== undefined ? (overlay.x / 100) * W : W / 2;
+      const posY = overlay.y !== undefined
+        ? (overlay.y / 100) * H
+        : overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.55 : H * 0.91;
       const metrics = ctx.measureText(overlay.text);
       const padX = fontSize * 0.7;
       const padY = fontSize * 0.35;
-      const bgX = W / 2 - metrics.width / 2 - padX;
-      const bgY = y - fontSize - padY;
+      const bgX = posX - metrics.width / 2 - padX;
+      const bgY = posY - fontSize - padY;
       const bgW = metrics.width + padX * 2;
       const bgH = fontSize + padY * 2;
       const r   = bgH / 2;
@@ -496,23 +514,32 @@ function drawTextOverlay(
       ctx.beginPath();
       ctx.roundRect(bgX, bgY, bgW, bgH, r);
       ctx.fill();
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = overlay.color ?? '#FFFFFF';
       ctx.shadowColor = 'rgba(0,0,0,0.4)';
       ctx.shadowBlur = 6;
-      ctx.fillText(overlay.text, W / 2, y);
+      ctx.fillText(overlay.text, posX, posY);
       break;
     }
 
     case 'cta': {
-      const fontSize = Math.round(W * 0.038);
-      ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`;
+      const fontSize = overlay.fontSize
+        ? Math.round(overlay.fontSize * W / 1080)
+        : Math.round(W * 0.038);
+      const fontFamily = overlay.fontFamily
+        ? `'${overlay.fontFamily}', sans-serif`
+        : 'Arial, Helvetica, sans-serif';
+      const fontWeight = overlay.fontWeight ?? 'bold';
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const y = overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.5 : H * 0.87;
+      const posX = overlay.x !== undefined ? (overlay.x / 100) * W : W / 2;
+      const posY = overlay.y !== undefined
+        ? (overlay.y / 100) * H
+        : overlay.position === 'top' ? H * 0.12 : overlay.position === 'center' ? H * 0.5 : H * 0.87;
       ctx.shadowColor = 'rgba(0,0,0,0.9)';
       ctx.shadowBlur = 18;
-      ctx.fillStyle = '#FFD700';
-      ctx.fillText(overlay.text, W / 2, y);
+      ctx.fillStyle = overlay.color ?? '#FFD700';
+      ctx.fillText(overlay.text, posX, posY);
       break;
     }
 

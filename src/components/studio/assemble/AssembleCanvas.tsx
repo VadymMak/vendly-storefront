@@ -964,14 +964,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     }
     for (const clip of audioClips) {
       if (!map.has(clip.id) && clip.sourceUrl) {
-        const el = new Audio(clip.sourceUrl);
-        el.preload = 'auto';
-        el.muted = isMutedRef.current;
-        map.set(clip.id, el);
+        const audioSrc = clip.sourceUrl.startsWith('idb://')
+          ? idbUrls[clip.sourceUrl]
+          : clip.sourceUrl;
+        if (audioSrc) {
+          const el = new Audio(audioSrc);
+          el.preload = 'auto';
+          el.muted = isMutedRef.current;
+          map.set(clip.id, el);
+        }
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioClips]);
+  }, [audioClips, idbUrls]);
 
   // ── Music: create/destroy Audio element from data URL ─────────────────────
 
@@ -1511,15 +1516,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         <>
           <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">Properties</div>
           <div className="p-3 space-y-3">
-            {selectedClip.sourceUrl && (selectedClip.type === 'image' || selectedClip.type === 'video') && (
-              <div className="overflow-hidden rounded-lg border border-white/10 bg-black" style={{ aspectRatio: '16/9' }}>
-                {selectedClip.type === 'image'
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={selectedClip.sourceUrl} alt="" className="h-full w-full object-cover" />
-                  : <video src={selectedClip.sourceUrl} className="h-full w-full object-cover" muted playsInline />
-                }
-              </div>
-            )}
+            {selectedClip.sourceUrl && (selectedClip.type === 'image' || selectedClip.type === 'video') && (() => {
+              const thumbUrl = resolvedUrl(selectedClip);
+              if (!thumbUrl) return null;
+              return (
+                <div className="overflow-hidden rounded-lg border border-white/10 bg-black" style={{ aspectRatio: '16/9' }}>
+                  {selectedClip.type === 'image'
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
+                    : <video src={thumbUrl} className="h-full w-full object-cover" muted playsInline />
+                  }
+                </div>
+              );
+            })()}
             <div className="flex items-center gap-2">
               <span className="rounded bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-wider text-gray-400">{selectedClip.type}</span>
               <span className="text-xs text-gray-600">{selectedClip.duration.toFixed(1)}s @ {selectedClip.startTime.toFixed(1)}s</span>
@@ -1823,7 +1832,6 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                           style={isPlaying ? {
                             transform: getKenBurnsTransform(clip.startTime, clip.duration, globalIdx, playheadTime),
                             transformOrigin: 'center center',
-                            transition: 'transform 0.1s linear',
                             willChange: 'transform',
                           } : undefined}
                           onError={e => {

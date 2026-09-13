@@ -139,8 +139,12 @@ export function TextFrame({
         }
 
         function onUp() {
-          contentEl.style.transform = '';
-          onChange({ fontSize: lastFontSize });
+          const newFontSize = lastFontSize;
+          onChange({ fontSize: newFontSize });
+          requestAnimationFrame(() => {
+            contentEl.style.transform = '';
+            contentEl.style.transformOrigin = '';
+          });
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup',   onUp);
         }
@@ -176,10 +180,12 @@ export function TextFrame({
       }
 
       function onUp() {
-        frameEl.style.width  = '';
-        frameEl.style.height = '';
         if (type === 'e' || type === 'w') onChange({ width:  Math.round(lastW) });
         else                               onChange({ height: Math.round(lastH) });
+        requestAnimationFrame(() => {
+          frameEl.style.width  = '';
+          frameEl.style.height = '';
+        });
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup',   onUp);
       }
@@ -246,7 +252,19 @@ export function TextFrame({
       onClick={e => { e.stopPropagation(); onSelect(); }}
     >
       {/* Content wrapper (scaled during corner resize preview) */}
-      <div ref={contentRef} style={{ display: 'inline-block' }}>
+      <div
+        ref={contentRef}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          width: '100%',
+          height: '100%',
+          minWidth: 'fit-content',
+          minHeight: 'fit-content',
+        }}
+      >
         {children}
       </div>
 

@@ -1176,19 +1176,20 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     if (!overlay) return;
     const updated = { ...overlay, ...updates };
     storeUpdateOverlay(storeIdx, updated);
+
+    // Update overlayData IN-PLACE — preserves clip ID, avoids React unmount/remount
     const tt = timelineTracks.find(t => t.type === 'text');
     if (tt) {
       const sorted = [...tt.clips].sort((a, b) => a.startTime - b.startTime);
       const textClip = sorted[storeIdx];
       if (textClip) {
-        const store = useStudioStore.getState();
-        store.removeClip(textClip.id);
-        store.addClipToTrack(tt.id, {
-          type: 'text',
-          startTime: textClip.startTime,
-          duration: textClip.duration,
-          overlayData: updated,
-        });
+        useStudioStore.setState((s) => ({
+          timelineTracks: s.timelineTracks.map(t =>
+            t.id === tt.id
+              ? { ...t, clips: t.clips.map(c => c.id === textClip.id ? { ...c, overlayData: updated } : c) }
+              : t
+          ),
+        }));
       }
     }
   }

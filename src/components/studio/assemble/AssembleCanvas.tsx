@@ -12,6 +12,9 @@ import { NLETimeline } from './Timeline';
 import { FontPicker } from './FontPicker';
 import { TextPropertiesPanel } from './TextPropertiesPanel';
 import { TextFrame } from './TextFrame';
+import { TEXT_PRESETS, PRESET_CATEGORIES, PRESET_CATEGORY_LABELS } from '@/lib/fonts/text-presets';
+import type { PresetCategory } from '@/lib/fonts/text-presets';
+import { loadGoogleFont } from '@/lib/fonts/font-loader';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -396,8 +399,50 @@ interface EditorProps {
 
 function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: EditorProps) {
   const showLineTwo = draft.style === 'bar';
+  const [presetCategory, setPresetCategory] = useState<PresetCategory>('basic');
+
+  function applyPreset(preset: { style: Partial<TextOverlay>; requiredFonts?: string[] }) {
+    setDraft({ ...draft, ...preset.style });
+    if (preset.requiredFonts) {
+      preset.requiredFonts.forEach(f => loadGoogleFont(f).catch(() => {}));
+    }
+  }
+
+  const categoryPresets = TEXT_PRESETS.filter(p => p.category === presetCategory);
+
   return (
     <div className="space-y-3 px-3 py-3">
+      {/* ── Styles section ── */}
+      <div className="border-t border-white/6 pt-1.5">
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Styles</div>
+        <div className="mb-1.5 flex gap-1 overflow-x-auto pb-0.5">
+          {PRESET_CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setPresetCategory(cat)}
+              className={[
+                'shrink-0 rounded px-2 py-0.5 text-[10px] transition-colors',
+                presetCategory === cat
+                  ? 'bg-green-600 text-white'
+                  : 'bg-white/8 text-gray-500 hover:bg-white/15 hover:text-gray-300',
+              ].join(' ')}
+            >
+              {PRESET_CATEGORY_LABELS[cat]}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {categoryPresets.map(preset => (
+            <button
+              key={preset.name}
+              onClick={() => applyPreset(preset)}
+              className="rounded bg-white/8 px-2 py-1 text-[10px] text-gray-400 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+      </div>
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Text</div>
         <input
@@ -547,19 +592,79 @@ function OverlayEditorPanel({ draft, setDraft, onSave, onCancel, sceneCount }: E
         draft={draft}
         onChange={(updates) => setDraft({ ...draft, ...updates })}
       />
+      {/* ── Entry Animation ── */}
       <div>
-        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Animation</div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Entry Animation</div>
         <div className="flex flex-wrap gap-1">
-          {(['none', 'fade-in', 'slide-left', 'slide-up'] as const).map(a => (
+          {([
+            ['none',       'None'],
+            ['fade-in',    'Fade In'],
+            ['slide-left', 'Slide Left'],
+            ['slide-right','Slide Right'],
+            ['slide-up',   'Slide Up'],
+            ['slide-down', 'Slide Down'],
+            ['typewriter', 'Typewriter'],
+            ['bounce',     'Bounce'],
+            ['scale-up',   'Scale Up'],
+            ['blur-in',    'Blur In'],
+          ] as const).map(([val, label]) => (
             <button
-              key={a}
-              onClick={() => setDraft({ ...draft, animation: a })}
+              key={val}
+              onClick={() => setDraft({ ...draft, animation: val })}
               className={[
-                'rounded px-2.5 py-1 text-xs transition-colors',
-                (draft.animation ?? 'none') === a ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15 hover:text-gray-300',
+                'rounded px-2 py-0.5 text-[10px] transition-colors',
+                (draft.animation ?? 'none') === val ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15 hover:text-gray-300',
               ].join(' ')}
             >
-              {a === 'none' ? 'None' : a === 'fade-in' ? 'Fade In' : a === 'slide-left' ? 'Slide Left' : 'Slide Up'}
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Animation Mode ── */}
+      <div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Animation Mode</div>
+        <div className="flex gap-1">
+          {([
+            ['per-block',     'Block'],
+            ['per-word',      'Per Word'],
+            ['per-character', 'Per Char'],
+          ] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setDraft({ ...draft, animationMode: val })}
+              className={[
+                'flex-1 rounded px-1 py-0.5 text-[10px] transition-colors',
+                (draft.animationMode ?? 'per-block') === val ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15 hover:text-gray-300',
+              ].join(' ')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Exit Animation ── */}
+      <div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Exit Animation</div>
+        <div className="flex flex-wrap gap-1">
+          {([
+            ['none',            'None'],
+            ['fade-out',        'Fade Out'],
+            ['slide-out-left',  'Slide Out L'],
+            ['slide-out-right', 'Slide Out R'],
+            ['scale-down',      'Scale Down'],
+          ] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setDraft({ ...draft, exitAnimation: val })}
+              className={[
+                'rounded px-2 py-0.5 text-[10px] transition-colors',
+                (draft.exitAnimation ?? 'none') === val ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-500 hover:bg-white/15 hover:text-gray-300',
+              ].join(' ')}
+            >
+              {label}
             </button>
           ))}
         </div>

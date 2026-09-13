@@ -84,8 +84,12 @@ export interface TextOverlay {
   paddingX?: number;
   paddingY?: number;
   lineTwo?: string;
-  animation?: 'none' | 'fade-in' | 'slide-left' | 'slide-up';
+  animation?: 'none' | 'fade-in' | 'slide-left' | 'slide-up' | 'slide-right' | 'slide-down' | 'typewriter' | 'bounce' | 'scale-up' | 'blur-in';
   animationDuration?: number;
+  animationMode?: 'per-block' | 'per-word' | 'per-character';
+  animationDelay?: number;
+  exitAnimation?: 'none' | 'fade-out' | 'slide-out-left' | 'slide-out-right' | 'scale-down';
+  exitAnimationDuration?: number;
 
   // Free XY positioning (percentage 0–100, relative to canvas; undefined = use position preset)
   x?: number;
@@ -369,6 +373,17 @@ function drawTextWithSpacing(
   }
 }
 
+function easeOut(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function easeOutBounce(t: number): number {
+  if (t < 1 / 2.75) return 7.5625 * t * t;
+  if (t < 2 / 2.75) { const u = t - 1.5 / 2.75;   return 7.5625 * u * u + 0.75; }
+  if (t < 2.5 / 2.75) { const u = t - 2.25 / 2.75; return 7.5625 * u * u + 0.9375; }
+  const u = t - 2.625 / 2.75; return 7.5625 * u * u + 0.984375;
+}
+
 function drawTextOverlay(
   ctx: CanvasRenderingContext2D,
   overlay: TextOverlay,
@@ -379,18 +394,66 @@ function drawTextOverlay(
   ctx.save();
   ctx.shadowBlur = 0;
 
-  // Animation
-  if (currentTime !== undefined && overlay.animation && overlay.animation !== 'none') {
-    const animStart = overlay.from ?? 0;
-    const animDur = overlay.animationDuration ?? 0.5;
-    const elapsed = currentTime - animStart;
-    const progress = Math.max(0, Math.min(1, elapsed / animDur));
-    if (overlay.animation === 'fade-in') {
-      ctx.globalAlpha = progress;
-    } else if (overlay.animation === 'slide-left') {
-      ctx.translate((1 - progress) * W * 0.25, 0);
-    } else if (overlay.animation === 'slide-up') {
-      ctx.translate(0, (1 - progress) * H * 0.08);
+  // ── Animation state ────────────────────────────────────────────────────────
+  const anim     = overlay.animation     ?? 'none';
+  const exitAnim = overlay.exitAnimation ?? 'none';
+  let entryT = 1;
+  let exitT  = 0;
+
+  if (currentTime !== undefined) {
+    const animStart  = (overlay.from ?? 0) + (overlay.animationDelay ?? 0);
+    const animDur    = overlay.animationDuration ?? 0.5;
+    const elapsed    = currentTime - animStart;
+    const rawEntry   = Math.max(0, Math.min(1, elapsed / Math.max(0.001, animDur)));
+    entryT = anim === 'bounce' ? easeOutBounce(rawEntry) : easeOut(rawEntry);
+
+    if (exitAnim !== 'none' && overlay.to !== undefined) {
+      const exitDur      = overlay.exitAnimationDuration ?? 0.3;
+      const timeUntilEnd = overlay.to - currentTime;
+      exitT = Math.max(0, Math.min(1, 1 - timeUntilEnd / exitDur));
+    }
+  }
+
+  // Entry animation (exclude typewriter — handled per-text below)
+  if (anim !== 'none' && anim !== 'typewriter') {
+    switch (anim) {
+      case 'fade-in':     ctx.globalAlpha *= entryT; break;
+      case 'slide-left':  ctx.translate((1 - entryT) * W * 0.25, 0); break;
+      case 'slide-right': ctx.translate(-(1 - entryT) * W * 0.25, 0); break;
+      case 'slide-up':    ctx.translate(0, (1 - entryT) * H * 0.08); break;
+      case 'slide-down':  ctx.translate(0, -(1 - entryT) * H * 0.08); break;
+      case 'scale-up': {
+        const s = Math.max(0.001, entryT);
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(s, s);
+        ctx.translate(-W / 2, -H / 2);
+        break;
+      }
+      case 'bounce':
+        ctx.translate(0, (1 - entryT) * H * 0.1);
+        break;
+      case 'blur-in': {
+        const blurPx = Math.round((1 - entryT) * 20);
+        if (blurPx > 0) ctx.filter = `blur(${blurPx}px)`;
+        ctx.globalAlpha *= Math.max(0.05, entryT);
+        break;
+      }
+    }
+  }
+
+  // Exit animation
+  if (exitAnim !== 'none' && exitT > 0) {
+    switch (exitAnim) {
+      case 'fade-out':        ctx.globalAlpha *= (1 - exitT); break;
+      case 'slide-out-left':  ctx.translate(-exitT * W * 0.25, 0); break;
+      case 'slide-out-right': ctx.translate(exitT * W * 0.25, 0); break;
+      case 'scale-down': {
+        const s = Math.max(0.001, 1 - exitT);
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(s, s);
+        ctx.translate(-W / 2, -H / 2);
+        break;
+      }
     }
   }
 
@@ -517,10 +580,15 @@ function drawTextOverlay(
       if (overlay.textTransform === 'uppercase') displayText = displayText.toUpperCase();
       else if (overlay.textTransform === 'lowercase') displayText = displayText.toLowerCase();
 
+      // Typewriter: slice text to animation progress
+      if (anim === 'typewriter') {
+        displayText = displayText.slice(0, Math.floor(displayText.length * entryT));
+      }
+
       ctx.save();
 
       if (overlay.opacity !== undefined && overlay.opacity < 1) {
-        ctx.globalAlpha = overlay.opacity;
+        ctx.globalAlpha = ctx.globalAlpha * overlay.opacity;
       }
 
       ctx.font = `${fontWeight} ${scaledSize}px ${fontFamily}`.trim();
@@ -586,29 +654,85 @@ function drawTextOverlay(
         ctx.shadowOffsetY = overlay.shadowOffsetY ? Math.round(overlay.shadowOffsetY * W / 1080) : 2;
       }
 
-      // 3. Text fill
-      ctx.fillStyle = overlay.color ?? '#FFFFFF';
-      if (letterSpacing > 0) {
-        drawTextWithSpacing(ctx, displayText, posX, posY, letterSpacing, false);
-      } else {
-        ctx.fillText(displayText, posX, posY);
-      }
+      // 3. Per-word / per-character stagger (fade-in and slide-up only)
+      const animMode = overlay.animationMode ?? 'per-block';
+      const supportsStagger = anim === 'fade-in' || anim === 'slide-up';
+      const useStagger = (animMode === 'per-word' || animMode === 'per-character') && supportsStagger && currentTime !== undefined;
 
-      // 4. Reset shadow before stroke
-      ctx.shadowColor   = 'transparent';
-      ctx.shadowBlur    = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
+      if (useStagger) {
+        const usePerChar = animMode === 'per-character' && displayText.length <= 50;
+        const units = usePerChar
+          ? displayText.split('')
+          : displayText.split(' ').filter(u => u.length > 0);
+        const staggerDelay = usePerChar ? 0.04 : 0.08;
+        const unitDur      = Math.max(0.1, (overlay.animationDuration ?? 0.5) * 0.6);
+        const animStartT   = (overlay.from ?? 0) + (overlay.animationDelay ?? 0);
+        const spaceW       = ctx.measureText(' ').width;
 
-      // 5. Stroke
-      if (overlay.strokeColor && (overlay.strokeWidth ?? 0) > 0) {
-        ctx.strokeStyle = overlay.strokeColor;
-        ctx.lineWidth   = Math.round((overlay.strokeWidth ?? 1) * W / 1080);
-        ctx.lineJoin    = 'round';
-        if (letterSpacing > 0) {
-          drawTextWithSpacing(ctx, displayText, posX, posY, letterSpacing, true);
+        const unitWidths = units.map(u => ctx.measureText(u).width);
+        let totalW = unitWidths.reduce((s, w) => s + w, 0);
+        if (usePerChar) {
+          totalW += letterSpacing * Math.max(0, units.length - 1);
         } else {
-          ctx.strokeText(displayText, posX, posY);
+          totalW += spaceW * Math.max(0, units.length - 1);
+        }
+
+        let unitX = posX - totalW / 2;
+        ctx.textAlign = 'left';
+
+        const savedAlpha = ctx.globalAlpha;
+        for (let i = 0; i < units.length; i++) {
+          const unitElapsed = (currentTime!) - animStartT - i * staggerDelay;
+          const rawT  = Math.max(0, Math.min(1, unitElapsed / unitDur));
+          const unitT = easeOut(rawT);
+
+          ctx.globalAlpha = savedAlpha * unitT;
+          ctx.save();
+          if (anim === 'slide-up' && unitT < 1) {
+            ctx.translate(0, (1 - unitT) * H * 0.04);
+          }
+
+          ctx.fillStyle = overlay.color ?? '#FFFFFF';
+          ctx.fillText(units[i], unitX, posY);
+
+          if (overlay.strokeColor && (overlay.strokeWidth ?? 0) > 0) {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle  = overlay.strokeColor;
+            ctx.lineWidth    = Math.round((overlay.strokeWidth ?? 1) * W / 1080);
+            ctx.lineJoin     = 'round';
+            ctx.strokeText(units[i], unitX, posY);
+          }
+          ctx.restore();
+
+          unitX += unitWidths[i] + (usePerChar ? letterSpacing : spaceW);
+        }
+        ctx.globalAlpha = savedAlpha;
+      } else {
+        // 3b. Normal text fill
+        ctx.fillStyle = overlay.color ?? '#FFFFFF';
+        if (letterSpacing > 0) {
+          drawTextWithSpacing(ctx, displayText, posX, posY, letterSpacing, false);
+        } else {
+          ctx.fillText(displayText, posX, posY);
+        }
+
+        // 4. Reset shadow before stroke
+        ctx.shadowColor   = 'transparent';
+        ctx.shadowBlur    = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // 5. Stroke
+        if (overlay.strokeColor && (overlay.strokeWidth ?? 0) > 0) {
+          ctx.strokeStyle = overlay.strokeColor;
+          ctx.lineWidth   = Math.round((overlay.strokeWidth ?? 1) * W / 1080);
+          ctx.lineJoin    = 'round';
+          if (letterSpacing > 0) {
+            drawTextWithSpacing(ctx, displayText, posX, posY, letterSpacing, true);
+          } else {
+            ctx.strokeText(displayText, posX, posY);
+          }
         }
       }
 

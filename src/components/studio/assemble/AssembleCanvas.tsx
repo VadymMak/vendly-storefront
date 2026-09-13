@@ -2081,6 +2081,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               musicName={musicName}
               idbUrls={idbUrls}
               onFileAdd={files => void handleFileAdd(files)}
+              onMusicRemove={() => { setMusic(null, null); if (musicInputRef.current) musicInputRef.current.value = ''; }}
             />
           </div>
         </div>

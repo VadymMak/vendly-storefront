@@ -148,11 +148,12 @@ interface Props {
   musicName: string | null;
   idbUrls: Record<string, string>;
   onFileAdd: (files: FileList) => void;
+  onMusicRemove: () => void;
 }
 
 type ImportTab = 'generate' | 'animate';
 
-export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
+export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Props) {
   const tracks          = useStudioStore(s => s.timelineTracks);
   const zoom            = useStudioStore(s => s.timelineZoom);
   const setZoom         = useStudioStore(s => s.setTimelineZoom);
@@ -169,10 +170,12 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
   const splitClipFn     = useStudioStore(s => s.splitClip);
   const removeClipFn    = useStudioStore(s => s.removeClip);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef    = useRef<HTMLDivElement>(null);
-  const dragRef      = useRef<DragState | null>(null);
-  const zoomRef      = useRef(zoom);
+  const fileInputRef       = useRef<HTMLInputElement>(null);
+  const scrollRef          = useRef<HTMLDivElement>(null);
+  const dragRef            = useRef<DragState | null>(null);
+  const zoomRef            = useRef(zoom);
+  const onMusicRemoveRef   = useRef(onMusicRemove);
+  onMusicRemoveRef.current = onMusicRemove;
   const [draftClip, setDraftClip] = useState<DraftClip | null>(null);
   const [playheadDragging, setPlayheadDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -318,6 +321,10 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         const id = useStudioStore.getState().selectedClipId;
+        if (id === '__music__') {
+          onMusicRemoveRef.current();
+          return;
+        }
         if (id) removeClipFn(id);
         return;
       }
@@ -517,7 +524,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
                     key={track.id}
                     data-track-id={track.id}
                     className={[
-                      'relative flex-shrink-0 border-b border-white/5 transition-colors',
+                      'group relative flex-shrink-0 border-b border-white/5 transition-colors',
                       tIdx % 2 === 0 ? 'bg-white/[0.02]' : 'bg-transparent',
                       dropTarget === track.id ? 'bg-purple-500/10' : '',
                     ].join(' ')}
@@ -554,15 +561,27 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd }: Props) {
                       } catch { /* invalid data */ }
                     }}
                   >
-                    {/* Music placeholder bar */}
+                    {/* Music bar — clickable, selectable, deletable */}
                     {showMusicBar && (
                       <div
-                        className="pointer-events-none absolute inset-y-1 rounded border border-green-500/30 bg-green-700/25"
+                        className={[
+                          'absolute inset-y-1 cursor-pointer rounded border bg-green-700/25',
+                          selectedClipId === '__music__' ? 'border-green-400 ring-1 ring-green-400/50' : 'border-green-500/30',
+                        ].join(' ')}
                         style={{ left: 0, right: 0 }}
+                        onClick={e => { e.stopPropagation(); setSelected('__music__'); }}
                       >
                         <div className="flex h-full items-center gap-1 px-2">
                           <IconMusic />
-                          <span className="truncate text-[9px] text-green-400">{musicName}</span>
+                          <span className="flex-1 truncate text-[9px] text-green-400">{musicName}</span>
+                          <button
+                            className="ml-auto flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-red-600/70 text-white transition-opacity hover:bg-red-500 group-hover:opacity-100"
+                            style={{ opacity: selectedClipId === '__music__' ? 1 : 0 }}
+                            onClick={e => { e.stopPropagation(); onMusicRemoveRef.current(); }}
+                            title="Remove music"
+                          >
+                            <span className="text-[8px] font-bold leading-none">✕</span>
+                          </button>
                         </div>
                       </div>
                     )}

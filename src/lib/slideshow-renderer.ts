@@ -310,18 +310,18 @@ async function seekVideoToTime(video: HTMLVideoElement, time: number): Promise<v
 }
 
 /**
- * Wait for the browser's video decoder to present the current frame.
- * Uses requestVideoFrameCallback (Chrome 83+) to ensure decoded pixels are
- * available for ctx.drawImage() after a seek. Falls back to setTimeout(0).
+ * Wait for the browser's video decoder to have the current frame ready.
+ * Uses createImageBitmap(video) which forces a decode and resolves once pixels
+ * are available. Works on detached (not-in-DOM) video elements — unlike
+ * requestVideoFrameCallback which requires compositor attachment.
  */
 async function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
-  if ('requestVideoFrameCallback' in video) {
-    return new Promise<void>((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (video as any).requestVideoFrameCallback(() => resolve());
-    });
+  try {
+    const bmp = await createImageBitmap(video);
+    bmp.close();
+  } catch {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
-  return new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 // ── Frame state ───────────────────────────────────────────────────────────────

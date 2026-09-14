@@ -500,6 +500,19 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       }
       const data = await res.json() as { url: string };
 
+      // Keep original for before/after comparison
+      const origBlob = await fetch(uploadedPreview!).then(r => r.blob());
+      const origPersistentUrl = URL.createObjectURL(origBlob);
+      addImage({
+        id: `img-original-${Date.now()}`,
+        type: 'image',
+        url: origPersistentUrl,
+        prompt: '[Original] Uploaded photo',
+        format: 'png',
+        model: 'original',
+        createdAt: Date.now() - 1,
+      });
+
       const newImage: MediaItem = {
         id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         type: 'image',

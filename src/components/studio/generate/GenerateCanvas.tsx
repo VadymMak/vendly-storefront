@@ -214,8 +214,9 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
 }) {
   const isVideo = img.type === 'video';
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
-      <div className="cursor-pointer" onClick={onOpen}>
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+      {/* Image area — group + relative scoped here so overlay only covers image */}
+      <div className="group relative cursor-pointer" onClick={onOpen}>
         {isVideo ? (
           <video
             src={img.url}
@@ -233,11 +234,44 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
             style={{ filter: filter !== 'none' ? filter : undefined }}
           />
         )}
+
+        {/* Hover overlay — only covers the image, not the filters below */}
+        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex flex-wrap gap-1.5 p-3">
+            {!isVideo && (
+              <>
+                <SmallAction label="Improve" onClick={e => { e.stopPropagation(); onImprove(); }} />
+                <SmallAction label="Animate" onClick={e => { e.stopPropagation(); onAnimate(); }} highlight />
+                <SmallAction label="Upscale" onClick={e => { e.stopPropagation(); onUpscale(); }} />
+                <SmallAction label="No BG"   onClick={e => { e.stopPropagation(); onRemoveBg(); }} />
+              </>
+            )}
+            <SmallAction label="Assemble" onClick={e => { e.stopPropagation(); onAddToAssemble(); }} />
+            <SmallAction label="Download" onClick={e => { e.stopPropagation(); onDownload(); }} />
+            <button
+              onClick={e => { e.stopPropagation(); onCopy(); }}
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              title="Copy prompt"
+            >
+              {copied ? <span className="text-xs text-green-400">✓</span> : <IconCopy />}
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(); }}
+              className="ml-auto rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-500/20 hover:text-red-400"
+              title="Delete"
+            >
+              <IconX />
+            </button>
+          </div>
+          {img.prompt && (
+            <p className="px-3 pb-3 text-xs text-gray-300 line-clamp-2">{img.prompt}</p>
+          )}
+        </div>
       </div>
 
-      {/* Quick filters (images only) */}
+      {/* Quick filters — outside image container, always clickable */}
       {!isVideo && (
-        <div className="flex gap-1 overflow-x-auto px-3 pb-1 pt-2">
+        <div className="flex gap-1 overflow-x-auto px-3 pb-1.5 pt-2">
           {QUICK_FILTERS.map(f => (
             <button
               key={f.id}
@@ -251,39 +285,6 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
           ))}
         </div>
       )}
-
-      {/* Hover overlay */}
-      <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="flex flex-wrap gap-1.5 p-3">
-          {!isVideo && (
-            <>
-              <SmallAction label="Improve" onClick={e => { e.stopPropagation(); onImprove(); }} />
-              <SmallAction label="Animate" onClick={e => { e.stopPropagation(); onAnimate(); }} highlight />
-              <SmallAction label="Upscale" onClick={e => { e.stopPropagation(); onUpscale(); }} />
-              <SmallAction label="No BG"   onClick={e => { e.stopPropagation(); onRemoveBg(); }} />
-            </>
-          )}
-          <SmallAction label="Assemble" onClick={e => { e.stopPropagation(); onAddToAssemble(); }} />
-          <SmallAction label="Download" onClick={e => { e.stopPropagation(); onDownload(); }} />
-          <button
-            onClick={e => { e.stopPropagation(); onCopy(); }}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
-            title="Copy prompt"
-          >
-            {copied ? <span className="text-xs text-green-400">✓</span> : <IconCopy />}
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(); }}
-            className="ml-auto rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-500/20 hover:text-red-400"
-            title="Delete"
-          >
-            <IconX />
-          </button>
-        </div>
-        {img.prompt && (
-          <p className="px-3 pb-3 text-xs text-gray-300 line-clamp-2">{img.prompt}</p>
-        )}
-      </div>
     </div>
   );
 }

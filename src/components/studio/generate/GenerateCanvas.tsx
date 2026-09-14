@@ -236,7 +236,10 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
         )}
 
         {/* Hover overlay — only covers the image, not the filters below */}
-        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
+        <div
+          className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={e => e.stopPropagation()}
+        >
           <div className="flex flex-wrap gap-1.5 p-3">
             {!isVideo && (
               <>

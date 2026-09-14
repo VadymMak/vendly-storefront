@@ -56,3 +56,83 @@ export const EXAMPLE_PROMPTS = [
   'Street food market at night, vibrant colors, cinematic lighting',
   'Modern office space with floor-to-ceiling windows and city view',
 ] as const;
+
+// ── Enhancement presets (for /api/ai-edit) ──────────────────────────────────
+
+export const ENHANCEMENT_PRESETS = [
+  {
+    id: 'professional',
+    label: 'Professional',
+    icon: 'sparkle',
+    prompt: 'Transform this into a high-end professional photograph. Improve lighting, exposure, white balance, sharpness, and depth of field. Create a polished commercial look while preserving the exact subject and composition.',
+  },
+  {
+    id: 'food',
+    label: 'Food Photography',
+    icon: 'food',
+    prompt: 'Transform this into professional food photography. Warm lighting, rich saturated colors, shallow depth of field with creamy bokeh, sharp focus on the food, appetizing texture enhancement. Preserve the exact food, plate, and composition.',
+  },
+  {
+    id: 'product',
+    label: 'Product Shot',
+    icon: 'product',
+    prompt: 'Transform this into a professional product photograph. Clean studio lighting, sharp details, subtle shadows, commercial e-commerce quality. Preserve the exact product and composition.',
+  },
+  {
+    id: 'portrait',
+    label: 'Portrait',
+    icon: 'portrait',
+    prompt: 'Transform this into a professional portrait photograph. Soft flattering lighting, gentle skin retouching, beautiful bokeh background, editorial quality. Preserve the person identity and expression exactly.',
+  },
+  {
+    id: 'realestate',
+    label: 'Real Estate',
+    icon: 'realestate',
+    prompt: 'Transform this into a professional real estate photograph. Bright, well-lit interior, correct white balance, wide dynamic range, inviting atmosphere. Preserve the exact room layout and architecture.',
+  },
+] as const;
+
+export type EnhancementPresetId = typeof ENHANCEMENT_PRESETS[number]['id'];
+
+// ── Motion presets (for inline Animate panel) ────────────────────────────────
+
+export const MOTION_PRESETS = [
+  {
+    id: 'cinematic',
+    label: 'Cinematic',
+    prompt: 'Slow cinematic camera push-in, subtle natural movement, soft lighting, shallow depth of field, professional motion',
+  },
+  {
+    id: 'food-motion',
+    label: 'Food',
+    prompt: 'Slow cinematic zoom in toward the dish, subtle steam rising, gentle movement in the background, warm natural lighting, appetizing motion',
+  },
+  {
+    id: 'product-spin',
+    label: 'Product Showcase',
+    prompt: 'Smooth camera orbit around the product, clean studio lighting, subtle material texture highlights, professional showcase motion',
+  },
+  {
+    id: 'portrait-motion',
+    label: 'Portrait',
+    prompt: 'Subtle natural movement, gentle hair sway, soft eye blink, warm lighting shift, natural and alive feeling',
+  },
+  {
+    id: 'parallax',
+    label: 'Parallax',
+    prompt: 'Gentle parallax depth movement, soft clouds moving, subtle environmental motion, calm cinematic atmosphere',
+  },
+] as const;
+
+export type MotionPresetId = typeof MOTION_PRESETS[number]['id'];
+
+// ── Simplified size presets (replaces verbose PRESET_MAP for default UI) ─────
+
+export const SIZE_PRESETS = [
+  { id: 'square',    label: 'Square',    subtitle: 'Instagram Post',  aspect_ratio: '1:1',  megapixels: '1', target_width: 800,  target_height: 800  },
+  { id: 'portrait',  label: 'Portrait',  subtitle: 'Story / Reel',    aspect_ratio: '9:16', megapixels: '1', target_width: 630,  target_height: 1120 },
+  { id: 'landscape', label: 'Landscape', subtitle: 'Website / Cover', aspect_ratio: '16:9', megapixels: '1', target_width: 1440, target_height: 810  },
+  { id: 'product',   label: 'Product',   subtitle: '800 x 800',       aspect_ratio: '1:1',  megapixels: '1', target_width: 800,  target_height: 800  },
+] as const;
+
+export type SizePresetId = typeof SIZE_PRESETS[number]['id'];

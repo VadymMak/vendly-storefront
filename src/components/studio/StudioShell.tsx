@@ -116,7 +116,7 @@ function IconAutoEdit() {
 // ── Nav config ───────────────────────────────────────────────────────────────
 
 const PIPELINE_TABS = [
-  { href: '/studio/generate', label: 'Generate', Icon: IconSparkle },
+  { href: '/studio/generate', label: 'Create', Icon: IconSparkle },
   { href: '/studio/animate',  label: 'Animate',  Icon: IconPlay },
   { href: '/studio/assemble', label: 'Assemble', Icon: IconScissors },
 ] as const;

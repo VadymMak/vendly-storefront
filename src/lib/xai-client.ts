@@ -25,7 +25,7 @@ function parseGrokError(status: number, raw: string): string {
   return `xAI API error ${status}`;
 }
 
-export async function grokGenerate(apiKey: string, prompt: string, size?: string): Promise<string> {
+export async function grokGenerate(apiKey: string, prompt: string): Promise<string> {
   const res = await fetch('https://api.x.ai/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -37,7 +37,6 @@ export async function grokGenerate(apiKey: string, prompt: string, size?: string
       prompt,
       n: 1,
       response_format: 'url',
-      ...(size ? { size } : {}),
     }),
   });
 

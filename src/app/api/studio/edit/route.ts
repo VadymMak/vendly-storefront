@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
-import { getModel, LEGACY_EDIT_ALIAS } from '@/lib/studio/config';
+import { getModel } from '@/lib/studio/config';
 import { getProvider } from '@/lib/studio/providers';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
@@ -28,10 +28,9 @@ export async function POST(req: Request) {
 
   const file       = formData.get('image') as File | null;
   const prompt     = (formData.get('prompt') as string | null)?.trim() ?? '';
-  // Accept modelAlias (new) or provider (legacy)
+  // Accept modelAlias (new) or provider (legacy); no modelAlias → edit-kontext (Flux)
   const modelAlias = (formData.get('modelAlias') as string | null)
-    ?? LEGACY_EDIT_ALIAS[(formData.get('provider') as string | null) ?? 'flux']
-    ?? 'edit-kontext';
+    ?? (formData.get('provider') === 'grok' ? 'edit-grok' : 'edit-kontext');
 
   if (!file)   return NextResponse.json({ error: 'No image provided' }, { status: 400 });
   if (!prompt) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });

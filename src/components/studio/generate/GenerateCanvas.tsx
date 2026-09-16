@@ -512,7 +512,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const fd = new FormData();
       fd.append('image', uploadedImage);
       fd.append('prompt', enhancePrompt);
-      fd.append('modelAlias', 'edit-grok');
+      // default → edit-kontext (Flux Kontext Pro); override only if needed
 
       const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
       if (!res.ok) {

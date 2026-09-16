@@ -196,6 +196,18 @@ function SmallAction({ label, onClick, highlight }: {
   );
 }
 
+function getBadge(prompt: string | undefined): { text: string; color: string } | null {
+  if (!prompt) return null;
+  if (prompt.startsWith('[Original]'))     return { text: 'Original',      color: 'bg-gray-600/80' };
+  if (prompt.startsWith('[Enhanced]'))     return { text: 'Enhanced ✨',   color: 'bg-green-600/80' };
+  if (prompt.startsWith('[Generated]'))    return { text: 'Generated',     color: 'bg-purple-600/80' };
+  if (prompt.startsWith('[Edited]'))       return { text: 'Edited',        color: 'bg-blue-600/80' };
+  if (prompt.startsWith('[Upscaled]'))     return { text: 'Upscaled',      color: 'bg-amber-600/80' };
+  if (prompt.startsWith('[No Background]'))return { text: 'No BG',         color: 'bg-sky-600/80' };
+  if (prompt.startsWith('[Inpainted]'))    return { text: 'Inpainted',     color: 'bg-indigo-600/80' };
+  return null;
+}
+
 function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownload, onAddToAssemble, onDelete, onOpen, onCopy, copied, filter, activeFilterId, onFilterChange }: {
   img: MediaItem;
   onImprove: () => void;
@@ -213,6 +225,7 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
   onFilterChange: (id: string) => void;
 }) {
   const isVideo = img.type === 'video';
+  const badge = getBadge(img.prompt);
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
       {/* Image area — group + relative scoped here so overlay only covers image */}
@@ -233,6 +246,13 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
             className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             style={{ filter: filter !== 'none' ? filter : undefined }}
           />
+        )}
+
+        {/* Type badge — always visible, top-left */}
+        {badge && (
+          <span className={`absolute top-2 left-2 z-10 rounded-full px-2.5 py-0.5 text-xs font-medium text-white pointer-events-none ${badge.color}`}>
+            {badge.text}
+          </span>
         )}
 
         {/* Hover overlay — only covers the image, not the filters below */}
@@ -695,14 +715,14 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const newImage: MediaItem = {
         id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         type: 'image', url,
-        prompt: finalPrompt,
+        prompt: `[Generated] ${finalPrompt}`,
         preset: 'product',
         format: outputFormat,
         model: selectedModel,
         createdAt: Date.now(),
       };
       addImage(newImage);
-      saveToLibrary({ type: 'image', url, prompt: finalPrompt, model: selectedModel, preset: 'product' });
+      saveToLibrary({ type: 'image', url, prompt: `[Generated] ${finalPrompt}`, model: selectedModel, preset: 'product' });
 
       fetch('/api/studio/track-generation', {
         method: 'POST',

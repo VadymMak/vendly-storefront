@@ -28,13 +28,14 @@ export async function GET(request: NextRequest) {
     'replicate.com',
     'fal.media',
     'fal.ai',
+    'x.ai',
     'xai.com',
-    'api.x.ai',
     'oaidalleapiprodscus.blob.core.windows.net',
     'commondatastorage.googleapis.com',
   ];
 
-  const isAllowed = allowed.some((d) => parsedUrl.hostname.endsWith(d));
+  // exact match OR subdomain match (e.g. imgen.x.ai matches x.ai)
+  const isAllowed = allowed.some((d) => parsedUrl.hostname === d || parsedUrl.hostname.endsWith('.' + d));
   if (!isAllowed) {
     console.error(`[proxy-image] Blocked domain: ${parsedUrl.hostname}`);
     return NextResponse.json({ error: `Domain not allowed: ${parsedUrl.hostname}` }, { status: 403 });

@@ -803,13 +803,21 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   async function handleDownload(img: MediaItem) {
     try {
-      const blob = await fetch(img.url).then(r => r.blob());
-      const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'webp');
+      // blob: URLs are same-origin; external URLs need proxy to bypass CORS
+      const fetchUrl = img.url.startsWith('blob:')
+        ? img.url
+        : `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}`;
+      const blob = await fetch(fetchUrl).then(r => r.blob());
+      const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'png');
+      const objectUrl = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(blob),
+        href: objectUrl,
         download: `studio-${Date.now()}.${ext}`,
       });
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch { /* silent */ }
   }
 

@@ -294,21 +294,19 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
             >
               <IconLayers /> Add to Assemble
             </button>
-            <div className="flex gap-2">
-              <button
-                onClick={onDownload}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 transition-colors hover:border-white/20 hover:text-white"
-              >
-                <IconDownload /> Download
-              </button>
-              <button
-                onClick={handleCopy}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 transition-colors hover:border-white/20 hover:text-white"
-              >
-                <IconCopy />
-                {copied ? <span className="text-green-400">Copied!</span> : 'Copy prompt'}
-              </button>
-            </div>
+            <button
+              onClick={onDownload}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+            >
+              <IconDownload /> Download
+            </button>
+            <button
+              onClick={handleCopy}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 transition-colors hover:border-white/20 hover:text-white"
+            >
+              <IconCopy />
+              {copied ? <span className="text-green-400">Copied!</span> : 'Copy prompt'}
+            </button>
           </div>
         </div>
       </div>

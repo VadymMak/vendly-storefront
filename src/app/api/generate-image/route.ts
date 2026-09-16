@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const grokUrl  = await grokGenerate(xaiKey, prompt, grokSize);
+      const grokUrl  = await grokGenerate(xaiKey, prompt);
       const grokRes  = await fetch(grokUrl);
       const inputBuf = Buffer.from(await grokRes.arrayBuffer());
       const pipeline = sharp(inputBuf);

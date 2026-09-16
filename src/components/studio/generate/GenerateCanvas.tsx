@@ -1031,7 +1031,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
                 {/* ── "More options" toggle ────────────────────────── */}
                 <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  onClick={() => {
+                    const next = !showAdvanced;
+                    setShowAdvanced(next);
+                    if (!next) setSelectionMode('simple');
+                  }}
                   className="text-xs text-gray-500 transition-colors hover:text-gray-300"
                 >
                   {showAdvanced ? '▴ Hide options' : '▾ More options'}

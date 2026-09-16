@@ -50,7 +50,7 @@ export class ReplicateProvider implements ImageProvider {
         modelId as `${string}/${string}`,
         {
           input: {
-            prompt,
+            prompt:              req.prompt,
             aspect_ratio:        req.aspectRatio ?? '1:1',
             num_inference_steps: 50,
             guidance_scale:      3.5,

@@ -52,14 +52,18 @@ export class ReplicateProvider implements ImageProvider {
           input: {
             prompt:              req.prompt,
             aspect_ratio:        req.aspectRatio ?? '1:1',
-            num_inference_steps: 50,
+            num_inference_steps: 28,
             guidance_scale:      3.5,
             output_format:       outputFormat,
             output_quality:      85,
           },
         },
       );
-      return { url: extractUrl(output) };
+      const url = extractUrl(output);
+      if (!url || url === 'null' || url === 'undefined' || !url.startsWith('http')) {
+        throw new Error('Flux Dev returned no image — model may have timed out');
+      }
+      return { url };
     }
 
     // Flux Schnell (default — fast)
@@ -79,7 +83,11 @@ export class ReplicateProvider implements ImageProvider {
         },
       },
     );
-    return { url: extractUrl(output) };
+    const schnellUrl = extractUrl(output);
+    if (!schnellUrl || schnellUrl === 'null' || schnellUrl === 'undefined' || !schnellUrl.startsWith('http')) {
+      throw new Error(`${modelId} returned no image`);
+    }
+    return { url: schnellUrl };
   }
 
   async edit(req: ImageEditRequest, apiKey: string, modelId: string): Promise<MediaResult> {

@@ -119,6 +119,52 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     enabled: true,
   },
 
+  // ── fal.ai Image Generation ───────────────────────────────────────────────
+  'fal-schnell': {
+    displayName:    'Flux Schnell (fal)',
+    provider:       'fal',
+    modelId:        'fal-ai/flux/schnell',
+    operation:      'generate',
+    tier:           'fast',
+    costPerCall:    0.003,
+    creditCost:     1,
+    creditType:     'image',
+    apiKeyProvider: 'fal',
+    envKeyName:     'FAL_KEY',
+    supportedRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '3:2', '2:3'],
+    enabled: true,
+  },
+  'fal-dev': {
+    displayName:    'FLUX.2 Dev (fal)',
+    provider:       'fal',
+    modelId:        'fal-ai/flux-2/dev',
+    operation:      'generate',
+    tier:           'quality',
+    costPerCall:    0.012,
+    creditCost:     1,
+    creditType:     'image',
+    apiKeyProvider: 'fal',
+    envKeyName:     'FAL_KEY',
+    supportedRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '3:2', '2:3'],
+    enabled: true,
+  },
+
+  // ── fal.ai Image Editing ──────────────────────────────────────────────────
+  'fal-kontext': {
+    displayName:    'Flux Kontext Pro (fal)',
+    provider:       'fal',
+    modelId:        'fal-ai/flux-kontext/pro',
+    operation:      'edit',
+    tier:           'quality',
+    costPerCall:    0.025,
+    creditCost:     2,
+    creditType:     'image',
+    apiKeyProvider: 'fal',
+    envKeyName:     'FAL_KEY',
+    maxInputSize:   1024,
+    enabled: true,
+  },
+
   // ── Image Editing ─────────────────────────────────────────────────────────
   'edit-kontext': {
     displayName:    'Flux Kontext Pro',
@@ -162,17 +208,20 @@ export function getModelsForOperation(op: OperationType): [string, ModelEntry][]
 
 /** Map from legacy UI provider strings to MODEL_CATALOG aliases */
 export const LEGACY_GENERATE_ALIAS: Record<string, string> = {
-  'flux':       'img-fast',
-  'schnell':    'img-fast',
-  'flux-dev':   'img-quality',
-  'dev':        'img-quality',
-  'flux-pro':   'img-premium',
-  'pro':        'img-premium',
-  'flux-redux': 'img-redux',
-  'grok':       'img-grok',
+  'flux':        'img-fast',
+  'schnell':     'img-fast',
+  'flux-dev':    'img-quality',
+  'dev':         'img-quality',
+  'flux-pro':    'img-premium',
+  'pro':         'img-premium',
+  'flux-redux':  'img-redux',
+  'grok':        'img-grok',
+  'fal-schnell': 'fal-schnell',
+  'fal-dev':     'fal-dev',
 };
 
 export const LEGACY_EDIT_ALIAS: Record<string, string> = {
-  'flux':       'edit-kontext',
-  'grok':       'edit-grok',
+  'flux':        'edit-kontext',
+  'grok':        'edit-grok',
+  'fal-kontext': 'fal-kontext',
 };

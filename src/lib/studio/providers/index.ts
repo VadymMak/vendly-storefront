@@ -2,12 +2,13 @@ import type { ImageProvider, ProviderName } from '../config';
 import { ReplicateProvider } from './replicate';
 import { XaiProvider } from './xai';
 import { BflProvider } from './bfl';
+import { FalProvider } from './fal';
 
 const PROVIDERS: Partial<Record<ProviderName, ImageProvider>> = {
   replicate: new ReplicateProvider(),
   xai:       new XaiProvider(),
   bfl:       new BflProvider(),
-  // fal: added in P82
+  fal:       new FalProvider(),
 };
 
 export function getProvider(name: ProviderName): ImageProvider {

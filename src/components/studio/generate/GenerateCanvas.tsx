@@ -466,7 +466,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [selectedModel,   setSelectedModel] = useState<string>('');
   const [selectedStyle,   setSelectedStyle] = useState<StyleChipId>('custom');
   const [showAdvanced,    setShowAdvanced]  = useState(false);
-  const [selectedSize,    setSelectedSize]  = useState<SizePresetId>('square');
+  const [selectedSize,    setSelectedSize]  = useState<SizePresetId>('instagram');
   const [outputFormat,    setOutputFormat]  = useState<OutputFormat>('webp');
 
   const TIERS: { id: ModelTier; label: string; desc: string; credits: number; eta: string }[] = [

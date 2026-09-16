@@ -141,13 +141,18 @@ export async function POST(request: Request) {
     }
   }
 
-  const aspect_ratio     = body.aspect_ratio  ?? '1:1';
+  const requestedRatio   = body.aspect_ratio  ?? '1:1';
   const megapixels       = body.megapixels     ?? '1';
   const targetW          = body.target_width;
   const targetH          = body.target_height;
   const outputFormat     = (['webp', 'png', 'jpeg'].includes(body.output_format ?? ''))
     ? (body.output_format as 'webp' | 'png' | 'jpeg')
     : 'webp';
+
+  // Fallback to closest supported ratio if model doesn't support the requested one
+  const aspect_ratio = (model.supportedRatios && !model.supportedRatios.includes(requestedRatio))
+    ? (model.supportedRatios.includes('4:3') ? '4:3' : '1:1')
+    : requestedRatio;
 
   const provider  = getProvider(model.provider);
   const startTime = Date.now();

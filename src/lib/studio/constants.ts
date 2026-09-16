@@ -137,10 +137,11 @@ export type MotionPresetId = typeof MOTION_PRESETS[number]['id'];
 // ── Simplified size presets (replaces verbose PRESET_MAP for default UI) ─────
 
 export const SIZE_PRESETS = [
-  { id: 'square',    label: 'Square',    subtitle: 'Instagram Post',  aspect_ratio: '1:1',  megapixels: '1', target_width: 800,  target_height: 800  },
-  { id: 'portrait',  label: 'Portrait',  subtitle: 'Story / Reel',    aspect_ratio: '9:16', megapixels: '1', target_width: 630,  target_height: 1120 },
-  { id: 'landscape', label: 'Landscape', subtitle: 'Website / Cover', aspect_ratio: '16:9', megapixels: '1', target_width: 1440, target_height: 810  },
-  { id: 'product',   label: 'Product',   subtitle: '800 x 800',       aspect_ratio: '1:1',  megapixels: '1', target_width: 800,  target_height: 800  },
+  { id: 'instagram', label: 'Instagram',  subtitle: 'Feed post (4:5)',   aspect_ratio: '4:5',  megapixels: '1', target_width: 1080, target_height: 1350 },
+  { id: 'square',    label: 'Square',     subtitle: '1:1',               aspect_ratio: '1:1',  megapixels: '1', target_width: 1080, target_height: 1080 },
+  { id: 'story',     label: 'Story',      subtitle: 'Reel / TikTok',    aspect_ratio: '9:16', megapixels: '1', target_width: 1080, target_height: 1920 },
+  { id: 'landscape', label: 'Landscape',  subtitle: 'Website / Cover',  aspect_ratio: '16:9', megapixels: '1', target_width: 1920, target_height: 1080 },
+  { id: 'product',   label: 'Product',    subtitle: 'E-commerce (1:1)', aspect_ratio: '1:1',  megapixels: '1', target_width: 800,  target_height: 800  },
 ] as const;
 
 export type SizePresetId = typeof SIZE_PRESETS[number]['id'];

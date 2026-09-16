@@ -52,6 +52,19 @@ export const EXAMPLE_PROMPTS = [
   'Modern office space with floor-to-ceiling windows and city view',
 ] as const;
 
+// ── Style chips — inject optimized prompt prefixes ───────────────────────────
+
+export const STYLE_CHIPS = [
+  { id: 'product',  label: 'Product photo', icon: '📦', promptPrefix: 'Professional product photography, clean studio lighting, sharp details, commercial e-commerce quality,' },
+  { id: 'food',     label: 'Food',          icon: '🍽️', promptPrefix: 'Professional food photography, warm lighting, rich saturated colors, shallow depth of field, appetizing,' },
+  { id: 'social',   label: 'Social post',   icon: '📱', promptPrefix: 'Modern social media content, vibrant colors, eye-catching composition, trending aesthetic,' },
+  { id: 'beauty',   label: 'Beauty',        icon: '💅', promptPrefix: 'Beauty and wellness photography, soft flattering lighting, elegant composition, spa atmosphere,' },
+  { id: 'interior', label: 'Interior',      icon: '🏠', promptPrefix: 'Professional interior photography, bright well-lit space, wide angle, inviting atmosphere, architectural detail,' },
+  { id: 'custom',   label: 'Custom',        icon: '✨', promptPrefix: '' },
+] as const;
+
+export type StyleChipId = typeof STYLE_CHIPS[number]['id'];
+
 // ── Enhancement presets (for /api/ai-edit) ──────────────────────────────────
 
 export const ENHANCEMENT_PRESETS = [

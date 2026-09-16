@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
-import { getModel, LEGACY_GENERATE_ALIAS } from '@/lib/studio/config';
+import { getModel, LEGACY_GENERATE_ALIAS, TIER_ROUTES, MODEL_CATALOG } from '@/lib/studio/config';
 import { getProvider } from '@/lib/studio/providers';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
@@ -12,17 +12,18 @@ import { logUsage } from '@/lib/studio/usage-logger';
 export const maxDuration = 120;
 
 interface GenerateBody {
-  prompt:        string;
-  modelAlias?:   string;
+  prompt:           string;
+  modelAlias?:      string;
+  tier?:            'fast' | 'quality' | 'premium';
   // legacy compat
-  provider?:     string;
-  aspect_ratio?: string;
-  megapixels?:   string;
-  target_width?: number;
-  target_height?: number;
-  output_format?: 'webp' | 'png' | 'jpeg';
+  provider?:        string;
+  aspect_ratio?:    string;
+  megapixels?:      string;
+  target_width?:    number;
+  target_height?:   number;
+  output_format?:   'webp' | 'png' | 'jpeg';
   reference_image?: string;
-  website?:      string;
+  website?:         string;
 }
 
 async function processBuffer(
@@ -95,8 +96,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  // Resolve model alias — prefer explicit modelAlias, fall back to legacy provider string
-  const rawAlias = body.modelAlias ?? (body.provider ? (LEGACY_GENERATE_ALIAS[body.provider] ?? 'img-fast') : 'img-fast');
+  // Resolve model alias
+  let rawAlias: string;
+
+  if (body.modelAlias) {
+    rawAlias = body.modelAlias;
+  } else if (body.tier && TIER_ROUTES[body.tier]) {
+    // Tier-based auto-routing — pick cheapest available model
+    const routes = TIER_ROUTES[body.tier];
+    let found = false;
+    rawAlias = routes[0].alias; // fallback
+    for (const route of routes) {
+      const m = MODEL_CATALOG[route.alias];
+      if (!m || !m.enabled) continue;
+      const key = await resolveApiKey(session.user.id, m);
+      if (key) { rawAlias = route.alias; found = true; break; }
+    }
+    if (!found) rawAlias = routes[0].alias;
+  } else if (body.provider) {
+    rawAlias = LEGACY_GENERATE_ALIAS[body.provider] ?? 'img-fast';
+  } else {
+    rawAlias = 'img-fast';
+  }
   const model    = getModel(rawAlias);
   if (!model || model.operation !== 'generate') {
     return NextResponse.json({ error: `Unknown model: ${rawAlias}` }, { status: 400 });

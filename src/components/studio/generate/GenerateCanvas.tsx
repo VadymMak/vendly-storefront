@@ -6,9 +6,12 @@ import { ImageDetailModal } from './ImageDetailModal';
 import {
   EXAMPLE_PROMPTS, QUICK_FILTERS, OUTPUT_FORMATS,
   ENHANCEMENT_PRESETS, MOTION_PRESETS, SIZE_PRESETS,
+  STYLE_CHIPS,
   type OutputFormat, type EnhancementPresetId, type MotionPresetId, type SizePresetId,
+  type StyleChipId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
+import { type ModelTier } from '@/lib/studio/config';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import { InpaintEditor } from './InpaintEditor';
@@ -454,11 +457,27 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const generateModels = catalogModels.filter(m => m.operation === 'generate');
 
   // Prompt / generate
-  const [prompt,        setPrompt]       = useState('');
-  const [isGenerating,  setIsGenerating] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('img-fast');
-  const [selectedSize,  setSelectedSize] = useState<SizePresetId>('square');
-  const [outputFormat,  setOutputFormat] = useState<OutputFormat>('webp');
+  const [prompt,          setPrompt]        = useState('');
+  const [isGenerating,    setIsGenerating]  = useState(false);
+  // Tier-based mode (Simple) vs explicit alias (Advanced)
+  type SelectionMode = 'simple' | 'advanced';
+  const [selectionMode,   setSelectionMode] = useState<SelectionMode>('simple');
+  const [selectedTier,    setSelectedTier]  = useState<ModelTier>('fast');
+  const [selectedModel,   setSelectedModel] = useState<string>('');
+  const [selectedStyle,   setSelectedStyle] = useState<StyleChipId>('custom');
+  const [showAdvanced,    setShowAdvanced]  = useState(false);
+  const [selectedSize,    setSelectedSize]  = useState<SizePresetId>('square');
+  const [outputFormat,    setOutputFormat]  = useState<OutputFormat>('webp');
+
+  const TIERS: { id: ModelTier; label: string; desc: string; credits: number; eta: string }[] = [
+    { id: 'fast',    label: 'Quick', desc: 'Fast draft',     credits: 1, eta: '~3s'  },
+    { id: 'quality', label: 'Best',  desc: 'Recommended',   credits: 2, eta: '~8s'  },
+    { id: 'premium', label: 'HD',    desc: 'Highest detail', credits: 3, eta: '~15s' },
+  ];
+  const activeTierCredits = TIERS.find(t => t.id === selectedTier)?.credits ?? 1;
+  const activeCredits = selectionMode === 'simple'
+    ? activeTierCredits
+    : (catalogModels.find(m => m.alias === selectedModel)?.creditCost ?? 1);
 
   // Enhance
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -713,12 +732,20 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     setError(null);
 
     try {
+      // Apply style chip prefix (user's original prompt preserved for display)
+      const styleChip  = STYLE_CHIPS.find(s => s.id === selectedStyle);
+      const styledPrompt = styleChip?.promptPrefix
+        ? `${styleChip.promptPrefix} ${finalPrompt}`
+        : finalPrompt;
+
       const res = await fetch('/api/studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt:        finalPrompt,
-          modelAlias:    selectedModel,
+          prompt:       styledPrompt,
+          ...(selectionMode === 'simple'
+            ? { tier: selectedTier }
+            : { modelAlias: selectedModel }),
           aspect_ratio:  size.aspect_ratio,
           megapixels:    size.megapixels,
           target_width:  size.target_width,
@@ -734,17 +761,21 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
 
+      const modelLabel = selectionMode === 'simple'
+        ? (TIERS.find(t => t.id === selectedTier)?.label ?? selectedTier)
+        : selectedModel;
+
       const newImage: MediaItem = {
         id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         type: 'image', url,
         prompt: `[Generated] ${finalPrompt}`,
         preset: 'product',
         format: outputFormat,
-        model: selectedModel,
+        model: modelLabel,
         createdAt: Date.now(),
       };
       addImage(newImage);
-      saveToLibrary({ type: 'image', url, prompt: `[Generated] ${finalPrompt}`, model: selectedModel, preset: 'product' });
+      saveToLibrary({ type: 'image', url, prompt: `[Generated] ${finalPrompt}`, model: modelLabel, preset: 'product' });
 
       fetch('/api/studio/track-generation', {
         method: 'POST',
@@ -758,7 +789,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       setIsGenerating(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prompt, isGenerating, selectedSize, outputFormat, selectedModel, uploadedImage]);
+  }, [prompt, isGenerating, selectedSize, outputFormat, selectedModel, selectedTier, selectionMode, selectedStyle, uploadedImage]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -910,6 +941,50 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors focus:border-green-500/30 focus:bg-white/[0.08]"
                 />
 
+                {/* ── Style chips ─────────────────────────────────────── */}
+                <div className="flex flex-wrap gap-2">
+                  {STYLE_CHIPS.map(chip => (
+                    <button
+                      key={chip.id}
+                      onClick={() => setSelectedStyle(chip.id)}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                        selectedStyle === chip.id
+                          ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                          : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                      }`}
+                    >
+                      <span>{chip.icon}</span>
+                      <span>{chip.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* ── Quality tier buttons ─────────────────────────── */}
+                {selectionMode === 'simple' && (
+                  <div className="flex gap-2">
+                    {TIERS.map(tier => (
+                      <button
+                        key={tier.id}
+                        onClick={() => setSelectedTier(tier.id)}
+                        className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl border px-3 py-3 text-center transition-all ${
+                          selectedTier === tier.id
+                            ? 'border-green-500/40 bg-green-500/10'
+                            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+                        }`}
+                      >
+                        <span className={`text-sm font-semibold ${selectedTier === tier.id ? 'text-green-400' : 'text-white'}`}>
+                          {tier.label}
+                        </span>
+                        <span className="text-xs text-gray-500">{tier.desc}</span>
+                        <span className="text-xs text-gray-500">
+                          {tier.credits} {tier.credits === 1 ? 'credit' : 'credits'} · {tier.eta}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Controls row: Size + Format + Generate ───────── */}
                 <div className="flex flex-wrap items-center gap-3">
                   <select
                     value={selectedSize}
@@ -921,31 +996,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                         {s.label} — {s.subtitle}
                       </option>
                     ))}
-                  </select>
-
-                  <select
-                    value={selectedModel}
-                    onChange={e => setSelectedModel(e.target.value)}
-                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 outline-none"
-                  >
-                    {(['fast', 'quality', 'premium'] as const).map(tier => {
-                      const tierModels = generateModels.filter(m => m.tier === tier);
-                      if (tierModels.length === 0) return null;
-                      const tierLabel = tier === 'fast' ? '⚡ Fast' : tier === 'quality' ? '✨ Quality' : '👑 Premium';
-                      return (
-                        <optgroup key={tier} label={tierLabel}>
-                          {tierModels.map(m => (
-                            <option key={m.alias} value={m.alias} className="bg-[#0d0d14]">
-                              {m.displayName} — {m.creditCost} {m.creditCost === 1 ? 'credit' : 'credits'}
-                              {m.byokOnly ? ' (BYOK)' : ''}
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    })}
-                    {generateModels.length === 0 && (
-                      <option value="img-fast" className="bg-[#0d0d14]">Flux Schnell (Fast)</option>
-                    )}
                   </select>
 
                   <select
@@ -968,13 +1018,90 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     {isGenerating ? (
                       <>
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        Generating...
+                        Creating...
                       </>
                     ) : (
-                      <><IconSparkle /> Generate</>
+                      <>
+                        <IconSparkle />
+                        Create image · {activeCredits} {activeCredits === 1 ? 'credit' : 'credits'}
+                      </>
                     )}
                   </button>
                 </div>
+
+                {/* ── "More options" toggle ────────────────────────── */}
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-xs text-gray-500 transition-colors hover:text-gray-300"
+                >
+                  {showAdvanced ? '▴ Hide options' : '▾ More options'}
+                </button>
+
+                {/* ── Advanced panel ───────────────────────────────── */}
+                {showAdvanced && (
+                  <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-400">Mode:</span>
+                      <div className="flex gap-1 rounded-lg border border-white/10 p-0.5">
+                        <button
+                          onClick={() => setSelectionMode('simple')}
+                          className={`rounded-md px-3 py-1 text-xs transition-colors ${
+                            selectionMode === 'simple' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          Auto
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectionMode('advanced');
+                            if (!selectedModel) {
+                              const first = generateModels.find(m => m.tier === selectedTier);
+                              if (first) setSelectedModel(first.alias);
+                            }
+                          }}
+                          className={`rounded-md px-3 py-1 text-xs transition-colors ${
+                            selectionMode === 'advanced' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          Pick model
+                        </button>
+                      </div>
+                    </div>
+
+                    {selectionMode === 'advanced' && (
+                      <div className="space-y-2">
+                        <label className="text-xs text-gray-500">Model override:</label>
+                        <select
+                          value={selectedModel}
+                          onChange={e => setSelectedModel(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 outline-none"
+                        >
+                          {(['fast', 'quality', 'premium'] as const).map(tier => {
+                            const tierModels = generateModels.filter(m => m.tier === tier);
+                            if (tierModels.length === 0) return null;
+                            const tierLabel = tier === 'fast' ? '⚡ Quick' : tier === 'quality' ? '✨ Best' : '👑 HD';
+                            return (
+                              <optgroup key={tier} label={tierLabel}>
+                                {tierModels.map(m => (
+                                  <option key={m.alias} value={m.alias} className="bg-[#0d0d14]">
+                                    {m.displayName} — {m.creditCost} {m.creditCost === 1 ? 'credit' : 'credits'}
+                                    {m.byokOnly ? ' (BYOK)' : ''}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            );
+                          })}
+                          {generateModels.length === 0 && (
+                            <option value="img-fast" className="bg-[#0d0d14]">Flux Schnell (Fast)</option>
+                          )}
+                        </select>
+                        <p className="text-xs text-gray-600">
+                          Auto mode picks the fastest and cheapest engine for each quality level. Override only if you need a specific model.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Example prompts */}

@@ -225,3 +225,31 @@ export const LEGACY_EDIT_ALIAS: Record<string, string> = {
   'grok':        'edit-grok',
   'fal-kontext': 'fal-kontext',
 };
+
+// ── Tier routing — ordered by preference (cheapest first, then fallback) ─────
+
+export interface TierRoute {
+  alias:    string;
+  priority: number;
+}
+
+export const TIER_ROUTES: Record<ModelTier, TierRoute[]> = {
+  fast: [
+    { alias: 'fal-schnell', priority: 1 },
+    { alias: 'img-fast',    priority: 2 },
+  ],
+  quality: [
+    { alias: 'fal-dev',     priority: 1 },
+    { alias: 'img-quality', priority: 2 },
+    { alias: 'img-grok',    priority: 3 },
+  ],
+  premium: [
+    { alias: 'img-premium', priority: 1 },
+  ],
+};
+
+export const TIER_INFO: Record<ModelTier, { label: string; description: string; creditCost: number; estimatedSeconds: string }> = {
+  fast:    { label: 'Quick', description: 'Fast draft',     creditCost: 1, estimatedSeconds: '~3s'  },
+  quality: { label: 'Best',  description: 'Recommended',   creditCost: 2, estimatedSeconds: '~8s'  },
+  premium: { label: 'HD',    description: 'Highest detail', creditCost: 3, estimatedSeconds: '~15s' },
+};

@@ -512,10 +512,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const fd = new FormData();
       fd.append('image', uploadedImage);
       fd.append('prompt', enhancePrompt);
-      fd.append('provider', 'grok');
-      fd.append('aspect_ratio', '1:1');
+      fd.append('modelAlias', 'edit-grok');
 
-      const res = await fetch('/api/ai-edit', { method: 'POST', body: fd });
+      const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
       if (!res.ok) {
         const data = await res.json() as { error?: string; needsUpgrade?: boolean };
         if (data.needsUpgrade) { setShowUpgrade(true); return; }
@@ -692,11 +691,17 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     setError(null);
 
     try {
-      const res = await fetch('/api/generate-image', {
+      const MODEL_ALIAS: Record<string, string> = {
+        schnell: 'img-fast',
+        dev:     'img-quality',
+        pro:     'img-premium',
+      };
+      const res = await fetch('/api/studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: finalPrompt,
+          prompt:        finalPrompt,
+          modelAlias:    MODEL_ALIAS[selectedModel] ?? 'img-fast',
           aspect_ratio:  size.aspect_ratio,
           megapixels:    size.megapixels,
           target_width:  size.target_width,

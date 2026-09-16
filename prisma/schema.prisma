@@ -27,6 +27,7 @@ model User {
   studioCredits     StudioCredits?
   studioFeedback    StudioFeedback[]
   studioJobs        StudioJob[]
+  studioUsageLogs   StudioUsageLog[]
   apiKeys           UserApiKey[]
 }
 
@@ -273,6 +274,29 @@ model StudioJob {
 
   @@index([userId, createdAt])
   @@index([status])
+}
+
+model StudioUsageLog {
+  id           String   @id @default(cuid())
+  userId       String
+  modelAlias   String
+  provider     String
+  modelId      String
+  operation    String
+  status       String   @default("success")
+  durationMs   Int?
+  costUsd      Float    @default(0)
+  creditCost   Int      @default(0)
+  byok         Boolean  @default(false)
+  errorMessage String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([provider, createdAt])
+  @@index([modelAlias, createdAt])
+  @@index([createdAt])
 }
 
 enum Plan {

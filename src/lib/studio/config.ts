@@ -242,8 +242,8 @@ export const TIER_ROUTES: Record<ModelTier, TierRoute[]> = {
   ],
   quality: [
     { alias: 'fal-dev',     priority: 1 },
-    { alias: 'img-quality', priority: 2 },
-    { alias: 'img-grok',    priority: 3 },
+    { alias: 'img-grok',    priority: 2 },
+    { alias: 'img-quality', priority: 3 },
   ],
   premium: [
     { alias: 'img-premium', priority: 1 },

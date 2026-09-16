@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
     'vercel-storage.com',
     'replicate.delivery',
     'replicate.com',
+    'fal.media',
+    'fal.ai',
+    'xai.com',
+    'api.x.ai',
     'oaidalleapiprodscus.blob.core.windows.net',
     'commondatastorage.googleapis.com',
   ];

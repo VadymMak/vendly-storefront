@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useCallback, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import { ImageDetailModal } from './ImageDetailModal';
 import {
-  EXAMPLE_PROMPTS, QUICK_FILTERS, FLUX_MODELS, OUTPUT_FORMATS,
+  EXAMPLE_PROMPTS, QUICK_FILTERS, OUTPUT_FORMATS,
   ENHANCEMENT_PRESETS, MOTION_PRESETS, SIZE_PRESETS,
-  type OutputFormat, type FluxModel, type EnhancementPresetId, type MotionPresetId, type SizePresetId,
+  type OutputFormat, type EnhancementPresetId, type MotionPresetId, type SizePresetId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
 import { saveToLibrary } from '@/lib/studio/library-store';
@@ -431,10 +431,32 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [dragOver,        setDragOver]        = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
 
+  // Dynamic model catalog
+  interface CatalogModel {
+    alias:       string;
+    displayName: string;
+    provider:    string;
+    operation:   string;
+    tier:        string;
+    creditCost:  number;
+    creditType:  string;
+    byokOnly:    boolean;
+  }
+  const [catalogModels, setCatalogModels] = useState<CatalogModel[]>([]);
+
+  useEffect(() => {
+    fetch('/api/studio/models')
+      .then(r => r.json())
+      .then((data: { models: CatalogModel[] }) => { setCatalogModels(data.models); })
+      .catch(() => {});
+  }, []);
+
+  const generateModels = catalogModels.filter(m => m.operation === 'generate');
+
   // Prompt / generate
   const [prompt,        setPrompt]       = useState('');
   const [isGenerating,  setIsGenerating] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<FluxModel>('schnell');
+  const [selectedModel, setSelectedModel] = useState<string>('img-fast');
   const [selectedSize,  setSelectedSize] = useState<SizePresetId>('square');
   const [outputFormat,  setOutputFormat] = useState<OutputFormat>('webp');
 
@@ -691,17 +713,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     setError(null);
 
     try {
-      const MODEL_ALIAS: Record<string, string> = {
-        schnell: 'img-fast',
-        dev:     'img-quality',
-        pro:     'img-premium',
-      };
       const res = await fetch('/api/studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt:        finalPrompt,
-          modelAlias:    MODEL_ALIAS[selectedModel] ?? 'img-fast',
+          modelAlias:    selectedModel,
           aspect_ratio:  size.aspect_ratio,
           megapixels:    size.megapixels,
           target_width:  size.target_width,
@@ -908,14 +925,27 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
                   <select
                     value={selectedModel}
-                    onChange={e => setSelectedModel(e.target.value as FluxModel)}
+                    onChange={e => setSelectedModel(e.target.value)}
                     className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 outline-none"
                   >
-                    {FLUX_MODELS.map(m => (
-                      <option key={m.value} value={m.value} className="bg-[#0d0d14]">
-                        {m.label} ({m.desc})
-                      </option>
-                    ))}
+                    {(['fast', 'quality', 'premium'] as const).map(tier => {
+                      const tierModels = generateModels.filter(m => m.tier === tier);
+                      if (tierModels.length === 0) return null;
+                      const tierLabel = tier === 'fast' ? '⚡ Fast' : tier === 'quality' ? '✨ Quality' : '👑 Premium';
+                      return (
+                        <optgroup key={tier} label={tierLabel}>
+                          {tierModels.map(m => (
+                            <option key={m.alias} value={m.alias} className="bg-[#0d0d14]">
+                              {m.displayName} — {m.creditCost} {m.creditCost === 1 ? 'credit' : 'credits'}
+                              {m.byokOnly ? ' (BYOK)' : ''}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                    {generateModels.length === 0 && (
+                      <option value="img-fast" className="bg-[#0d0d14]">Flux Schnell (Fast)</option>
+                    )}
                   </select>
 
                   <select

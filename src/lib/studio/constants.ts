@@ -42,13 +42,8 @@ export const QUICK_FILTERS = [
 
 export type QuickFilterId = typeof QUICK_FILTERS[number]['id'];
 
-export const FLUX_MODELS = [
-  { value: 'schnell', label: 'Flux Schnell', desc: 'Fast, 1 credit' },
-  { value: 'dev',     label: 'Flux Dev',     desc: 'Balanced, 2 credits' },
-  { value: 'pro',     label: 'Flux Pro',     desc: 'Best quality, 3 credits' },
-] as const;
-
-export type FluxModel = typeof FLUX_MODELS[number]['value'];
+// Model list is fetched from /api/studio/models at runtime (see MODEL_CATALOG in src/lib/studio/config.ts)
+export type FluxModel = string;
 
 export const EXAMPLE_PROMPTS = [
   'A cozy coffee shop interior with warm lighting and wooden tables',

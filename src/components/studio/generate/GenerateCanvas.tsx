@@ -158,16 +158,19 @@ async function pollJob(jobId: string, timeoutMs = 600_000): Promise<string> {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function ActionButton({ icon, label, sublabel, onClick, highlight }: {
-  icon: string; label: string; sublabel?: string; onClick: () => void; highlight?: boolean;
+function ActionButton({ icon, label, sublabel, onClick, highlight, disabled }: {
+  icon: string; label: string; sublabel?: string; onClick: () => void; highlight?: boolean; disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`flex flex-col items-center gap-1.5 rounded-xl border p-4 text-center transition-colors ${
-        highlight
-          ? 'border-green-500/30 bg-green-500/5 hover:bg-green-500/10'
-          : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+        disabled
+          ? 'cursor-not-allowed opacity-50'
+          : highlight
+            ? 'border-green-500/30 bg-green-500/5 hover:bg-green-500/10'
+            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
       }`}
     >
       {icon === 'sparkle'   && <IconSparkle />}
@@ -434,6 +437,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [dragOver,        setDragOver]        = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
   const improvePanelRef = useRef<HTMLDivElement>(null);
+  const processingRef   = useRef<HTMLDivElement>(null);
+
+  const [processingTask, setProcessingTask] = useState<'upscale' | 'removebg' | 'improve' | 'edit' | null>(null);
 
   // Dynamic model catalog
   interface CatalogModel {
@@ -471,6 +477,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     }
   }, [mode]);
 
+  useEffect(() => {
+    if (processingTask && processingRef.current) {
+      processingRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [processingTask]);
+
   const generateModels = catalogModels.filter(m => m.operation === 'generate');
 
   // Prompt / generate
@@ -497,7 +509,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     : (catalogModels.find(m => m.alias === selectedModel)?.creditCost ?? 1);
 
   // Enhance
-  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isEnhancing,    setIsEnhancing]    = useState(false);
 
   // Animate panel
   const [animateTarget,      setAnimateTarget]      = useState<MediaItem | null>(null);
@@ -556,6 +568,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   async function handleEnhance(presetId?: EnhancementPresetId) {
     if (!uploadedImage || isEnhancing) return;
     setIsEnhancing(true);
+    setProcessingTask('improve');
     setError(null);
 
     try {
@@ -612,6 +625,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       setError(e instanceof Error ? e.message : 'Enhancement failed');
     } finally {
       setIsEnhancing(false);
+      setProcessingTask(null);
     }
   }
 
@@ -670,6 +684,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   async function handleRemoveBg(img: MediaItem) {
     setError(null);
+    setProcessingTask('removebg');
     try {
       const file = img.url.startsWith('blob:')
         ? await fetchFileFromUrl(img.url, `studio-${Date.now()}.png`)
@@ -696,6 +711,8 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Background removal failed');
+    } finally {
+      setProcessingTask(null);
     }
   }
 
@@ -703,6 +720,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   async function handleUpscale(img: MediaItem) {
     setError(null);
+    setProcessingTask('upscale');
     try {
       const file = img.url.startsWith('blob:')
         ? await fetchFileFromUrl(img.url, `studio-${Date.now()}.png`)
@@ -730,6 +748,8 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upscale failed');
+    } finally {
+      setProcessingTask(null);
     }
   }
 
@@ -1175,11 +1195,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               <p className="text-center text-sm text-gray-400">What would you like to do?</p>
 
               <div className="mx-auto grid max-w-lg grid-cols-3 gap-3">
-                <ActionButton icon="sparkle"  label="Improve"    sublabel="2 credits" onClick={() => setMode('improve')} highlight />
-                <ActionButton icon="edit"     label="Edit"       sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} />
-                <ActionButton icon="video"    label="Animate"    sublabel="5 credits" onClick={handleAnimateUploadedImage} />
-                <ActionButton icon="upscale"  label="Upscale"    sublabel="1 credit"  onClick={handleUpscaleUploadedImage} />
-                <ActionButton icon="removebg" label="Remove BG"  sublabel="1 credit"  onClick={handleRemoveBgUploadedImage} />
+                <ActionButton icon="sparkle"  label="Improve"    sublabel="2 credits" onClick={() => setMode('improve')} highlight disabled={!!processingTask} />
+                <ActionButton icon="edit"     label="Edit"       sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
+                <ActionButton icon="video"    label="Animate"    sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="upscale"  label="Upscale"    sublabel="1 credit"  onClick={handleUpscaleUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="removebg" label="Remove BG"  sublabel="1 credit"  onClick={handleRemoveBgUploadedImage} disabled={!!processingTask} />
                 <ActionButton icon="download" label="Download"   onClick={() => {
                   if (uploadedPreview) {
                     const a = document.createElement('a');
@@ -1271,6 +1291,17 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 {isGenerating && (
                   <div className="aspect-square animate-pulse rounded-xl bg-white/5" />
                 )}
+                {processingTask && (
+                  <div ref={processingRef} className="relative flex aspect-square animate-pulse flex-col items-center justify-center gap-3 rounded-xl bg-white/5">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+                    <span className="text-sm text-gray-400">
+                      {processingTask === 'upscale'  && 'Upscaling...'}
+                      {processingTask === 'removebg' && 'Removing background...'}
+                      {processingTask === 'improve'  && 'Improving...'}
+                      {processingTask === 'edit'     && 'Editing...'}
+                    </span>
+                  </div>
+                )}
                 {generatedImages.map(img => (
                   <ResultCard
                     key={img.id}
@@ -1308,11 +1339,26 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             </div>
           )}
 
-          {/* Skeleton while generating (no results yet) */}
-          {isGenerating && generatedImages.length === 0 && (
+          {/* Skeleton while generating or processing (no results yet) */}
+          {(isGenerating || processingTask) && generatedImages.length === 0 && (
             <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="aspect-square animate-pulse rounded-xl bg-white/5" />
-              <div className="aspect-square animate-pulse rounded-xl bg-white/5" />
+              {isGenerating && (
+                <>
+                  <div className="aspect-square animate-pulse rounded-xl bg-white/5" />
+                  <div className="aspect-square animate-pulse rounded-xl bg-white/5" />
+                </>
+              )}
+              {processingTask && (
+                <div ref={processingRef} className="relative flex aspect-square animate-pulse flex-col items-center justify-center gap-3 rounded-xl bg-white/5">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+                  <span className="text-sm text-gray-400">
+                    {processingTask === 'upscale'  && 'Upscaling...'}
+                    {processingTask === 'removebg' && 'Removing background...'}
+                    {processingTask === 'improve'  && 'Improving...'}
+                    {processingTask === 'edit'     && 'Editing...'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

@@ -88,7 +88,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     creditType:     'image',
     apiKeyProvider: 'bfl',
     envKeyName:     'BFL_API_KEY',
-    supportedRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
+    supportedRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '3:2', '2:3'],
     enabled: true,
   },
   'img-grok': {

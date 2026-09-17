@@ -95,6 +95,7 @@ export function aspectToSize(aspectRatio: string): { width: number; height: numb
     case '9:16': return { width: 768,  height: 1344 };
     case '4:3':  return { width: 1152, height: 896  };
     case '3:4':  return { width: 896,  height: 1152 };
+    case '4:5':  return { width: 1024, height: 1280 };
     case '3:2':  return { width: 1216, height: 832  };
     case '2:3':  return { width: 832,  height: 1216 };
     default:     return { width: 1024, height: 1024 };

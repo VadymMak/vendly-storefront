@@ -16,14 +16,23 @@ const ENHANCE_TYPES = {
 
 type EnhanceType = keyof typeof ENHANCE_TYPES;
 
-function extractUrl(output: unknown): string {
-  if (typeof output === 'string') return output;
+function extractUrl(output: unknown): string | null {
+  if (typeof output === 'string' && output.startsWith('http')) return output;
   if (output instanceof URL) return output.toString();
-  if (output && typeof (output as Record<string, unknown>)['url'] === 'function') {
-    const result = (output as { url: () => string | URL }).url();
-    return result instanceof URL ? result.toString() : String(result);
+  if (Array.isArray(output)) {
+    const first = output[0];
+    if (typeof first === 'string' && first.startsWith('http')) return first;
+    if (first instanceof URL) return first.toString();
   }
-  return String(output);
+  if (output && typeof output === 'object') {
+    const obj = output as Record<string, unknown>;
+    if (typeof obj.url === 'function') {
+      const result = (obj as { url: () => string | URL }).url();
+      return result instanceof URL ? result.toString() : typeof result === 'string' && result.startsWith('http') ? result : null;
+    }
+    if (typeof obj.url === 'string' && obj.url.startsWith('http')) return obj.url;
+  }
+  return null;
 }
 
 export async function POST(req: Request) {
@@ -108,6 +117,9 @@ export async function POST(req: Request) {
       );
 
       const supirUrl = extractUrl(output);
+      if (!supirUrl) {
+        throw new Error('Upscale model returned invalid result');
+      }
       const supirRes = await fetch(supirUrl);
       const supirBuf = Buffer.from(await supirRes.arrayBuffer());
       const blob     = await put(
@@ -151,12 +163,31 @@ export async function POST(req: Request) {
     );
 
     const imageUrl = extractUrl(output);
+    if (!imageUrl) {
+      console.error('[enhance-image] Invalid output from Replicate:', typeof output, output);
+      return NextResponse.json(
+        { error: 'Upscale model returned invalid result. Please try again.' },
+        { status: 500 },
+      );
+    }
+
+    // Persist to Vercel Blob (Replicate URLs expire)
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      throw new Error(`Failed to download upscaled image: ${imgRes.status}`);
+    }
+    const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    const blob   = await put(
+      `studio/upscale/${session.user.id}/${Date.now()}.png`,
+      imgBuf,
+      { access: 'public', contentType: 'image/png' },
+    );
 
     if (!creditCheck.byok) {
       await deductCredit(session.user.id, 'image');
     }
 
-    return NextResponse.json({ url: imageUrl });
+    return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error('[enhance-image]', err);
     return NextResponse.json(

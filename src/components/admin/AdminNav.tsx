@@ -57,40 +57,9 @@ export default function AdminNav({ userName }: AdminNavProps) {
 
         {/* Nav links */}
         <nav className="flex items-center gap-1">
-          <Link href="/admin"
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname === '/admin' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
-            }`}
-          >
-            {tAdmin('stores')}
-          </Link>
-          <Link href="/admin/users"
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname === '/admin/users' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
-            }`}
-          >
-            {tAdmin('users')}
-          </Link>
-          <Link href="/admin/leads"
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname === '/admin/leads' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
-            }`}
-          >
-            Leads
-          </Link>
-          <Link href="/admin/scout"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname === '/admin/scout' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
-            }`}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            Scout
-          </Link>
           <Link href="/admin/studio"
             className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname === '/admin/studio' ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
+              pathname?.startsWith('/admin/studio') ? 'bg-white text-red-700 shadow-sm' : 'text-red-600 hover:bg-white/60'
             }`}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

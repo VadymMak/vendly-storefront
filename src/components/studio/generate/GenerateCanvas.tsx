@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import { ImageDetailModal } from './ImageDetailModal';
+import { VideoDetailModal } from './VideoDetailModal';
 import {
   EXAMPLE_PROMPTS, QUICK_FILTERS, OUTPUT_FORMATS,
   ENHANCEMENT_PRESETS, MOTION_PRESETS, SIZE_PRESETS,
@@ -202,6 +203,12 @@ function SmallAction({ label, onClick, highlight }: {
   );
 }
 
+function toVideoAspectRatio(ar: string): '9:16' | '1:1' | '16:9' {
+  if (ar === '9:16' || ar === '4:5') return '9:16';
+  if (ar === '1:1') return '1:1';
+  return '16:9';
+}
+
 function getBadge(prompt: string | undefined): { text: string; color: string } | null {
   if (!prompt) return null;
   if (prompt.startsWith('[Original]'))     return { text: 'Original',      color: 'bg-gray-600/80' };
@@ -239,7 +246,12 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
         {isVideo ? (
           <video
             src={img.url}
-            className="aspect-video w-full object-cover"
+            className={`w-full object-cover ${
+              img.preset === 'instagram'            ? 'aspect-[4/5]'  :
+              img.preset === 'story'                ? 'aspect-[9/16]' :
+              img.preset === 'square' || img.preset === 'product' ? 'aspect-square' :
+              'aspect-video'
+            }`}
             muted loop playsInline
             onMouseEnter={e => (e.target as HTMLVideoElement).play().catch(() => {})}
             onMouseLeave={e => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
@@ -526,6 +538,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [error,       setError]       = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [modalImage,  setModalImage]  = useState<MediaItem | null>(null);
+  const [modalVideo,  setModalVideo]  = useState<MediaItem | null>(null);
   const [addedToast,  setAddedToast]  = useState<string | null>(null);
   const [copyStates,  setCopyStates]  = useState<Record<string, boolean>>({});
   const [imageFilters, setImageFilters] = useState<Record<string, string>>({});
@@ -647,7 +660,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         body: JSON.stringify({
           prompt:      finalMotionPrompt,
           skillId:     'cinematic',
-          aspectRatio: '16:9',
+          aspectRatio: toVideoAspectRatio(SIZE_PRESETS.find(s => s.id === selectedSize)?.aspect_ratio ?? '16:9'),
           duration:    animDuration,
           startImage:  publicUrl,
         }),
@@ -666,9 +679,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         type: 'video',
         url: videoUrl,
         prompt: finalMotionPrompt,
+        preset: selectedSize,
         createdAt: Date.now(),
       };
       addImage(newVideo);
+      setModalVideo(newVideo);
       saveToLibrary({ type: 'video', url: videoUrl, prompt: finalMotionPrompt, model: 'kling' });
       setAnimateTarget(null);
       setCustomMotionPrompt('');
@@ -1310,7 +1325,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     copied={copyStates[img.id] ?? false}
                     activeFilterId={imageFilters[img.id] ?? 'original'}
                     onFilterChange={filterId => setImageFilters(s => ({ ...s, [img.id]: filterId }))}
-                    onOpen={() => setModalImage(img)}
+                    onOpen={() => img.type === 'video' ? setModalVideo(img) : setModalImage(img)}
                     onImprove={() => {
                       // Load result back as upload for further improvement
                       fetch(img.url)
@@ -1411,6 +1426,22 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             setModalImage(null);
           }}
           galleryImages={generatedImages.filter(i => i.type === 'image').map(i => i.url)}
+        />
+      )}
+      {modalVideo && (
+        <VideoDetailModal
+          videoUrl={modalVideo.url}
+          prompt={modalVideo.prompt}
+          aspectRatio={SIZE_PRESETS.find(s => s.id === modalVideo.preset)?.aspect_ratio}
+          onClose={() => setModalVideo(null)}
+          onRegenerate={() => {
+            setModalVideo(null);
+            // Re-open the animate panel if there are images to animate
+            const sourceImg = generatedImages.find(i => i.type === 'image');
+            if (sourceImg) { setAnimateTarget(sourceImg); setSelectedMotion('cinematic'); setCustomMotionPrompt(''); }
+          }}
+          onDownload={() => handleDownload(modalVideo)}
+          onAddToAssemble={() => handleAddToAssemble(modalVideo)}
         />
       )}
       {inpaintImage && (

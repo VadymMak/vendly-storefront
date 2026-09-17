@@ -233,7 +233,7 @@ export async function POST(request: Request) {
     try {
       const { width, height } = aspectToSize(aspect_ratio);
       const bflOutputFormat = requested_format === 'webp' ? 'png' : requested_format;
-      const bflUrl = await bflGenerate(bflApiKey, {
+      const bflUrl = await bflGenerate(bflApiKey, 'flux-2-pro', {
         prompt,
         width,
         height,
@@ -527,7 +527,7 @@ async function tryBflFallback(
 
     const { width, height } = aspectToSize(ratio);
     const bflFormat = format === 'webp' ? 'png' : format;
-    const url = await bflGenerate(apiKey, { prompt, width, height, outputFormat: bflFormat });
+    const url = await bflGenerate(apiKey, 'flux-2-pro', { prompt, width, height, outputFormat: bflFormat });
     return processImageResponse(url, targetW, targetH, format, 'flux-pro-fallback');
   } catch (fallbackErr) {
     console.error('[generate-image] BFL fallback failed:', fallbackErr);

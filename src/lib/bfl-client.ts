@@ -1,17 +1,16 @@
-const BFL_API = 'https://api.bfl.ml';
+const BFL_API = 'https://api.bfl.ai';
 
 export interface BflGenerateOptions {
   prompt:           string;
   width?:           number;
   height?:          number;
-  steps?:           number;
-  guidance?:        number;
   outputFormat?:    'png' | 'jpeg';
   safetyTolerance?: number;
 }
 
 interface BflTaskResponse {
-  id: string;
+  id:           string;
+  polling_url?: string;
 }
 
 interface BflResultResponse {
@@ -25,11 +24,16 @@ interface BflResultResponse {
 }
 
 /**
- * Generate an image via the BFL Flux Pro 1.1 API.
+ * Generate an image via the BFL FLUX API.
+ * `modelEndpoint` is the endpoint path suffix, e.g. 'flux-2-pro' or 'flux-pro-1.1'.
  * Returns the URL of the completed image.
  */
-export async function bflGenerate(apiKey: string, options: BflGenerateOptions): Promise<string> {
-  const createRes = await fetch(`${BFL_API}/v1/flux-pro-1.1`, {
+export async function bflGenerate(
+  apiKey: string,
+  modelEndpoint: string,
+  options: BflGenerateOptions,
+): Promise<string> {
+  const createRes = await fetch(`${BFL_API}/v1/${modelEndpoint}`, {
     method: 'POST',
     headers: {
       'x-key':        apiKey,
@@ -39,8 +43,6 @@ export async function bflGenerate(apiKey: string, options: BflGenerateOptions): 
       prompt:           options.prompt,
       width:            options.width  ?? 1024,
       height:           options.height ?? 1024,
-      steps:            options.steps  ?? 28,
-      guidance:         options.guidance ?? 3.5,
       output_format:    options.outputFormat ?? 'png',
       safety_tolerance: options.safetyTolerance ?? 2,
     }),
@@ -51,13 +53,16 @@ export async function bflGenerate(apiKey: string, options: BflGenerateOptions): 
     throw new Error(`BFL API error ${createRes.status}: ${errText}`);
   }
 
-  const { id: taskId } = await createRes.json() as BflTaskResponse;
+  const task = await createRes.json() as BflTaskResponse;
+  const taskId = task.id;
+
+  const pollUrl = task.polling_url ?? `${BFL_API}/v1/get_result?id=${taskId}`;
 
   const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, 2000));
 
-    const pollRes = await fetch(`${BFL_API}/v1/get_result?id=${taskId}`, {
+    const pollRes = await fetch(pollUrl, {
       headers: { 'x-key': apiKey },
     });
 

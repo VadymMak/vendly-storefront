@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
     'xai.com',
     'oaidalleapiprodscus.blob.core.windows.net',
     'commondatastorage.googleapis.com',
+    // Kling video CDN
+    'klingai.com',
+    'aliyuncs.com',
+    'cloudfront.net',
+    'bfl.ai',
   ];
 
   // exact match OR subdomain match (e.g. imgen.x.ai matches x.ai)

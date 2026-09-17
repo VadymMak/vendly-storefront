@@ -913,7 +913,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const fetchUrl = img.url.startsWith('blob:')
         ? img.url
         : `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}`;
-      const blob = await fetch(fetchUrl).then(r => r.blob());
+      const res = await fetch(fetchUrl);
+      if (!res.ok) {
+        console.error('[download] proxy returned', res.status, await res.text().catch(() => ''));
+        window.open(img.url, '_blank');
+        return;
+      }
+      const blob = await res.blob();
       const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'png');
       const objectUrl = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), {
@@ -924,7 +930,10 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    } catch { /* silent */ }
+    } catch (err) {
+      console.error('[download] error:', err);
+      window.open(img.url, '_blank');
+    }
   }
 
   // ── Copy prompt ───────────────────────────────────────────────────────────────

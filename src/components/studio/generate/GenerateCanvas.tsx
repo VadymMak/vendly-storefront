@@ -433,6 +433,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
   const [dragOver,        setDragOver]        = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
+  const improvePanelRef = useRef<HTMLDivElement>(null);
 
   // Dynamic model catalog
   interface CatalogModel {
@@ -463,6 +464,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       document.removeEventListener('drop', prevent);
     };
   }, []);
+
+  useEffect(() => {
+    if (mode === 'improve' && improvePanelRef.current) {
+      improvePanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [mode]);
 
   const generateModels = catalogModels.filter(m => m.operation === 'generate');
 
@@ -1185,7 +1192,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
               {/* Enhancement presets panel */}
               {mode === 'improve' && (
-                <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div ref={improvePanelRef} className="mx-auto max-w-lg space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <p className="text-sm font-medium text-gray-300">Choose enhancement style</p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {ENHANCEMENT_PRESETS.map(preset => (

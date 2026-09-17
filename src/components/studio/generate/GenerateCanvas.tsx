@@ -909,16 +909,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   async function handleDownload(img: MediaItem) {
     try {
-      // blob: URLs are same-origin; external URLs need proxy to bypass CORS
       const fetchUrl = img.url.startsWith('blob:')
         ? img.url
         : `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}`;
       const res = await fetch(fetchUrl);
-      if (!res.ok) {
-        console.error('[download] proxy returned', res.status, await res.text().catch(() => ''));
-        window.open(img.url, '_blank');
-        return;
-      }
+      if (!res.ok) throw new Error(`Proxy ${res.status}`);
       const blob = await res.blob();
       const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'png');
       const objectUrl = URL.createObjectURL(blob);
@@ -931,8 +926,8 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch (err) {
-      console.error('[download] error:', err);
-      window.open(img.url, '_blank');
+      console.error('[download]', err, 'url:', img.url);
+      setError('Download failed — try right-click → Save Video As on the player');
     }
   }
 

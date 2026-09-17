@@ -454,6 +454,16 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const prevent = (e: Event) => e.preventDefault();
+    document.addEventListener('dragover', prevent);
+    document.addEventListener('drop', prevent);
+    return () => {
+      document.removeEventListener('dragover', prevent);
+      document.removeEventListener('drop', prevent);
+    };
+  }, []);
+
   const generateModels = catalogModels.filter(m => m.operation === 'generate');
 
   // Prompt / generate
@@ -519,6 +529,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) applyUploadedFile(file);
@@ -901,8 +912,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             <div className="space-y-6">
               {/* Upload drop zone */}
               <div
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
+                onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                onDragLeave={e => { if (e.currentTarget === e.target) setDragOver(false); }}
                 onDrop={handleDrop}
                 onClick={() => uploadRef.current?.click()}
                 className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${

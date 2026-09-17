@@ -138,7 +138,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
   'fal-dev': {
     displayName:    'FLUX.2 Dev (fal)',
     provider:       'fal',
-    modelId:        'fal-ai/flux-2/dev',
+    modelId:        'fal-ai/flux-2',
     operation:      'generate',
     tier:           'quality',
     costPerCall:    0.012,

@@ -18,6 +18,9 @@ export class FalProvider implements ImageProvider {
 
     const imageSize = ASPECT_TO_FAL_SIZE[req.aspectRatio ?? '1:1'] ?? 'square_hd';
 
+    const isSchnell = modelId.includes('schnell');
+    const isFlux2   = modelId.includes('flux-2');
+
     const result = await fal.subscribe(modelId, {
       input: {
         prompt:                req.prompt,
@@ -25,7 +28,8 @@ export class FalProvider implements ImageProvider {
         num_images:            1,
         enable_safety_checker: true,
         output_format:         req.outputFormat === 'png' ? 'png' : 'jpeg',
-        ...(modelId.includes('schnell') ? { num_inference_steps: 4 } : {}),
+        ...(isSchnell ? { num_inference_steps: 4 } : {}),
+        ...(isFlux2   ? { num_inference_steps: 28, acceleration: 'regular' } : {}),
       },
     });
 

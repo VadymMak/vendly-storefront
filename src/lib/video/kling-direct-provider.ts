@@ -87,7 +87,7 @@ export class KlingDirectProvider implements VideoProvider {
       : req.prompt;
 
     const body: Record<string, unknown> = {
-      model_name: 'kling-v2-1',
+      model_name: 'kling-v2-6',
       prompt,
       duration:   String(req.duration ?? 5),
       mode:       req.mode === 'pro' ? 'pro' : 'std',
@@ -153,7 +153,7 @@ export class KlingDirectProvider implements VideoProvider {
     };
   }
 
-  getModelName():    string { return 'kling-v2.1-direct'; }
-  getDisplayName():  string { return 'Kling v2.1 (Direct)'; }
+  getModelName():    string { return 'kling-v2.6-direct'; }
+  getDisplayName():  string { return 'Kling v2.6 (Direct)'; }
   getCostEstimate(): string { return '$0.50-1.00'; }
 }

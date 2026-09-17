@@ -8,7 +8,7 @@ import type {
 } from './provider';
 import { VideoProviderError } from './provider';
 
-const MODEL_V21 = 'kwaivgi/kling-v2.1';
+const MODEL_V26 = 'kwaivgi/kling-v2.6';
 const MODEL_V3  = 'kwaivgi/kling-v3-omni-video';
 
 const REPLICATE_API = 'https://api.replicate.com/v1';
@@ -80,7 +80,7 @@ export class KlingProvider implements VideoProvider {
   async createVideo(req: VideoGenerationRequest, apiKey: string): Promise<VideoGenerationResult> {
     // v3 handles character reference frames; v2.1 is the cheaper default.
     const useV3 = !!(req.referenceImages && req.referenceImages.length > 0);
-    const model = useV3 ? MODEL_V3 : MODEL_V21;
+    const model = useV3 ? MODEL_V3 : MODEL_V26;
 
     const prompt = req.camera
       ? `${req.prompt}${buildCameraFragment(req.camera)}`
@@ -149,7 +149,7 @@ export class KlingProvider implements VideoProvider {
     };
   }
 
-  getModelName():    string { return MODEL_V21; }
-  getDisplayName():  string { return 'Kling v2.1'; }
+  getModelName():    string { return MODEL_V26; }
+  getDisplayName():  string { return 'Kling v2.6'; }
   getCostEstimate(): string { return '$0.30-0.60'; }
 }

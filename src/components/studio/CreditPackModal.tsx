@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   isOpen: boolean;
@@ -63,7 +64,7 @@ export default function CreditPackModal({ isOpen, onClose }: Props) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
         className="relative w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto bg-gray-900 rounded-2xl p-6 shadow-2xl"
@@ -131,6 +132,7 @@ export default function CreditPackModal({ isOpen, onClose }: Props) {
           Secure payment via Stripe · Credits never expire
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

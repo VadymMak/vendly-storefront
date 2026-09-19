@@ -64,28 +64,26 @@ export default function CreditPackModal({ isOpen, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d0d14] border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-white">Get More Credits</h2>
-            <p className="text-sm text-gray-400 mt-1">Credits never expire · Stacks with monthly allowance</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-white transition-colors text-xl leading-none ml-4"
-          >
-            ×
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="relative w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto bg-gray-900 rounded-2xl p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl"
+        >
+          ✕
+        </button>
+
+        <h2 className="text-xl font-bold text-white text-center mb-6">Buy Credits</h2>
 
         {/* Cards */}
-        <div className="flex gap-3 px-6 pb-2">
+        <div className="grid grid-cols-3 gap-4">
           {PACKS.map(pack => (
             <div
               key={pack.id}
-              className={`relative flex-1 rounded-xl border p-4 flex flex-col gap-3 ${pack.color} ${pack.popular ? 'bg-green-500/5' : 'bg-white/[0.02]'}`}
+              className={`relative rounded-xl border p-4 flex flex-col gap-3 ${pack.color} ${pack.popular ? 'bg-green-500/5' : 'bg-white/[0.02]'}`}
             >
               {pack.popular && (
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
@@ -129,8 +127,8 @@ export default function CreditPackModal({ isOpen, onClose }: Props) {
           ))}
         </div>
 
-        <p className="text-center text-[11px] text-gray-600 px-6 py-4">
-          Secure payment via Stripe · No subscription · Credits stacked as bonus, never reset
+        <p className="text-center text-gray-500 text-sm mt-4">
+          Secure payment via Stripe · Credits never expire
         </p>
       </div>
     </div>

@@ -467,7 +467,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   }
   const [catalogModels, setCatalogModels] = useState<CatalogModel[]>([]);
 
-  interface CreditStatus { plan: string; superuser?: boolean; byok: boolean }
+  interface CreditStatus {
+    plan: string;
+    superuser?: boolean;
+    byok: boolean;
+    monthly: { images: { remaining: number }; videos: { remaining: number } };
+    bonus: { images: number; videos: number };
+  }
   const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
 
   useEffect(() => {
@@ -541,6 +547,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   const isFreePlan = creditStatus
     ? (creditStatus.plan === 'free' && !creditStatus.superuser && !creditStatus.byok)
+    : false;
+
+  // True when user has zero image credits left (not superuser, not byok)
+  const noCreditsForImages = creditStatus
+    ? (!creditStatus.superuser && !creditStatus.byok &&
+       (creditStatus.monthly.images.remaining + creditStatus.bonus.images) <= 0)
     : false;
 
   // Ensure free users stay on fast tier
@@ -816,6 +828,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     const finalPrompt = prompt.trim();
     if (!finalPrompt || isGenerating) return;
 
+    // Client-side credit gate — don't hit the API with 0 credits
+    if (noCreditsForImages) {
+      setShowCreditPack(true);
+      return;
+    }
+
     // Image + prompt → ai-edit
     if (uploadedImage) {
       handleEnhance();
@@ -884,7 +902,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       setIsGenerating(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prompt, isGenerating, selectedSize, outputFormat, selectedModel, selectedTier, selectionMode, selectedStyle, uploadedImage]);
+  }, [prompt, isGenerating, noCreditsForImages, selectedSize, outputFormat, selectedModel, selectedTier, selectionMode, selectedStyle, uploadedImage]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1122,14 +1140,23 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   <div className="flex-1" />
 
                   <button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt.trim()}
-                    className="flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={noCreditsForImages ? () => setShowCreditPack(true) : handleGenerate}
+                    disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
+                    className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      noCreditsForImages
+                        ? 'bg-amber-600 hover:bg-amber-700'
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
                   >
                     {isGenerating ? (
                       <>
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         Creating...
+                      </>
+                    ) : noCreditsForImages ? (
+                      <>
+                        <IconSparkle />
+                        No credits · Buy more
                       </>
                     ) : (
                       <>

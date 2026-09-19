@@ -83,13 +83,17 @@ export async function POST(request: Request) {
   const prompt = body.prompt?.trim();
   if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
 
-  // Rate limit
-  const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
 
+  // Credit check first — clear message beats a rate-limit error for exhausted users
+  const quickCreditCheck = await checkCredits(session.user.id, 'image');
+  if (!quickCreditCheck.allowed) {
+    return NextResponse.json({ error: quickCreditCheck.reason, needsUpgrade: true }, { status: 403 });
+  }
+
   // Force free users to fast tier only — prevents use of costly quality/premium models
-  if (planType === 'free' && !(await isSuperuser(session.user.id)) && !(await hasUserApiKey(session.user.id, 'replicate'))) {
+  if (planType === 'free' && !quickCreditCheck.byok && !(await isSuperuser(session.user.id))) {
     if (body.tier === 'quality' || body.tier === 'premium') {
       body.tier = 'fast';
     }
@@ -99,6 +103,8 @@ export async function POST(request: Request) {
     }
   }
 
+  // Rate limit
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   if (!(await checkRateLimitWithBypass(`img:${ip}:${session.user.id}`, RATE_LIMITS.generateImage[planType], session.user.id))) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }

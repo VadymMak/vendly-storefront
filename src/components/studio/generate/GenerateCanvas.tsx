@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
 import UpgradeModal from '@/components/studio/UpgradeModal';
+import CreditPackModal from '@/components/studio/CreditPackModal';
 import { ImageDetailModal } from './ImageDetailModal';
 import { VideoDetailModal } from './VideoDetailModal';
 import {
@@ -493,6 +494,18 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     };
   }, []);
 
+  // Handle Stripe redirect after credit pack purchase
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('checkout');
+    if (status === 'success') {
+      setCheckoutSuccess(params.get('pack') ?? 'credits');
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      window.history.replaceState({}, '', window.location.pathname);
+      setTimeout(() => setCheckoutSuccess(null), 5000);
+    }
+  }, []);
+
   useEffect(() => {
     if (mode === 'improve' && improvePanelRef.current) {
       improvePanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -556,7 +569,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // UI
   const [error,       setError]       = useState<string | null>(null);
-  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showUpgrade,    setShowUpgrade]    = useState(false);
+  const [showCreditPack, setShowCreditPack] = useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = useState<string | null>(null);
   const [modalImage,  setModalImage]  = useState<MediaItem | null>(null);
   const [modalVideo,  setModalVideo]  = useState<MediaItem | null>(null);
   const [addedToast,  setAddedToast]  = useState<string | null>(null);
@@ -667,9 +682,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   async function handleInlineAnimate() {
     if (!animateTarget || isAnimating) return;
 
-    // Free users cannot generate videos — show upgrade prompt
+    // Free users cannot generate videos — show credit pack purchase
     if (isFreePlan) {
-      setShowUpgrade(true);
+      setShowCreditPack(true);
       return;
     }
 
@@ -1054,7 +1069,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                           key={tier.id}
                           disabled={locked}
                           onClick={() => {
-                            if (locked) { setShowUpgrade(true); return; }
+                            if (locked) { setShowCreditPack(true); return; }
                             setSelectedTier(tier.id);
                           }}
                           title={locked ? 'Available on Starter plan and above' : undefined}
@@ -1441,6 +1456,16 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       {showUpgrade && (
         <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      )}
+      <CreditPackModal isOpen={showCreditPack} onClose={() => setShowCreditPack(false)} />
+
+      {/* ── Checkout success toast ─────────────────────────────────────────── */}
+      {checkoutSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-xl">
+          <span>✓</span>
+          <span>Credits added to your account!</span>
+          <button onClick={() => setCheckoutSuccess(null)} className="ml-2 text-white/70 hover:text-white">×</button>
+        </div>
       )}
       {modalImage && (
         <ImageDetailModal

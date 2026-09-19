@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import CreditPackModal from './CreditPackModal';
 
 interface CreditStatus {
   plan: string;
@@ -19,6 +20,7 @@ interface CreditStatus {
 export default function CreditCounter() {
   const [status, setStatus] = useState<CreditStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPacks, setShowPacks] = useState(false);
 
   const fetchCredits = async () => {
     try {
@@ -88,30 +90,35 @@ export default function CreditCounter() {
   };
 
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
-      <span className={getColor(imgRemaining, imgTotal)}>
-        🖼 {imgRemaining}/{imgTotal + status.bonus.images}
-      </span>
-      {isFree ? (
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('studio:showUpgrade'))}
-          className="text-xs text-gray-400 hover:text-white transition-colors"
-        >
-          🎥 Videos: Upgrade
-        </button>
-      ) : (
-        <span className={getColor(vidRemaining, vidTotal)}>
-          🎥 {vidRemaining}/{vidTotal + status.bonus.videos}
+    <>
+      <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+        <span className={getColor(imgRemaining, imgTotal)}>
+          🖼 {imgRemaining}/{imgTotal + status.bonus.images}
         </span>
-      )}
-      <button
-        onClick={() => {
-          window.dispatchEvent(new CustomEvent('studio:showUpgrade'));
-        }}
-        className="ml-1 px-2 py-0.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
-      >
-        + Buy more
-      </button>
-    </div>
+        {isFree ? (
+          <button
+            onClick={() => setShowPacks(true)}
+            className="text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            🎥 Videos: Upgrade
+          </button>
+        ) : (
+          <span className={getColor(vidRemaining, vidTotal)}>
+            🎥 {vidRemaining}/{vidTotal + status.bonus.videos}
+          </span>
+        )}
+        <button
+          onClick={() => setShowPacks(true)}
+          className="ml-1 px-2 py-0.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+        >
+          + Buy Credits
+        </button>
+      </div>
+
+      <CreditPackModal
+        isOpen={showPacks}
+        onClose={() => setShowPacks(false)}
+      />
+    </>
   );
 }

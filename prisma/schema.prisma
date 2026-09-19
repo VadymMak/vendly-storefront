@@ -237,8 +237,8 @@ model Lead {
 model StudioCredits {
   id                    String    @id @default(cuid())
   userId                String    @unique
-  monthlyImages         Int       @default(5)
-  monthlyVideos         Int       @default(1)
+  monthlyImages         Int       @default(15)
+  monthlyVideos         Int       @default(0)
   bonusImages           Int       @default(0)
   bonusVideos           Int       @default(0)
   lastReset             DateTime  @default(now())

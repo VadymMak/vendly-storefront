@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import CreditPackModal from '@/components/studio/CreditPackModal';
+import PricingModal from '@/components/studio/PricingModal';
 import { ImageDetailModal } from './ImageDetailModal';
 import { VideoDetailModal } from './VideoDetailModal';
 import {
@@ -500,12 +501,19 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     };
   }, []);
 
-  // Handle Stripe redirect after credit pack purchase
+  // Handle Stripe redirects after purchase
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const status = params.get('checkout');
-    if (status === 'success') {
+
+    if (params.get('checkout') === 'success') {
       setCheckoutSuccess(params.get('pack') ?? 'credits');
+      (window as unknown as Record<string, () => void>).__refreshCredits?.();
+      window.history.replaceState({}, '', window.location.pathname);
+      setTimeout(() => setCheckoutSuccess(null), 5000);
+    }
+
+    if (params.get('subscription') === 'success') {
+      setCheckoutSuccess(`subscription:${params.get('plan') ?? 'plan'}`);
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
       window.history.replaceState({}, '', window.location.pathname);
       setTimeout(() => setCheckoutSuccess(null), 5000);
@@ -588,6 +596,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [showUpgrade,    setShowUpgrade]    = useState(false);
   const [showCreditPack, setShowCreditPack] = useState(false);
   const [creditPackReason, setCreditPackReason] = useState<'video' | 'tier' | 'credits'>('credits');
+  const [showPricing, setShowPricing] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState<string | null>(null);
   const [modalImage,  setModalImage]  = useState<MediaItem | null>(null);
   const [modalVideo,  setModalVideo]  = useState<MediaItem | null>(null);
@@ -1494,13 +1503,28 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       {showUpgrade && (
         <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
       )}
-      <CreditPackModal isOpen={showCreditPack} onClose={() => setShowCreditPack(false)} reason={creditPackReason} />
+      <CreditPackModal
+        isOpen={showCreditPack}
+        onClose={() => setShowCreditPack(false)}
+        reason={creditPackReason}
+        onShowPlans={() => setShowPricing(true)}
+      />
+      <PricingModal
+        isOpen={showPricing}
+        onClose={() => setShowPricing(false)}
+        currentPlan={creditStatus?.plan}
+        onBuyCredits={() => { setShowPricing(false); setCreditPackReason('credits'); setShowCreditPack(true); }}
+      />
 
-      {/* ── Checkout success toast ─────────────────────────────────────────── */}
+      {/* ── Checkout / subscription success toast ─────────────────────────── */}
       {checkoutSuccess && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-xl">
           <span>✓</span>
-          <span>Credits added to your account!</span>
+          <span>
+            {checkoutSuccess.startsWith('subscription:')
+              ? 'Subscription activated! Your plan is now upgraded.'
+              : 'Credits added to your account!'}
+          </span>
           <button onClick={() => setCheckoutSuccess(null)} className="ml-2 text-white/70 hover:text-white">×</button>
         </div>
       )}

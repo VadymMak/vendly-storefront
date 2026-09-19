@@ -7,6 +7,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   reason?: 'video' | 'tier' | 'credits';
+  onShowPlans?: () => void;
 }
 
 const PACKS = [
@@ -45,7 +46,7 @@ const REASON_TITLES: Record<NonNullable<Props['reason']>, string> = {
   credits: 'Buy Credits',
 };
 
-export default function CreditPackModal({ isOpen, onClose, reason = 'credits' }: Props) {
+export default function CreditPackModal({ isOpen, onClose, reason = 'credits', onShowPlans }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -138,6 +139,17 @@ export default function CreditPackModal({ isOpen, onClose, reason = 'credits' }:
         <p className="text-center text-gray-500 text-sm mt-4">
           Secure payment via Stripe · Credits never expire
         </p>
+        {onShowPlans && (
+          <p className="text-center text-sm text-gray-500 mt-2">
+            Want unlimited monthly credits?{' '}
+            <button
+              onClick={() => { onClose(); onShowPlans(); }}
+              className="text-green-400 hover:text-green-300 underline transition-colors"
+            >
+              See subscription plans →
+            </button>
+          </p>
+        )}
       </div>
     </div>,
     document.body

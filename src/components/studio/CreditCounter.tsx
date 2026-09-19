@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import CreditPackModal from './CreditPackModal';
+import PricingModal from './PricingModal';
 
 interface CreditStatus {
   plan: string;
@@ -21,6 +22,7 @@ export default function CreditCounter() {
   const [status, setStatus] = useState<CreditStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPacks, setShowPacks] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   const fetchCredits = async () => {
     try {
@@ -113,11 +115,23 @@ export default function CreditCounter() {
         >
           + Buy Credits
         </button>
+        <button
+          onClick={() => setShowPricing(true)}
+          className="px-2 py-0.5 text-xs text-gray-400 hover:text-white transition-colors"
+        >
+          Plans
+        </button>
       </div>
 
       <CreditPackModal
         isOpen={showPacks}
         onClose={() => setShowPacks(false)}
+      />
+      <PricingModal
+        isOpen={showPricing}
+        onClose={() => setShowPricing(false)}
+        currentPlan={status.plan}
+        onBuyCredits={() => setShowPacks(true)}
       />
     </>
   );

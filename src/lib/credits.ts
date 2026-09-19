@@ -117,6 +117,9 @@ export async function deductCredit(
   type: CreditType,
   amount: number = 1,
 ): Promise<void> {
+  // Ensure row exists before any update (guards against P2025 for new users)
+  await getOrCreateCredits(userId);
+
   // Superusers — only track stats, no deduction
   if (await isSuperuser(userId)) {
     await db.studioCredits.update({
@@ -233,6 +236,9 @@ export async function addBonusCredits(
   images: number,
   videos: number,
 ): Promise<void> {
+  // Ensure row exists before update (guards against P2025 for new users)
+  await getOrCreateCredits(userId);
+
   await db.studioCredits.update({
     where: { userId },
     data: {
@@ -241,6 +247,30 @@ export async function addBonusCredits(
     },
   });
 }
+
+export const SUBSCRIPTION_PLANS = {
+  starter: {
+    name: 'Starter',
+    price: 9,
+    priceId: process.env.STRIPE_PRICE_STARTER!,
+    credits: PLAN_CREDITS.starter,
+    features: ['100 images/month', '5 videos/month', 'Best & HD quality', 'BYOK option'],
+  },
+  pro: {
+    name: 'Pro',
+    price: 19,
+    priceId: process.env.STRIPE_PRICE_PRO!,
+    credits: PLAN_CREDITS.pro,
+    features: ['300 images/month', '15 videos/month', 'Best & HD quality', 'Priority queue', 'BYOK option'],
+  },
+  byok_creator: {
+    name: 'BYOK Creator',
+    price: 7,
+    priceId: process.env.STRIPE_PRICE_BYOK!,
+    credits: { images: 0, videos: 0 },
+    features: ['Unlimited with your API keys', 'All models unlocked', 'Priority queue'],
+  },
+} as const;
 
 /**
  * Get user's current credit status for UI display.

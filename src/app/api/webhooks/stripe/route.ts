@@ -143,6 +143,64 @@ export async function POST(request: Request) {
       break;
     }
 
+    // ── Subscription payment succeeded (monthly renewal) ─────────────────
+    case 'invoice.paid': {
+      const invoice = event.data.object as Stripe.Invoice;
+      // Stripe v21: subscription is nested in parent.subscription_details
+      const rawSub = invoice.parent?.subscription_details?.subscription;
+      const subscriptionId = typeof rawSub === 'string' ? rawSub : rawSub?.id;
+      if (!subscriptionId) break;
+
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      const userId = sub.metadata?.userId;
+      const plan = sub.metadata?.plan as string;
+      if (!userId || !plan) break;
+
+      const { getOrCreateCredits, PLAN_CREDITS } = await import('@/lib/credits');
+      await getOrCreateCredits(userId);
+
+      const planCredits = plan === 'byok_creator'
+        ? { images: 0, videos: 0 }
+        : (PLAN_CREDITS[plan as 'starter' | 'pro'] ?? PLAN_CREDITS.free);
+
+      await db.studioCredits.update({
+        where: { userId },
+        data: {
+          planType: plan === 'byok_creator' ? 'pro' : plan,
+          monthlyImages: planCredits.images,
+          monthlyVideos: planCredits.videos,
+          stripeSubscriptionId: subscriptionId,
+          lastReset: new Date(),
+        },
+      });
+
+      console.log(`✅ Subscription active: userId=${userId} plan=${plan}`);
+      break;
+    }
+
+    // ── Subscription cancelled or expired ─────────────────────────────────
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object as Stripe.Subscription;
+      const userId = sub.metadata?.userId;
+      if (!userId) break;
+
+      const { PLAN_CREDITS, getOrCreateCredits } = await import('@/lib/credits');
+      await getOrCreateCredits(userId);
+
+      await db.studioCredits.update({
+        where: { userId },
+        data: {
+          planType: 'free',
+          monthlyImages: PLAN_CREDITS.free.images,
+          monthlyVideos: PLAN_CREDITS.free.videos,
+          stripeSubscriptionId: null,
+        },
+      });
+
+      console.log(`⚠️ Subscription cancelled: userId=${userId} → free plan`);
+      break;
+    }
+
     case 'checkout.session.expired': {
       const session = event.data.object as Stripe.Checkout.Session;
       const orderId = session.metadata?.orderId;

@@ -38,6 +38,17 @@ export function getVideoCreditCost(durationSeconds: number): number {
 }
 
 /**
+ * Single source of truth for BYOK check — reads UserApiKey table.
+ */
+export async function hasUserApiKey(userId: string, provider: string): Promise<boolean> {
+  const key = await db.userApiKey.findUnique({
+    where: { userId_provider: { userId, provider } },
+    select: { id: true },
+  });
+  return Boolean(key);
+}
+
+/**
  * Get or create StudioCredits for a user.
  * Auto-creates with free plan defaults if not exists.
  */
@@ -69,12 +80,12 @@ export async function checkCredits(
     return { allowed: true, byok: false };
   }
 
-  const credits = await getOrCreateCredits(userId);
-
-  // BYOK users bypass credit system
-  if (credits.byokEnabled && credits.replicateKey) {
+  // BYOK users bypass credit system — UserApiKey is single source of truth
+  if (await hasUserApiKey(userId, 'replicate')) {
     return { allowed: true, byok: true };
   }
+
+  const credits = await getOrCreateCredits(userId);
 
   if (type === "image") {
     const available = credits.monthlyImages + credits.bonusImages;
@@ -112,10 +123,8 @@ export async function deductCredit(
     return;
   }
 
-  const credits = await getOrCreateCredits(userId);
-
   // BYOK — no deduction, just track stats
-  if (credits.byokEnabled && credits.replicateKey) {
+  if (await hasUserApiKey(userId, 'replicate')) {
     await db.studioCredits.update({
       where: { userId },
       data:
@@ -125,6 +134,8 @@ export async function deductCredit(
     });
     return;
   }
+
+  const credits = await getOrCreateCredits(userId);
 
   if (type === "image") {
     const fromBonus = Math.min(credits.bonusImages, amount);
@@ -229,15 +240,18 @@ export async function addBonusCredits(
  * Get user's current credit status for UI display.
  */
 export async function getCreditStatus(userId: string) {
-  const superuser = await isSuperuser(userId).catch(() => false);
-  const credits = await getOrCreateCredits(userId);
+  const [superuser, byok, credits] = await Promise.all([
+    isSuperuser(userId).catch(() => false),
+    hasUserApiKey(userId, 'replicate'),
+    getOrCreateCredits(userId),
+  ]);
   const plan = credits.planType as PlanType;
   const allowance = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
 
   return {
     plan: credits.planType,
     superuser,
-    byok: credits.byokEnabled && !!credits.replicateKey,
+    byok,
     monthly: {
       images: {
         used: allowance.images - credits.monthlyImages,

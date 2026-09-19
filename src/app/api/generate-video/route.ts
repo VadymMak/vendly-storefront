@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
-import { checkCredits, getOrCreateCredits, getVideoCreditCost } from '@/lib/credits';
+import { checkCredits, getOrCreateCredits, getVideoCreditCost, isSuperuser } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
@@ -80,6 +80,16 @@ export async function POST(request: Request) {
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
     select: { encryptedKey: true },
   });
+
+  // Superusers MUST use their own BYOK key — never platform key
+  const userIsSuperuser = await isSuperuser(session.user.id);
+  if (userIsSuperuser && !keyRecord) {
+    return NextResponse.json(
+      { error: 'Please add your Replicate API key in Settings → API Keys. Superuser accounts require their own key for video generation.' },
+      { status: 403 },
+    );
+  }
+
   const replicateKey = keyRecord
     ? decrypt(keyRecord.encryptedKey)
     : (process.env.REPLICATE_API_TOKEN ?? '');

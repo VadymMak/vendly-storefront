@@ -68,7 +68,7 @@ export default function CreditCounter() {
   if (status.byok) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-sm">
-        <span>∞ Unlimited (BYOK)</span>
+        <span className="text-purple-600 dark:text-purple-400 font-medium">∞ Unlimited (Your API Key)</span>
       </div>
     );
   }
@@ -77,6 +77,7 @@ export default function CreditCounter() {
   const vidRemaining = status.monthly.videos.remaining + status.bonus.videos;
   const imgTotal = status.monthly.images.total;
   const vidTotal = status.monthly.videos.total;
+  const isFree = status.plan === 'free';
 
   // Color coding: green >50%, yellow <30%, red <10%
   const getColor = (remaining: number, total: number) => {
@@ -91,12 +92,20 @@ export default function CreditCounter() {
       <span className={getColor(imgRemaining, imgTotal)}>
         🖼 {imgRemaining}/{imgTotal + status.bonus.images}
       </span>
-      <span className={getColor(vidRemaining, vidTotal)}>
-        🎥 {vidRemaining}/{vidTotal + status.bonus.videos}
-      </span>
+      {isFree ? (
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('studio:showUpgrade'))}
+          className="text-xs text-gray-400 hover:text-white transition-colors"
+        >
+          🎥 Videos: Upgrade
+        </button>
+      ) : (
+        <span className={getColor(vidRemaining, vidTotal)}>
+          🎥 {vidRemaining}/{vidTotal + status.bonus.videos}
+        </span>
+      )}
       <button
         onClick={() => {
-          // Dispatch custom event — StudioClient will listen and show upgrade modal
           window.dispatchEvent(new CustomEvent('studio:showUpgrade'));
         }}
         className="ml-1 px-2 py-0.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"

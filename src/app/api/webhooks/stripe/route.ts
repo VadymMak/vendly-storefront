@@ -159,14 +159,12 @@ export async function POST(request: Request) {
       const { getOrCreateCredits, PLAN_CREDITS } = await import('@/lib/credits');
       await getOrCreateCredits(userId);
 
-      const planCredits = plan === 'byok_creator'
-        ? { images: 0, videos: 0 }
-        : (PLAN_CREDITS[plan as 'starter' | 'pro'] ?? PLAN_CREDITS.free);
+      const planCredits = PLAN_CREDITS[plan as keyof typeof PLAN_CREDITS] ?? PLAN_CREDITS.free;
 
       await db.studioCredits.update({
         where: { userId },
         data: {
-          planType: plan === 'byok_creator' ? 'pro' : plan,
+          planType: plan,
           monthlyImages: planCredits.images,
           monthlyVideos: planCredits.videos,
           stripeSubscriptionId: subscriptionId,
@@ -175,6 +173,23 @@ export async function POST(request: Request) {
       });
 
       console.log(`✅ Subscription active: userId=${userId} plan=${plan}`);
+      break;
+    }
+
+    // ── Subscription updated (cancel_at_period_end, plan change) ─────────
+    case 'customer.subscription.updated': {
+      const sub = event.data.object as Stripe.Subscription;
+      const userId = sub.metadata?.userId;
+      if (!userId) break;
+
+      const { getOrCreateCredits } = await import('@/lib/credits');
+      await getOrCreateCredits(userId);
+
+      if (sub.cancel_at_period_end) {
+        console.log(`⏳ Subscription will cancel at period end: userId=${userId} cancel_at=${sub.cancel_at}`);
+      } else {
+        console.log(`ℹ️ Subscription updated: userId=${userId} status=${sub.status}`);
+      }
       break;
     }
 

@@ -2,9 +2,10 @@ import { db } from "@/lib/db";
 
 // Credit allowances per plan (monthly reset values)
 export const PLAN_CREDITS = {
-  free: { images: 15, videos: 0 },
-  starter: { images: 100, videos: 5 },
-  pro: { images: 300, videos: 15 },
+  free:         { images: 15,  videos: 0  },
+  starter:      { images: 100, videos: 5  },
+  pro:          { images: 300, videos: 15 },
+  byok_creator: { images: 0,   videos: 0  },
 } as const;
 
 export type PlanType = keyof typeof PLAN_CREDITS;

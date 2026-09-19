@@ -37,11 +37,13 @@ const PLANS: { key: PlanKey; popular?: boolean }[] = [
 
 export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredits }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   async function handleSubscribe(plan: PlanKey) {
     setLoading(plan);
+    setError(null);
     try {
       const res = await fetch('/api/studio/subscribe', {
         method: 'POST',
@@ -52,10 +54,10 @@ export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredit
       if (data.url) {
         window.location.href = data.url;
       } else {
-        console.error('Subscribe error:', data.error);
+        setError(data.error ?? 'Failed to subscribe');
       }
-    } catch (err) {
-      console.error('Subscribe error:', err);
+    } catch {
+      setError('Network error. Please try again.');
     } finally {
       setLoading(null);
     }
@@ -93,6 +95,12 @@ export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredit
         </button>
 
         <h2 className="text-xl font-bold text-white text-center mb-6">Choose Your Plan</h2>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-900/50 border border-red-700 text-red-300 text-sm text-center">
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map(({ key, popular }) => {
@@ -133,9 +141,17 @@ export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredit
                   <button
                     onClick={handlePortal}
                     disabled={loading !== null}
-                    className="w-full py-2 rounded-lg bg-gray-700 text-gray-300 text-sm hover:bg-gray-600 transition-colors disabled:opacity-50"
+                    className="w-full py-2 rounded-lg bg-green-700 text-white text-sm hover:bg-green-600 transition-colors disabled:opacity-50"
                   >
-                    {loading === 'portal' ? 'Loading…' : 'Manage Subscription'}
+                    {loading === 'portal' ? 'Loading…' : '✓ Current Plan · Manage'}
+                  </button>
+                ) : currentPlan && currentPlan !== 'free' ? (
+                  <button
+                    onClick={handlePortal}
+                    disabled={loading !== null}
+                    className="w-full py-2 rounded-lg bg-gray-800 text-gray-500 text-sm cursor-not-allowed disabled:opacity-50"
+                  >
+                    {loading === 'portal' ? 'Loading…' : 'Cancel current plan first'}
                   </button>
                 ) : (
                   <button

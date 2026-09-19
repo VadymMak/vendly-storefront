@@ -31,6 +31,34 @@ export async function POST(request: Request) {
   // Ensure credits row exists
   await getOrCreateCredits(session.user.id);
 
+  // Block duplicate subscriptions
+  const existingCredits = await db.studioCredits.findUnique({
+    where: { userId: session.user.id },
+    select: { stripeSubscriptionId: true },
+  });
+  if (existingCredits?.stripeSubscriptionId) {
+    try {
+      const existingSub = await stripe.subscriptions.retrieve(existingCredits.stripeSubscriptionId);
+      if (['active', 'trialing', 'past_due'].includes(existingSub.status)) {
+        return NextResponse.json(
+          { error: 'You already have an active subscription. Cancel it first via "Manage Subscription".' },
+          { status: 409 },
+        );
+      }
+      // Stale DB entry — subscription cancelled in Stripe
+      await db.studioCredits.update({
+        where: { userId: session.user.id },
+        data: { stripeSubscriptionId: null },
+      });
+    } catch {
+      // Invalid subscription ID — clean up
+      await db.studioCredits.update({
+        where: { userId: session.user.id },
+        data: { stripeSubscriptionId: null },
+      });
+    }
+  }
+
   // Find or create Stripe customer
   let customerId: string;
   const user = await db.user.findUnique({ where: { id: session.user.id } });

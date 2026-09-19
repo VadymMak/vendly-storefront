@@ -466,10 +466,20 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   }
   const [catalogModels, setCatalogModels] = useState<CatalogModel[]>([]);
 
+  interface CreditStatus { plan: string; superuser?: boolean; byok: boolean }
+  const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
+
   useEffect(() => {
     fetch('/api/studio/models')
       .then(r => r.json())
       .then((data: { models: CatalogModel[] }) => { setCatalogModels(data.models); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/studio/credits')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: CreditStatus | null) => { if (data) setCreditStatus(data); })
       .catch(() => {});
   }, []);
 
@@ -515,6 +525,16 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     { id: 'quality', label: 'Best',  desc: 'Recommended',   credits: 2, eta: '~8s'  },
     { id: 'premium', label: 'HD',    desc: 'Highest detail', credits: 3, eta: '~15s' },
   ];
+
+  const isFreePlan = creditStatus
+    ? (creditStatus.plan === 'free' && !creditStatus.superuser && !creditStatus.byok)
+    : false;
+
+  // Ensure free users stay on fast tier
+  useEffect(() => {
+    if (isFreePlan && selectedTier !== 'fast') setSelectedTier('fast');
+  }, [isFreePlan, selectedTier]);
+
   const activeTierCredits = TIERS.find(t => t.id === selectedTier)?.credits ?? 1;
   const activeCredits = selectionMode === 'simple'
     ? activeTierCredits
@@ -646,6 +666,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   async function handleInlineAnimate() {
     if (!animateTarget || isAnimating) return;
+
+    // Free users cannot generate videos — show upgrade prompt
+    if (isFreePlan) {
+      setShowUpgrade(true);
+      return;
+    }
+
     setIsAnimating(true);
     setError(null);
 
@@ -1020,25 +1047,36 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 {/* ── Quality tier buttons ─────────────────────────── */}
                 {selectionMode === 'simple' && (
                   <div className="flex gap-2">
-                    {TIERS.map(tier => (
-                      <button
-                        key={tier.id}
-                        onClick={() => setSelectedTier(tier.id)}
-                        className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl border px-3 py-3 text-center transition-all ${
-                          selectedTier === tier.id
-                            ? 'border-green-500/40 bg-green-500/10'
-                            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
-                        }`}
-                      >
-                        <span className={`text-sm font-semibold ${selectedTier === tier.id ? 'text-green-400' : 'text-white'}`}>
-                          {tier.label}
-                        </span>
-                        <span className="text-xs text-gray-500">{tier.desc}</span>
-                        <span className="text-xs text-gray-500">
-                          {tier.credits} {tier.credits === 1 ? 'credit' : 'credits'} · {tier.eta}
-                        </span>
-                      </button>
-                    ))}
+                    {TIERS.map(tier => {
+                      const locked = isFreePlan && tier.id !== 'fast';
+                      return (
+                        <button
+                          key={tier.id}
+                          disabled={locked}
+                          onClick={() => {
+                            if (locked) { setShowUpgrade(true); return; }
+                            setSelectedTier(tier.id);
+                          }}
+                          title={locked ? 'Available on Starter plan and above' : undefined}
+                          className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl border px-3 py-3 text-center transition-all ${
+                            locked
+                              ? 'cursor-not-allowed border-white/5 opacity-40'
+                              : selectedTier === tier.id
+                              ? 'border-green-500/40 bg-green-500/10'
+                              : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+                          }`}
+                        >
+                          <span className={`text-sm font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
+                            {tier.label}
+                            {locked && <span className="ml-1 text-[10px]">🔒</span>}
+                          </span>
+                          <span className="text-xs text-gray-500">{tier.desc}</span>
+                          <span className="text-xs text-gray-500">
+                            {tier.credits} {tier.credits === 1 ? 'credit' : 'credits'} · {tier.eta}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 

@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { checkCredits, deductCredit, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel, LEGACY_GENERATE_ALIAS, TIER_ROUTES, MODEL_CATALOG, type ModelEntry } from '@/lib/studio/config';
@@ -87,6 +87,17 @@ export async function POST(request: Request) {
   const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+
+  // Force free users to fast tier only — prevents use of costly quality/premium models
+  if (planType === 'free' && !(await isSuperuser(session.user.id)) && !(await hasUserApiKey(session.user.id, 'replicate'))) {
+    if (body.tier === 'quality' || body.tier === 'premium') {
+      body.tier = 'fast';
+    }
+    if (body.modelAlias && !['img-fast', 'fal-schnell', 'img-grok'].includes(body.modelAlias)) {
+      delete body.modelAlias;
+      body.tier = 'fast';
+    }
+  }
 
   if (!(await checkRateLimitWithBypass(`img:${ip}:${session.user.id}`, RATE_LIMITS.generateImage[planType], session.user.id))) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });

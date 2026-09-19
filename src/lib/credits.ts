@@ -2,9 +2,9 @@ import { db } from "@/lib/db";
 
 // Credit allowances per plan (monthly reset values)
 export const PLAN_CREDITS = {
-  free: { images: 5, videos: 1 },
-  starter: { images: 50, videos: 3 },
-  pro: { images: 150, videos: 8 },
+  free: { images: 15, videos: 0 },
+  starter: { images: 100, videos: 5 },
+  pro: { images: 300, videos: 15 },
 } as const;
 
 export type PlanType = keyof typeof PLAN_CREDITS;
@@ -95,7 +95,13 @@ export async function checkCredits(
   } else {
     const available = credits.monthlyVideos + credits.bonusVideos;
     if (available < amount) {
-      return { allowed: false, reason: "No video credits remaining" };
+      const isFree = credits.planType === 'free';
+      return {
+        allowed: false,
+        reason: isFree
+          ? 'Video generation requires a paid plan or credit pack. Upgrade to start creating videos!'
+          : 'No video credits remaining. Buy a credit pack or upgrade your plan.',
+      };
     }
   }
 

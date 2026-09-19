@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  reason?: 'video' | 'tier' | 'credits';
 }
 
 const PACKS = [
@@ -38,7 +39,13 @@ const PACKS = [
   },
 ];
 
-export default function CreditPackModal({ isOpen, onClose }: Props) {
+const REASON_TITLES: Record<NonNullable<Props['reason']>, string> = {
+  video:   '🎬 Video Generation Requires Credits',
+  tier:    '🔒 Unlock Best & HD Quality',
+  credits: 'Buy Credits',
+};
+
+export default function CreditPackModal({ isOpen, onClose, reason = 'credits' }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -77,7 +84,7 @@ export default function CreditPackModal({ isOpen, onClose }: Props) {
           ✕
         </button>
 
-        <h2 className="text-xl font-bold text-white text-center mb-6">Buy Credits</h2>
+        <h2 className="text-xl font-bold text-white text-center mb-6">{REASON_TITLES[reason]}</h2>
 
         {/* Cards */}
         <div className="grid grid-cols-3 gap-4">

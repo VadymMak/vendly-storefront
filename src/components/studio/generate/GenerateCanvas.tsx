@@ -545,8 +545,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     { id: 'premium', label: 'HD',    desc: 'Highest detail', credits: 3, eta: '~15s' },
   ];
 
+  const hasPaidCredits = creditStatus
+    ? (creditStatus.bonus.images > 0 || creditStatus.bonus.videos > 0)
+    : false;
+
   const isFreePlan = creditStatus
-    ? (creditStatus.plan === 'free' && !creditStatus.superuser && !creditStatus.byok)
+    ? (creditStatus.plan === 'free' && !creditStatus.superuser && !creditStatus.byok && !hasPaidCredits)
     : false;
 
   // True when user has zero image credits left (not superuser, not byok)
@@ -583,6 +587,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [error,       setError]       = useState<string | null>(null);
   const [showUpgrade,    setShowUpgrade]    = useState(false);
   const [showCreditPack, setShowCreditPack] = useState(false);
+  const [creditPackReason, setCreditPackReason] = useState<'video' | 'tier' | 'credits'>('credits');
   const [checkoutSuccess, setCheckoutSuccess] = useState<string | null>(null);
   const [modalImage,  setModalImage]  = useState<MediaItem | null>(null);
   const [modalVideo,  setModalVideo]  = useState<MediaItem | null>(null);
@@ -694,8 +699,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   async function handleInlineAnimate() {
     if (!animateTarget || isAnimating) return;
 
-    // Free users cannot generate videos — show credit pack purchase
-    if (isFreePlan) {
+    // Block if user has no video credits (monthly + bonus)
+    const hasVideoCredits = creditStatus
+      ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0
+      : false;
+    if (!hasVideoCredits && !creditStatus?.superuser && !creditStatus?.byok) {
+      setCreditPackReason('video');
       setShowCreditPack(true);
       return;
     }
@@ -830,6 +839,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
     // Client-side credit gate — don't hit the API with 0 credits
     if (noCreditsForImages) {
+      setCreditPackReason('credits');
       setShowCreditPack(true);
       return;
     }
@@ -1087,7 +1097,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                           key={tier.id}
                           disabled={locked}
                           onClick={() => {
-                            if (locked) { setShowCreditPack(true); return; }
+                            if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
                             setSelectedTier(tier.id);
                           }}
                           title={locked ? 'Available on Starter plan and above' : undefined}
@@ -1484,7 +1494,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       {showUpgrade && (
         <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
       )}
-      <CreditPackModal isOpen={showCreditPack} onClose={() => setShowCreditPack(false)} />
+      <CreditPackModal isOpen={showCreditPack} onClose={() => setShowCreditPack(false)} reason={creditPackReason} />
 
       {/* ── Checkout success toast ─────────────────────────────────────────── */}
       {checkoutSuccess && (

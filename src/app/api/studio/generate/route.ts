@@ -92,8 +92,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: quickCreditCheck.reason, needsUpgrade: true }, { status: 403 });
   }
 
-  // Force free users to fast tier only — prevents use of costly quality/premium models
-  if (planType === 'free' && !quickCreditCheck.byok && !(await isSuperuser(session.user.id))) {
+  // Force free users to fast tier only — skip if user has purchased bonus credits
+  const hasPaidCredits = credits.bonusImages > 0 || credits.bonusVideos > 0;
+  if (planType === 'free' && !quickCreditCheck.byok && !(await isSuperuser(session.user.id)) && !hasPaidCredits) {
     if (body.tier === 'quality' || body.tier === 'premium') {
       body.tier = 'fast';
     }

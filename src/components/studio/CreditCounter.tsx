@@ -95,7 +95,7 @@ export default function CreditCounter() {
         <span className={getColor(imgRemaining, imgTotal)}>
           🖼 {imgRemaining}/{imgTotal + status.bonus.images}
         </span>
-        {isFree ? (
+        {isFree && status.bonus.videos === 0 ? (
           <button
             onClick={() => setShowPacks(true)}
             className="text-xs text-gray-400 hover:text-white transition-colors"
@@ -103,7 +103,7 @@ export default function CreditCounter() {
             🎥 Videos: Upgrade
           </button>
         ) : (
-          <span className={getColor(vidRemaining, vidTotal)}>
+          <span className={getColor(vidRemaining, vidTotal + status.bonus.videos)}>
             🎥 {vidRemaining}/{vidTotal + status.bonus.videos}
           </span>
         )}

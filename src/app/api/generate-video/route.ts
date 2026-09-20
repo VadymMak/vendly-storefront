@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
   // ── Credit check (still required — deduction happens later in job polling) ─
   const creditAmount = getVideoCreditCost(body.duration);
-  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
+  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount, 'replicate');
   if (!creditCheck.allowed) {
     return NextResponse.json(
       { error: creditCheck.reason, needsUpgrade: true },

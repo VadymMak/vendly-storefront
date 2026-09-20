@@ -179,7 +179,7 @@ export async function POST(request: Request) {
   for (const { alias, model, apiKey } of candidates) {
     let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
     if (!model.byokOnly) {
-      creditCheck = await checkCredits(session.user.id, model.creditType);
+      creditCheck = await checkCredits(session.user.id, model.creditType, 1, model.apiKeyProvider);
       if (!creditCheck.allowed) {
         return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
       }
@@ -205,7 +205,7 @@ export async function POST(request: Request) {
       }
 
       if (!model.byokOnly && !creditCheck.byok) {
-        await deductCredit(session.user.id, model.creditType);
+        await deductCredit(session.user.id, model.creditType, 1, model.apiKeyProvider);
       }
 
       await logUsage({

@@ -50,6 +50,14 @@ export async function hasUserApiKey(userId: string, provider: string): Promise<b
 }
 
 /**
+ * Check if user has ANY API key saved (for UI status display).
+ */
+export async function hasAnyApiKey(userId: string): Promise<boolean> {
+  const count = await db.userApiKey.count({ where: { userId } });
+  return count > 0;
+}
+
+/**
  * Get or create StudioCredits for a user.
  * Auto-creates with free plan defaults if not exists.
  */
@@ -75,15 +83,22 @@ export async function checkCredits(
   userId: string,
   type: CreditType,
   amount: number = 1,
+  provider?: string,
 ): Promise<{ allowed: boolean; reason?: string; byok?: boolean }> {
   // Superusers bypass all limits
   if (await isSuperuser(userId)) {
     return { allowed: true, byok: false };
   }
 
-  // BYOK users bypass credit system — UserApiKey is single source of truth
-  if (await hasUserApiKey(userId, 'replicate')) {
-    return { allowed: true, byok: true };
+  // BYOK users bypass credit system for the specific provider being used
+  if (provider) {
+    if (await hasUserApiKey(userId, provider)) {
+      return { allowed: true, byok: true };
+    }
+  } else {
+    if (await hasAnyApiKey(userId)) {
+      return { allowed: true, byok: true };
+    }
   }
 
   const credits = await getOrCreateCredits(userId);
@@ -117,6 +132,7 @@ export async function deductCredit(
   userId: string,
   type: CreditType,
   amount: number = 1,
+  provider?: string,
 ): Promise<void> {
   // Ensure row exists before any update (guards against P2025 for new users)
   await getOrCreateCredits(userId);
@@ -134,7 +150,10 @@ export async function deductCredit(
   }
 
   // BYOK — no deduction, just track stats
-  if (await hasUserApiKey(userId, 'replicate')) {
+  const isByok = provider
+    ? await hasUserApiKey(userId, provider)
+    : await hasAnyApiKey(userId);
+  if (isByok) {
     await db.studioCredits.update({
       where: { userId },
       data:
@@ -279,7 +298,7 @@ export const SUBSCRIPTION_PLANS = {
 export async function getCreditStatus(userId: string) {
   const [superuser, byok, credits] = await Promise.all([
     isSuperuser(userId).catch(() => false),
-    hasUserApiKey(userId, 'replicate'),
+    hasAnyApiKey(userId),
     getOrCreateCredits(userId),
   ]);
   const plan = credits.planType as PlanType;

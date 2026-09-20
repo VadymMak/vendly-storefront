@@ -159,16 +159,43 @@ export function LibraryGrid() {
   }
 
   async function handleDownload(item: LibraryItem) {
+    const ext = item.type === 'video' ? 'mp4' : 'webp';
+    const filename = `studio-${item.type}-${Date.now()}.${ext}`;
     try {
-      const res = await fetch(item.url);
-      const blob = await res.blob();
-      const ext = item.type === 'video' ? 'mp4' : 'webp';
+      let blob: Blob;
+
+      if (item.url.startsWith('blob:')) {
+        const res = await fetch(item.url);
+        blob = await res.blob();
+      } else {
+        try {
+          const directRes = await fetch(item.url);
+          if (directRes.ok) {
+            blob = await directRes.blob();
+          } else {
+            throw new Error(`Direct: ${directRes.status}`);
+          }
+        } catch {
+          const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(item.url)}&download=${encodeURIComponent(filename)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (!proxyRes.ok) throw new Error(`Proxy: ${proxyRes.status}`);
+          blob = await proxyRes.blob();
+        }
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(blob),
-        download: `studio-${item.type}-${Date.now()}.${ext}`,
+        href: objectUrl,
+        download: filename,
       });
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    } catch { /* silent */ }
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch (err) {
+      console.error('[download]', err);
+      if (item.type === 'video') window.open(item.url, '_blank');
+    }
   }
 
   return (

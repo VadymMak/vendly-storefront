@@ -999,15 +999,31 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   // ── Download ─────────────────────────────────────────────────────────────────
 
   async function handleDownload(img: MediaItem) {
+    const ext = img.type === 'video' ? 'mp4' : (img.format ?? 'webp');
+    const filename = `studio-${Date.now()}.${ext}`;
+
     try {
-      const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'png');
-      const filename = `studio-${Date.now()}.${ext}`;
-      const fetchUrl = img.url.startsWith('blob:')
-        ? img.url
-        : `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}&download=${encodeURIComponent(filename)}`;
-      const res = await fetch(fetchUrl);
-      if (!res.ok) throw new Error(`Proxy ${res.status}`);
-      const blob = await res.blob();
+      let blob: Blob;
+
+      if (img.url.startsWith('blob:')) {
+        const res = await fetch(img.url);
+        blob = await res.blob();
+      } else {
+        try {
+          const directRes = await fetch(img.url);
+          if (directRes.ok) {
+            blob = await directRes.blob();
+          } else {
+            throw new Error(`Direct fetch failed: ${directRes.status}`);
+          }
+        } catch {
+          const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}&download=${encodeURIComponent(filename)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
+          blob = await proxyRes.blob();
+        }
+      }
+
       const objectUrl = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), {
         href: objectUrl,
@@ -1016,10 +1032,15 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     } catch (err) {
-      console.error('[download]', err, 'url:', img.url);
-      setError('Download failed — try right-click → Save Video As on the player');
+      console.error('[download]', err instanceof Error ? err.message : err, 'url:', img.url);
+      if (img.type === 'video') {
+        setError('Download failed — try right-click → Save Video As on the player');
+        window.open(img.url, '_blank');
+      } else {
+        setError('Download failed — please try again');
+      }
     }
   }
 

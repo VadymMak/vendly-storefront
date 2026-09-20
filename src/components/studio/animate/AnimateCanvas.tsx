@@ -352,15 +352,42 @@ export function AnimateCanvas({ userId: _userId }: Props) {
   // ── Download ──────────────────────────────────────────────────────────────
   async function handleDownload() {
     if (!videoUrl) return;
+    const filename = `studio-video-${Date.now()}.mp4`;
     try {
-      const res = await fetch(videoUrl);
-      const blob = await res.blob();
+      let blob: Blob;
+
+      if (videoUrl.startsWith('blob:')) {
+        const res = await fetch(videoUrl);
+        blob = await res.blob();
+      } else {
+        try {
+          const directRes = await fetch(videoUrl);
+          if (directRes.ok) {
+            blob = await directRes.blob();
+          } else {
+            throw new Error(`Direct: ${directRes.status}`);
+          }
+        } catch {
+          const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(videoUrl)}&download=${encodeURIComponent(filename)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (!proxyRes.ok) throw new Error(`Proxy: ${proxyRes.status}`);
+          blob = await proxyRes.blob();
+        }
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(blob),
-        download: `studio-video-${Date.now()}.mp4`,
+        href: objectUrl,
+        download: filename,
       });
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    } catch { /* silent */ }
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch (err) {
+      console.error('[download]', err);
+      window.open(videoUrl, '_blank');
+    }
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

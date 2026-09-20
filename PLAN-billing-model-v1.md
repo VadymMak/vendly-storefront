@@ -124,6 +124,13 @@
 - ✅ `SUBSCRIPTION_PLANS` features: 'BYOK option' → 'Own API keys' (honest messaging)
 - ✅ SettingsCanvas: removed "unlimited" from descriptions for paid users
 
+### Phase 8: Fix BYOK Display + Subscription Management UI (PROMPT-111) ✅ DONE
+- ✅ `getCreditStatus()`: added `byokUnlimited = byok && plan === 'byok_creator'`
+- ✅ `CreditCounter`: `byokUnlimited` drives "∞ Unlimited" display (not just `byok`); Starter/Pro+key show 🔑 badge + credits counter
+- ✅ `CreditCounter`: BYOK Creator gets "Manage" button in unlimited row
+- ✅ `PricingModal`: 'BYOK option available' → 'Own API keys supported'
+- ✅ `SettingsCanvas`: Credits section → Credits & Subscription; Manage subscription button for paid plans
+
 ### Phase 6: Video Provider Migration (PROMPT-108)
 - ⬜ Migrate video provider: Replicate → Renderful или fal.ai ($0.31 vs $0.70)
 - ⬜ Или: купить Kling Trial Plan ($9.80) и использовать KlingDirectProvider

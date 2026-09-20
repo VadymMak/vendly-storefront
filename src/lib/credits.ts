@@ -309,6 +309,7 @@ export async function getCreditStatus(userId: string) {
     plan: credits.planType,
     superuser,
     byok,
+    byokUnlimited: byok && plan === 'byok_creator',
     monthly: {
       images: {
         used: allowance.images - credits.monthlyImages,

@@ -8,6 +8,7 @@ interface CreditStatus {
   plan: string;
   superuser?: boolean;
   byok: boolean;
+  byokUnlimited: boolean;
   monthly: {
     images: { used: number; total: number; remaining: number };
     videos: { used: number; total: number; remaining: number };
@@ -68,12 +69,26 @@ export default function CreditCounter() {
     );
   }
 
-  // BYOK users see unlimited
-  if (status.byok) {
+  // BYOK Creator users see unlimited + manage button
+  if (status.byokUnlimited) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-sm">
-        <span className="text-purple-600 dark:text-purple-400 font-medium">∞ Unlimited (Your API Key)</span>
-      </div>
+      <>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-lg text-sm">
+          <span className="text-purple-600 dark:text-purple-400 font-medium">∞ Unlimited (Your API Key)</span>
+          <button
+            onClick={() => setShowPricing(true)}
+            className="px-2 py-0.5 text-xs text-purple-400 hover:text-white transition-colors"
+          >
+            Manage
+          </button>
+        </div>
+        <PricingModal
+          isOpen={showPricing}
+          onClose={() => setShowPricing(false)}
+          currentPlan={status.plan}
+          onBuyCredits={() => setShowPacks(true)}
+        />
+      </>
     );
   }
 
@@ -94,6 +109,9 @@ export default function CreditCounter() {
   return (
     <>
       <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+        {status.byok && (
+          <span className="text-purple-400 text-xs" title="Using your own API keys">🔑</span>
+        )}
         <span className={getColor(imgRemaining, imgTotal)}>
           🖼 {imgRemaining}/{imgTotal + status.bonus.images}
         </span>

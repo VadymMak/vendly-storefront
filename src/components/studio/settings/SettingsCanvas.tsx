@@ -224,16 +224,39 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
           </div>
         </section>
 
-        {/* Credits */}
+        {/* Credits & Subscription */}
         <section className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">Credits</h2>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">Credits & Subscription</h2>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm space-y-3">
             <p className="text-gray-400">Monthly credits reset on the 1st of each month.</p>
+            {planType !== 'free' && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-300">
+                    Current plan: <span className="text-white font-medium capitalize">{planType === 'byok_creator' ? 'BYOK Creator' : planType}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/studio/portal', { method: 'POST' });
+                      const data = await res.json() as { url?: string };
+                      if (data.url) window.location.href = data.url;
+                    } catch (err) {
+                      console.error('Portal error:', err);
+                    }
+                  }}
+                  className="min-h-[44px] rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                >
+                  Manage subscription →
+                </button>
+              </div>
+            )}
             <a
               href="/studio/pricing"
-              className="mt-3 inline-flex min-h-[44px] items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+              className="inline-flex min-h-[44px] items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
             >
-              Buy more credits →
+              {planType === 'free' ? 'Upgrade plan →' : 'Buy more credits →'}
             </a>
           </div>
         </section>

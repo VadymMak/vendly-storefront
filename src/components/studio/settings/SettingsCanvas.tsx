@@ -242,7 +242,7 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
         {isSuperuser && (
           <section className="space-y-2">
             <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">API Keys</h2>
-            <p className="text-xs text-gray-600">Connect your own AI accounts for unlimited generation at direct provider cost. Keys are encrypted at rest.</p>
+            <p className="text-xs text-gray-600">Connect your own AI accounts at direct provider cost. Keys are encrypted at rest.</p>
             {apiKeysForm}
           </section>
         )}
@@ -257,7 +257,7 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
             >
               <div>
                 <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500 text-left">Advanced Settings</h2>
-                <p className="text-xs text-gray-600 text-left">Connect your own AI accounts for unlimited generation</p>
+                <p className="text-xs text-gray-600 text-left">Connect your own AI accounts for premium model access</p>
               </div>
               <span className="text-gray-500 text-xs ml-4">{apiKeysOpen ? '▲' : '▼'}</span>
             </button>

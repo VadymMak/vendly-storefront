@@ -90,18 +90,18 @@ export async function checkCredits(
     return { allowed: true, byok: false };
   }
 
-  // BYOK users bypass credit system for the specific provider being used
-  if (provider) {
-    if (await hasUserApiKey(userId, provider)) {
-      return { allowed: true, byok: true };
-    }
-  } else {
-    if (await hasAnyApiKey(userId)) {
-      return { allowed: true, byok: true };
-    }
-  }
-
   const credits = await getOrCreateCredits(userId);
+  const userPlan = (credits.planType || 'free') as string;
+
+  // Check if user has BYOK key for this provider
+  const hasByokKey = provider
+    ? await hasUserApiKey(userId, provider)
+    : await hasAnyApiKey(userId);
+
+  // ONLY byok_creator gets unlimited bypass — Starter/Pro always use credits
+  if (hasByokKey && userPlan === 'byok_creator') {
+    return { allowed: true, byok: true };
+  }
 
   if (type === "image") {
     const available = credits.monthlyImages + credits.bonusImages;
@@ -134,8 +134,8 @@ export async function deductCredit(
   amount: number = 1,
   provider?: string,
 ): Promise<void> {
-  // Ensure row exists before any update (guards against P2025 for new users)
-  await getOrCreateCredits(userId);
+  // Ensure row exists + load plan info in one call
+  const credits = await getOrCreateCredits(userId);
 
   // Superusers — only track stats, no deduction
   if (await isSuperuser(userId)) {
@@ -149,11 +149,14 @@ export async function deductCredit(
     return;
   }
 
-  // BYOK — no deduction, just track stats
+  // Check BYOK status + plan
+  const userPlan = (credits.planType || 'free') as string;
   const isByok = provider
     ? await hasUserApiKey(userId, provider)
     : await hasAnyApiKey(userId);
-  if (isByok) {
+
+  // ONLY byok_creator skips credit deduction — Starter/Pro always deduct
+  if (isByok && userPlan === 'byok_creator') {
     await db.studioCredits.update({
       where: { userId },
       data:
@@ -163,8 +166,6 @@ export async function deductCredit(
     });
     return;
   }
-
-  const credits = await getOrCreateCredits(userId);
 
   if (type === "image") {
     const fromBonus = Math.min(credits.bonusImages, amount);
@@ -274,14 +275,14 @@ export const SUBSCRIPTION_PLANS = {
     price: 9,
     priceId: process.env.STRIPE_PRICE_STARTER!,
     credits: PLAN_CREDITS.starter,
-    features: ['100 images/month', '5 videos/month', 'Best & HD quality', 'BYOK option'],
+    features: ['100 images/month', '5 videos/month', 'Best & HD quality', 'Own API keys'],
   },
   pro: {
     name: 'Pro',
     price: 19,
     priceId: process.env.STRIPE_PRICE_PRO!,
     credits: PLAN_CREDITS.pro,
-    features: ['300 images/month', '15 videos/month', 'Best & HD quality', 'Priority queue', 'BYOK option'],
+    features: ['300 images/month', '15 videos/month', 'Best & HD quality', 'Priority queue', 'Own API keys'],
   },
   byok_creator: {
     name: 'BYOK Creator',

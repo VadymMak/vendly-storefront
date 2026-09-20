@@ -118,6 +118,12 @@
 - ✅ `generate/route.ts`: per-model credit check с `model.apiKeyProvider`
 - ✅ `generate-video/route.ts`: credit check с явным `'replicate'`
 
+### Phase 7 (was 5): BYOK Credit Bypass Removal (PROMPT-110) ✅ DONE
+- ✅ `checkCredits()` — only `byok_creator` plan gets `byok: true` bypass; Starter/Pro deduct credits even with own keys
+- ✅ `deductCredit()` — same: only `byok_creator` skips deduction; Starter/Pro always deduct
+- ✅ `SUBSCRIPTION_PLANS` features: 'BYOK option' → 'Own API keys' (honest messaging)
+- ✅ SettingsCanvas: removed "unlimited" from descriptions for paid users
+
 ### Phase 6: Video Provider Migration (PROMPT-108)
 - ⬜ Migrate video provider: Replicate → Renderful или fal.ai ($0.31 vs $0.70)
 - ⬜ Или: купить Kling Trial Plan ($9.80) и использовать KlingDirectProvider

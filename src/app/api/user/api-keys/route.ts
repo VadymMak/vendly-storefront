@@ -14,7 +14,7 @@ const KEY_PREFIXES: Record<string, string> = {
 };
 
 const saveSchema = z.object({
-  provider: z.enum(['replicate', 'anthropic', 'openai', 'xai', 'elevenlabs', 'bfl', 'kling_key', 'kling_secret']),
+  provider: z.enum(['fal', 'replicate', 'anthropic', 'openai', 'xai', 'elevenlabs', 'bfl', 'kling_key', 'kling_secret']),
   key:      z.string().min(10),
 });
 

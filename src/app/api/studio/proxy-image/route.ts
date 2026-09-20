@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
+  const download = request.nextUrl.searchParams.get('download');
   if (!url) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
@@ -59,15 +60,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
+    const contentLength = response.headers.get('Content-Length');
 
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream',
-        'Cache-Control': 'public, max-age=3600',
-        'Content-Length': String(buffer.byteLength),
-      },
-    });
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=3600',
+    };
+    if (download) headers['Content-Disposition'] = `attachment; filename="${download.replace(/"/g, '')}"`;
+
+    // Stream video files and files >5 MB to avoid buffering-induced 502 timeouts
+    const isLarge = contentType.startsWith('video/') ||
+      (contentLength ? parseInt(contentLength, 10) > 5_000_000 : false);
+
+    if (isLarge && response.body) {
+      if (contentLength) headers['Content-Length'] = contentLength;
+      return new NextResponse(response.body, { headers });
+    }
+
+    const buffer = await response.arrayBuffer();
+    headers['Content-Length'] = String(buffer.byteLength);
+    return new NextResponse(buffer, { headers });
   } catch (error) {
     console.error('[proxy-image] Fetch error:', error);
     return NextResponse.json({ error: 'Failed to proxy image' }, { status: 502 });

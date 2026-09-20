@@ -1000,17 +1000,18 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   async function handleDownload(img: MediaItem) {
     try {
+      const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'png');
+      const filename = `studio-${Date.now()}.${ext}`;
       const fetchUrl = img.url.startsWith('blob:')
         ? img.url
-        : `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}`;
+        : `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}&download=${encodeURIComponent(filename)}`;
       const res = await fetch(fetchUrl);
       if (!res.ok) throw new Error(`Proxy ${res.status}`);
       const blob = await res.blob();
-      const ext = img.format ?? (img.type === 'video' ? 'mp4' : 'png');
       const objectUrl = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement('a'), {
         href: objectUrl,
-        download: `studio-${Date.now()}.${ext}`,
+        download: filename,
       });
       document.body.appendChild(a);
       a.click();

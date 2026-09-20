@@ -275,6 +275,13 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
           </span>
         )}
 
+        {/* Model badge — bottom-left */}
+        {img.model && !['original', 'remove-bg', 'upscale', 'grok-edit'].includes(img.model) && (
+          <span className="absolute bottom-2 left-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-gray-300 backdrop-blur-sm pointer-events-none">
+            {img.model}
+          </span>
+        )}
+
         {/* Hover overlay — only covers the image, not the filters below */}
         <div
           className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
@@ -893,9 +900,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
 
-      const modelLabel = selectionMode === 'simple'
+      // Read actual model info from server headers (reflects fallback routing)
+      const modelAlias    = res.headers.get('X-Model-Alias') ?? selectedModel;
+      const modelProvider = res.headers.get('X-Model-Provider') ?? '';
+      const modelName     = res.headers.get('X-Model-Name') ?? '';
+      const modelLabel = modelName || (selectionMode === 'simple'
         ? (TIERS.find(t => t.id === selectedTier)?.label ?? selectedTier)
-        : selectedModel;
+        : (modelAlias || selectedModel));
 
       const newImage: MediaItem = {
         id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -904,10 +915,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         preset: 'product',
         format: outputFormat,
         model: modelLabel,
+        provider: modelProvider,
         createdAt: Date.now(),
       };
       addImage(newImage);
-      saveToLibrary({ type: 'image', url, prompt: `[Generated] ${finalPrompt}`, model: modelLabel, preset: 'product' });
+      saveToLibrary({ type: 'image', url, prompt: `[Generated] ${finalPrompt}`, model: modelLabel, provider: modelProvider, preset: 'product' });
 
       fetch('/api/studio/track-generation', {
         method: 'POST',

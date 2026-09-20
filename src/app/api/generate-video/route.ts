@@ -188,7 +188,7 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ jobId, predictionId: prediction.predictionId });
+  return NextResponse.json({ jobId, predictionId: prediction.predictionId, provider: usedProvider });
 }
 
 function isQuotaError(error: unknown): boolean {

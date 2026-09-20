@@ -222,7 +222,12 @@ export async function POST(request: Request) {
         metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length },
       });
 
-      return processBuffer(result.url, targetW, targetH, outputFormat, alias);
+      const response = await processBuffer(result.url, targetW, targetH, outputFormat, alias);
+      response.headers.set('X-Model-Alias', alias);
+      response.headers.set('X-Model-Provider', model.provider);
+      response.headers.set('X-Model-Name', model.displayName);
+      response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name');
+      return response;
     } catch (err) {
       const durationMs = Date.now() - startTime;
       lastError = err instanceof Error ? err.message : 'Generation failed';

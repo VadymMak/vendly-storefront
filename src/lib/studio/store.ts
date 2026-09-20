@@ -8,6 +8,7 @@ export interface MediaItem {
   url: string;
   prompt?: string;
   model?: string;
+  provider?: string;
   preset?: string;
   format?: string;
   duration?: number;

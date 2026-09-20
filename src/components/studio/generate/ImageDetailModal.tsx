@@ -14,6 +14,7 @@ export interface ModalImage {
   preset?: string;
   format?: string;
   model?: string;
+  provider?: string;
   createdAt: number;
 }
 
@@ -215,7 +216,11 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
               <span>Format</span><span className="text-white">{img.format?.toUpperCase()}</span>
             </div>
             <div className="flex justify-between py-0.5">
-              <span>Model</span><span className="text-white">Flux {img.model}</span>
+              <span>Model</span>
+              <span className="text-white text-right">
+                {img.model ?? 'Unknown'}
+                {img.provider && <span className="ml-1 text-gray-400 text-[11px]">via {img.provider}</span>}
+              </span>
             </div>
             <div className="flex justify-between py-0.5">
               <span>Created</span>

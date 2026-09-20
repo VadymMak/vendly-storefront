@@ -7,6 +7,7 @@ export interface LibraryItem {
   url: string;
   prompt: string;
   model?: string;
+  provider?: string;
   preset?: string;
   createdAt: number;
 }

@@ -12,6 +12,7 @@ interface Props {
 interface KeyRecord { provider: string; keyHint: string }
 
 export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
+  const [falKey, setFalKey]             = useState('');
   const [fluxKey, setFluxKey]           = useState('');
   const [xaiKey, setXaiKey]             = useState('');
   const [openaiKey, setOpenaiKey]       = useState('');
@@ -49,6 +50,7 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
   async function handleSaveKeys() {
     const toSave: Array<[string, string]> = [];
+    if (falKey.trim())       toSave.push(['fal', falKey.trim()]);
     if (fluxKey.trim())      toSave.push(['replicate', fluxKey.trim()]);
     if (xaiKey.trim())       toSave.push(['xai', xaiKey.trim()]);
     if (openaiKey.trim())    toSave.push(['openai', openaiKey.trim()]);
@@ -63,7 +65,7 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
     try {
       await Promise.all(toSave.map(([p, k]) => saveProviderKey(p, k)));
       setSaveMsg({ ok: true, text: 'Keys saved successfully' });
-      setFluxKey(''); setXaiKey(''); setOpenaiKey(''); setAnthropicKey('');
+      setFalKey(''); setFluxKey(''); setXaiKey(''); setOpenaiKey(''); setAnthropicKey('');
       setBflKey(''); setKlingKey(''); setKlingSecret('');
     } catch (err) {
       setSaveMsg({ ok: false, text: err instanceof Error ? err.message : 'Failed to save — please try again' });
@@ -83,12 +85,33 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
   const apiKeysForm = (
     <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
-      {/* Replicate (Flux + Video) */}
+      {/* fal.ai (Primary Video + Images) */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">Flux / Video API Key (Replicate)</label>
+        <label className="mb-1 block text-xs text-gray-400">fal.ai API Key (Primary Video)</label>
+        <p className="mb-1 text-[10px] text-gray-600">Kling 3.0 video + Flux image generation — primary provider</p>
+        {isSuperuser && !hints.fal && !falKey && (
+          <p className="mb-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-400">
+            ⚠️ Add your fal.ai key to generate videos
+          </p>
+        )}
+        {hints.fal && !falKey && (
+          <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.fal}</p>
+        )}
+        <input
+          type="password"
+          value={falKey}
+          onChange={e => setFalKey(e.target.value)}
+          placeholder={hints.fal ? 'Replace saved key…' : 'fal-...'}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-white/25"
+        />
+      </div>
+
+      {/* Replicate (Image fallback) */}
+      <div>
+        <label className="mb-1 block text-xs text-gray-400">Replicate API Key (Image fallback)</label>
         {isSuperuser && !hints.replicate && !fluxKey && (
           <p className="mb-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-400">
-            ⚠️ Add your Replicate key to generate videos
+            ⚠️ Optional: used as fallback if fal.ai is unavailable
           </p>
         )}
         {hints.replicate && !fluxKey && (
@@ -200,7 +223,7 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       <button
         onClick={handleSaveKeys}
-        disabled={isSaving || (!fluxKey && !xaiKey && !openaiKey && !anthropicKey && !bflKey && !klingKey && !klingSecret)}
+        disabled={isSaving || (!falKey && !fluxKey && !xaiKey && !openaiKey && !anthropicKey && !bflKey && !klingKey && !klingSecret)}
         className="min-h-[44px] rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSaving ? 'Saving…' : 'Save API Keys'}

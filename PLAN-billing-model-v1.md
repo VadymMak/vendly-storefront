@@ -131,10 +131,12 @@
 - ✅ `PricingModal`: 'BYOK option available' → 'Own API keys supported'
 - ✅ `SettingsCanvas`: Credits section → Credits & Subscription; Manage subscription button for paid plans
 
-### Phase 6: Video Provider Migration (PROMPT-108)
-- ⬜ Migrate video provider: Replicate → Renderful или fal.ai ($0.31 vs $0.70)
-- ⬜ Или: купить Kling Trial Plan ($9.80) и использовать KlingDirectProvider
-- ⬜ Обновить KlingDirectProvider: kling-v2-6 → kling-v3-std
+### Phase 6: Video Provider Migration (PROMPT-112) ✅ DONE
+- ✅ Primary provider: fal.ai Kling 3.0 Standard ($0.42/5s, −40% vs Replicate)
+- ✅ Fallback chain: fal.ai → Replicate → Kling Direct
+- ✅ `FalKlingProvider` using `@fal-ai/client` queue API
+- ✅ Dynamic API key resolution: fal BYOK → FAL_KEY env → replicate BYOK → REPLICATE_API_TOKEN
+- ✅ Backward-compatible polling: `fal:` prefix for new, unprefixed for legacy Replicate jobs
 
 ---
 
@@ -145,10 +147,9 @@
 | Image (Best) | xAI Grok | $0.00 | FREE — наше преимущество |
 | Image (Quick) | fal Schnell | $0.003 | |
 | Image (Quality) | fal Dev | $0.02 | |
-| Video 5s | Replicate Kling v2.6 | $0.70 | Текущий |
-| Video 5s | Renderful Kling v2.6 | $0.31 | Альтернатива |
-| Video 5s | Kling Direct 3.0 | $0.42 | Prepaid packages |
-| Video 5s | fal.ai Kling | $0.30–0.40 | Pay-as-you-go |
+| Video 5s | fal.ai Kling 3.0 Std | $0.42 | **Primary (PROMPT-112)** |
+| Video 5s | Replicate Kling v2.6 | $0.70 | Fallback |
+| Video 5s | Kling Direct 3.0 | $0.42 | BYOK fallback |
 
 ---
 

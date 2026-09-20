@@ -7,7 +7,7 @@ import { checkCredits, getOrCreateCredits, getVideoCreditCost, isSuperuser } fro
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
-import { getVideoProvider, KlingDirectProvider, VideoProviderError } from '@/lib/video';
+import { FalKlingProvider, KlingProvider, KlingDirectProvider, VideoProviderError } from '@/lib/video';
 
 const generateSchema = z.object({
   prompt:          z.string().min(1),
@@ -59,7 +59,8 @@ export async function POST(request: Request) {
 
   // ── Credit check (still required — deduction happens later in job polling) ─
   const creditAmount = getVideoCreditCost(body.duration);
-  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount, 'replicate');
+  // Don't bind to specific provider — any BYOK key counts for byok_creator bypass
+  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
   if (!creditCheck.allowed) {
     return NextResponse.json(
       { error: creditCheck.reason, needsUpgrade: true },
@@ -76,24 +77,45 @@ export async function POST(request: Request) {
     });
   }
 
-  const keyRecord = await db.userApiKey.findUnique({
-    where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
-    select: { encryptedKey: true },
-  });
+  // ── Resolve API keys for video providers ─────────────────────────────────
+  const [falKeyRecord, replicateKeyRecord, klingKeyRec, klingSecretRec] = await Promise.all([
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'fal' } },
+      select: { encryptedKey: true },
+    }),
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
+      select: { encryptedKey: true },
+    }),
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'kling_key' } },
+      select: { encryptedKey: true },
+    }),
+    db.userApiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: 'kling_secret' } },
+      select: { encryptedKey: true },
+    }),
+  ]);
+
+  const falKey = falKeyRecord
+    ? decrypt(falKeyRecord.encryptedKey)
+    : (process.env.FAL_KEY ?? '');
+  const replicateKey = replicateKeyRecord
+    ? decrypt(replicateKeyRecord.encryptedKey)
+    : (process.env.REPLICATE_API_TOKEN ?? '');
 
   // Superusers MUST use their own BYOK key — never platform key
   const userIsSuperuser = await isSuperuser(session.user.id);
-  if (userIsSuperuser && !keyRecord) {
+  if (userIsSuperuser && !falKeyRecord && !replicateKeyRecord) {
     return NextResponse.json(
-      { error: 'Please add your Replicate API key in Settings → API Keys. Superuser accounts require their own key for video generation.' },
+      { error: 'Please add your fal.ai or Replicate API key in Settings → API Keys. Superuser accounts require their own key for video generation.' },
       { status: 403 },
     );
   }
 
-  const replicateKey = keyRecord
-    ? decrypt(keyRecord.encryptedKey)
-    : (process.env.REPLICATE_API_TOKEN ?? '');
-  if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+  if (!falKey && !replicateKey) {
+    return NextResponse.json({ error: 'No video API key configured' }, { status: 500 });
+  }
 
   const videoReq = {
     prompt:          body.prompt,
@@ -103,40 +125,47 @@ export async function POST(request: Request) {
     referenceImages: body.referenceImages,
   };
 
-  // ── Create prediction — returns immediately, polled via the job record ────
+  // ── Create prediction — fallback chain: fal → Replicate → Kling Direct ──
   let prediction;
-  try {
-    prediction = await getVideoProvider().createVideo(videoReq, replicateKey);
-  } catch (error) {
-    // On quota/rate errors try Kling Direct API as fallback
-    if (isQuotaError(error)) {
-      const [klingKeyRec, klingSecretRec] = await Promise.all([
-        db.userApiKey.findUnique({
-          where: { userId_provider: { userId: session.user.id, provider: 'kling_key' } },
-          select: { encryptedKey: true },
-        }),
-        db.userApiKey.findUnique({
-          where: { userId_provider: { userId: session.user.id, provider: 'kling_secret' } },
-          select: { encryptedKey: true },
-        }),
-      ]);
-      if (klingKeyRec && klingSecretRec) {
+  let usedProvider: 'fal' | 'replicate' | 'kling-direct' = 'fal';
+
+  // Step 1: Try fal.ai (primary)
+  if (falKey) {
+    try {
+      const raw = await new FalKlingProvider().createVideo(videoReq, falKey);
+      prediction = { ...raw, predictionId: `fal:${raw.predictionId}` };
+      usedProvider = 'fal';
+    } catch (error) {
+      console.warn('[generate-video] fal.ai failed, trying Replicate fallback:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Step 2: Fallback to Replicate
+  if (!prediction && replicateKey) {
+    try {
+      prediction = await new KlingProvider().createVideo(videoReq, replicateKey);
+      usedProvider = 'replicate';
+    } catch (error) {
+      console.warn('[generate-video] Replicate failed, trying Kling Direct:', error instanceof Error ? error.message : error);
+
+      // Step 3: Fallback to Kling Direct
+      if (isQuotaError(error) && klingKeyRec && klingSecretRec) {
         const compositeKey = `${decrypt(klingKeyRec.encryptedKey)}:${decrypt(klingSecretRec.encryptedKey)}`;
         const directProvider = new KlingDirectProvider();
         const raw = await directProvider.createVideo(videoReq, compositeKey);
         prediction = { ...raw, predictionId: `kling-direct:${raw.predictionId}` };
+        usedProvider = 'kling-direct';
       } else {
         if (error instanceof VideoProviderError) {
           return NextResponse.json({ error: error.message }, { status: error.status });
         }
         throw error;
       }
-    } else {
-      if (error instanceof VideoProviderError) {
-        return NextResponse.json({ error: error.message }, { status: error.status });
-      }
-      throw error;
     }
+  }
+
+  if (!prediction) {
+    return NextResponse.json({ error: 'No video provider available' }, { status: 500 });
   }
 
   if (prediction.status === 'failed') {
@@ -155,6 +184,7 @@ export async function POST(request: Request) {
       skillId:     body.skillId,
       aspectRatio: body.aspectRatio,
       duration:    body.duration,
+      provider:    usedProvider,
     },
   });
 

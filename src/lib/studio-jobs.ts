@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
-import { getVideoProvider, KlingDirectProvider } from '@/lib/video';
+import { FalKlingProvider, KlingDirectProvider } from '@/lib/video';
 
 export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit';
 export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
@@ -34,6 +34,7 @@ export async function refreshJobStatus(
   jobId: string,
   replicateKey: string,
   klingCompositeKey?: string,
+  falKey?: string,
 ): Promise<{ status: JobStatus; outputUrl?: string; error?: string }> {
   const job = await db.studioJob.findUnique({ where: { id: jobId } });
   if (!job) throw new Error('Job not found');
@@ -54,7 +55,7 @@ export async function refreshJobStatus(
   // type is always a Replicate prediction, so it must not go through the
   // video provider (a non-Replicate one would not recognise the id).
   const polled = job.type === 'video'
-    ? await pollVideoPrediction(job.predictionId, replicateKey, klingCompositeKey)
+    ? await pollVideoPrediction(job.predictionId, replicateKey, klingCompositeKey, falKey)
     : await pollReplicatePrediction(job.predictionId, replicateKey);
 
   // Backend unreachable — keep the current status and retry on the next poll.
@@ -110,10 +111,24 @@ function toJobStatus(status: string): JobStatus {
 
 async function pollVideoPrediction(
   predictionId: string,
-  apiKey:       string,
+  replicateKey: string,
   klingKey?:    string,
+  falKey?:      string,
 ): Promise<PolledPrediction | null> {
   try {
+    // fal.ai predictions — prefixed with "fal:"
+    if (predictionId.startsWith('fal:')) {
+      const requestId = predictionId.replace('fal:', '');
+      const key = falKey || process.env.FAL_KEY || '';
+      const result = await new FalKlingProvider().pollVideo(requestId, key);
+      return {
+        status:    toJobStatus(result.status),
+        outputUrl: result.videoUrl,
+        error:     result.error,
+      };
+    }
+
+    // Kling Direct predictions — prefixed with "kling-direct:"
     if (predictionId.startsWith('kling-direct:')) {
       const taskId = predictionId.replace('kling-direct:', '');
       const result = await new KlingDirectProvider().pollVideo(taskId, klingKey ?? '');
@@ -123,11 +138,24 @@ async function pollVideoPrediction(
         error:     result.error,
       };
     }
-    const result = await getVideoProvider().pollVideo(predictionId, apiKey);
+
+    // Replicate predictions — no prefix (legacy + fallback)
+    const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+      headers: { Authorization: `Bearer ${replicateKey}` },
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return null;
+    const prediction = await res.json() as {
+      status: string;
+      output?: string | string[];
+      error?: string;
+    };
     return {
-      status:    toJobStatus(result.status),
-      outputUrl: result.videoUrl,
-      error:     result.error,
+      status:    toJobStatus(prediction.status),
+      outputUrl: prediction.status === 'succeeded'
+        ? (Array.isArray(prediction.output) ? prediction.output[0] : prediction.output)
+        : undefined,
+      error: prediction.error,
     };
   } catch {
     return null;

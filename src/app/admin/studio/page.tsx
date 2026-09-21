@@ -9,6 +9,8 @@ interface Summary {
   totalErrors:  number;
   avgDuration:  number;
   byokCalls:    number;
+  platformCost: number;
+  byokCost:     number;
   days:         number;
 }
 
@@ -104,7 +106,7 @@ export default function StudioDashboardPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
         {([
           { label: 'Total Calls',   value: summary.totalCalls.toLocaleString(),                                          color: 'text-white'    },
           { label: 'Total Cost',    value: `$${summary.totalCost.toFixed(2)}`,                                           color: 'text-green-400' },
@@ -112,6 +114,8 @@ export default function StudioDashboardPage() {
           { label: 'Errors',        value: summary.totalErrors.toLocaleString(), color: summary.totalErrors > 0 ? 'text-red-400'    : 'text-gray-400' },
           { label: 'Avg Duration',  value: `${(summary.avgDuration / 1000).toFixed(1)}s`,                                color: 'text-yellow-400' },
           { label: 'BYOK Calls',    value: summary.byokCalls.toLocaleString(),                                           color: 'text-purple-400' },
+          { label: 'Platform Cost', value: `$${(summary.platformCost ?? 0).toFixed(2)}`,                                  color: 'text-orange-400' },
+          { label: 'BYOK Cost',     value: `$${(summary.byokCost ?? 0).toFixed(2)}`,                                      color: 'text-purple-400' },
         ] as const).map(card => (
           <div key={card.label} className="rounded-xl border border-gray-700 bg-gray-800/50 p-4">
             <p className="text-xs text-gray-400">{card.label}</p>

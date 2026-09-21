@@ -33,16 +33,33 @@ model User {
 }
 
 model UserApiKey {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
   provider     String
   encryptedKey String
   keyHint      String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPlatform   Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+  @@index([isPlatform, provider, isActive])
+}
+
+model PlatformKeyAuditLog {
+  id         String   @id @default(cuid())
+  keyId      String
+  provider   String
+  action     String
+  adminEmail String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([keyId])
+  @@index([createdAt])
 }
 
 model Store {

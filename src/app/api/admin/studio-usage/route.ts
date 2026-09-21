@@ -42,6 +42,13 @@ export async function GET(req: Request) {
     : 0;
   const byokCalls = allLogs.filter(l => l.byok).length;
 
+  const platformCost = allLogs
+    .filter(l => !l.byok && l.status === 'success')
+    .reduce((s, l) => s + l.costUsd, 0);
+  const byokCost = allLogs
+    .filter(l => l.byok && l.status === 'success')
+    .reduce((s, l) => s + l.costUsd, 0);
+
   // Per-day
   const dailyMap = new Map<string, { calls: number; cost: number; errors: number }>();
   for (const log of allLogs) {
@@ -127,7 +134,7 @@ export async function GET(req: Request) {
     }));
 
   return NextResponse.json({
-    summary: { totalCalls, totalCost, totalCredits, totalErrors, avgDuration, byokCalls, days },
+    summary: { totalCalls, totalCost, totalCredits, totalErrors, avgDuration, byokCalls, platformCost, byokCost, days },
     daily,
     byProvider,
     byModel,

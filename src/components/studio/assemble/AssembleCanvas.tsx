@@ -2121,6 +2121,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                   window.location.reload();
                 }
               }}
+              title="New project"
               className="ml-auto rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-gray-400 transition-colors hover:border-white/20 hover:text-gray-200"
             >
               New Project
@@ -2130,6 +2131,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             <button
               onClick={() => void handleExport()}
               disabled={isRendering || videoClips.length < 2}
+              title="Export video"
               className="ml-2 flex items-center gap-2 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <IconDownload />

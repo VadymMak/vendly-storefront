@@ -834,6 +834,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
       <div className="flex flex-shrink-0 items-center gap-3 border-t border-white/10 bg-[#0d0d14] px-3 py-1.5">
         <button
           onClick={() => setZoom(zoom - 20)}
+          title="Zoom out (-)"
           className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -852,6 +853,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
 
         <button
           onClick={() => setZoom(zoom + 20)}
+          title="Zoom in (+)"
           className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

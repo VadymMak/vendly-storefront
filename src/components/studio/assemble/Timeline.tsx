@@ -326,8 +326,9 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
         setIsPlaying(!useStudioStore.getState().isPlaying);
         return;
       }
-      if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
+        e.stopPropagation();
         if (e.shiftKey) {
           useHistoryStore.getState().redo();
         } else {
@@ -335,8 +336,9 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
         }
         return;
       }
-      if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey)) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
+        e.stopPropagation();
         const id = useStudioStore.getState().selectedClipId;
         if (id && id !== '__music__') duplicateClipWithHistory(id);
         return;

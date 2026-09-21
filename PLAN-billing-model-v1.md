@@ -138,6 +138,16 @@
 - ✅ Dynamic API key resolution: fal BYOK → FAL_KEY env → replicate BYOK → REPLICATE_API_TOKEN
 - ✅ Backward-compatible polling: `fal:` prefix for new, unprefixed for legacy Replicate jobs
 
+### Phase 10: Platform API Key Management (PROMPT-118) ✅ DONE
+- ✅ Prisma schema: isPlatform, isActive, lastUsedAt added to UserApiKey; user relation made optional (User?); PlatformKeyAuditLog model added; index on (isPlatform, provider, isActive)
+- ✅ DB migration: raw SQL via psql (prisma db push blocked by pgvector); FK constraint dropped for userId='platform'
+- ✅ resolve.ts: 3-tier resolution — BYOK → platform DB → .env fallback; resolveApiKeyWithSource() returns key + source; lastUsedAt fire-and-forget update
+- ✅ scripts/migrate-platform-keys.ts: one-time seed from .env (8 providers)
+- ✅ /api/admin/keys: GET/POST/PATCH — list/add/rotate/enable/disable platform keys + audit log
+- ✅ /admin/keys page: provider table + add/rotate/disable/enable + spend summary + audit trail
+- ✅ AdminNav: Keys tab added
+- ✅ studio-usage + studio/page: platformCost/byokCost added to summary
+
 ### Phase 9: BYOK API Key Help Tooltips (PROMPT-117) ✅ DONE
 - ✅ `src/lib/studio/provider-help.ts`: ProviderHelp data for 7 providers (fal, replicate, xai, openai, anthropic, bfl, kling) with URLs, step-by-step instructions, key format and pricing
 - ✅ `ProviderHelpTooltip.tsx`: collapsible ? button per label — shows 4 steps, key format, pricing, "Get API key →" link

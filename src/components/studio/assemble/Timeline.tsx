@@ -456,8 +456,9 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
   // ── Track rows height total ───────────────────────────────────────────────
 
   const RULER_H = 32;
+  const TRACK_BOTTOM_PAD = 16;
   const tracksHeight = tracks.reduce((sum, t) => sum + t.height, 0);
-  const totalH = RULER_H + tracksHeight;
+  const totalH = RULER_H + tracksHeight + TRACK_BOTTOM_PAD;
 
   // ── End position of video track for + button ──────────────────────────────
 

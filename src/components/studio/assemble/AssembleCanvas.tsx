@@ -2138,7 +2138,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           </div>
 
           {/* NLE Timeline */}
-          <div className="h-[180px] flex-shrink-0 border-t border-white/10">
+          <div className="h-[228px] flex-shrink-0 border-t border-white/10">
             <NLETimeline
               musicName={musicName}
               idbUrls={idbUrls}

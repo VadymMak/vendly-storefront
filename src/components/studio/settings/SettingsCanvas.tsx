@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { clearLibrary } from '@/lib/studio/library-store';
+import { PROVIDER_HELP, getProviderHelp } from '@/lib/studio/provider-help';
+import { ProviderHelpTooltip } from './ProviderHelpTooltip';
 
 interface Props {
   userEmail: string;
@@ -85,9 +87,27 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
   const apiKeysForm = (
     <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+      {/* Quick links */}
+      <div className="flex flex-wrap gap-2 pb-2 border-b border-white/5">
+        {PROVIDER_HELP.map(h => (
+          <a
+            key={h.provider}
+            href={h.keyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-gray-400 hover:border-white/20 hover:text-white transition-colors"
+          >
+            {h.icon} {h.name}
+          </a>
+        ))}
+      </div>
+
       {/* fal.ai (Primary Video + Images) */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">fal.ai API Key (Primary Video)</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          fal.ai API Key (Primary Video)
+          {getProviderHelp('fal') && <ProviderHelpTooltip help={getProviderHelp('fal')!} />}
+        </label>
         <p className="mb-1 text-[10px] text-gray-600">Kling 3.0 video + Flux image generation — primary provider</p>
         {isSuperuser && !hints.fal && !falKey && (
           <p className="mb-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-400">
@@ -108,7 +128,10 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       {/* Replicate (Image fallback) */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">Replicate API Key (Image fallback)</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          Replicate API Key (Image fallback)
+          {getProviderHelp('replicate') && <ProviderHelpTooltip help={getProviderHelp('replicate')!} />}
+        </label>
         {isSuperuser && !hints.replicate && !fluxKey && (
           <p className="mb-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-400">
             ⚠️ Optional: used as fallback if fal.ai is unavailable
@@ -128,7 +151,10 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       {/* xAI (Grok) */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">xAI API Key (Grok)</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          xAI API Key (Grok)
+          {getProviderHelp('xai') && <ProviderHelpTooltip help={getProviderHelp('xai')!} />}
+        </label>
         {hints.xai && !xaiKey && (
           <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.xai}</p>
         )}
@@ -143,7 +169,10 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       {/* OpenAI */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">OpenAI API Key</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          OpenAI API Key
+          {getProviderHelp('openai') && <ProviderHelpTooltip help={getProviderHelp('openai')!} />}
+        </label>
         {hints.openai && !openaiKey && (
           <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.openai}</p>
         )}
@@ -158,7 +187,10 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       {/* Anthropic */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">Anthropic API Key</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          Anthropic API Key
+          {getProviderHelp('anthropic') && <ProviderHelpTooltip help={getProviderHelp('anthropic')!} />}
+        </label>
         {hints.anthropic && !anthropicKey && (
           <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.anthropic}</p>
         )}
@@ -173,7 +205,10 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       {/* BFL */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">BFL API Key (Flux Direct)</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          BFL API Key (Flux Direct)
+          {getProviderHelp('bfl') && <ProviderHelpTooltip help={getProviderHelp('bfl')!} />}
+        </label>
         <p className="mb-1 text-[10px] text-gray-600">Black Forest Labs — direct Flux Pro image generation</p>
         {hints.bfl && !bflKey && (
           <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.bfl}</p>
@@ -189,7 +224,10 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
 
       {/* Kling */}
       <div>
-        <label className="mb-1 block text-xs text-gray-400">Kling API Key</label>
+        <label className="mb-1 flex items-center text-xs text-gray-400">
+          Kling API Key
+          {getProviderHelp('kling') && <ProviderHelpTooltip help={getProviderHelp('kling')!} />}
+        </label>
         {hints.kling_key && !klingKey && (
           <p className="mb-1 text-[10px] text-gray-500">Saved: {hints.kling_key}</p>
         )}

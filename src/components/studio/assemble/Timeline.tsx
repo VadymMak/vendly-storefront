@@ -476,7 +476,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
         >
           {/* Corner */}
           <div className="flex h-8 flex-shrink-0 items-center border-b border-white/10 px-2">
-            <span className="text-[9px] uppercase tracking-wider text-gray-600">Track</span>
+            <span className="text-[9px] uppercase tracking-wider text-gray-400">Track</span>
           </div>
           {/* Track headers */}
           {tracks.map(track => (
@@ -485,8 +485,8 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
               className="flex flex-shrink-0 items-center gap-1.5 border-b border-white/5 px-2"
               style={{ height: track.height }}
             >
-              <span className="text-gray-500">{trackIcon(track.type)}</span>
-              <span className="min-w-0 truncate text-[10px] text-gray-400">{track.label}</span>
+              <span className="text-gray-300">{trackIcon(track.type)}</span>
+              <span className="min-w-0 truncate text-[10px] text-gray-300">{track.label}</span>
             </div>
           ))}
         </div>
@@ -514,7 +514,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
                   className="absolute bottom-0 flex flex-col items-center"
                   style={{ left: t * zoom }}
                 >
-                  <span className="mb-1 text-[9px] text-gray-600">{fmtTime(t)}</span>
+                  <span className="mb-1 text-[9px] text-gray-400">{fmtTime(t)}</span>
                   <div className="h-1.5 w-px bg-white/15" />
                 </div>
               ))}
@@ -699,7 +699,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
                       <div className="absolute left-2 top-1/2 -translate-y-1/2">
                         <button
                           ref={el => { if (el && track.clips.length === 0) importBtnRef.current = el; }}
-                          className="flex items-center gap-1 rounded border border-dashed border-white/15 px-2 py-1 text-[10px] text-gray-600 hover:border-white/25 hover:text-gray-400"
+                          className="flex items-center gap-1 rounded border border-dashed border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-white/30 hover:text-gray-200"
                           onClick={e => { e.stopPropagation(); setShowImportMenu(v => !v); }}
                         >
                           <IconPlus /> Add clips
@@ -723,7 +723,7 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
                 >
                   <button
                     ref={el => { if (el) importBtnRef.current = el; }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-white/15 text-gray-600 hover:border-white/25 hover:text-gray-400"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-white/20 text-gray-500 hover:border-white/30 hover:text-gray-300"
                     onClick={e => { e.stopPropagation(); setShowImportMenu(v => !v); }}
                   >
                     <IconPlus />
@@ -854,8 +854,8 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
 
-        <span className="text-[10px] text-gray-600">{zoom}px/s</span>
-        <span className="ml-auto text-[10px] text-gray-600">
+        <span className="text-[10px] text-gray-400">{zoom}px/s</span>
+        <span className="ml-auto text-[10px] text-gray-400">
           Total: {totalDuration.toFixed(1)}s
         </span>
       </div>

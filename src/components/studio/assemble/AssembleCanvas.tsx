@@ -2034,7 +2034,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               title="Undo (Ctrl+Z)"
               className={[
                 'rounded px-2 py-1 text-xs transition-colors',
-                canUndo ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+                canUndo ? 'text-gray-200 hover:bg-white/10 hover:text-white' : 'cursor-not-allowed text-gray-500 opacity-50',
               ].join(' ')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 2.6-6.36L3 9"/></svg>
@@ -2045,7 +2045,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               title="Redo (Ctrl+Shift+Z)"
               className={[
                 'rounded px-2 py-1 text-xs transition-colors',
-                canRedo ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+                canRedo ? 'text-gray-200 hover:bg-white/10 hover:text-white' : 'cursor-not-allowed text-gray-500 opacity-50',
               ].join(' ')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M21 13a9 9 0 1 1-2.6-6.36L21 9"/></svg>
@@ -2059,7 +2059,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               title="Split at playhead (S)"
               className={[
                 'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
-                canSplit ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+                canSplit ? 'text-gray-200 hover:bg-white/10 hover:text-white' : 'cursor-not-allowed text-gray-500 opacity-50',
               ].join(' ')}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
@@ -2073,7 +2073,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               title="Duplicate (Ctrl+D)"
               className={[
                 'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
-                selectedClipId && selectedClipId !== '__music__' ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+                selectedClipId && selectedClipId !== '__music__' ? 'text-gray-200 hover:bg-white/10 hover:text-white' : 'cursor-not-allowed text-gray-500 opacity-50',
               ].join(' ')}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -2087,7 +2087,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               title="Delete selected (Del)"
               className={[
                 'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
-                selectedClipId ? 'text-red-400 hover:bg-red-500/10' : 'cursor-not-allowed text-gray-700',
+                selectedClipId ? 'text-red-300 hover:bg-red-500/10 hover:text-red-200' : 'cursor-not-allowed text-gray-500 opacity-50',
               ].join(' ')}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>

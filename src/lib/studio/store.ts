@@ -291,19 +291,20 @@ export const useStudioStore = create<StudioStore>()(
 
       duplicateClip: (clipId) =>
         set((s) => {
-          const clip = s.timelineTracks.flatMap(t => t.clips).find(c => c.id === clipId);
-          if (!clip) return s;
-          const newClip: TimelineClip = {
-            ...clip,
-            id: uid(),
-            startTime: clip.startTime + clip.duration,
-          };
-          return {
-            timelineTracks: s.timelineTracks.map(t =>
-              t.id === clip.trackId ? { ...t, clips: [...t.clips, newClip] } : t
-            ),
-            selectedClipId: newClip.id,
-          };
+          let newClip: TimelineClip | null = null;
+          const tracks = s.timelineTracks.map(t => {
+            const clip = t.clips.find(c => c.id === clipId);
+            if (!clip) return t;
+            const insertAt = clip.startTime + clip.duration;
+            newClip = { ...clip, id: uid(), startTime: insertAt };
+            const shifted = t.clips.map(c => {
+              if (c.id === clipId) return c;
+              if (c.startTime >= insertAt) return { ...c, startTime: c.startTime + clip.duration };
+              return c;
+            });
+            return { ...t, clips: [...shifted, newClip!] };
+          });
+          return newClip ? { timelineTracks: tracks, selectedClipId: (newClip as TimelineClip).id } : s;
         }),
 
       restoreClip: (clip) =>

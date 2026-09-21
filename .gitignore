@@ -52,3 +52,7 @@ tmp-*.ts
 
 # Claude prompts (local dev notes)
 prompt-*.md
+
+# Server / deploy artifacts
+cloudflared.deb
+ecosystem.config.js

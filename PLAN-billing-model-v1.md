@@ -138,6 +138,11 @@
 - ✅ Dynamic API key resolution: fal BYOK → FAL_KEY env → replicate BYOK → REPLICATE_API_TOKEN
 - ✅ Backward-compatible polling: `fal:` prefix for new, unprefixed for legacy Replicate jobs
 
+### Phase 9: BYOK API Key Help Tooltips (PROMPT-117) ✅ DONE
+- ✅ `src/lib/studio/provider-help.ts`: ProviderHelp data for 7 providers (fal, replicate, xai, openai, anthropic, bfl, kling) with URLs, step-by-step instructions, key format and pricing
+- ✅ `ProviderHelpTooltip.tsx`: collapsible ? button per label — shows 4 steps, key format, pricing, "Get API key →" link
+- ✅ `SettingsCanvas`: quick links chip row at top + tooltip on each of 7 provider labels
+
 ---
 
 ## Ключевые API costs (reference)

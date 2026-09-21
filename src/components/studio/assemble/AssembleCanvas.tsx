@@ -19,12 +19,13 @@ import { AutoAssembleModal } from './AutoAssembleModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type AspectRatio = '9:16' | '1:1' | '16:9';
+type AspectRatio = '9:16' | '4:5' | '1:1' | '16:9';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const ASPECT_SIZES: Record<AspectRatio, { width: number; height: number }> = {
   '9:16':  { width: 1080, height: 1920 },
+  '4:5':   { width: 1080, height: 1350 },
   '1:1':   { width: 1080, height: 1080 },
   '16:9':  { width: 1920, height: 1080 },
 };
@@ -1432,7 +1433,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
     } as React.CSSProperties;
   }
 
-  const arNum = aspectRatio === '9:16' ? 9 / 16 : aspectRatio === '1:1' ? 1 : 16 / 9;
+  const arNum = aspectRatio === '9:16' ? 9 / 16 : aspectRatio === '4:5' ? 4 / 5 : aspectRatio === '1:1' ? 1 : 16 / 9;
   const pad = 32;
   const availW = Math.max(0, canvasArea.w - pad);
   const availH = Math.max(0, canvasArea.h - pad);
@@ -1748,7 +1749,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             <div>
               <div className="mb-1.5 text-[10px] uppercase tracking-wider text-gray-500">Aspect ratio</div>
               <div className="flex gap-1.5">
-                {(['9:16', '1:1', '16:9'] as const).map(ar => (
+                {(['9:16', '4:5', '1:1', '16:9'] as const).map(ar => (
                   <button
                     key={ar}
                     onClick={() => setAspectRatio(ar)}
@@ -1758,6 +1759,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                     ].join(' ')}
                   >
                     {ar}
+                    {ar === '4:5' && <span className="ml-0.5 text-[8px] text-gray-400">IG</span>}
                   </button>
                 ))}
               </div>

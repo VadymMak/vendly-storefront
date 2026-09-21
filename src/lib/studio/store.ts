@@ -75,6 +75,8 @@ interface StudioStore {
   moveClip: (clipId: string, newTrackId: string, newStartTime: number) => void;
   trimClip: (clipId: string, newStartTime: number, newDuration: number) => void;
   splitClip: (clipId: string, splitTime: number) => void;
+  duplicateClip: (clipId: string) => void;
+  restoreClip: (clip: TimelineClip) => void;
   clearAllTracks: () => void;
 
   playheadTime: number;
@@ -286,6 +288,30 @@ export const useStudioStore = create<StudioStore>()(
           });
           return splitResult ? { timelineTracks: tracks, selectedClipId: null } : s;
         }),
+
+      duplicateClip: (clipId) =>
+        set((s) => {
+          const clip = s.timelineTracks.flatMap(t => t.clips).find(c => c.id === clipId);
+          if (!clip) return s;
+          const newClip: TimelineClip = {
+            ...clip,
+            id: uid(),
+            startTime: clip.startTime + clip.duration,
+          };
+          return {
+            timelineTracks: s.timelineTracks.map(t =>
+              t.id === clip.trackId ? { ...t, clips: [...t.clips, newClip] } : t
+            ),
+            selectedClipId: newClip.id,
+          };
+        }),
+
+      restoreClip: (clip) =>
+        set((s) => ({
+          timelineTracks: s.timelineTracks.map(t =>
+            t.id === clip.trackId ? { ...t, clips: [...t.clips, clip] } : t
+          ),
+        })),
 
       clearAllTracks: () =>
         set((s) => ({

@@ -2,6 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
+import { useHistoryStore } from '@/lib/studio/history';
+import {
+  removeClipWithHistory,
+  splitClipWithHistory,
+  duplicateClipWithHistory,
+} from '@/lib/studio/history-commands';
 import type { TimelineClip } from '@/lib/studio/store';
 import { fileToDataUrl, urlToDataUrl } from '@/lib/studio/media-utils';
 import { saveMediaBlob, loadMediaBlob, clearAllMediaBlobs } from '@/lib/studio/media-db';
@@ -735,6 +741,12 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const setPlayheadTime    = useStudioStore(s => s.setPlayheadTime);
   const isPlaying          = useStudioStore(s => s.isPlaying);
   const setIsPlaying       = useStudioStore(s => s.setIsPlaying);
+
+  // History store
+  const canUndo     = useHistoryStore(s => s.canUndo);
+  const canRedo     = useHistoryStore(s => s.canRedo);
+  const historyUndo = useHistoryStore(s => s.undo);
+  const historyRedo = useHistoryStore(s => s.redo);
 
   // Store — text overlays (left panel)
   const textOverlays       = useStudioStore(s => s.textOverlays);
@@ -2015,18 +2027,34 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               )}
             </div>
             <div className="h-4 w-px bg-white/10 mr-1" />
-            {/* Undo/Redo placeholders */}
-            <button disabled className="rounded px-2 py-1 text-xs text-gray-700 cursor-not-allowed" title="Undo (Ctrl+Z)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+            {/* Undo / Redo */}
+            <button
+              onClick={historyUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+              className={[
+                'rounded px-2 py-1 text-xs transition-colors',
+                canUndo ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+              ].join(' ')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 2.6-6.36L3 9"/></svg>
             </button>
-            <button disabled className="rounded px-2 py-1 text-xs text-gray-700 cursor-not-allowed" title="Redo">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/></svg>
+            <button
+              onClick={historyRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Shift+Z)"
+              className={[
+                'rounded px-2 py-1 text-xs transition-colors',
+                canRedo ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+              ].join(' ')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M21 13a9 9 0 1 1-2.6-6.36L21 9"/></svg>
             </button>
             <div className="mx-1 h-4 w-px bg-white/10" />
 
             {/* Split */}
             <button
-              onClick={() => { if (selectedClipId && canSplit) splitClipFn(selectedClipId, playheadTime); }}
+              onClick={() => { if (selectedClipId && canSplit) splitClipWithHistory(selectedClipId, playheadTime); }}
               disabled={!canSplit}
               title="Split at playhead (S)"
               className={[
@@ -2034,13 +2062,27 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 canSplit ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
               ].join(' ')}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7l7 5-7 5"/><path d="M19 7l-7 5 7 5"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
               Split
+            </button>
+
+            {/* Duplicate */}
+            <button
+              onClick={() => { if (selectedClipId && selectedClipId !== '__music__') duplicateClipWithHistory(selectedClipId); }}
+              disabled={!selectedClipId || selectedClipId === '__music__'}
+              title="Duplicate (Ctrl+D)"
+              className={[
+                'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
+                selectedClipId && selectedClipId !== '__music__' ? 'text-gray-300 hover:bg-white/10' : 'cursor-not-allowed text-gray-700',
+              ].join(' ')}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Dup
             </button>
 
             {/* Delete */}
             <button
-              onClick={e => { e.stopPropagation(); const id = useStudioStore.getState().selectedClipId; if (id) removeClipFn(id); }}
+              onClick={() => { if (!selectedClipId) return; if (selectedClipId === '__music__') { setMusic(null, null); } else { removeClipWithHistory(selectedClipId); } }}
               disabled={!selectedClipId}
               title="Delete selected (Del)"
               className={[
@@ -2048,7 +2090,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 selectedClipId ? 'text-red-400 hover:bg-red-500/10' : 'cursor-not-allowed text-gray-700',
               ].join(' ')}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
               Delete
             </button>
 

@@ -13,6 +13,7 @@ import {
   duplicateClipWithHistory,
 } from '@/lib/studio/history-commands';
 
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const HEADER_W = 100;
@@ -40,65 +41,7 @@ interface DraftClip {
   duration: number;
 }
 
-// ── Toolbar helpers ───────────────────────────────────────────────────────────
-
-function toolbarBtnCls(disabled: boolean): string {
-  return [
-    'flex items-center justify-center rounded px-1.5 py-1 text-xs transition-colors',
-    disabled
-      ? 'cursor-not-allowed text-gray-600'
-      : 'text-gray-300 hover:bg-white/10 hover:text-white',
-  ].join(' ');
-}
-
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
-
-function IconUndo() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 2.6-6.36L3 9"/>
-    </svg>
-  );
-}
-
-function IconRedo() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 7v6h-6"/><path d="M21 13a9 9 0 1 1-2.6-6.36L21 9"/>
-    </svg>
-  );
-}
-
-function IconScissors() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-      <line x1="20" y1="4" x2="8.12" y2="15.88"/>
-      <line x1="14.47" y1="14.48" x2="20" y2="20"/>
-      <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-    </svg>
-  );
-}
-
-function IconTrash() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3 6 5 6 21 6"/>
-      <path d="M19 6l-1 14H6L5 6"/>
-      <path d="M10 11v6"/><path d="M14 11v6"/>
-      <path d="M9 6V4h6v2"/>
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="9" y="9" width="13" height="13" rx="2"/>
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-    </svg>
-  );
-}
 
 function IconFilm() {
   return (
@@ -232,10 +175,6 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
   const generatedVideos = useStudioStore(s => s.generatedVideos);
   const addClipToTrack  = useStudioStore(s => s.addClipToTrack);
 
-  const canUndo     = useHistoryStore(s => s.canUndo);
-  const canRedo     = useHistoryStore(s => s.canRedo);
-  const historyUndo = useHistoryStore(s => s.undo);
-  const historyRedo = useHistoryStore(s => s.redo);
 
   const fileInputRef       = useRef<HTMLInputElement>(null);
   const scrollRef          = useRef<HTMLDivElement>(null);
@@ -528,79 +467,6 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* ── Editor toolbar ───────────────────────────────────────────────── */}
-      <div className="flex flex-shrink-0 items-center gap-0.5 border-b border-white/10 bg-gray-950/60 px-2 py-1">
-        <button
-          title="Undo (Ctrl+Z)"
-          disabled={!canUndo}
-          onClick={historyUndo}
-          className={toolbarBtnCls(!canUndo)}
-        >
-          <IconUndo />
-        </button>
-        <button
-          title="Redo (Ctrl+Shift+Z)"
-          disabled={!canRedo}
-          onClick={historyRedo}
-          className={toolbarBtnCls(!canRedo)}
-        >
-          <IconRedo />
-        </button>
-        <div className="mx-1 h-4 w-px bg-white/10" />
-        <button
-          title="Split at playhead (S)"
-          disabled={!selectedClipId || selectedClipId === '__music__'}
-          onClick={() => {
-            if (selectedClipId && selectedClipId !== '__music__')
-              splitClipWithHistory(selectedClipId, playheadTime);
-          }}
-          className={toolbarBtnCls(!selectedClipId || selectedClipId === '__music__')}
-        >
-          <IconScissors />
-          <span className="ml-1 hidden text-[10px] sm:inline">Split</span>
-        </button>
-        <button
-          title="Duplicate (Ctrl+D)"
-          disabled={!selectedClipId || selectedClipId === '__music__'}
-          onClick={() => {
-            if (selectedClipId && selectedClipId !== '__music__')
-              duplicateClipWithHistory(selectedClipId);
-          }}
-          className={toolbarBtnCls(!selectedClipId || selectedClipId === '__music__')}
-        >
-          <IconCopy />
-        </button>
-        <button
-          title="Delete (Del)"
-          disabled={!selectedClipId}
-          onClick={() => {
-            if (!selectedClipId) return;
-            if (selectedClipId === '__music__') { onMusicRemove(); return; }
-            removeClipWithHistory(selectedClipId);
-          }}
-          className={toolbarBtnCls(!selectedClipId)}
-        >
-          <IconTrash />
-        </button>
-        <div className="ml-auto flex items-center gap-0.5">
-          <button
-            title="Zoom out (-)"
-            onClick={() => setZoom(zoom - 20)}
-            className={toolbarBtnCls(false)}
-          >
-            −
-          </button>
-          <span className="w-9 text-center text-[10px] tabular-nums text-gray-500">{zoom}px</span>
-          <button
-            title="Zoom in (+)"
-            onClick={() => setZoom(zoom + 20)}
-            className={toolbarBtnCls(false)}
-          >
-            +
-          </button>
-        </div>
-      </div>
-
       {/* ── Tracks area ──────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left headers */}

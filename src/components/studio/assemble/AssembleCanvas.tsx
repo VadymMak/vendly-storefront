@@ -314,7 +314,7 @@ function renderOverlayContent(overlay: TextOverlay, scale: number = 1) {
   }
   if (overlay.style === 'subtitle') {
     return (
-      <span className="rounded-full bg-black/50 whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined, color: overlay.color ?? '#FFFFFF', padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px` }}>
+      <span className="whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined, color: overlay.color ?? '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.6)', padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px` }}>
         {overlay.text}
       </span>
     );

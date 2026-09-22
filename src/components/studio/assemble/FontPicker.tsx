@@ -44,12 +44,12 @@ function FontItem({ entry, selected, onSelect }: FontItemProps) {
         'flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs transition-colors',
         selected
           ? 'bg-green-600/20 text-green-400'
-          : 'text-gray-300 hover:bg-white/8 hover:text-white',
+          : 'text-gray-100 hover:bg-white/8 hover:text-white',
       ].join(' ')}
     >
       <span className="truncate">{entry.family}</span>
       <span
-        className="ml-2 shrink-0 text-[15px] leading-none text-gray-400"
+        className="ml-2 shrink-0 text-[15px] leading-none text-gray-300"
         style={{ fontFamily: loaded ? `'${entry.family}', sans-serif` : 'inherit' }}
       >
         {loading && !loaded ? (
@@ -79,12 +79,12 @@ function CustomFontItem({ family, displayName, selected, onSelect }: CustomFontI
         'flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs transition-colors',
         selected
           ? 'bg-green-600/20 text-green-400'
-          : 'text-gray-300 hover:bg-white/8 hover:text-white',
+          : 'text-gray-100 hover:bg-white/8 hover:text-white',
       ].join(' ')}
     >
       <span className="truncate">{displayName}</span>
       <span
-        className="ml-2 shrink-0 text-[15px] leading-none text-gray-400"
+        className="ml-2 shrink-0 text-[15px] leading-none text-gray-300"
         style={{ fontFamily: `'${family}', sans-serif` }}
       >
         Aa
@@ -176,7 +176,7 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
               'shrink-0 rounded px-2 py-0.5 text-[10px] transition-colors',
               activeTab === tab.id && !search.trim()
                 ? 'bg-green-600 text-white'
-                : 'bg-white/6 text-gray-500 hover:bg-white/10 hover:text-gray-300',
+                : 'bg-white/6 text-gray-300 hover:bg-white/10 hover:text-white',
             ].join(' ')}
           >
             {tab.label}
@@ -188,12 +188,12 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
       <div className="px-1 pb-1">
         {activeTab !== 'custom' || search.trim() ? (
           <>
-            <div className="mb-0.5 px-1 text-[9px] uppercase tracking-wider text-gray-600">
+            <div className="mb-0.5 px-1 text-[9px] uppercase tracking-wider text-gray-400">
               {sectionLabel}
             </div>
             <div className="max-h-[180px] overflow-y-auto pr-0.5">
               {visibleFonts.length === 0 ? (
-                <div className="px-2 py-2 text-[11px] text-gray-600">No fonts found</div>
+                <div className="px-2 py-2 text-[11px] text-gray-400">No fonts found</div>
               ) : (
                 visibleFonts.map(entry => (
                   <FontItem
@@ -208,12 +208,12 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
           </>
         ) : (
           <>
-            <div className="mb-0.5 px-1 text-[9px] uppercase tracking-wider text-gray-600">
+            <div className="mb-0.5 px-1 text-[9px] uppercase tracking-wider text-gray-400">
               Custom Fonts
             </div>
             <div className="max-h-[180px] overflow-y-auto pr-0.5">
               {customFonts.length === 0 ? (
-                <div className="px-2 py-2 text-[11px] text-gray-600">No custom fonts yet</div>
+                <div className="px-2 py-2 text-[11px] text-gray-400">No custom fonts yet</div>
               ) : (
                 customFonts.map(f => (
                   <CustomFontItem
@@ -234,7 +234,7 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
       <div className="border-t border-white/6 px-2 py-1.5">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full rounded bg-white/6 px-2 py-1 text-center text-[10px] text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-200"
+          className="w-full rounded bg-white/6 px-2 py-1 text-center text-[10px] text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
         >
           + Upload .ttf / .otf / .woff2
         </button>

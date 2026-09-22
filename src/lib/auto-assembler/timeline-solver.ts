@@ -16,6 +16,8 @@ interface SolverInput {
   beats: number[];
   musicDuration: number;
   brandKit?: BrandKit | null;
+  /** Max times each source clip may repeat. Default 2 → short SMB video. */
+  maxRepeats?: number;
 }
 
 interface SolverOutput {
@@ -25,11 +27,28 @@ interface SolverOutput {
 }
 
 export function solveTimeline(input: SolverInput): SolverOutput {
-  const { clips, template, beats, musicDuration, brandKit } = input;
+  const { clips, beats, musicDuration, brandKit } = input;
+  // template may be mutated below; keep original immutable
+  const template = { ...input.template };
 
   if (clips.length === 0) return { videoClips: [], textClips: [], totalDuration: 0 };
 
   const [minDur, maxDur] = template.clipDuration;
+  const maxRepeats = input.maxRepeats ?? 2;
+
+  // Cap effective duration so clips don't loop endlessly over a long track
+  const maxClips = clips.length * maxRepeats;
+  const maxDuration = maxClips * maxDur;
+  const effectiveMusicDuration = Math.min(musicDuration, maxDuration);
+
+  // Clamp transition duration to at most half the minimum clip duration
+  if (template.transitionDuration > 0) {
+    const minPossibleClip = minDur;
+    if (template.transitionDuration >= minPossibleClip) {
+      template.transitionDuration = Math.min(template.transitionDuration, minPossibleClip * 0.5);
+    }
+  }
+
   let cutPoints: number[];
 
   if (template.syncToBeats && beats.length > 0) {
@@ -38,7 +57,7 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     let lastCut = 0;
 
     for (const beat of filteredBeats) {
-      if (beat <= 0) continue;
+      if (beat <= 0 || beat > effectiveMusicDuration) continue;
       const gap = beat - lastCut;
       if (gap >= minDur) {
         cutPoints.push(beat);
@@ -52,21 +71,24 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     cutPoints = [0];
     const avgDur = (minDur + maxDur) / 2;
     let t = 0;
-    while (t + avgDur <= musicDuration) {
+    while (t + avgDur <= effectiveMusicDuration) {
       t += avgDur;
       cutPoints.push(parseFloat(t.toFixed(3)));
     }
   }
 
-  const totalDuration = Math.min(musicDuration, cutPoints.at(-1)! + maxDur);
+  const totalDuration = Math.min(effectiveMusicDuration, cutPoints.at(-1)! + maxDur);
 
-  const segments: { start: number; duration: number }[] = [];
+  const allSegments: { start: number; duration: number }[] = [];
   for (let i = 0; i < cutPoints.length; i++) {
     const start = cutPoints[i];
     const end = i < cutPoints.length - 1 ? cutPoints[i + 1] : totalDuration;
     const duration = parseFloat((end - start).toFixed(3));
-    if (duration >= 0.3) segments.push({ start, duration });
+    if (duration >= 0.3) allSegments.push({ start, duration });
   }
+
+  // Hard cap: never exceed maxClips segments
+  const segments = allSegments.slice(0, maxClips);
 
   const videoClips: Omit<TimelineClip, 'id' | 'trackId'>[] = [];
   for (let i = 0; i < segments.length; i++) {
@@ -85,6 +107,11 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     });
   }
 
+  // Recalculate actual total after slicing
+  const actualTotal = videoClips.reduce(
+    (max, c) => Math.max(max, c.startTime + c.duration), 0
+  );
+
   // ── Brand text overlays ────────────────────────────────────────────────────
 
   const textClips: Omit<TimelineClip, 'id' | 'trackId'>[] = [];
@@ -94,7 +121,6 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     const outroDur = template.outroClipDuration ?? 4;
 
     for (const textDef of template.defaultTexts) {
-      // Resolve placeholder to brand value
       let text = textDef.placeholder;
       if (brandKit.businessName) {
         if (text === 'Your Business Name' || text === 'Product Name') {
@@ -105,21 +131,19 @@ export function solveTimeline(input: SolverInput): SolverOutput {
         text = brandKit.defaultCta;
       }
 
-      // Timing by position
       let startTime = 0;
       let duration = introDur;
       if (textDef.position === 'top') {
         startTime = 0;
-        duration = Math.min(introDur, totalDuration);
+        duration = Math.min(introDur, actualTotal);
       } else if (textDef.position === 'bottom') {
-        duration = Math.min(outroDur, totalDuration);
-        startTime = Math.max(0, totalDuration - duration);
+        duration = Math.min(outroDur, actualTotal);
+        startTime = Math.max(0, actualTotal - duration);
       } else {
-        startTime = totalDuration * 0.2;
-        duration = totalDuration * 0.6;
+        startTime = actualTotal * 0.2;
+        duration = actualTotal * 0.6;
       }
 
-      // Style-based colors
       let color = '#FFFFFF';
       let barColor: string | undefined;
       if (textDef.style === 'brand') color = brandKit.primaryColor;
@@ -129,7 +153,7 @@ export function solveTimeline(input: SolverInput): SolverOutput {
       textClips.push({
         type: 'text',
         startTime: parseFloat(startTime.toFixed(3)),
-        duration:  parseFloat(duration.toFixed(3)),
+        duration:  parseFloat(Math.max(0.5, duration).toFixed(3)),
         overlayData: {
           text,
           style:      textDef.style,
@@ -145,5 +169,5 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     }
   }
 
-  return { videoClips, textClips, totalDuration };
+  return { videoClips, textClips, totalDuration: actualTotal };
 }

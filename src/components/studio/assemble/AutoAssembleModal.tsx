@@ -85,21 +85,22 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
   const [errorMsg, setErrorMsg]                 = useState('');
   const [detectedBpm, setDetectedBpm]           = useState<number | null>(null);
 
-  // Inline brand editing for step 2 (mirrors store)
-  const [inlineName, setInlineName]   = useState(brand.businessName);
-  const [inlineCta, setInlineCta]     = useState(brand.defaultCta);
-  const [inlinePrimary, setInlinePrimary] = useState(brand.primaryColor);
-  const [inlineAccent, setInlineAccent]   = useState(brand.accentColor);
+  // Inline brand editing for step 2 — local state to prevent focus loss on re-render
+  const [localBrandName, setLocalBrandName] = useState(brand.businessName);
+  const [localCta, setLocalCta]             = useState(brand.defaultCta);
+  const [inlinePrimary, setInlinePrimary]   = useState(brand.primaryColor);
+  const [inlineAccent, setInlineAccent]     = useState(brand.accentColor);
+  const [brandSectionOpen, setBrandSectionOpen] = useState(false);
 
   const audioInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const blobUrlsRef   = useRef<string[]>([]);
 
-  // Sync inline brand from store when step 2 opens
+  // Sync local brand fields from store when step 2 opens
   useEffect(() => {
     if (step === 2) {
-      setInlineName(brand.businessName);
-      setInlineCta(brand.defaultCta);
+      setLocalBrandName(brand.businessName);
+      setLocalCta(brand.defaultCta);
       setInlinePrimary(brand.primaryColor);
       setInlineAccent(brand.accentColor);
     }
@@ -194,12 +195,12 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
       return;
     }
 
-    // Save inline brand edits
-    if (inlineName !== brand.businessName || inlineCta !== brand.defaultCta ||
+    // Flush local brand edits to store before generating
+    if (localBrandName !== brand.businessName || localCta !== brand.defaultCta ||
         inlinePrimary !== brand.primaryColor || inlineAccent !== brand.accentColor) {
       brand.updateBrand({
-        businessName: inlineName,
-        defaultCta: inlineCta,
+        businessName: localBrandName,
+        defaultCta: localCta,
         primaryColor: inlinePrimary,
         accentColor: inlineAccent,
       });
@@ -421,36 +422,56 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
           </div>
         )}
 
-        {/* Inline brand */}
-        <details className="group">
-          <summary className="cursor-pointer select-none text-[10px] uppercase tracking-wider text-gray-500 hover:text-gray-300">
+        {/* Inline brand — controlled open state to survive re-renders */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setBrandSectionOpen(o => !o)}
+            className="flex w-full items-center gap-1 text-[10px] uppercase tracking-wider text-gray-500 hover:text-gray-300"
+          >
+            <span className={['transition-transform', brandSectionOpen ? 'rotate-90' : ''].join(' ')}>▶</span>
             🏷️ Brand (optional)
-          </summary>
-          <div className="mt-2 flex flex-col gap-2">
-            <input
-              type="text"
-              value={inlineName}
-              onChange={e => setInlineName(e.target.value)}
-              placeholder="Business name"
-              className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
-            />
-            <div className="flex items-center gap-2">
-              <span className="w-14 text-[10px] text-gray-600">Primary</span>
-              <input type="color" value={inlinePrimary} onChange={e => setInlinePrimary(e.target.value)}
-                className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0" />
-              <span className="w-14 text-[10px] text-gray-600">Accent</span>
-              <input type="color" value={inlineAccent} onChange={e => setInlineAccent(e.target.value)}
-                className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0" />
+          </button>
+
+          {brandSectionOpen && (
+            <div className="mt-2 flex flex-col gap-2">
+              <input
+                type="text"
+                value={localBrandName}
+                onChange={e => setLocalBrandName(e.target.value)}
+                onBlur={e => brand.updateBrand({ businessName: e.target.value })}
+                placeholder="Business name"
+                className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
+              />
+              <div className="flex items-center gap-2">
+                <span className="w-14 text-[10px] text-gray-600">Primary</span>
+                <input
+                  type="color"
+                  value={inlinePrimary}
+                  onChange={e => setInlinePrimary(e.target.value)}
+                  onBlur={e => brand.updateBrand({ primaryColor: e.target.value })}
+                  className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                />
+                <span className="w-14 text-[10px] text-gray-600">Accent</span>
+                <input
+                  type="color"
+                  value={inlineAccent}
+                  onChange={e => setInlineAccent(e.target.value)}
+                  onBlur={e => brand.updateBrand({ accentColor: e.target.value })}
+                  className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                />
+              </div>
+              <input
+                type="text"
+                value={localCta}
+                onChange={e => setLocalCta(e.target.value)}
+                onBlur={e => brand.updateBrand({ defaultCta: e.target.value })}
+                placeholder="CTA text (e.g. Order Now)"
+                className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
+              />
             </div>
-            <input
-              type="text"
-              value={inlineCta}
-              onChange={e => setInlineCta(e.target.value)}
-              placeholder="CTA text (e.g. Order Now)"
-              className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
-            />
-          </div>
-        </details>
+          )}
+        </div>
 
         <div className="mt-auto flex gap-2 border-t border-white/6 pt-2">
           <button onClick={() => setStep(1)} className="flex-1 rounded bg-white/8 py-1.5 text-xs text-gray-400 hover:bg-white/15 hover:text-white">

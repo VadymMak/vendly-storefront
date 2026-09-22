@@ -1512,9 +1512,12 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           .filter(c => c.overlayData && playheadTime >= c.startTime && playheadTime < c.startTime + c.duration)
           .map(c => {
             const storeIdx = textOverlays.findIndex(o => o === c.overlayData || JSON.stringify(o) === JSON.stringify(c.overlayData));
-            // Show draft (live preview) when this overlay is being edited
+            // Use draftOverlay ONLY for real textOverlays[] entries (storeIdx >= 0).
+            // QA clips have storeIdx === -1; they must always use their own overlayData.
+            // Without this guard, editingOverlayIdx === -1 would match storeIdx === -1
+            // and show stale draftOverlay for ALL QA clips — blocking canvas updates.
             const overlayToShow =
-              editingOverlayIdx !== null && storeIdx === editingOverlayIdx && draftOverlay
+              storeIdx >= 0 && editingOverlayIdx !== null && storeIdx === editingOverlayIdx && draftOverlay
                 ? draftOverlay
                 : c.overlayData!;
             return { overlay: overlayToShow, clipId: c.id, storeIdx };
@@ -1529,11 +1532,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       }
     }
 
-    // Also show selected text clip on canvas even when playhead is outside its time range
+    // Show selected text clip on canvas even when playhead is outside its time range.
+    // Also, if it's already visible via the playhead filter, replace its overlay with
+    // the freshest overlayData so Properties panel edits reflect immediately on canvas.
     if (selectedClipId) {
       const selClip = tt?.clips.find(c => c.id === selectedClipId);
-      if (selClip?.overlayData && !visible.some(v => v.clipId === selectedClipId)) {
-        visible.push({ overlay: selClip.overlayData, clipId: selClip.id, storeIdx: -1 });
+      if (selClip?.overlayData) {
+        const existingIdx = visible.findIndex(v => v.clipId === selectedClipId);
+        if (existingIdx >= 0) {
+          // Clip is in playhead range: override with fresh overlayData so edits appear
+          visible[existingIdx] = { ...visible[existingIdx], overlay: selClip.overlayData };
+        } else {
+          visible.push({ overlay: selClip.overlayData, clipId: selClip.id, storeIdx: -1 });
+        }
       }
     }
 

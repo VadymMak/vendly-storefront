@@ -1655,15 +1655,13 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             {/* Font Family */}
             <div>
               <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font</div>
-              <select
+              <FontPicker
                 value={ov.fontFamily ?? 'Inter'}
-                onChange={e => updateTextClipOverlay(selectedClip.id, { fontFamily: e.target.value })}
-                className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60"
-              >
-                {(['Inter', 'Montserrat', 'Roboto', 'Playfair Display', 'Oswald'] as const).map(f => (
-                  <option key={f} value={f} className="bg-[#0d0d14]">{f}</option>
-                ))}
-              </select>
+                onChange={family => {
+                  loadGoogleFont(family).catch(() => {});
+                  updateTextClipOverlay(selectedClip.id, { fontFamily: family });
+                }}
+              />
             </div>
             {/* Timing */}
             <div className="flex gap-2">

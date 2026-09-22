@@ -18,6 +18,17 @@ interface WizardMedia {
   idbUri: string;
   blobUrl: string;
   name: string;
+  duration?: number;
+}
+
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise(resolve => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => { resolve(video.duration); URL.revokeObjectURL(video.src); };
+    video.onerror = () => resolve(0);
+    video.src = URL.createObjectURL(file);
+  });
 }
 
 interface Props {
@@ -130,7 +141,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
     .filter(c => c.url);
 
   const wizardClips: ClipSource[] = wizardMedia.map(m => ({
-    id: m.id, type: m.type, url: m.idbUri,
+    id: m.id, type: m.type, url: m.idbUri, duration: m.duration,
   }));
   const allClips = wizardClips.length > 0
     ? wizardClips
@@ -157,13 +168,16 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
       const key     = crypto.randomUUID();
       const blobUrl = URL.createObjectURL(file);
       blobUrlsRef.current.push(blobUrl);
+      const isVideo = file.type.startsWith('video/');
+      const duration = isVideo ? await getVideoDuration(file) : undefined;
       await saveMediaBlob(key, file);
       newMedia.push({
         id: key,
-        type: file.type.startsWith('video/') ? 'video' : 'image',
+        type: isVideo ? 'video' : 'image',
         idbUri: `idb://${key}`,
         blobUrl,
         name: file.name,
+        duration: duration && duration > 0 ? duration : undefined,
       });
     }
     setWizardMedia(prev => [...prev, ...newMedia]);

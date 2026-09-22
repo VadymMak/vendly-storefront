@@ -172,6 +172,17 @@ export function PlaceProductsEditor({
     }
     ctx.drawImage(bg, sx, sy, sw, sh, 0, 0, cw, ch);
 
+    // Empty state hint
+    if (objectsRef.current.length === 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.font = '16px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Upload cutouts below to place on this image', cw / 2, ch / 2);
+      ctx.restore();
+    }
+
     // Objects (back → front)
     for (const obj of objectsRef.current) {
       const img = objImgsRef.current.get(obj.id);
@@ -517,9 +528,13 @@ export function PlaceProductsEditor({
       >
         <button
           onClick={onClose}
-          className="text-sm text-gray-400 transition-colors hover:text-white"
+          className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
         >
-          ← Back
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M19 12H5" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back
         </button>
         <span className="text-sm font-medium text-white">Place Products</span>
         <button
@@ -566,44 +581,57 @@ export function PlaceProductsEditor({
       {/* Bottom tray */}
       <div
         className="shrink-0 px-4 pb-4 pt-3"
-        style={{ background: '#0f1117', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: '#0f1117', borderTop: '1px solid rgba(255,255,255,0.08)' }}
       >
+        {/* Instructions when no objects placed */}
+        {objects.length === 0 && (
+          <div className="mb-3 text-center">
+            <p className="text-sm text-gray-300">Add your product cutouts to place on this image</p>
+            <p className="mt-1 text-xs text-gray-500">Upload PNG with transparent background, or use Remove BG first</p>
+          </div>
+        )}
+
         {/* Selected object actions */}
         {selectedObj && (
-          <div className="mb-3 flex gap-2">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs text-gray-500">Selected:</span>
             <button
               onClick={rotate90}
-              className="rounded px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
+              className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
               style={{ background: 'rgba(255,255,255,0.06)' }}
             >
-              Rotate 90°
+              ↺ Rotate 90°
             </button>
             <button
               onClick={bringForward}
-              className="rounded px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
+              className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
               style={{ background: 'rgba(255,255,255,0.06)' }}
             >
-              Bring Forward
+              ↑ Forward
             </button>
             <button
               onClick={deleteSelected}
-              className="rounded px-3 py-1.5 text-xs text-red-400 transition-colors hover:text-red-300"
+              className="rounded-md px-3 py-1.5 text-xs text-red-400 transition-colors hover:text-red-300"
               style={{ background: 'rgba(239,68,68,0.08)' }}
             >
-              Delete
+              ✕ Delete
             </button>
           </div>
         )}
 
-        {/* Thumbnail tray */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Cutout thumbnails + Add button */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="mr-1 shrink-0 text-xs text-gray-500">Cutouts:</span>
+
           {/* Placed objects */}
           {objects.map(obj => (
             <button
               key={obj.id}
               onClick={() => setSelectedId(obj.id)}
-              className="relative shrink-0 h-12 w-12 overflow-hidden rounded transition-all"
+              className="relative shrink-0 overflow-hidden rounded-lg transition-all"
               style={{
+                width: 56,
+                height: 56,
                 background: 'rgba(255,255,255,0.04)',
                 border: selectedId === obj.id
                   ? '2px solid #16a34a'
@@ -611,7 +639,7 @@ export function PlaceProductsEditor({
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={obj.src} alt="" className="h-full w-full object-contain" />
+              <img src={obj.src} alt="" className="h-full w-full object-contain p-1" />
             </button>
           ))}
 
@@ -622,26 +650,35 @@ export function PlaceProductsEditor({
               <button
                 key={src}
                 onClick={() => void addObject(src)}
-                className="relative shrink-0 h-12 w-12 overflow-hidden rounded transition-all"
+                className="relative shrink-0 overflow-hidden rounded-lg transition-all hover:border-green-500/50"
                 style={{
+                  width: 56,
+                  height: 56,
                   background: 'rgba(255,255,255,0.04)',
                   border: '2px dashed rgba(255,255,255,0.15)',
                 }}
                 title="Add to canvas"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="h-full w-full object-contain opacity-50 hover:opacity-80 transition-opacity" />
+                <img src={src} alt="" className="h-full w-full object-contain p-1 opacity-50 transition-opacity hover:opacity-80" />
               </button>
             ))}
 
-          {/* Add from file */}
+          {/* Upload cutout — prominent */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex shrink-0 h-12 w-12 items-center justify-center rounded text-xl text-gray-400 transition-all hover:text-white"
-            style={{ border: '2px dashed rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}
-            title="Upload cutout"
+            className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-green-400 transition-all hover:bg-green-500/10 hover:text-green-300"
+            style={{
+              border: '2px dashed rgba(22,163,74,0.4)',
+              background: 'rgba(22,163,74,0.05)',
+              minHeight: 56,
+            }}
           >
-            +
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Upload Cutout
           </button>
         </div>
       </div>

@@ -12,37 +12,6 @@ interface FalMask {
   height?: number;
 }
 
-interface MaskCandidate {
-  url: string;
-  whitePixels: number;
-  buffer: Buffer;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function removeOverlapping(candidates: MaskCandidate[]): MaskCandidate[] {
-  // Sort smallest first — prefer more detailed / tighter masks
-  const sorted = [...candidates].sort((a, b) => a.whitePixels - b.whitePixels);
-  const keep: MaskCandidate[] = [];
-
-  for (const candidate of sorted) {
-    let isDuplicate = false;
-    for (const kept of keep) {
-      const sizeRatio = candidate.whitePixels / kept.whitePixels;
-      // If both masks are similar in size (within 2×), treat as same object
-      if (sizeRatio > 0.5 && sizeRatio < 2.0) {
-        isDuplicate = true;
-        break;
-      }
-    }
-    if (!isDuplicate) keep.push(candidate);
-  }
-
-  return keep.slice(0, 8);
-}
-
-// ── Route ─────────────────────────────────────────────────────────────────────
-
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -92,8 +61,11 @@ export async function POST(req: NextRequest) {
     const origH = origMeta.height!;
     const totalPixels = origW * origH;
 
-    // 3) Filter masks by coverage
-    const maskCandidates: MaskCandidate[] = [];
+    // 3) Filter: only skip micro-noise (<0.5% of image area)
+    // Upper limit intentionally removed — let user delete unwanted objects
+    const MIN_COVERAGE = 0.005;
+
+    const validMasks: Buffer[] = [];
 
     for (const mask of masks.filter((m: FalMask) => m.url).slice(0, 20)) {
       try {
@@ -113,46 +85,33 @@ export async function POST(req: NextRequest) {
 
         const coverage = whitePixels / totalPixels;
 
-        if (coverage > 0.25) {
-          console.log(`[auto-split] Skip mask ${(coverage * 100).toFixed(1)}% — too large (background)`);
-          continue;
-        }
-        if (coverage < 0.015) {
-          console.log(`[auto-split] Skip mask ${(coverage * 100).toFixed(1)}% — too small (noise)`);
+        if (coverage < MIN_COVERAGE) {
+          console.log(`[auto-split] Skip micro-noise: ${(coverage * 100).toFixed(2)}%`);
           continue;
         }
 
         console.log(`[auto-split] Mask accepted: ${(coverage * 100).toFixed(1)}% coverage`);
-        maskCandidates.push({ url: mask.url, whitePixels, buffer: maskResized });
+        validMasks.push(maskResized);
       } catch (e) {
         console.warn('[auto-split] Failed to process mask:', e);
       }
     }
 
-    if (maskCandidates.length === 0) {
-      return NextResponse.json({
-        error: 'No product-sized objects detected. Try an image with clearly separate products.',
-      }, { status: 422 });
+    if (validMasks.length === 0) {
+      return NextResponse.json({ error: 'No objects detected' }, { status: 422 });
     }
 
-    // 4) Remove overlapping masks
-    const filteredMasks = removeOverlapping(maskCandidates);
-    console.log(`[auto-split] After filtering: ${filteredMasks.length} masks (from ${masks.length} raw)`);
+    console.log(`[auto-split] Processing ${validMasks.length} masks`);
 
-    // 5) Apply each mask → transparent PNG cutout
-    // Cache original RGBA once
+    // 4) Apply each mask → transparent PNG cutout (max 12)
     const origRGBA = await sharp(origBuffer).ensureAlpha().raw().toBuffer();
-
     const cutoutUrls: string[] = [];
 
-    for (let i = 0; i < filteredMasks.length; i++) {
-      const maskResized = filteredMasks[i].buffer;
+    for (let i = 0; i < Math.min(validMasks.length, 12); i++) {
+      const maskGrayscale = await sharp(validMasks[i]).grayscale().raw().toBuffer();
 
-      // Binary grayscale mask
-      const maskGrayscale = await sharp(maskResized).grayscale().raw().toBuffer();
-
-      // Apply mask as binary alpha (>128 → fully opaque, else fully transparent)
-      const cutoutRGBA = Buffer.alloc(origW * origH * 4); // zero-initialized = transparent
+      // Binary alpha: >128 → fully opaque, else fully transparent
+      const cutoutRGBA = Buffer.alloc(origW * origH * 4);
       for (let px = 0; px < origW * origH; px++) {
         if (maskGrayscale[px] > 128) {
           cutoutRGBA[px * 4 + 0] = origRGBA[px * 4 + 0];
@@ -170,14 +129,13 @@ export async function POST(req: NextRequest) {
         .png()
         .toBuffer();
 
-      // Skip degenerate results
+      // Skip degenerate trimmed results
       const trimMeta = await sharp(cutoutPng).metadata();
       if (!trimMeta.width || !trimMeta.height || trimMeta.width < 20 || trimMeta.height < 20) {
         console.log(`[auto-split] Skip tiny cutout: ${trimMeta.width}×${trimMeta.height}`);
         continue;
       }
 
-      // Upload to Vercel Blob
       const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const blob = await put(
         `studio/auto-split/${session.user.id}/${uniqueId}-part${i}.png`,
@@ -186,7 +144,7 @@ export async function POST(req: NextRequest) {
       );
 
       cutoutUrls.push(blob.url);
-      console.log(`[auto-split] Part ${i + 1}/${filteredMasks.length}: ${blob.url} (${trimMeta.width}×${trimMeta.height})`);
+      console.log(`[auto-split] Part ${i + 1}: ${blob.url} (${trimMeta.width}×${trimMeta.height})`);
     }
 
     if (cutoutUrls.length === 0) {

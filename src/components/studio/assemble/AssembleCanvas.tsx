@@ -10,7 +10,7 @@ import {
 } from '@/lib/studio/history-commands';
 import type { TimelineClip } from '@/lib/studio/store';
 import { fileToDataUrl, urlToDataUrl } from '@/lib/studio/media-utils';
-import { saveMediaBlob, loadMediaBlob, clearAllMediaBlobs } from '@/lib/studio/media-db';
+import { saveMediaBlob, loadMediaBlob } from '@/lib/studio/media-db';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE, MOTION_PRESETS } from '@/lib/slideshow-renderer';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
@@ -733,6 +733,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const { expandedTool, setExpandedTool } = useSidebarContext();
   // Store — track-based timeline
   const timelineTracks     = useStudioStore(s => s.timelineTracks);
+  const clearAllTracks     = useStudioStore(s => s.clearAllTracks);
   const initDefaultTracks  = useStudioStore(s => s.initDefaultTracks);
   const addClipToTrack     = useStudioStore(s => s.addClipToTrack);
   const selectedClipId     = useStudioStore(s => s.selectedClipId);
@@ -1268,6 +1269,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   }
 
   // (previewOverlays moved above as editorPreviewOverlays)
+
+  // ── New Project ────────────────────────────────────────────────────────────
+
+  function handleNewProject() {
+    if (!confirm('Clear timeline and start over?')) return;
+    setIsPlaying(false);
+    clearAllTracks();
+    initDefaultTracks();
+    setSelectedClipId(null);
+    setPlayheadTime(0);
+    setMusic(null, null);
+    setExpandedTool('auto-edit');
+  }
 
   // ── Export ─────────────────────────────────────────────────────────────────
 
@@ -2158,13 +2172,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
             {/* New Project */}
             <button
-              onClick={() => {
-                if (confirm('Start a new project? Current timeline will be cleared.')) {
-                  void clearAllMediaBlobs();
-                  sessionStorage.removeItem('studio-session');
-                  window.location.reload();
-                }
-              }}
+              onClick={handleNewProject}
               title="New project"
               className="ml-auto rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-gray-400 transition-colors hover:border-white/20 hover:text-gray-200"
             >

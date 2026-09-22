@@ -500,10 +500,29 @@ export function PlaceProductsEditor({
     setSplittingId(objId);
     setError('');
     try {
+      let imageUrl = obj.src;
+
+      // blob: URLs are browser-local — SAM2 can't fetch them; upload first
+      if (imageUrl.startsWith('blob:')) {
+        const blobRes = await fetch(imageUrl);
+        const blobData = await blobRes.blob();
+        const fd = new FormData();
+        fd.append('image', blobData, 'cutout.png');
+        const uploadRes = await fetch('/api/studio/upload', { method: 'POST', body: fd });
+        if (!uploadRes.ok) {
+          setError('Failed to upload image for processing');
+          return;
+        }
+        const uploadJson = await uploadRes.json() as { url: string };
+        imageUrl = uploadJson.url;
+        // Persist permanent URL so canvas thumbnail also updates
+        setObjects(prev => prev.map(o => o.id === objId ? { ...o, src: imageUrl } : o));
+      }
+
       const res = await fetch('/api/studio/auto-split', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: obj.src }),
+        body: JSON.stringify({ imageUrl }),
       });
 
       const json = await res.json() as { cutouts?: string[]; error?: string };

@@ -38,13 +38,26 @@ export async function POST(req: NextRequest) {
     let ext: string;
 
     if (file.type.startsWith('image/')) {
-      // Resize large phone photos to max 1536px and convert to webp
-      finalBuffer = Buffer.from(await sharp(buffer)
-        .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 88 })
-        .toBuffer());
-      contentType = 'image/webp';
-      ext = 'webp';
+      const metadata = await sharp(buffer).metadata();
+      const isPngWithAlpha = metadata.hasAlpha && (file.type === 'image/png' || file.name?.endsWith('.png'));
+
+      if (isPngWithAlpha) {
+        // Preserve alpha channel — keep as PNG (WebP lossy can degrade transparency edges)
+        finalBuffer = Buffer.from(await sharp(buffer)
+          .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
+          .png({ compressionLevel: 8 })
+          .toBuffer());
+        contentType = 'image/png';
+        ext = 'png';
+      } else {
+        // Non-transparent images → WebP (smaller, faster)
+        finalBuffer = Buffer.from(await sharp(buffer)
+          .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 88 })
+          .toBuffer());
+        contentType = 'image/webp';
+        ext = 'webp';
+      }
     } else if (file.type.startsWith('video/')) {
       ext = file.name.split('.').pop() || 'mp4';
     } else {

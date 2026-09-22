@@ -1529,6 +1529,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       }
     }
 
+    // Also show selected text clip on canvas even when playhead is outside its time range
+    if (selectedClipId) {
+      const selClip = tt?.clips.find(c => c.id === selectedClipId);
+      if (selClip?.overlayData && !visible.some(v => v.clipId === selectedClipId)) {
+        visible.push({ overlay: selClip.overlayData, clipId: selClip.id, storeIdx: -1 });
+      }
+    }
+
     return visible;
   })();
 
@@ -1616,6 +1624,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
+            {/* Font Family */}
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font</div>
+              <select
+                value={ov.fontFamily ?? 'Inter'}
+                onChange={e => updateTextClipOverlay(selectedClip.id, { fontFamily: e.target.value })}
+                className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60"
+              >
+                {(['Inter', 'Montserrat', 'Roboto', 'Playfair Display', 'Oswald'] as const).map(f => (
+                  <option key={f} value={f} className="bg-[#0d0d14]">{f}</option>
+                ))}
+              </select>
             </div>
             {/* Timing */}
             <div className="flex items-center gap-1 text-[10px] text-gray-600">
@@ -1907,7 +1928,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         {/* Left tool panel — driven by SidebarContext expandedTool */}
         {expandedTool && (
           <aside className="flex w-[240px] flex-shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-[#0d0d14]">
-            <LeftPanelContent />
+            {LeftPanelContent()}
           </aside>
         )}
 
@@ -2262,7 +2283,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         {/* Right Inspector Panel — toggleable */}
         {inspectorOpen && (
           <aside className="flex w-[260px] flex-shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-[#0d0d14]">
-            <RightPanelContent />
+            {RightPanelContent()}
           </aside>
         )}
       </div>

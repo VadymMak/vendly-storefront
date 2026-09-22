@@ -1322,9 +1322,8 @@ export async function renderSlideshow(
   if (items.length < 2) throw new Error('At least 2 items required');
 
   const minDuration = Math.min(...items.map((item) => item.duration));
-  if (transitionDuration >= minDuration) {
-    throw new Error('Transition duration must be shorter than the shortest clip duration');
-  }
+  // Silently fall back to hard cut rather than crashing export
+  const safeTransition = transitionDuration < minDuration ? transitionDuration : 0;
 
   // Preload all video items — buffer them and seek to 0 so play() starts instantly
   for (const item of items) {
@@ -1349,9 +1348,9 @@ export async function renderSlideshow(
   let acc = 0;
   for (let i = 0; i < items.length; i++) {
     startTimes.push(acc);
-    if (i < items.length - 1) acc += durations[i] - transitionDuration;
+    if (i < items.length - 1) acc += durations[i] - safeTransition;
   }
-  const totalDuration = durations.reduce((s, d) => s + d, 0) - (items.length - 1) * transitionDuration;
+  const totalDuration = durations.reduce((s, d) => s + d, 0) - (items.length - 1) * safeTransition;
   const totalFrames   = Math.max(1, Math.round(totalDuration * fps));
 
   // Create canvas

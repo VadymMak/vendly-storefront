@@ -18,7 +18,7 @@ interface SolverInput {
   brandKit?: BrandKit | null;
   /** Max times each source clip may repeat. Default 2 → short SMB video. */
   maxRepeats?: number;
-  /** Explicit target duration in seconds. Overrides maxRepeats-based cap. */
+  /** Explicit target duration in seconds. Switches to even-distribution mode. */
   targetDuration?: number;
 }
 
@@ -38,64 +38,86 @@ export function solveTimeline(input: SolverInput): SolverOutput {
   const [minDur, maxDur] = template.clipDuration;
   const maxRepeats = input.maxRepeats ?? 2;
 
-  // Effective duration: targetDuration wins if set; else cap by maxRepeats
-  const effectiveMusicDuration = input.targetDuration != null
+  // Effective duration
+  const effectiveDuration = input.targetDuration != null
     ? (musicDuration > 0 ? Math.min(input.targetDuration, musicDuration) : input.targetDuration)
     : Math.min(musicDuration, clips.length * maxRepeats * maxDur);
 
-  // Max clips: if targetDuration explicit, allow enough to fill it; else cap by maxRepeats
-  const maxClips = input.targetDuration != null
-    ? Math.ceil(effectiveMusicDuration / minDur)
-    : clips.length * maxRepeats;
+  let segments: { start: number; duration: number }[];
 
-  // Clamp transition duration to at most half the minimum clip duration
-  if (template.transitionDuration > 0) {
-    const minPossibleClip = minDur;
-    if (template.transitionDuration >= minPossibleClip) {
-      template.transitionDuration = Math.min(template.transitionDuration, minPossibleClip * 0.5);
+  if (input.targetDuration != null) {
+    // ── Even-distribution path ─────────────────────────────────────────────
+    // Maximize per-clip duration: fewest clips that keep each ≤ maxDur.
+    // Minimum is clips.length so every source clip appears at least once.
+    const idealCount = Math.ceil(effectiveDuration / maxDur);
+    const finalCount = Math.max(idealCount, clips.length);
+    const evenDur    = effectiveDuration / finalCount;
+    const clampedDur = Math.max(minDur, Math.min(maxDur, evenDur));
+
+    // Ensure transition doesn't exceed clip duration
+    if (template.transitionDuration >= clampedDur) {
+      template.transitionDuration = 0;
     }
-  }
 
-  let cutPoints: number[];
-
-  if (template.syncToBeats && beats.length > 0) {
-    const filteredBeats = beats.filter((_, i) => i % template.beatDivisor === 0);
-    cutPoints = [0];
-    let lastCut = 0;
-
-    for (const beat of filteredBeats) {
-      if (beat <= 0 || beat > effectiveMusicDuration) continue;
-      const gap = beat - lastCut;
-      if (gap >= minDur) {
-        cutPoints.push(beat);
-        lastCut = beat;
-      } else if (gap > maxDur) {
-        cutPoints.push(lastCut + maxDur);
-        lastCut += maxDur;
-      }
+    segments = [];
+    let t = 0;
+    for (let i = 0; i < finalCount; i++) {
+      segments.push({
+        start:    parseFloat(t.toFixed(3)),
+        duration: parseFloat(clampedDur.toFixed(3)),
+      });
+      t = parseFloat((t + clampedDur).toFixed(3));
     }
   } else {
-    cutPoints = [0];
-    const avgDur = (minDur + maxDur) / 2;
-    let t = 0;
-    while (t + avgDur <= effectiveMusicDuration) {
-      t += avgDur;
-      cutPoints.push(parseFloat(t.toFixed(3)));
+    // ── Beat-sync / even-spacing path (legacy) ─────────────────────────────
+    const maxClips = clips.length * maxRepeats;
+
+    // Clamp transition duration so it can't exceed a clip
+    if (template.transitionDuration > 0 && template.transitionDuration >= minDur) {
+      template.transitionDuration = Math.min(template.transitionDuration, minDur * 0.5);
     }
+
+    let cutPoints: number[];
+
+    if (template.syncToBeats && beats.length > 0) {
+      const filteredBeats = beats.filter((_, i) => i % template.beatDivisor === 0);
+      cutPoints = [0];
+      let lastCut = 0;
+
+      for (const beat of filteredBeats) {
+        if (beat <= 0 || beat > effectiveDuration) continue;
+        const gap = beat - lastCut;
+        if (gap >= minDur) {
+          cutPoints.push(beat);
+          lastCut = beat;
+        } else if (gap > maxDur) {
+          cutPoints.push(lastCut + maxDur);
+          lastCut += maxDur;
+        }
+      }
+    } else {
+      cutPoints = [0];
+      const avgDur = (minDur + maxDur) / 2;
+      let t = 0;
+      while (t + avgDur <= effectiveDuration) {
+        t += avgDur;
+        cutPoints.push(parseFloat(t.toFixed(3)));
+      }
+    }
+
+    const totalDurationEst = Math.min(effectiveDuration, cutPoints.at(-1)! + maxDur);
+    const allSegments: { start: number; duration: number }[] = [];
+    for (let i = 0; i < cutPoints.length; i++) {
+      const start    = cutPoints[i];
+      const end      = i < cutPoints.length - 1 ? cutPoints[i + 1] : totalDurationEst;
+      const duration = parseFloat((end - start).toFixed(3));
+      if (duration >= 0.3) allSegments.push({ start, duration });
+    }
+
+    segments = allSegments.slice(0, maxClips);
   }
 
-  const totalDuration = Math.min(effectiveMusicDuration, cutPoints.at(-1)! + maxDur);
-
-  const allSegments: { start: number; duration: number }[] = [];
-  for (let i = 0; i < cutPoints.length; i++) {
-    const start = cutPoints[i];
-    const end = i < cutPoints.length - 1 ? cutPoints[i + 1] : totalDuration;
-    const duration = parseFloat((end - start).toFixed(3));
-    if (duration >= 0.3) allSegments.push({ start, duration });
-  }
-
-  // Hard cap: never exceed maxClips segments
-  const segments = allSegments.slice(0, maxClips);
+  // ── Build video clips ──────────────────────────────────────────────────────
 
   const videoClips: Omit<TimelineClip, 'id' | 'trackId'>[] = [];
   for (let i = 0; i < segments.length; i++) {
@@ -114,7 +136,6 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     });
   }
 
-  // Recalculate actual total after slicing
   const actualTotal = videoClips.reduce(
     (max, c) => Math.max(max, c.startTime + c.duration), 0
   );
@@ -139,16 +160,16 @@ export function solveTimeline(input: SolverInput): SolverOutput {
       }
 
       let startTime = 0;
-      let duration = introDur;
+      let duration  = introDur;
       if (textDef.position === 'top') {
         startTime = 0;
-        duration = Math.min(introDur, actualTotal);
+        duration  = Math.min(introDur, actualTotal);
       } else if (textDef.position === 'bottom') {
-        duration = Math.min(outroDur, actualTotal);
+        duration  = Math.min(outroDur, actualTotal);
         startTime = Math.max(0, actualTotal - duration);
       } else {
         startTime = actualTotal * 0.2;
-        duration = actualTotal * 0.6;
+        duration  = actualTotal * 0.6;
       }
 
       let color = '#FFFFFF';

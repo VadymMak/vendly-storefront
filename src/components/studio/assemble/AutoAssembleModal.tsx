@@ -92,9 +92,11 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
   const [inlineAccent, setInlineAccent]     = useState(brand.accentColor);
   const [brandSectionOpen, setBrandSectionOpen] = useState(false);
 
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const mediaInputRef = useRef<HTMLInputElement>(null);
-  const blobUrlsRef   = useRef<string[]>([]);
+  const audioInputRef  = useRef<HTMLInputElement>(null);
+  const mediaInputRef  = useRef<HTMLInputElement>(null);
+  const blobUrlsRef    = useRef<string[]>([]);
+  const brandNameRef   = useRef<HTMLInputElement>(null);
+  const ctaRef         = useRef<HTMLInputElement>(null);
 
   // Sync local brand fields from store when step 2 opens
   useEffect(() => {
@@ -436,9 +438,18 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
           {brandSectionOpen && (
             <div className="mt-2 flex flex-col gap-2">
               <input
+                ref={brandNameRef}
                 type="text"
                 value={localBrandName}
-                onChange={e => setLocalBrandName(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  const pos = e.target.selectionStart;
+                  setLocalBrandName(val);
+                  requestAnimationFrame(() => {
+                    brandNameRef.current?.focus();
+                    brandNameRef.current?.setSelectionRange(pos, pos);
+                  });
+                }}
                 onBlur={e => brand.updateBrand({ businessName: e.target.value })}
                 placeholder="Business name"
                 className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
@@ -462,9 +473,18 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
                 />
               </div>
               <input
+                ref={ctaRef}
                 type="text"
                 value={localCta}
-                onChange={e => setLocalCta(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  const pos = e.target.selectionStart;
+                  setLocalCta(val);
+                  requestAnimationFrame(() => {
+                    ctaRef.current?.focus();
+                    ctaRef.current?.setSelectionRange(pos, pos);
+                  });
+                }}
                 onBlur={e => brand.updateBrand({ defaultCta: e.target.value })}
                 placeholder="CTA text (e.g. Order Now)"
                 className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"

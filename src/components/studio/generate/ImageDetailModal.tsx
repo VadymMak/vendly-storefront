@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { QUICK_FILTERS, PRESET_MAP, type PresetKey, type QuickFilterId } from '@/lib/studio/constants';
 import { InpaintEditor } from './InpaintEditor';
 import { SceneCreator } from './SceneCreator';
+import { PlaceProductsEditor } from './PlaceProductsEditor';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,7 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   const [showInpaint, setShowInpaint] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
   const [showSceneCreator, setShowSceneCreator] = useState(false);
+  const [showPlaceProducts, setShowPlaceProducts] = useState(false);
   const [cutoutUrl, setCutoutUrl] = useState<string | null>(null);
 
   const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
@@ -288,6 +290,12 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
               Create Scene
             </button>
             <button
+              onClick={() => setShowPlaceProducts(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-800"
+            >
+              Place Products
+            </button>
+            <button
               onClick={onAnimate}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
             >
@@ -332,6 +340,18 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
         onClose={() => setShowSceneCreator(false)}
         onResult={(url) => { setShowSceneCreator(false); onInpaintResult?.(url); }}
         galleryImages={galleryImages}
+      />
+    )}
+    {showPlaceProducts && (
+      <PlaceProductsEditor
+        backgroundUrl={cutoutUrl ?? img.url}
+        initialCutouts={cutoutUrl ? [cutoutUrl] : []}
+        galleryImages={galleryImages}
+        onClose={() => setShowPlaceProducts(false)}
+        onResult={(url) => {
+          setShowPlaceProducts(false);
+          onInpaintResult?.(url);
+        }}
       />
     )}
     </>

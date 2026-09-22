@@ -1,3 +1,24 @@
+// ── Place Products (Image Composite) ─────────────────────────────────────────
+
+export interface PlacedObject {
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  naturalWidth: number;
+  naturalHeight: number;
+}
+
+export interface PlaceProductsEditorProps {
+  backgroundUrl: string;
+  initialCutouts?: string[];
+  galleryImages?: string[];
+  onClose: () => void;
+  onResult: (compositeUrl: string) => void;
+}
+
 // ===== Video Generator =====
 
 export interface VideoSkill {

@@ -1,5 +1,6 @@
 import type { TimelineClip } from '@/lib/studio/store';
 import type { AssemblyTemplate } from './templates';
+import type { BrandKit } from '@/lib/studio/brand-kit';
 
 export interface ClipSource {
   id: string;
@@ -14,17 +15,19 @@ interface SolverInput {
   template: AssemblyTemplate;
   beats: number[];
   musicDuration: number;
+  brandKit?: BrandKit | null;
 }
 
 interface SolverOutput {
   videoClips: Omit<TimelineClip, 'id' | 'trackId'>[];
+  textClips: Omit<TimelineClip, 'id' | 'trackId'>[];
   totalDuration: number;
 }
 
 export function solveTimeline(input: SolverInput): SolverOutput {
-  const { clips, template, beats, musicDuration } = input;
+  const { clips, template, beats, musicDuration, brandKit } = input;
 
-  if (clips.length === 0) return { videoClips: [], totalDuration: 0 };
+  if (clips.length === 0) return { videoClips: [], textClips: [], totalDuration: 0 };
 
   const [minDur, maxDur] = template.clipDuration;
   let cutPoints: number[];
@@ -82,5 +85,65 @@ export function solveTimeline(input: SolverInput): SolverOutput {
     });
   }
 
-  return { videoClips, totalDuration };
+  // ── Brand text overlays ────────────────────────────────────────────────────
+
+  const textClips: Omit<TimelineClip, 'id' | 'trackId'>[] = [];
+
+  if (brandKit && template.defaultTexts && template.defaultTexts.length > 0) {
+    const introDur = template.introClipDuration ?? 3;
+    const outroDur = template.outroClipDuration ?? 4;
+
+    for (const textDef of template.defaultTexts) {
+      // Resolve placeholder to brand value
+      let text = textDef.placeholder;
+      if (brandKit.businessName) {
+        if (text === 'Your Business Name' || text === 'Product Name') {
+          text = brandKit.businessName;
+        }
+      }
+      if (textDef.style === 'cta' && brandKit.defaultCta) {
+        text = brandKit.defaultCta;
+      }
+
+      // Timing by position
+      let startTime = 0;
+      let duration = introDur;
+      if (textDef.position === 'top') {
+        startTime = 0;
+        duration = Math.min(introDur, totalDuration);
+      } else if (textDef.position === 'bottom') {
+        duration = Math.min(outroDur, totalDuration);
+        startTime = Math.max(0, totalDuration - duration);
+      } else {
+        startTime = totalDuration * 0.2;
+        duration = totalDuration * 0.6;
+      }
+
+      // Style-based colors
+      let color = '#FFFFFF';
+      let barColor: string | undefined;
+      if (textDef.style === 'brand') color = brandKit.primaryColor;
+      if (textDef.style === 'cta')   color = brandKit.accentColor;
+      if (textDef.style === 'bar')   { barColor = brandKit.primaryColor; color = '#FFFFFF'; }
+
+      textClips.push({
+        type: 'text',
+        startTime: parseFloat(startTime.toFixed(3)),
+        duration:  parseFloat(duration.toFixed(3)),
+        overlayData: {
+          text,
+          style:      textDef.style,
+          position:   textDef.position,
+          scope:      'global',
+          animation:  'fade-in',
+          fontFamily: brandKit.fontFamily || 'Inter',
+          color,
+          ...(barColor ? { barColor } : {}),
+          fontSize: textDef.style === 'brand' ? 72 : textDef.style === 'cta' ? 56 : 48,
+        },
+      });
+    }
+  }
+
+  return { videoClips, textClips, totalDuration };
 }

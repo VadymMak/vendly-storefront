@@ -22,6 +22,7 @@ import { TEXT_PRESETS, PRESET_CATEGORIES, PRESET_CATEGORY_LABELS } from '@/lib/f
 import type { PresetCategory } from '@/lib/fonts/text-presets';
 import { loadGoogleFont, loadGoogleFontBoth } from '@/lib/fonts/font-loader';
 import { AutoAssembleModal } from './AutoAssembleModal';
+import { BrandKitPanel } from './BrandKitPanel';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -278,7 +279,8 @@ const TOOL_LABELS: Record<string, string> = {
   audio:       'Audio',
   effects:     'Effects',
   stickers:    'Stickers',
-  'auto-edit': 'Auto Edit',
+  'auto-edit': 'Quick Assembly',
+  brand:       'Brand Kit',
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -764,6 +766,24 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       return unsub;
     }
   }, [initDefaultTracks]);
+
+  // Auto-open Quick Assembly wizard on empty timeline (first visit)
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    const run = () => {
+      if (autoOpenedRef.current) return;
+      autoOpenedRef.current = true;
+      const hasClips = useStudioStore.getState().timelineTracks.some(t => t.clips.length > 0);
+      if (!hasClips) setExpandedTool('auto-edit');
+    };
+    if (useStudioStore.persist.hasHydrated()) {
+      run();
+    } else {
+      const unsub = useStudioStore.persist.onFinishHydration(run);
+      return unsub;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Derived: video track
   const videoTrack  = timelineTracks.find(t => t.type === 'video');
@@ -1788,7 +1808,17 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
         {expandedTool === 'auto-edit' && (
           <div className="flex-1 overflow-y-auto">
-            <AutoAssembleModal onClose={() => setExpandedTool(null)} />
+            <AutoAssembleModal
+              onClose={() => setExpandedTool(null)}
+              onExport={() => void handleExport()}
+              onAspectRatio={ar => setAspectRatio(ar as AspectRatio)}
+            />
+          </div>
+        )}
+
+        {expandedTool === 'brand' && (
+          <div className="flex-1 overflow-y-auto">
+            <BrandKitPanel />
           </div>
         )}
       </div>
@@ -2110,6 +2140,20 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
               </svg>
               Delete
+            </button>
+
+            {/* Brand Kit */}
+            <button
+              onClick={() => setExpandedTool(expandedTool === 'brand' ? null : 'brand')}
+              title="Brand Kit"
+              className={[
+                'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors',
+                expandedTool === 'brand'
+                  ? 'bg-white/10 text-white'
+                  : 'text-gray-400 hover:bg-white/8 hover:text-gray-200',
+              ].join(' ')}
+            >
+              🏷️ Brand
             </button>
 
             {/* New Project */}

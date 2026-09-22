@@ -126,8 +126,9 @@ export function PlaceProductsEditor({
   const [canvasW, setCanvasW]     = useState(MAX_CANVAS);
   const [canvasH, setCanvasH]     = useState(MAX_CANVAS);
   const [bgLoaded, setBgLoaded]   = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [error, setError]         = useState('');
+  const [exporting, setExporting]     = useState(false);
+  const [error, setError]             = useState('');
+  const [splittingId, setSplittingId] = useState<string | null>(null);
 
   const bgImgRef    = useRef<HTMLImageElement | null>(null);
   const objImgsRef  = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -302,16 +303,22 @@ export function PlaceProductsEditor({
 
   // ── Add object from src ────────────────────────────────────────────────────
 
-  const addObject = useCallback(async (src: string) => {
+  const addObject = useCallback(async (src: string, position?: { x: number; y: number }) => {
     try {
       const img = await loadImg(src);
       const cw  = canvasWRef.current;
+      const ch  = canvasHRef.current;
+      const scale = Math.min(
+        (cw * 0.25) / img.naturalWidth,
+        (ch * 0.25) / img.naturalHeight,
+        1,
+      );
       const obj: PlacedObject = {
         id: uid(),
         src,
-        x: 0.5,
-        y: 0.5,
-        scale: (cw * 0.28) / img.naturalWidth,
+        x: position?.x ?? 0.5,
+        y: position?.y ?? 0.5,
+        scale,
         rotation: 0,
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight,
@@ -484,6 +491,57 @@ export function PlaceProductsEditor({
     });
   }, [selectedId]);
 
+  // ── Auto Split ────────────────────────────────────────────────────────────
+
+  const autoSplit = useCallback(async (objId: string) => {
+    const obj = objectsRef.current.find(o => o.id === objId);
+    if (!obj) return;
+
+    setSplittingId(objId);
+    setError('');
+    try {
+      const res = await fetch('/api/studio/auto-split', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: obj.src }),
+      });
+
+      const json = await res.json() as { cutouts?: string[]; error?: string };
+
+      if (!res.ok) {
+        setError(json.error ?? 'Auto split failed');
+        return;
+      }
+
+      const { cutouts } = json;
+      if (!cutouts || cutouts.length === 0) {
+        setError('No objects detected in this image');
+        return;
+      }
+      if (cutouts.length === 1) {
+        setError('Only 1 object detected — nothing to split');
+        return;
+      }
+
+      // Remove original
+      objImgsRef.current.delete(objId);
+      setObjects(prev => prev.filter(o => o.id !== objId));
+      setSelectedId(null);
+
+      // Add each cutout spread horizontally
+      for (let i = 0; i < cutouts.length; i++) {
+        const x = cutouts.length === 1
+          ? 0.5
+          : 0.15 + (i * 0.7) / (cutouts.length - 1);
+        await addObject(cutouts[i], { x, y: 0.5 });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to split image');
+    } finally {
+      setSplittingId(null);
+    }
+  }, [addObject]);
+
   // ── Export ─────────────────────────────────────────────────────────────────
 
   const handleExport = useCallback(async () => {
@@ -593,8 +651,16 @@ export function PlaceProductsEditor({
 
         {/* Selected object actions */}
         {selectedObj && (
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-xs text-gray-500">Selected:</span>
+            <button
+              onClick={() => void autoSplit(selectedObj.id)}
+              disabled={splittingId !== null}
+              className="rounded-md px-3 py-1.5 text-xs text-green-400 transition-colors hover:text-green-300 disabled:opacity-40"
+              style={{ background: 'rgba(22,163,74,0.08)' }}
+            >
+              {splittingId === selectedObj.id ? '⏳ Splitting…' : '✂ Split Objects'}
+            </button>
             <button
               onClick={rotate90}
               className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
@@ -625,22 +691,38 @@ export function PlaceProductsEditor({
 
           {/* Placed objects */}
           {objects.map(obj => (
-            <button
-              key={obj.id}
-              onClick={() => setSelectedId(obj.id)}
-              className="relative shrink-0 overflow-hidden rounded-lg transition-all"
-              style={{
-                width: 56,
-                height: 56,
-                background: 'rgba(255,255,255,0.04)',
-                border: selectedId === obj.id
-                  ? '2px solid #16a34a'
-                  : '2px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={obj.src} alt="" className="h-full w-full object-contain p-1" />
-            </button>
+            <div key={obj.id} className="group relative shrink-0">
+              <button
+                onClick={() => setSelectedId(obj.id)}
+                className="relative overflow-hidden rounded-lg transition-all"
+                style={{
+                  width: 56,
+                  height: 56,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: selectedId === obj.id
+                    ? '2px solid #16a34a'
+                    : '2px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={obj.src} alt="" className="h-full w-full object-contain p-1" />
+                {splittingId === obj.id && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-400 border-t-transparent" />
+                  </div>
+                )}
+              </button>
+              {/* Split hover button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); void autoSplit(obj.id); }}
+                disabled={splittingId !== null}
+                className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed"
+                style={{ background: '#16a34a', color: 'white', border: '1px solid rgba(0,0,0,0.3)' }}
+                title="Auto Split — separate objects"
+              >
+                ✂
+              </button>
+            </div>
           ))}
 
           {/* Gallery images not yet placed */}

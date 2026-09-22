@@ -391,8 +391,8 @@ export function NLETimeline({ musicName, idbUrls, onFileAdd, onMusicRemove }: Pr
         return;
       }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
   // All state reads use getState() inside the handler — no stale closures.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

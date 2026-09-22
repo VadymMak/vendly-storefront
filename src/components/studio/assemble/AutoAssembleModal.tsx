@@ -75,6 +75,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
   const [step, setStep]                         = useState<WizardStep>(1);
   const [selectedTemplate, setSelectedTemplate] = useState<AssemblyTemplate | null>(null);
   const [selectedAspect, setSelectedAspect]     = useState<AspectRatio>('9:16');
+  const [targetDuration, setTargetDuration]     = useState<number>(15);
   const [wizardMedia, setWizardMedia]           = useState<WizardMedia[]>([]);
   const [isDragOver, setIsDragOver]             = useState(false);
   const [useCurrentMusic, setUseCurrentMusic]   = useState(true);
@@ -226,8 +227,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
           musicDuration = 30;
         }
       } else {
-        const avg = (selectedTemplate.clipDuration[0] + selectedTemplate.clipDuration[1]) / 2;
-        musicDuration = avg * Math.min(clips.length, 8);
+        musicDuration = targetDuration;
       }
 
       setPhase('building');
@@ -240,6 +240,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
         beats,
         musicDuration,
         brandKit: activeBrand,
+        targetDuration,
       });
 
       clearAllTracks();
@@ -319,6 +320,27 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
                 ].join(' ')}
               >
                 {ASPECT_LABELS[ar]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Target duration */}
+        <div>
+          <div className="mb-1.5 text-[10px] uppercase tracking-wider text-gray-500">Duration</div>
+          <div className="flex flex-wrap gap-1">
+            {([10, 15, 20, 30, 60] as const).map(d => (
+              <button
+                key={d}
+                onClick={() => setTargetDuration(d)}
+                className={[
+                  'rounded px-2 py-1 text-xs transition-colors',
+                  targetDuration === d
+                    ? 'bg-green-600/60 text-white'
+                    : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300',
+                ].join(' ')}
+              >
+                {d}s
               </button>
             ))}
           </div>

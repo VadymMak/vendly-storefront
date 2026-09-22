@@ -18,6 +18,8 @@ interface SolverInput {
   brandKit?: BrandKit | null;
   /** Max times each source clip may repeat. Default 2 → short SMB video. */
   maxRepeats?: number;
+  /** Explicit target duration in seconds. Overrides maxRepeats-based cap. */
+  targetDuration?: number;
 }
 
 interface SolverOutput {
@@ -36,10 +38,15 @@ export function solveTimeline(input: SolverInput): SolverOutput {
   const [minDur, maxDur] = template.clipDuration;
   const maxRepeats = input.maxRepeats ?? 2;
 
-  // Cap effective duration so clips don't loop endlessly over a long track
-  const maxClips = clips.length * maxRepeats;
-  const maxDuration = maxClips * maxDur;
-  const effectiveMusicDuration = Math.min(musicDuration, maxDuration);
+  // Effective duration: targetDuration wins if set; else cap by maxRepeats
+  const effectiveMusicDuration = input.targetDuration != null
+    ? (musicDuration > 0 ? Math.min(input.targetDuration, musicDuration) : input.targetDuration)
+    : Math.min(musicDuration, clips.length * maxRepeats * maxDur);
+
+  // Max clips: if targetDuration explicit, allow enough to fill it; else cap by maxRepeats
+  const maxClips = input.targetDuration != null
+    ? Math.ceil(effectiveMusicDuration / minDur)
+    : clips.length * maxRepeats;
 
   // Clamp transition duration to at most half the minimum clip duration
   if (template.transitionDuration > 0) {

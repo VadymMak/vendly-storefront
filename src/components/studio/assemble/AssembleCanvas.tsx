@@ -307,21 +307,21 @@ function renderOverlayContent(overlay: TextOverlay, scale: number = 1) {
   }
   if (overlay.style === 'brand') {
     return (
-      <div className="whitespace-nowrap" style={{ color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', serif` : 'Georgia, serif', fontSize: fs, fontWeight: fw }}>
+      <div className="whitespace-nowrap" style={{ color: overlay.color ?? '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.9)', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', serif` : 'Georgia, serif', fontSize: fs, fontWeight: fw }}>
         {overlay.text}
       </div>
     );
   }
   if (overlay.style === 'subtitle') {
     return (
-      <span className="rounded-full bg-black/50 text-white whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined, padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px` }}>
+      <span className="rounded-full bg-black/50 whitespace-nowrap" style={{ fontSize: fs, fontWeight: overlay.fontWeight ?? 'normal', fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined, color: overlay.color ?? '#FFFFFF', padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px` }}>
         {overlay.text}
       </span>
     );
   }
   if (overlay.style === 'cta') {
     return (
-      <div className="whitespace-nowrap" style={{ color: '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs, fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
+      <div className="whitespace-nowrap" style={{ color: overlay.color ?? '#FFD700', textShadow: '0 2px 10px rgba(0,0,0,0.9)', fontSize: fs, fontWeight: fw, fontFamily: overlay.fontFamily ? `'${overlay.fontFamily}', sans-serif` : undefined }}>
         {overlay.text}
       </div>
     );

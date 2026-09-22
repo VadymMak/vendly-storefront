@@ -1557,6 +1557,33 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         </>
       );
     }
+    if (selectedClip?.type === 'text' && !selectedClip.overlayData) {
+      // Text clip without overlayData (e.g. after page reload — overlayData not persisted)
+      return (
+        <>
+          <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">Text Clip</div>
+          <div className="p-3 space-y-3">
+            <p className="text-[10px] text-gray-600 leading-relaxed">Text content not available — overlay data is not persisted across reloads. Regenerate via Quick Assembly to edit.</p>
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Start (s)</div>
+              <input type="number" min={0} step={0.1} value={selectedClip.startTime}
+                onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) useStudioStore.getState().trimClip(selectedClip.id, v, selectedClip.duration); }}
+                className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60" />
+            </div>
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Duration (s)</div>
+              <input type="number" min={0.1} step={0.1} value={selectedClip.duration}
+                onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) useStudioStore.getState().trimClip(selectedClip.id, selectedClip.startTime, v); }}
+                className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60" />
+            </div>
+            <button onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
+              className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300">
+              <IconX size={12} /> Remove
+            </button>
+          </div>
+        </>
+      );
+    }
     if (selectedClip?.type === 'text' && selectedClip.overlayData) {
       const ov = selectedClip.overlayData;
       return (
@@ -1639,9 +1666,25 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </select>
             </div>
             {/* Timing */}
-            <div className="flex items-center gap-1 text-[10px] text-gray-600">
-              <span className="rounded bg-purple-700/30 px-1.5 py-0.5 text-purple-400">text</span>
-              <span>{selectedClip.startTime.toFixed(1)}s → {(selectedClip.startTime + selectedClip.duration).toFixed(1)}s</span>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Start (s)</div>
+                <input
+                  type="number" min={0} step={0.1}
+                  value={selectedClip.startTime}
+                  onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) useStudioStore.getState().trimClip(selectedClip.id, v, selectedClip.duration); }}
+                  className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Duration (s)</div>
+                <input
+                  type="number" min={0.1} step={0.1}
+                  value={selectedClip.duration}
+                  onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) useStudioStore.getState().trimClip(selectedClip.id, selectedClip.startTime, v); }}
+                  className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60"
+                />
+              </div>
             </div>
             <button
               onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}

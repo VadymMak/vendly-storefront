@@ -18,6 +18,7 @@ import { type ModelTier } from '@/lib/studio/config';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import { InpaintEditor } from './InpaintEditor';
+import { PlaceProductsEditor } from './PlaceProductsEditor';
 
 interface Props {
   userId: string;
@@ -123,6 +124,16 @@ function IconScissors() {
   );
 }
 
+function IconPlace() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="15" cy="9" r="4" />
+      <path d="M3 21l6-6" />
+    </svg>
+  );
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function fetchFileFromUrl(url: string, filename: string): Promise<File> {
@@ -182,6 +193,7 @@ function ActionButton({ icon, label, sublabel, onClick, highlight, disabled }: {
       {icon === 'upscale'   && <IconUpscaleArrow />}
       {icon === 'removebg'  && <IconScissors />}
       {icon === 'download'  && <IconDownload />}
+      {icon === 'place'     && <IconPlace />}
       <span className="text-sm font-medium text-white">{label}</span>
       {sublabel && <span className="text-xs text-gray-500">{sublabel}</span>}
     </button>
@@ -595,7 +607,8 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [isAnimating,        setIsAnimating]        = useState(false);
 
   // Inpaint
-  const [inpaintImage,  setInpaintImage]  = useState<string | null>(null);
+  const [inpaintImage,     setInpaintImage]     = useState<string | null>(null);
+  const [showPlaceProducts, setShowPlaceProducts] = useState(false);
   const inpaintInputRef = useRef<HTMLInputElement>(null);
 
   // UI
@@ -1346,13 +1359,14 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
               <p className="text-center text-sm text-gray-400">What would you like to do?</p>
 
-              <div className="mx-auto grid max-w-lg grid-cols-3 gap-3">
-                <ActionButton icon="sparkle"  label="Improve"    sublabel="2 credits" onClick={() => setMode('improve')} highlight disabled={!!processingTask} />
-                <ActionButton icon="edit"     label="Edit"       sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
-                <ActionButton icon="video"    label="Animate"    sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
-                <ActionButton icon="upscale"  label="Upscale"    sublabel="1 credit"  onClick={handleUpscaleUploadedImage} disabled={!!processingTask} />
-                <ActionButton icon="removebg" label="Remove BG"  sublabel="1 credit"  onClick={handleRemoveBgUploadedImage} disabled={!!processingTask} />
-                <ActionButton icon="download" label="Download"   onClick={() => {
+              <div className="mx-auto grid max-w-2xl grid-cols-4 gap-3">
+                <ActionButton icon="sparkle"  label="Improve"        sublabel="2 credits" onClick={() => setMode('improve')} highlight disabled={!!processingTask} />
+                <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
+                <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={handleUpscaleUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="removebg" label="Remove BG"      sublabel="1 credit"  onClick={handleRemoveBgUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="place"    label="Place Products" onClick={() => setShowPlaceProducts(true)} disabled={!!processingTask} />
+                <ActionButton icon="download" label="Download"       onClick={() => {
                   if (uploadedPreview) {
                     const a = document.createElement('a');
                     a.href = uploadedPreview;
@@ -1620,6 +1634,25 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             });
             URL.revokeObjectURL(inpaintImage);
             setInpaintImage(null);
+          }}
+        />
+      )}
+      {showPlaceProducts && uploadedPreview && (
+        <PlaceProductsEditor
+          backgroundUrl={uploadedPreview}
+          initialCutouts={[]}
+          galleryImages={generatedImages.filter(i => i.type === 'image').map(i => i.url)}
+          onClose={() => setShowPlaceProducts(false)}
+          onResult={(url) => {
+            setShowPlaceProducts(false);
+            addImage({
+              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type: 'image',
+              url,
+              prompt: '[Composite] Place Products',
+              format: 'webp',
+              createdAt: Date.now(),
+            });
           }}
         />
       )}

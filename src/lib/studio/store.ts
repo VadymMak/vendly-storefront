@@ -77,6 +77,7 @@ interface StudioStore {
   splitClip: (clipId: string, splitTime: number) => void;
   duplicateClip: (clipId: string) => void;
   restoreClip: (clip: TimelineClip) => void;
+  updateTextClipOverlay: (clipId: string, partial: Partial<TextOverlay>) => void;
   clearAllTracks: () => void;
 
   playheadTime: number;
@@ -312,6 +313,18 @@ export const useStudioStore = create<StudioStore>()(
           timelineTracks: s.timelineTracks.map(t =>
             t.id === clip.trackId ? { ...t, clips: [...t.clips, clip] } : t
           ),
+        })),
+
+      updateTextClipOverlay: (clipId, partial) =>
+        set((s) => ({
+          timelineTracks: s.timelineTracks.map(t => ({
+            ...t,
+            clips: t.clips.map(c =>
+              c.id === clipId && c.overlayData
+                ? { ...c, overlayData: { ...c.overlayData, ...partial } }
+                : c
+            ),
+          })),
         })),
 
       clearAllTracks: () =>

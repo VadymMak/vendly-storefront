@@ -738,8 +738,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const addClipToTrack     = useStudioStore(s => s.addClipToTrack);
   const selectedClipId     = useStudioStore(s => s.selectedClipId);
   const setSelectedClipId  = useStudioStore(s => s.setSelectedClipId);
-  const removeClipFn       = useStudioStore(s => s.removeClip);
-  const splitClipFn        = useStudioStore(s => s.splitClip);
+  const removeClipFn            = useStudioStore(s => s.removeClip);
+  const splitClipFn             = useStudioStore(s => s.splitClip);
+  const updateTextClipOverlay   = useStudioStore(s => s.updateTextClipOverlay);
   const playheadTime       = useStudioStore(s => s.playheadTime);
   const setPlayheadTime    = useStudioStore(s => s.setPlayheadTime);
   const isPlaying          = useStudioStore(s => s.isPlaying);
@@ -1288,6 +1289,13 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   async function handleExport() {
     if (videoClips.length < 2) { setError('Add at least 2 clips to export'); return; }
     setError(null);
+
+    // Warn when music name is known but data was lost (e.g. after page reload — musicDataUrl is not persisted)
+    if (musicName && !musicDataUrl) {
+      setError(`Music "${musicName}" is not loaded — it was lost after page reload. Re-add it from the Audio panel, then export again.`);
+      return;
+    }
+
     setIsRendering(true);
     setRenderProgress(0);
 
@@ -1542,34 +1550,83 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       );
     }
     if (selectedClip?.type === 'text' && selectedClip.overlayData) {
-      const tt = timelineTracks.find(t => t.type === 'text');
-      const clipIdx = tt ? [...tt.clips].sort((a, b) => a.startTime - b.startTime).findIndex(c => c.id === selectedClip.id) : -1;
+      const ov = selectedClip.overlayData;
       return (
         <>
           <div className="border-b border-white/10 px-3 py-2 text-xs uppercase tracking-wider text-gray-500">Text Clip</div>
           <div className="p-3 space-y-3">
-            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-              <p className="truncate text-sm text-white">{selectedClip.overlayData.text}</p>
-              {selectedClip.overlayData.lineTwo && (
-                <p className="truncate text-xs text-gray-500">{selectedClip.overlayData.lineTwo}</p>
-              )}
+            {/* Text content */}
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Text</div>
+              <textarea
+                rows={3}
+                value={ov.text}
+                onChange={e => updateTextClipOverlay(selectedClip.id, { text: e.target.value })}
+                className="w-full resize-none rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60 placeholder:text-gray-700"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded bg-purple-700/40 px-2 py-0.5 text-[11px] uppercase tracking-wider text-purple-300">text</span>
-              <span className="text-xs text-gray-600">{selectedClip.duration.toFixed(1)}s @ {selectedClip.startTime.toFixed(1)}s</span>
+            {/* Font size */}
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font Size</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range" min={16} max={200} step={2}
+                  value={ov.fontSize ?? 48}
+                  onChange={e => updateTextClipOverlay(selectedClip.id, { fontSize: Number(e.target.value) })}
+                  className="h-1 flex-1 cursor-pointer accent-purple-500"
+                />
+                <span className="w-7 text-right text-xs text-gray-400">{ov.fontSize ?? 48}</span>
+              </div>
             </div>
-            <button
-              onClick={() => { if (clipIdx >= 0) openEditor(clipIdx); }}
-              className="flex w-full items-center justify-center gap-2 rounded bg-purple-600/20 py-1.5 text-xs text-purple-300 transition-colors hover:bg-purple-600/30 hover:text-purple-200"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edit Text
-            </button>
+            {/* Color */}
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Color</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={ov.color ?? '#ffffff'}
+                  onChange={e => updateTextClipOverlay(selectedClip.id, { color: e.target.value })}
+                  className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                />
+                <input
+                  type="text"
+                  value={ov.color ?? '#ffffff'}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (/^#[0-9a-fA-F]{0,6}$/.test(v)) updateTextClipOverlay(selectedClip.id, { color: v });
+                  }}
+                  className="w-20 rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-white outline-none focus:ring-1 focus:ring-purple-500/40"
+                />
+              </div>
+            </div>
+            {/* Position */}
+            <div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Position</div>
+              <div className="flex gap-1">
+                {(['top', 'center', 'bottom'] as const).map(pos => (
+                  <button
+                    key={pos}
+                    onClick={() => updateTextClipOverlay(selectedClip.id, { position: pos })}
+                    className={[
+                      'flex-1 rounded py-1 text-xs capitalize transition-colors',
+                      ov.position === pos ? 'bg-purple-600/50 text-purple-200' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300',
+                    ].join(' ')}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Timing */}
+            <div className="flex items-center gap-1 text-[10px] text-gray-600">
+              <span className="rounded bg-purple-700/30 px-1.5 py-0.5 text-purple-400">text</span>
+              <span>{selectedClip.startTime.toFixed(1)}s → {(selectedClip.startTime + selectedClip.duration).toFixed(1)}s</span>
+            </div>
             <button
               onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300"
             >
-              <IconX size={12} /> Remove clip
+              <IconX size={12} /> Remove
             </button>
           </div>
         </>

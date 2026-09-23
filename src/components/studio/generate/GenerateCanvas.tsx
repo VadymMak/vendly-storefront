@@ -40,16 +40,6 @@ function IconPlay() {
   );
 }
 
-function IconLayers() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polygon points="12 2 2 7 12 12 22 7 12 2" />
-      <polyline points="2 17 12 22 22 17" />
-      <polyline points="2 12 12 17 22 12" />
-    </svg>
-  );
-}
-
 function IconDownload() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -138,42 +128,6 @@ function IconPlace() {
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function fetchFileFromUrl(url: string, filename: string): Promise<File> {
-  const blob = await fetch(url).then(r => r.blob());
-  return new File([blob], filename, { type: blob.type || 'image/webp' });
-}
-
-async function uploadToStorage(file: File): Promise<string> {
-  const fd = new FormData();
-  fd.append('file', file);
-  const res = await fetch('/api/upload', { method: 'POST', body: fd });
-  const data = await res.json() as { url?: string; error?: string };
-  if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-  return data.url!;
-}
-
-async function getPublicUrl(url: string): Promise<string> {
-  if (!url.startsWith('blob:')) return url;
-  const file = await fetchFileFromUrl(url, `studio-${Date.now()}.webp`);
-  return uploadToStorage(file);
-}
-
-async function pollJob(jobId: string, timeoutMs = 600_000): Promise<string> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 4000));
-    const res = await fetch(`/api/studio/job/${jobId}`);
-    const data = await res.json() as { status: string; outputUrl?: string; error?: string };
-    if (data.status === 'succeeded' && data.outputUrl) return data.outputUrl;
-    if (data.status === 'failed' || data.status === 'canceled') {
-      throw new Error(data.error ?? `Job ${data.status}`);
-    }
-  }
-  throw new Error('Animation timed out');
-}
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function ActionButton({ icon, label, sublabel, onClick, highlight, disabled }: {
@@ -219,12 +173,6 @@ function SmallAction({ label, onClick, highlight }: {
       {label}
     </button>
   );
-}
-
-function toVideoAspectRatio(ar: string): '9:16' | '1:1' | '16:9' {
-  if (ar === '9:16' || ar === '4:5') return '9:16';
-  if (ar === '1:1') return '1:1';
-  return '16:9';
 }
 
 function getBadge(prompt: string | undefined): { text: string; color: string } | null {
@@ -363,10 +311,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const addImage        = useStudioStore((s) => s.addImage);
   const removeImage     = useStudioStore((s) => s.removeImage);
 
-  // Mode
-  type StudioMode = 'create' | 'animate';
-  const [mode, setMode] = useState<StudioMode>('create');
-
   // Active editor (full-screen overlay editors)
   const [activeEditor, setActiveEditor] = useState<{
     tool: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint';
@@ -381,7 +325,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const uploadRef = useRef<HTMLInputElement>(null);
   const processingRef   = useRef<HTMLDivElement>(null);
 
-  const [processingTask, setProcessingTask] = useState<'upscale' | 'removebg' | 'improve' | 'edit' | null>(null);
+  const [processingTask, setProcessingTask] = useState<'improve' | 'edit' | null>(null);
 
   // Dynamic model catalog
   interface CatalogModel {
@@ -526,7 +470,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     if (!file.type.startsWith('image/')) return;
     setUploadedImage(file);
     setUploadedPreview(URL.createObjectURL(file));
-    setMode('create');
     setPrompt('');
     setError(null);
   }
@@ -548,7 +491,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     if (uploadedPreview) URL.revokeObjectURL(uploadedPreview);
     setUploadedImage(null);
     setUploadedPreview(null);
-    setMode('create');
     setPrompt('');
     if (uploadRef.current) uploadRef.current.value = '';
   }
@@ -615,79 +557,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       setError(e instanceof Error ? e.message : 'Enhancement failed');
     } finally {
       setIsEnhancing(false);
-      setProcessingTask(null);
-    }
-  }
-
-  // ── Remove BG ───────────────────────────────────────────────────────────────
-
-  async function handleRemoveBg(img: MediaItem) {
-    setError(null);
-    setProcessingTask('removebg');
-    try {
-      const file = img.url.startsWith('blob:')
-        ? await fetchFileFromUrl(img.url, `studio-${Date.now()}.png`)
-        : await (async () => {
-            const blob = await fetch(`/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`).then(r => r.blob());
-            return new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
-          })();
-
-      const fd = new FormData();
-      fd.append('image', file);
-
-      const res = await fetch('/api/remove-bg', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const data = await res.json() as { error?: string; needsUpgrade?: boolean };
-        if (data.needsUpgrade) { setShowUpgrade(true); return; }
-        throw new Error(data.error ?? 'Background removal failed');
-      }
-      const data = await res.json() as { url: string };
-      addImage({
-        id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        type: 'image', url: data.url,
-        prompt: `[No Background] ${img.prompt ?? ''}`,
-        format: 'png', model: 'remove-bg', createdAt: Date.now(),
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Background removal failed');
-    } finally {
-      setProcessingTask(null);
-    }
-  }
-
-  // ── Upscale ─────────────────────────────────────────────────────────────────
-
-  async function handleUpscale(img: MediaItem) {
-    setError(null);
-    setProcessingTask('upscale');
-    try {
-      const file = img.url.startsWith('blob:')
-        ? await fetchFileFromUrl(img.url, `studio-${Date.now()}.png`)
-        : await (async () => {
-            const blob = await fetch(`/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`).then(r => r.blob());
-            return new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
-          })();
-
-      const fd = new FormData();
-      fd.append('image', file);
-      fd.append('type', 'upscale');
-
-      const res = await fetch('/api/enhance-image', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const data = await res.json() as { error?: string; needsUpgrade?: boolean };
-        if (data.needsUpgrade) { setShowUpgrade(true); return; }
-        throw new Error(data.error ?? 'Upscale failed');
-      }
-      const data = await res.json() as { url: string };
-      addImage({
-        id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        type: 'image', url: data.url,
-        prompt: `[Upscaled] ${img.prompt ?? ''}`,
-        format: 'png', model: 'upscale', createdAt: Date.now(),
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upscale failed');
-    } finally {
       setProcessingTask(null);
     }
   }
@@ -785,35 +654,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       e.preventDefault();
       handleGenerate();
     }
-  }
-
-  // ── Upload → animate/upscale/removebg helpers ────────────────────────────────
-
-  function makeUploadedMediaItem(): MediaItem {
-    return {
-      id: `img-uploaded-${Date.now()}`,
-      type: 'image',
-      url: uploadedPreview!,
-      prompt: 'Uploaded image',
-      createdAt: Date.now(),
-    };
-  }
-
-  async function handleUpscaleUploadedImage() {
-    if (!uploadedImage || !uploadedPreview) return;
-    const temp = makeUploadedMediaItem();
-    temp.url = uploadedPreview;
-    // Override with actual file
-    const blobUrl = URL.createObjectURL(uploadedImage);
-    await handleUpscale({ ...temp, url: blobUrl });
-    URL.revokeObjectURL(blobUrl);
-  }
-
-  async function handleRemoveBgUploadedImage() {
-    if (!uploadedImage || !uploadedPreview) return;
-    const blobUrl = URL.createObjectURL(uploadedImage);
-    await handleRemoveBg({ ...makeUploadedMediaItem(), url: blobUrl });
-    URL.revokeObjectURL(blobUrl);
   }
 
   // ── Add to Assemble ──────────────────────────────────────────────────────────
@@ -1222,27 +1062,25 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               </div>
 
 
-              {/* Custom edit (default state) */}
-              {mode === 'create' && (
-                <div className="mx-auto max-w-lg">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={prompt}
-                      onChange={e => setPrompt(e.target.value)}
-                      placeholder="Or type an instruction: 'change the background to...'"
-                      className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none"
-                    />
-                    <button
-                      onClick={() => handleEnhance()}
-                      disabled={!prompt.trim() || isEnhancing}
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      Apply
-                    </button>
-                  </div>
+              {/* Custom edit */}
+              <div className="mx-auto max-w-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={e => setPrompt(e.target.value)}
+                    placeholder="Or type an instruction: 'change the background to...'"
+                    className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none"
+                  />
+                  <button
+                    onClick={() => handleEnhance()}
+                    disabled={!prompt.trim() || isEnhancing}
+                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                  >
+                    Apply
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -1265,10 +1103,8 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   <div ref={processingRef} className="relative flex aspect-square animate-pulse flex-col items-center justify-center gap-3 rounded-xl bg-white/5">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
                     <span className="text-sm text-gray-400">
-                      {processingTask === 'upscale'  && 'Upscaling...'}
-                      {processingTask === 'removebg' && 'Removing background...'}
-                      {processingTask === 'improve'  && 'Improving...'}
-                      {processingTask === 'edit'     && 'Editing...'}
+                      {processingTask === 'improve' && 'Improving...'}
+                      {processingTask === 'edit'    && 'Editing...'}
                     </span>
                   </div>
                 )}
@@ -1340,10 +1176,8 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 <div ref={processingRef} className="relative flex aspect-square animate-pulse flex-col items-center justify-center gap-3 rounded-xl bg-white/5">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
                   <span className="text-sm text-gray-400">
-                    {processingTask === 'upscale'  && 'Upscaling...'}
-                    {processingTask === 'removebg' && 'Removing background...'}
-                    {processingTask === 'improve'  && 'Improving...'}
-                    {processingTask === 'edit'     && 'Editing...'}
+                    {processingTask === 'improve' && 'Improving...'}
+                    {processingTask === 'edit'    && 'Editing...'}
                   </span>
                 </div>
               )}

@@ -224,7 +224,7 @@ export function GenerateVideoEditor({
               autoPlay
               loop
               playsInline
-              className="w-full rounded-xl border border-white/10 bg-black"
+              className="w-full max-h-[70vh] rounded-xl border border-white/10 bg-black object-contain"
             />
             <button
               onClick={() => {

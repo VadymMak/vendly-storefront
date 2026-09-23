@@ -129,6 +129,7 @@ export function PlaceProductsEditor({
   const [exporting, setExporting]     = useState(false);
   const [error, setError]             = useState('');
   const [splittingId, setSplittingId] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel]     = useState(1);
 
   const bgImgRef    = useRef<HTMLImageElement | null>(null);
   const objImgsRef  = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -496,6 +497,47 @@ export function PlaceProductsEditor({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [deleteSelected]);
 
+  // ── Canvas zoom: Ctrl+Plus / Ctrl+Minus / Ctrl+0 ─────────────────────
+  useEffect(() => {
+    const handleZoomKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      if (!isCtrlOrCmd) return;
+
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        setZoomLevel(prev => Math.min(prev + 0.25, 4));
+      } else if (e.key === '-') {
+        e.preventDefault();
+        setZoomLevel(prev => Math.max(prev - 0.25, 0.25));
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setZoomLevel(1);
+      }
+    };
+
+    window.addEventListener('keydown', handleZoomKey);
+    return () => window.removeEventListener('keydown', handleZoomKey);
+  }, []);
+
+  // ── Canvas zoom: Ctrl+Scroll ──────────────────────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoomLevel(prev => Math.min(4, Math.max(0.25, prev + delta)));
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
+  }, [bgLoaded]);
+
   const bringForward = useCallback(() => {
     if (!selectedId) return;
     setObjects(prev => {
@@ -629,7 +671,18 @@ export function PlaceProductsEditor({
           </svg>
           Back
         </button>
-        <span className="text-sm font-medium text-white">Place Products</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-white">Place Products</span>
+          {zoomLevel !== 1 && (
+            <button
+              onClick={() => setZoomLevel(1)}
+              className="rounded px-2 py-0.5 text-xs text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              title="Click to reset zoom (Ctrl+0)"
+            >
+              {Math.round(zoomLevel * 100)}%
+            </button>
+          )}
+        </div>
         <button
           onClick={handleExport}
           disabled={exporting || objects.length === 0}
@@ -646,7 +699,7 @@ export function PlaceProductsEditor({
       )}
 
       {/* Canvas area */}
-      <div className="flex flex-1 items-center justify-center overflow-hidden p-4">
+      <div className="flex flex-1 items-center justify-center overflow-auto p-4">
         {!bgLoaded ? (
           <div className="text-sm text-gray-500">Loading…</div>
         ) : (
@@ -655,13 +708,17 @@ export function PlaceProductsEditor({
             width={canvasW}
             height={canvasH}
             style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
+              maxWidth: zoomLevel <= 1 ? '100%' : 'none',
+              maxHeight: zoomLevel <= 1 ? '100%' : 'none',
+              width: zoomLevel > 1 ? canvasW * zoomLevel : undefined,
+              height: zoomLevel > 1 ? canvasH * zoomLevel : undefined,
               objectFit: 'contain',
               touchAction: 'none',
               cursor: dragRef.current ? 'grabbing' : 'default',
               borderRadius: 8,
               boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+              transformOrigin: 'center center',
+              ...(zoomLevel < 1 && { transform: `scale(${zoomLevel})` }),
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}

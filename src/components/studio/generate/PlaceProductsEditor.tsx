@@ -934,24 +934,14 @@ export function PlaceProductsEditor({
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void handleAiBlend()}
-            disabled={blending || objects.length === 0}
-            className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
-            style={{ background: '#7c3aed' }}
-          >
-            {blending ? 'Blending…' : '✨ AI Blend'}
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={exporting || objects.length === 0}
-            className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
-            style={{ background: '#16a34a' }}
-          >
-            {exporting ? 'Exporting…' : 'Export →'}
-          </button>
-        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting || objects.length === 0}
+          className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
+          style={{ background: '#16a34a' }}
+        >
+          {exporting ? 'Exporting…' : 'Export →'}
+        </button>
       </div>
 
       {/* Error banner */}
@@ -1035,6 +1025,30 @@ export function PlaceProductsEditor({
             >
               ✕ Delete
             </button>
+          </div>
+        )}
+
+        {/* AI Blend action */}
+        {objects.length > 0 && (
+          <div className="mb-3 flex items-center gap-3">
+            <button
+              onClick={() => void handleAiBlend()}
+              disabled={blending || objects.length === 0}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+              style={{ background: '#7c3aed' }}
+            >
+              {blending ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Blending…
+                </>
+              ) : (
+                '✨ AI Blend · 1 credit'
+              )}
+            </button>
+            <span className="text-xs text-gray-500">
+              Smooths edges so objects look naturally placed
+            </span>
           </div>
         )}
 

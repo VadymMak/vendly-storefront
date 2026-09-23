@@ -1,7 +1,7 @@
 import type { VideoProvider, VideoGenerationRequest, VideoGenerationResult } from './provider';
 import { VideoProviderError } from './provider';
 
-const XAI_BASE_URL = 'https://api.x.ai/v1';
+const XAI_BASE_URL = 'https://api.x.ai/v1/videos';
 const MODEL = 'grok-imagine-video-1.5';
 
 interface XAIJobResponse {
@@ -17,7 +17,7 @@ export class GrokVideoProvider implements VideoProvider {
   getCostEstimate() { return '$0.15–0.30'; }
 
   async createVideo(req: VideoGenerationRequest, apiKey: string): Promise<VideoGenerationResult> {
-    const res = await fetch(`${XAI_BASE_URL}/video/generations`, {
+    const res = await fetch(`${XAI_BASE_URL}/generations`, {
       method: 'POST',
       headers: {
         Authorization:  `Bearer ${apiKey}`,
@@ -41,7 +41,7 @@ export class GrokVideoProvider implements VideoProvider {
   }
 
   async pollVideo(predictionId: string, apiKey: string): Promise<VideoGenerationResult> {
-    const res = await fetch(`${XAI_BASE_URL}/video/generations/${predictionId}`, {
+    const res = await fetch(`${XAI_BASE_URL}/generations/${predictionId}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       next: { revalidate: 0 },
     });

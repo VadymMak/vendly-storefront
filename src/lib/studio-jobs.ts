@@ -115,6 +115,7 @@ async function pollVideoPrediction(
   klingKey?:    string,
   falKey?:      string,
 ): Promise<PolledPrediction | null> {
+  console.log('[job-poll] predictionId:', predictionId, 'isGrok:', predictionId.startsWith('grok:'));
   try {
     // fal.ai predictions — prefixed with "fal:"
     if (predictionId.startsWith('fal:')) {
@@ -169,7 +170,8 @@ async function pollVideoPrediction(
         : undefined,
       error: prediction.error,
     };
-  } catch {
+  } catch (err) {
+    console.error('[job-poll] pollVideoPrediction error for', predictionId, ':', err);
     return null;
   }
 }

@@ -41,10 +41,14 @@ export class GrokVideoProvider implements VideoProvider {
   }
 
   async pollVideo(predictionId: string, apiKey: string): Promise<VideoGenerationResult> {
+    console.log('[GrokVideoProvider] polling:', predictionId);
+
     const res = await fetch(`${XAI_BASE_URL}/generations/${predictionId}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       next: { revalidate: 0 },
     });
+
+    console.log('[GrokVideoProvider] response status:', res.status);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
@@ -52,10 +56,22 @@ export class GrokVideoProvider implements VideoProvider {
     }
 
     const data = await res.json() as XAIJobResponse;
+    console.log('[GrokVideoProvider] poll data:', JSON.stringify(data));
+
+    // xAI may return 'completed' — normalise to our canonical 'succeeded'
+    const rawStatus = data.status;
+    const status: VideoGenerationResult['status'] =
+      rawStatus === 'completed' ? 'succeeded' :
+      rawStatus === 'succeeded' ? 'succeeded' :
+      rawStatus === 'failed'    ? 'failed'    :
+      rawStatus === 'canceled'  ? 'canceled'  :
+      'processing';
+
+    const isFinished = status === 'succeeded';
     return {
       predictionId: data.id,
-      status: data.status as VideoGenerationResult['status'],
-      videoUrl: data.status === 'succeeded' ? data.video?.url : undefined,
+      status,
+      videoUrl: isFinished ? (data.video?.url) : undefined,
       error:    data.error,
     };
   }

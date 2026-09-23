@@ -61,9 +61,10 @@ export async function GET(
     ? `${decrypt(klingKeyRec.encryptedKey)}:${decrypt(klingSecretRec.encryptedKey)}`
     : undefined;
 
-  const isFalJob        = job.predictionId.startsWith('fal:');
+  const isFalJob         = job.predictionId.startsWith('fal:');
   const isKlingDirectJob = job.predictionId.startsWith('kling-direct:');
   const isGrokJob        = job.predictionId.startsWith('grok:');
+  console.log('[studio/job] predictionId:', job.predictionId, 'isGrok:', isGrokJob);
   if (!replicateKey && !falKey && !isFalJob && !isKlingDirectJob && !isGrokJob) {
     return NextResponse.json({ error: 'No video API key available' }, { status: 500 });
   }

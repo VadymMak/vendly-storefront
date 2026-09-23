@@ -21,6 +21,7 @@ import { InpaintEditor } from './InpaintEditor';
 import { PlaceProductsEditor } from './PlaceProductsEditor';
 import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
 import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
+import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
 
 interface Props {
   userId: string;
@@ -468,7 +469,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // Active editor (full-screen overlay editors)
   const [activeEditor, setActiveEditor] = useState<{
-    tool: 'improve' | 'remove-bg';
+    tool: 'improve' | 'remove-bg' | 'upscale';
     imageUrl: string;
     imageFile: File;
   } | null>(null);
@@ -1371,7 +1372,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 }} highlight disabled={!!processingTask} />
                 <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
                 <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
-                <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={handleUpscaleUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={() => {
+                  if (uploadedPreview && uploadedImage) {
+                    setActiveEditor({ tool: 'upscale', imageUrl: uploadedPreview, imageFile: uploadedImage });
+                  }
+                }} disabled={!!processingTask} />
                 <ActionButton icon="removebg" label="Remove BG"      sublabel="1 credit"  onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'remove-bg', imageUrl: uploadedPreview, imageFile: uploadedImage });
@@ -1462,7 +1467,15 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                       setSelectedMotion('cinematic');
                       setCustomMotionPrompt('');
                     }}
-                    onUpscale={() => handleUpscale(img)}
+                    onUpscale={() => {
+                      fetch(img.url.startsWith('blob:') ? img.url : `/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`)
+                        .then(r => r.blob())
+                        .then(blob => {
+                          const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
+                          setActiveEditor({ tool: 'upscale', imageUrl: img.url, imageFile: file });
+                        })
+                        .catch(() => {});
+                    }}
                     onRemoveBg={() => {
                       fetch(img.url.startsWith('blob:') ? img.url : `/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`)
                         .then(r => r.blob())
@@ -1670,6 +1683,27 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               prompt: '[No Background]',
               format: 'png',
               model: 'remove-bg',
+              createdAt: Date.now(),
+            });
+            (window as unknown as Record<string, () => void>).__refreshCredits?.();
+          }}
+          onClose={() => setActiveEditor(null)}
+        />
+      )}
+
+      {activeEditor?.tool === 'upscale' && (
+        <UpscaleEditor
+          imageUrl={activeEditor.imageUrl}
+          imageFile={activeEditor.imageFile}
+          onAccept={(resultUrl) => {
+            setActiveEditor(null);
+            addImage({
+              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type: 'image',
+              url: resultUrl,
+              prompt: '[Upscaled]',
+              format: 'png',
+              model: 'upscale',
               createdAt: Date.now(),
             });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();

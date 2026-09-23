@@ -142,9 +142,10 @@ async function pollVideoPrediction(
 
     // Grok (xAI) predictions — prefixed with "grok:"
     if (predictionId.startsWith('grok:')) {
-      const grokId = predictionId.replace('grok:', '');
+      // Strip "grok:" prefix and optional trailing ":timestamp" added for DB uniqueness
+      const rawId = predictionId.replace(/^grok:/, '').replace(/:\d+$/, '');
       const key = process.env.XAI_API_KEY ?? '';
-      const result = await new GrokVideoProvider().pollVideo(grokId, key);
+      const result = await new GrokVideoProvider().pollVideo(rawId, key);
       return {
         status:    toJobStatus(result.status),
         outputUrl: result.videoUrl,

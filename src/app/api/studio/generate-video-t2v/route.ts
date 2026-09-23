@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     const jobId = await createJob({
       userId:       session.user.id,
-      predictionId: `grok:${result.predictionId}`,
+      predictionId: `grok:${result.predictionId}:${Date.now()}`,
       type:         'video',
       creditType:   'video',
       creditAmount: creditCost,

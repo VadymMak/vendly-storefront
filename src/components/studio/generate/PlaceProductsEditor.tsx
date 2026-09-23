@@ -804,15 +804,19 @@ export function PlaceProductsEditor({
                   </div>
                 )}
               </button>
-              {/* Split hover button */}
+              {/* Delete hover button */}
               <button
-                onClick={(e) => { e.stopPropagation(); void autoSplit(obj.id); }}
-                disabled={splittingId !== null}
-                className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed"
-                style={{ background: '#16a34a', color: 'white', border: '1px solid rgba(0,0,0,0.3)' }}
-                title="Auto Split — separate objects"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  objImgsRef.current.delete(obj.id);
+                  setObjects(prev => prev.filter(o => o.id !== obj.id));
+                  if (selectedId === obj.id) setSelectedId(null);
+                }}
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none opacity-0 transition-opacity group-hover:opacity-100"
+                style={{ background: 'rgba(239,68,68,0.9)', color: 'white' }}
+                title="Remove from canvas"
               >
-                ✂
+                ✕
               </button>
             </div>
           ))}

@@ -1035,6 +1035,7 @@ export function PlaceProductsEditor({
               disabled={blending}
               className="rounded-md px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
               style={{ background: '#7c3aed' }}
+              title="AI smooths edges so objects look naturally placed in the scene"
             >
               {blending ? 'Blending…' : '✨ AI Blend · 1 credit'}
             </button>

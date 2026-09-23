@@ -48,7 +48,7 @@ export class GrokVideoProvider implements VideoProvider {
   async pollVideo(predictionId: string, apiKey: string): Promise<VideoGenerationResult> {
     console.log('[GrokVideoProvider] polling:', predictionId);
 
-    const res = await fetch(`${XAI_BASE_URL}/generations/${predictionId}`, {
+    const res = await fetch(`https://api.x.ai/v1/videos/${predictionId}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       next: { revalidate: 0 },
     });
@@ -66,6 +66,7 @@ export class GrokVideoProvider implements VideoProvider {
     // xAI may return 'completed' — normalise to our canonical 'succeeded'
     const rawStatus = data.status;
     const status: VideoGenerationResult['status'] =
+      rawStatus === 'done'      ? 'succeeded' :
       rawStatus === 'completed' ? 'succeeded' :
       rawStatus === 'succeeded' ? 'succeeded' :
       rawStatus === 'failed'    ? 'failed'    :

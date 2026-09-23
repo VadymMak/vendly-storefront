@@ -614,27 +614,45 @@ export function StudioHome({ userId: _userId }: Props) {
 
             {/* ── STATE: CREATING ───────────────────────────────────────────── */}
             {createView === 'creating' && (
-              <div className="flex flex-col items-center justify-center gap-4 py-8" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
+              <div className="flex flex-col items-center justify-center gap-5 py-6" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
                 <div className="flex items-center justify-between w-full">
-                  <h2 className="text-sm font-semibold text-white">Creating your image...</h2>
-                  <span className="text-[10px] text-gray-500">
+                  <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-500 border-t-transparent" />
+                    Creating your image...
+                  </h2>
+                  <span className="text-[10px] text-green-400/70 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
                     {TIERS.find(t => t.id === selectedTier)?.eta ?? '~5s'}
                   </span>
                 </div>
 
-                {/* Skeleton preview */}
-                <div
-                  className="w-full aspect-square max-h-[280px] rounded-xl bg-gradient-to-r from-white/[0.03] via-white/[0.08] via-50% to-white/[0.03] bg-[length:200%_100%]"
-                  style={{ animation: 'shimmer 1.5s ease-in-out infinite' }}
-                />
+                {/* Skeleton preview with visible shimmer */}
+                <div className="relative w-full aspect-[4/3] max-h-[280px] rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06]">
+                  {/* Shimmer overlay */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent bg-[length:200%_100%]"
+                    style={{ animation: 'shimmer 1.5s ease-in-out infinite' }}
+                  />
+                  {/* Center icon */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                    <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-400 animate-pulse" aria-hidden="true">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                      </svg>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      AI is generating your image...
+                    </p>
+                  </div>
+                </div>
 
-                <p className="text-xs text-gray-500">
-                  {prompt.length > 60 ? `"${prompt.slice(0, 57)}..."` : `"${prompt}"`}
+                {/* Prompt preview */}
+                <p className="text-xs text-gray-500 text-center px-2 line-clamp-2">
+                  &ldquo;{prompt}&rdquo;
                 </p>
 
                 <button
                   onClick={() => { setCreateView('form'); setIsGenerating(false); }}
-                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                  className="text-xs text-gray-500 hover:text-gray-300 underline transition-colors"
                 >
                   Cancel
                 </button>

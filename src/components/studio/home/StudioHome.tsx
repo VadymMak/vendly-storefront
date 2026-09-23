@@ -109,6 +109,8 @@ export function StudioHome({ userId: _userId }: Props) {
     imageFile: File;
   } | null>(null);
 
+  const [createSlow, setCreateSlow] = useState(false);
+
   const [showPlaceProducts, setShowPlaceProducts] = useState(false);
   const [placeProductsBgUrl, setPlaceProductsBgUrl] = useState<string | null>(null);
 
@@ -308,16 +310,30 @@ export function StudioHome({ userId: _userId }: Props) {
 
       const tierObj = TIERS.find(t => t.id === selectedTier);
 
-      const res = await fetch('/api/studio/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: styledPrompt,
-          tier: selectedTier,
-          aspect_ratio: size.aspect_ratio,
-          format: outputFormat,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+      let res: Response;
+      try {
+        res = await fetch('/api/studio/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: styledPrompt,
+            tier: selectedTier,
+            aspect_ratio: size.aspect_ratio,
+            format: outputFormat,
+          }),
+          signal: controller.signal,
+        });
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        if (fetchErr instanceof DOMException && fetchErr.name === 'AbortError') {
+          throw new Error('Generation timed out. Please try again.');
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const e = await res.json() as { error?: string; needsUpgrade?: boolean };
@@ -379,6 +395,15 @@ export function StudioHome({ userId: _userId }: Props) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, isGenerating, noCreditsForImages, selectedSize, selectedStyle, selectedTier, outputFormat, addImage, catalogModels]);
+
+  useEffect(() => {
+    if (createView !== 'creating') {
+      setCreateSlow(false);
+      return;
+    }
+    const timer = setTimeout(() => setCreateSlow(true), 15_000);
+    return () => clearTimeout(timer);
+  }, [createView]);
 
   // ── Download helper ─────────────────────────────────────────────────────────
 
@@ -618,7 +643,7 @@ export function StudioHome({ userId: _userId }: Props) {
                 <div className="flex items-center justify-between w-full">
                   <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                     <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-500 border-t-transparent" />
-                    Creating your image...
+                    {createSlow ? 'Taking longer than expected...' : 'Creating your image...'}
                   </h2>
                   <span className="text-[10px] text-green-400/70 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
                     {TIERS.find(t => t.id === selectedTier)?.eta ?? '~5s'}
@@ -627,35 +652,57 @@ export function StudioHome({ userId: _userId }: Props) {
 
                 {/* Skeleton preview with visible shimmer */}
                 <div className="relative w-full aspect-[4/3] max-h-[280px] rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06]">
-                  {/* Shimmer overlay */}
                   <div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent bg-[length:200%_100%]"
                     style={{ animation: 'shimmer 1.5s ease-in-out infinite' }}
                   />
-                  {/* Center icon */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                    <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-400 animate-pulse" aria-hidden="true">
-                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                      </svg>
+                    <div className={`w-14 h-14 rounded-full border flex items-center justify-center ${
+                      createSlow
+                        ? 'bg-amber-500/10 border-amber-500/20'
+                        : 'bg-green-500/10 border-green-500/20'
+                    }`}>
+                      {createSlow ? (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-400 animate-pulse" aria-hidden="true">
+                          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                        </svg>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400">
-                      AI is generating your image...
+                      {createSlow ? 'AI provider is busy, please wait...' : 'AI is generating your image...'}
                     </p>
                   </div>
                 </div>
 
-                {/* Prompt preview */}
                 <p className="text-xs text-gray-500 text-center px-2 line-clamp-2">
                   &ldquo;{prompt}&rdquo;
                 </p>
 
-                <button
-                  onClick={() => { setCreateView('form'); setIsGenerating(false); }}
-                  className="text-xs text-gray-500 hover:text-gray-300 underline transition-colors"
-                >
-                  Cancel
-                </button>
+                <div className="flex items-center gap-3">
+                  {createSlow && (
+                    <button
+                      onClick={() => {
+                        setCreateView('form');
+                        setIsGenerating(false);
+                        setTimeout(() => void handleGenerate(), 300);
+                      }}
+                      className="text-xs text-green-400 hover:text-green-300 font-medium underline transition-colors"
+                    >
+                      Try again
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setCreateView('form'); setIsGenerating(false); }}
+                    className="text-xs text-gray-500 hover:text-gray-300 underline transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
 

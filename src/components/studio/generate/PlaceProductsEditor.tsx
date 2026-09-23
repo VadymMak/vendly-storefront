@@ -992,63 +992,52 @@ export function PlaceProductsEditor({
           </div>
         )}
 
-        {/* Selected object actions */}
-        {selectedObj && (
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-500">Selected:</span>
-            <button
-              onClick={() => void autoSplit(selectedObj.id)}
-              disabled={splittingId !== null}
-              className="rounded-md px-3 py-1.5 text-xs text-green-400 transition-colors hover:text-green-300 disabled:opacity-40"
-              style={{ background: 'rgba(22,163,74,0.08)' }}
-            >
-              {splittingId === selectedObj.id ? '⏳ Splitting…' : '✂ Split Objects'}
-            </button>
-            <button
-              onClick={rotate90}
-              className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
-            >
-              ↺ Rotate 90°
-            </button>
-            <button
-              onClick={bringForward}
-              className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
-            >
-              ↑ Forward
-            </button>
-            <button
-              onClick={deleteSelected}
-              className="rounded-md px-3 py-1.5 text-xs text-red-400 transition-colors hover:text-red-300"
-              style={{ background: 'rgba(239,68,68,0.08)' }}
-            >
-              ✕ Delete
-            </button>
-          </div>
-        )}
-
-        {/* AI Blend action */}
+        {/* Object actions + AI Blend */}
         {objects.length > 0 && (
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {selectedObj && (
+              <>
+                <span className="text-xs text-gray-500">Selected:</span>
+                <button
+                  onClick={() => void autoSplit(selectedObj.id)}
+                  disabled={splittingId !== null}
+                  className="rounded-md px-3 py-1.5 text-xs text-green-400 transition-colors hover:text-green-300 disabled:opacity-40"
+                  style={{ background: 'rgba(22,163,74,0.08)' }}
+                >
+                  {splittingId === selectedObj.id ? '⏳ Splitting…' : '✂ Split Objects'}
+                </button>
+                <button
+                  onClick={rotate90}
+                  className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  ↺ Rotate 90°
+                </button>
+                <button
+                  onClick={bringForward}
+                  className="rounded-md px-3 py-1.5 text-xs text-gray-300 transition-colors hover:text-white"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  ↑ Forward
+                </button>
+                <button
+                  onClick={deleteSelected}
+                  className="rounded-md px-3 py-1.5 text-xs text-red-400 transition-colors hover:text-red-300"
+                  style={{ background: 'rgba(239,68,68,0.08)' }}
+                >
+                  ✕ Delete
+                </button>
+                <div className="mx-1 h-4 w-px" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              </>
+            )}
             <button
               onClick={() => void handleAiBlend()}
-              disabled={blending || objects.length === 0}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+              disabled={blending}
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
               style={{ background: '#7c3aed' }}
             >
-              {blending ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Blending…
-                </>
-              ) : (
-                '✨ AI Blend · 1 credit'
-              )}
+              {blending ? 'Blending…' : '✨ AI Blend · 1 credit'}
             </button>
-            <span className="text-xs text-gray-500">
-              Smooths edges so objects look naturally placed
-            </span>
           </div>
         )}
 

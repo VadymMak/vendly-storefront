@@ -5,10 +5,12 @@ const XAI_BASE_URL = 'https://api.x.ai/v1/videos';
 const MODEL = 'grok-imagine-video-1.5';
 
 interface XAIJobResponse {
-  id: string;
-  status: string;
-  video?: { url: string };
-  error?: string;
+  id?:         string;
+  request_id?: string;
+  status:      string;
+  video?:      { url: string };
+  result_url?: string;
+  error?:      string;
 }
 
 export class GrokVideoProvider implements VideoProvider {
@@ -37,7 +39,10 @@ export class GrokVideoProvider implements VideoProvider {
     }
 
     const data = await res.json() as XAIJobResponse;
-    return { predictionId: data.id, status: 'starting' };
+    console.log('[GrokVideoProvider] createVideo response:', JSON.stringify(data));
+    const jobId = data.request_id ?? data.id ?? '';
+    if (!jobId) throw new VideoProviderError('xAI returned no job ID', 502);
+    return { predictionId: jobId, status: 'starting' };
   }
 
   async pollVideo(predictionId: string, apiKey: string): Promise<VideoGenerationResult> {
@@ -69,9 +74,9 @@ export class GrokVideoProvider implements VideoProvider {
 
     const isFinished = status === 'succeeded';
     return {
-      predictionId: data.id,
+      predictionId: data.request_id ?? data.id ?? predictionId,
       status,
-      videoUrl: isFinished ? (data.video?.url) : undefined,
+      videoUrl: isFinished ? (data.video?.url ?? data.result_url) : undefined,
       error:    data.error,
     };
   }

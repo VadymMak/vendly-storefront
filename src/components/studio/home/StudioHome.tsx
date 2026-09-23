@@ -76,6 +76,8 @@ const QUICK_TOOLS: QuickTool[] = [
   },
 ];
 
+type CreateViewState = 'form' | 'creating' | 'result';
+
 interface Props {
   userId: string;
   userEmail: string;
@@ -88,6 +90,17 @@ export function StudioHome({ userId: _userId }: Props) {
   const generatedImages = useStudioStore((s) => s.generatedImages);
   const addImage        = useStudioStore((s) => s.addImage);
   const removeImage     = useStudioStore((s) => s.removeImage);
+
+  // ── Create view state machine ────────────────────────────────────────────────
+  const [createView, setCreateView] = useState<CreateViewState>('form');
+  const [latestResult, setLatestResult] = useState<{
+    url: string;
+    prompt: string;
+    model: string;
+    provider: string;
+    tier: string;
+    credits: number;
+  } | null>(null);
 
   // ── Active editor state ─────────────────────────────────────────────────────
   const [activeEditor, setActiveEditor] = useState<{
@@ -284,6 +297,7 @@ export function StudioHome({ userId: _userId }: Props) {
 
     const size = SIZE_PRESETS.find(s => s.id === selectedSize) ?? SIZE_PRESETS[0];
     setIsGenerating(true);
+    setCreateView('creating');
     setError(null);
 
     try {
@@ -347,9 +361,19 @@ export function StudioHome({ userId: _userId }: Props) {
         preset: selectedSize,
       });
 
+      setLatestResult({
+        url,
+        prompt: finalPrompt,
+        model: modelLabel,
+        provider: modelProvider,
+        tier: tierObj?.label ?? 'Quick',
+        credits: tierObj?.credits ?? 1,
+      });
+      setCreateView('result');
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed');
+      setCreateView('form');
     } finally {
       setIsGenerating(false);
     }
@@ -376,6 +400,22 @@ export function StudioHome({ userId: _userId }: Props) {
       .then(blob => {
         const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
         setActiveEditor({ tool, imageUrl: img.url, imageFile: file });
+      })
+      .catch(() => {});
+  }
+
+  // ── Open latest result in editor ────────────────────────────────────────────
+
+  function openResultInEditor(tool: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint') {
+    if (!latestResult) return;
+    const fetchUrl = latestResult.url.startsWith('blob:')
+      ? latestResult.url
+      : `/api/studio/proxy-media?url=${encodeURIComponent(latestResult.url)}`;
+    fetch(fetchUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
+        setActiveEditor({ tool, imageUrl: latestResult.url, imageFile: file });
       })
       .catch(() => {});
   }
@@ -442,157 +482,279 @@ export function StudioHome({ userId: _userId }: Props) {
           <div className={`rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 flex flex-col gap-4 ${
             mobileTab === 'edit' ? 'hidden md:flex' : 'flex'
           }`}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                </svg>
-                Create an image
-              </h2>
-              <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
-                Text-to-Image
-              </span>
-            </div>
 
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleGenerate(); } }}
-              placeholder="Describe what you want to create..."
-              className="w-full h-24 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/40 transition-colors resize-none"
-            />
+            {/* ── STATE: FORM ──────────────────────────────────────────────── */}
+            {createView === 'form' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                    </svg>
+                    Create an image
+                  </h2>
+                  <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+                    Text-to-Image
+                  </span>
+                </div>
 
-            {/* Style chips */}
-            <div className="flex flex-wrap gap-1.5">
-              {STYLE_CHIPS.map(chip => (
+                <textarea
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleGenerate(); } }}
+                  placeholder="Describe what you want to create..."
+                  className="w-full h-24 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/40 transition-colors resize-none"
+                />
+
+                {/* Style chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {STYLE_CHIPS.map(chip => (
+                    <button
+                      key={chip.id}
+                      onClick={() => setSelectedStyle(chip.id)}
+                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                        selectedStyle === chip.id
+                          ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                          : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                      }`}
+                    >
+                      <span className="mr-1">{chip.icon}</span>
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quality tiers — ALWAYS visible */}
+                <div className="flex gap-2">
+                  {TIERS.map(tier => {
+                    const locked = isFreePlan && tier.id !== 'fast';
+                    return (
+                      <button
+                        key={tier.id}
+                        disabled={locked}
+                        onClick={() => {
+                          if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
+                          setSelectedTier(tier.id);
+                        }}
+                        className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
+                          locked
+                            ? 'cursor-not-allowed border-white/5 opacity-40'
+                            : selectedTier === tier.id
+                            ? 'border-green-500/40 bg-green-500/10'
+                            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+                        }`}
+                      >
+                        <span className={`text-xs font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
+                          {tier.label}
+                          {locked && <span className="ml-1 text-[10px]">🔒</span>}
+                        </span>
+                        <span className="text-[10px] text-gray-500">
+                          {tier.credits} cr · {tier.eta}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* More options toggle */}
                 <button
-                  key={chip.id}
-                  onClick={() => setSelectedStyle(chip.id)}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                    selectedStyle === chip.id
-                      ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                      : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-                  }`}
+                  onClick={() => setShowAdvanced(v => !v)}
+                  className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
                 >
-                  <span className="mr-1">{chip.icon}</span>
-                  {chip.label}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showAdvanced ? 'rotate-90' : ''}`} aria-hidden="true">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                  More options
                 </button>
-              ))}
-            </div>
 
-            {/* Quality tiers — ALWAYS visible */}
-            <div className="flex gap-2">
-              {TIERS.map(tier => {
-                const locked = isFreePlan && tier.id !== 'fast';
-                return (
+                {showAdvanced && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={selectedSize} onChange={e => setSelectedSize(e.target.value as SizePresetId)} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none">
+                      {SIZE_PRESETS.map(s => (
+                        <option key={s.id} value={s.id} className="bg-[#0d0d14]">{s.label} — {s.subtitle}</option>
+                      ))}
+                    </select>
+                    <select value={outputFormat} onChange={e => setOutputFormat(e.target.value as OutputFormat)} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none">
+                      {OUTPUT_FORMATS.map(f => (
+                        <option key={f} value={f} className="bg-[#0d0d14]">{f.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Generate button */}
+                <div className="pt-1 border-t border-white/[0.06]">
                   <button
-                    key={tier.id}
-                    disabled={locked}
-                    onClick={() => {
-                      if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
-                      setSelectedTier(tier.id);
-                    }}
-                    className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
-                      locked
-                        ? 'cursor-not-allowed border-white/5 opacity-40'
-                        : selectedTier === tier.id
-                        ? 'border-green-500/40 bg-green-500/10'
-                        : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+                    onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
+                    disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
+                    className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      noCreditsForImages ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'
                     }`}
                   >
-                    <span className={`text-xs font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
-                      {tier.label}
-                      {locked && <span className="ml-1 text-[10px]">🔒</span>}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {tier.credits} cr · {tier.eta}
-                    </span>
+                    {noCreditsForImages ? 'No credits · Buy more' : <>Create · {activeTierCredits} cr</>}
                   </button>
-                );
-              })}
-            </div>
+                </div>
 
-            {/* More options toggle */}
-            <button
-              onClick={() => setShowAdvanced(v => !v)}
-              className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
-            >
-              <svg
-                width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className={`transition-transform ${showAdvanced ? 'rotate-90' : ''}`}
-                aria-hidden="true"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-              More options
-            </button>
-
-            {/* Size + Format — hidden by default */}
-            {showAdvanced && (
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={selectedSize}
-                  onChange={e => setSelectedSize(e.target.value as SizePresetId)}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none"
-                >
-                  {SIZE_PRESETS.map(s => (
-                    <option key={s.id} value={s.id} className="bg-[#0d0d14]">
-                      {s.label} — {s.subtitle}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={outputFormat}
-                  onChange={e => setOutputFormat(e.target.value as OutputFormat)}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none"
-                >
-                  {OUTPUT_FORMATS.map(f => (
-                    <option key={f} value={f} className="bg-[#0d0d14]">{f.toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Generate button — ALWAYS visible */}
-            <div className="pt-1 border-t border-white/[0.06]">
-              <button
-                onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
-                disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
-                className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  noCreditsForImages
-                    ? 'bg-amber-600 hover:bg-amber-700'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {isGenerating ? (
-                  <>
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Creating...
-                  </>
-                ) : noCreditsForImages ? (
-                  'No credits · Buy more'
-                ) : (
-                  <>Create · {activeTierCredits} cr</>
+                {/* Example prompts */}
+                {generatedImages.length === 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {EXAMPLE_PROMPTS.slice(0, 4).map(p => (
+                      <button key={p} onClick={() => setPrompt(p)} className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-gray-500 transition-colors hover:border-white/20 hover:text-gray-300">
+                        {p.length > 40 ? p.slice(0, 37) + '...' : p}
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </button>
-            </div>
 
-            {/* Example prompts — only when no results */}
-            {generatedImages.length === 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {EXAMPLE_PROMPTS.slice(0, 4).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setPrompt(p)}
-                    className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] text-gray-500 transition-colors hover:border-white/20 hover:text-gray-300"
-                  >
-                    {p.length > 40 ? p.slice(0, 37) + '...' : p}
-                  </button>
-                ))}
+                {error && (
+                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
+                )}
+              </>
+            )}
+
+            {/* ── STATE: CREATING ───────────────────────────────────────────── */}
+            {createView === 'creating' && (
+              <div className="flex flex-col items-center justify-center gap-4 py-8" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
+                <div className="flex items-center justify-between w-full">
+                  <h2 className="text-sm font-semibold text-white">Creating your image...</h2>
+                  <span className="text-[10px] text-gray-500">
+                    {TIERS.find(t => t.id === selectedTier)?.eta ?? '~5s'}
+                  </span>
+                </div>
+
+                {/* Skeleton preview */}
+                <div
+                  className="w-full aspect-square max-h-[280px] rounded-xl bg-gradient-to-r from-white/[0.03] via-white/[0.08] via-50% to-white/[0.03] bg-[length:200%_100%]"
+                  style={{ animation: 'shimmer 1.5s ease-in-out infinite' }}
+                />
+
+                <p className="text-xs text-gray-500">
+                  {prompt.length > 60 ? `"${prompt.slice(0, 57)}..."` : `"${prompt}"`}
+                </p>
+
+                <button
+                  onClick={() => { setCreateView('form'); setIsGenerating(false); }}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
             )}
+
+            {/* ── STATE: RESULT ─────────────────────────────────────────────── */}
+            {createView === 'result' && latestResult && (
+              <div className="flex flex-col gap-4" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-white">Your image is ready</h2>
+                  <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                    {latestResult.tier} · {latestResult.credits} cr
+                  </span>
+                </div>
+
+                {/* Image preview — click opens ImageDetailModal */}
+                <button
+                  onClick={() => {
+                    const match = generatedImages.find(img => img.url === latestResult.url);
+                    if (match) setModalImage(match);
+                  }}
+                  className="relative w-full rounded-xl overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={latestResult.url}
+                    alt="Generated result"
+                    className="w-full max-h-[320px] object-contain"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-70 transition-opacity" aria-hidden="true">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                    </svg>
+                  </div>
+                </button>
+
+                <p className="text-xs text-gray-400 line-clamp-2">
+                  &ldquo;{latestResult.prompt}&rdquo;
+                </p>
+
+                {/* Primary actions */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => openResultInEditor('improve')}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                    </svg>
+                    Improve
+                  </button>
+                  <button
+                    onClick={() => openResultInEditor('animate')}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Animate
+                  </button>
+                </div>
+
+                {/* Secondary row */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = latestResult.url;
+                      a.download = `studio-image-${Date.now()}.${outputFormat}`;
+                      a.click();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download
+                  </button>
+                  <button
+                    onClick={() => openResultInEditor('upscale')}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7" />
+                    </svg>
+                    Upscale
+                  </button>
+                  <button
+                    onClick={() => openResultInEditor('remove-bg')}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" />
+                    </svg>
+                    No BG
+                  </button>
+                </div>
+
+                {/* Iteration buttons */}
+                <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
+                  <button
+                    onClick={() => { setLatestResult(null); setPrompt(''); setCreateView('form'); }}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Create another
+                  </button>
+                  <button
+                    onClick={() => { setLatestResult(null); setCreateView('form'); }}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/[0.06] transition-colors"
+                  >
+                    Edit prompt
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Card B: Edit a photo */}
@@ -763,22 +925,6 @@ export function StudioHome({ userId: _userId }: Props) {
           </div>
         )}
 
-        {/* ── Error ───────────────────────────────────────────────────────── */}
-        {error && (
-          <div className="rounded-lg border border-red-500/20 bg-red-950/40 px-4 py-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-        {/* ── Generating skeleton ─────────────────────────────────────────── */}
-        {isGenerating && (
-          <div className="flex items-center justify-center py-12">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
-              <span className="text-sm text-gray-400">Creating your image...</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════ */}

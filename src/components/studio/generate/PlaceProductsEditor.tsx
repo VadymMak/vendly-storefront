@@ -97,6 +97,68 @@ function loadImg(src: string): Promise<HTMLImageElement> {
   });
 }
 
+// ── Edge mask generation ──────────────────────────────────────────────────────
+
+function generateEdgeMask(
+  canvas: HTMLCanvasElement,
+  objects: PlacedObject[],
+  objImgs: Map<string, HTMLImageElement>,
+): HTMLCanvasElement {
+  const W = canvas.width;
+  const H = canvas.height;
+  const EDGE = 6;
+
+  const maskCanvas = document.createElement('canvas');
+  maskCanvas.width = W;
+  maskCanvas.height = H;
+  const mctx = maskCanvas.getContext('2d')!;
+
+  mctx.fillStyle = '#000';
+  mctx.fillRect(0, 0, W, H);
+
+  // Dilate pass: draw each object scaled up to create edge zone
+  mctx.globalCompositeOperation = 'source-over';
+  for (const obj of objects) {
+    const img = objImgs.get(obj.id);
+    if (!img) continue;
+    const cx = obj.x * W;
+    const cy = obj.y * H;
+    const hw = (obj.scale * obj.naturalWidth) / 2;
+    const hh = (obj.scale * obj.naturalHeight) / 2;
+    const minDim = Math.min(hw * 2, hh * 2);
+    const scaleUp = minDim > 0 ? 1 + (EDGE * 2) / minDim : 1;
+    mctx.save();
+    mctx.translate(cx, cy);
+    mctx.rotate(obj.rotation);
+    mctx.scale(scaleUp, scaleUp);
+    mctx.drawImage(img, -hw, -hh, hw * 2, hh * 2);
+    mctx.restore();
+  }
+
+  // Erode pass: cut out the interior of each object
+  mctx.globalCompositeOperation = 'destination-out';
+  for (const obj of objects) {
+    const img = objImgs.get(obj.id);
+    if (!img) continue;
+    const cx = obj.x * W;
+    const cy = obj.y * H;
+    const hw = (obj.scale * obj.naturalWidth) / 2;
+    const hh = (obj.scale * obj.naturalHeight) / 2;
+    const ERODE = 2;
+    const minDim = Math.min(hw * 2, hh * 2);
+    const scaleDown = minDim > 0 ? Math.max(0, 1 - (ERODE * 2) / minDim) : 1;
+    mctx.save();
+    mctx.translate(cx, cy);
+    mctx.rotate(obj.rotation);
+    mctx.scale(scaleDown, scaleDown);
+    mctx.drawImage(img, -hw, -hh, hw * 2, hh * 2);
+    mctx.restore();
+  }
+
+  mctx.globalCompositeOperation = 'source-over';
+  return maskCanvas;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface DragState {
@@ -127,6 +189,7 @@ export function PlaceProductsEditor({
   const [canvasH, setCanvasH]     = useState(MAX_CANVAS);
   const [bgLoaded, setBgLoaded]   = useState(false);
   const [exporting, setExporting]     = useState(false);
+  const [blending, setBlending]       = useState(false);
   const [error, setError]             = useState('');
   const [splittingId, setSplittingId] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel]     = useState(1);
@@ -650,6 +713,49 @@ export function PlaceProductsEditor({
     }
   }, [exporting, objects.length, draw, onResult]);
 
+  // ── AI Blend ───────────────────────────────────────────────────────────────
+
+  const handleAiBlend = useCallback(async () => {
+    if (blending || objects.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    setBlending(true);
+    setError('');
+    try {
+      draw(true);
+
+      const compositeBlob = await new Promise<Blob>((res, rej) =>
+        canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob failed')), 'image/png')
+      );
+
+      const maskCanvas = generateEdgeMask(canvas, objects, objImgsRef.current);
+      const maskBlob = await new Promise<Blob>((res, rej) =>
+        maskCanvas.toBlob(b => b ? res(b) : rej(new Error('mask toBlob failed')), 'image/png')
+      );
+
+      const fd = new FormData();
+      fd.append('composite', compositeBlob, 'composite.png');
+      fd.append('mask', maskBlob, 'mask.png');
+
+      const resp = await fetch('/api/studio/ai-blend', { method: 'POST', body: fd });
+      const json = await resp.json() as { url?: string; error?: string };
+
+      if (!resp.ok) {
+        setError(json.error ?? 'AI Blend failed');
+        return;
+      }
+      if (json.url) {
+        onResult(json.url);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'AI Blend failed');
+    } finally {
+      setBlending(false);
+      draw();
+    }
+  }, [blending, objects, draw, onResult]);
+
   const selectedObj = objects.find(o => o.id === selectedId) ?? null;
 
   // ── UI ─────────────────────────────────────────────────────────────────────
@@ -683,14 +789,24 @@ export function PlaceProductsEditor({
             </button>
           )}
         </div>
-        <button
-          onClick={handleExport}
-          disabled={exporting || objects.length === 0}
-          className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
-          style={{ background: '#16a34a' }}
-        >
-          {exporting ? 'Exporting…' : 'Export →'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleAiBlend()}
+            disabled={blending || objects.length === 0}
+            className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
+            style={{ background: '#7c3aed' }}
+          >
+            {blending ? 'Blending…' : '✨ AI Blend'}
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting || objects.length === 0}
+            className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
+            style={{ background: '#16a34a' }}
+          >
+            {exporting ? 'Exporting…' : 'Export →'}
+          </button>
+        </div>
       </div>
 
       {/* Error banner */}

@@ -480,7 +480,39 @@ export function StudioHome({ userId: _userId }: Props) {
               ))}
             </div>
 
-            {/* ── More options toggle ── */}
+            {/* Quality tiers — ALWAYS visible */}
+            <div className="flex gap-2">
+              {TIERS.map(tier => {
+                const locked = isFreePlan && tier.id !== 'fast';
+                return (
+                  <button
+                    key={tier.id}
+                    disabled={locked}
+                    onClick={() => {
+                      if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
+                      setSelectedTier(tier.id);
+                    }}
+                    className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
+                      locked
+                        ? 'cursor-not-allowed border-white/5 opacity-40'
+                        : selectedTier === tier.id
+                        ? 'border-green-500/40 bg-green-500/10'
+                        : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <span className={`text-xs font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
+                      {tier.label}
+                      {locked && <span className="ml-1 text-[10px]">🔒</span>}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      {tier.credits} cr · {tier.eta}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* More options toggle */}
             <button
               onClick={() => setShowAdvanced(v => !v)}
               className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
@@ -495,40 +527,6 @@ export function StudioHome({ userId: _userId }: Props) {
               </svg>
               More options
             </button>
-
-            {/* Quality tiers — hidden by default */}
-            {showAdvanced && (
-              <div className="flex gap-2">
-                {TIERS.map(tier => {
-                  const locked = isFreePlan && tier.id !== 'fast';
-                  return (
-                    <button
-                      key={tier.id}
-                      disabled={locked}
-                      onClick={() => {
-                        if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
-                        setSelectedTier(tier.id);
-                      }}
-                      className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
-                        locked
-                          ? 'cursor-not-allowed border-white/5 opacity-40'
-                          : selectedTier === tier.id
-                          ? 'border-green-500/40 bg-green-500/10'
-                          : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
-                      }`}
-                    >
-                      <span className={`text-xs font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
-                        {tier.label}
-                        {locked && <span className="ml-1 text-[10px]">🔒</span>}
-                      </span>
-                      <span className="text-[10px] text-gray-500">
-                        {tier.credits} cr · {tier.eta}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             {/* Size + Format — hidden by default */}
             {showAdvanced && (

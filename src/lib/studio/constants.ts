@@ -145,3 +145,30 @@ export const SIZE_PRESETS = [
 ] as const;
 
 export type SizePresetId = typeof SIZE_PRESETS[number]['id'];
+
+// ── Video generation constants ───────────────────────────────────────────────
+
+export const VIDEO_STYLE_CHIPS = [
+  { id: 'cinematic',  label: 'Cinematic',  icon: '🎬', promptSuffix: 'cinematic camera motion, professional lighting, film grain, shallow depth of field' },
+  { id: 'commercial', label: 'Commercial', icon: '📱', promptSuffix: 'commercial video style, clean bright lighting, professional production quality' },
+  { id: 'nature',     label: 'Nature',     icon: '🌿', promptSuffix: 'nature documentary style, natural lighting, sweeping aerial shot' },
+  { id: 'abstract',   label: 'Abstract',   icon: '✨', promptSuffix: 'abstract motion graphics, smooth flow, vibrant colors, artistic' },
+  { id: 'custom',     label: 'Custom',     icon: '🎯', promptSuffix: '' },
+] as const;
+
+export type VideoStyleChipId = typeof VIDEO_STYLE_CHIPS[number]['id'];
+
+export const VIDEO_DURATIONS = [
+  { value: 5,  label: '5s',  credits: 8  },
+  { value: 10, label: '10s', credits: 12 },
+] as const;
+
+export type VideoDurationValue = (typeof VIDEO_DURATIONS)[number]['value'];
+
+export const VIDEO_ASPECT_RATIOS = [
+  { value: '16:9', label: 'Landscape', subtitle: '16:9' },
+  { value: '1:1',  label: 'Square',    subtitle: '1:1'  },
+  { value: '9:16', label: 'Portrait',  subtitle: '9:16' },
+] as const;
+
+export type VideoAspectRatio = (typeof VIDEO_ASPECT_RATIOS)[number]['value'];

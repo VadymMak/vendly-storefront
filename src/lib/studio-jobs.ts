@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
-import { FalKlingProvider, KlingDirectProvider } from '@/lib/video';
+import { FalKlingProvider, KlingDirectProvider, GrokVideoProvider } from '@/lib/video';
 
 export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit';
 export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
@@ -132,6 +132,18 @@ async function pollVideoPrediction(
     if (predictionId.startsWith('kling-direct:')) {
       const taskId = predictionId.replace('kling-direct:', '');
       const result = await new KlingDirectProvider().pollVideo(taskId, klingKey ?? '');
+      return {
+        status:    toJobStatus(result.status),
+        outputUrl: result.videoUrl,
+        error:     result.error,
+      };
+    }
+
+    // Grok (xAI) predictions — prefixed with "grok:"
+    if (predictionId.startsWith('grok:')) {
+      const grokId = predictionId.replace('grok:', '');
+      const key = process.env.XAI_API_KEY ?? '';
+      const result = await new GrokVideoProvider().pollVideo(grokId, key);
       return {
         status:    toJobStatus(result.status),
         outputUrl: result.videoUrl,

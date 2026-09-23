@@ -18,17 +18,20 @@ import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
 import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
 import { AnimateEditor } from '@/components/studio/editors/AnimateEditor';
+import { GenerateVideoEditor } from '@/components/studio/editors/GenerateVideoEditor';
 import { ImageDetailModal } from '@/components/studio/generate/ImageDetailModal';
 import { VideoDetailModal } from '@/components/studio/generate/VideoDetailModal';
 
 // ── Quick tool config ─────────────────────────────────────────────────────────
 
 interface QuickTool {
-  id: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products';
+  id: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products' | 'generate-video';
   label: string;
   description: string;
   credits: string;
   iconSvg: string;
+  /** true = tool opens directly without file picker */
+  noImage?: boolean;
 }
 
 const QUICK_TOOLS: QuickTool[] = [
@@ -74,6 +77,14 @@ const QUICK_TOOLS: QuickTool[] = [
     credits: 'Free',
     iconSvg: 'M3 3h18v18H3zM15 9a4 4 0 11-8 0 4 4 0 018 0zM3 21l6-6',
   },
+  {
+    id: 'generate-video',
+    label: 'Generate Video',
+    description: 'Text-to-video with Grok AI',
+    credits: '8 credits',
+    iconSvg: 'M23 7l-7 5 7 5V7zM1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1V5z',
+    noImage: true,
+  },
 ];
 
 type CreateViewState = 'form' | 'creating' | 'result';
@@ -108,6 +119,8 @@ export function StudioHome({ userId: _userId }: Props) {
     imageUrl: string;
     imageFile: File;
   } | null>(null);
+
+  const [showGenerateVideo, setShowGenerateVideo] = useState(false);
 
   const [createSlow, setCreateSlow] = useState(false);
 
@@ -231,6 +244,10 @@ export function StudioHome({ userId: _userId }: Props) {
   // ── Quick Tool click → open file picker → open editor ──────────────────────
 
   function handleQuickToolClick(toolId: QuickTool['id']) {
+    if (toolId === 'generate-video') {
+      setShowGenerateVideo(true);
+      return;
+    }
     if (toolId === 'place-products') {
       pendingToolRef.current = 'place-products';
       fileInputRef.current?.click();
@@ -836,7 +853,7 @@ export function StudioHome({ userId: _userId }: Props) {
                 Edit a photo
               </h2>
               <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-                All 6 AI Tools
+                7 AI Tools
               </span>
             </div>
 
@@ -885,21 +902,33 @@ export function StudioHome({ userId: _userId }: Props) {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Quick Actions
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             {QUICK_TOOLS.map(tool => (
               <button
                 key={tool.id}
                 onClick={() => handleQuickToolClick(tool.id)}
-                className="flex flex-col text-left p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all group"
+                className={`flex flex-col text-left p-4 rounded-xl border transition-all group ${
+                  tool.noImage
+                    ? 'border-purple-500/20 bg-purple-500/[0.03] hover:bg-purple-500/[0.07] hover:border-purple-500/40'
+                    : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30'
+                }`}
               >
-                <div className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-green-500/10 text-gray-400 group-hover:text-green-400 flex items-center justify-center mb-3 transition-colors">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 transition-colors ${
+                  tool.noImage
+                    ? 'bg-purple-500/10 group-hover:bg-purple-500/20 text-purple-400 group-hover:text-purple-300'
+                    : 'bg-white/5 group-hover:bg-green-500/10 text-gray-400 group-hover:text-green-400'
+                }`}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d={tool.iconSvg} />
                   </svg>
                 </div>
                 <span className="text-xs font-medium text-white mb-0.5">{tool.label}</span>
                 <span className="text-[10px] text-gray-500 leading-relaxed mb-2 line-clamp-2">{tool.description}</span>
-                <span className="mt-auto text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded w-fit">
+                <span className={`mt-auto text-[10px] font-medium px-2 py-0.5 rounded w-fit ${
+                  tool.noImage
+                    ? 'text-purple-400 bg-purple-500/10 border border-purple-500/20'
+                    : 'text-green-400 bg-green-500/10 border border-green-500/20'
+                }`}>
                   {tool.credits}
                 </span>
               </button>
@@ -1171,6 +1200,37 @@ export function StudioHome({ userId: _userId }: Props) {
             setPlaceProductsBgUrl(null);
             handleEditorResult(url, '[Composite] Place Products', 'place-products');
           }}
+        />
+      )}
+
+      {showGenerateVideo && (
+        <GenerateVideoEditor
+          hasVideoCredits={
+            creditStatus
+              ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||
+                !!creditStatus.superuser || !!creditStatus.byok
+              : false
+          }
+          onNeedCredits={() => {
+            setShowGenerateVideo(false);
+            setCreditPackReason('video');
+            setShowCreditPack(true);
+          }}
+          onAccept={(videoUrl, videoPrompt) => {
+            setShowGenerateVideo(false);
+            const newVideo: MediaItem = {
+              id:        `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type:      'video',
+              url:       videoUrl,
+              prompt:    `[T2V] ${videoPrompt.slice(0, 100)}`,
+              createdAt: Date.now(),
+            };
+            addImage(newVideo);
+            setModalVideo(newVideo);
+            saveToLibrary({ type: 'video', url: videoUrl, prompt: videoPrompt, model: 'grok-video' });
+            (window as unknown as Record<string, () => void>).__refreshCredits?.();
+          }}
+          onClose={() => setShowGenerateVideo(false)}
         />
       )}
     </div>

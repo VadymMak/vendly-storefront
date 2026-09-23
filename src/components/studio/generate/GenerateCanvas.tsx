@@ -20,6 +20,7 @@ import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import { InpaintEditor } from './InpaintEditor';
 import { PlaceProductsEditor } from './PlaceProductsEditor';
 import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
+import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 
 interface Props {
   userId: string;
@@ -467,7 +468,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // Active editor (full-screen overlay editors)
   const [activeEditor, setActiveEditor] = useState<{
-    tool: 'improve';
+    tool: 'improve' | 'remove-bg';
     imageUrl: string;
     imageFile: File;
   } | null>(null);
@@ -1371,7 +1372,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
                 <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
                 <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={handleUpscaleUploadedImage} disabled={!!processingTask} />
-                <ActionButton icon="removebg" label="Remove BG"      sublabel="1 credit"  onClick={handleRemoveBgUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="removebg" label="Remove BG"      sublabel="1 credit"  onClick={() => {
+                  if (uploadedPreview && uploadedImage) {
+                    setActiveEditor({ tool: 'remove-bg', imageUrl: uploadedPreview, imageFile: uploadedImage });
+                  }
+                }} disabled={!!processingTask} />
                 <ActionButton icon="place"    label="Place Products" onClick={() => setShowPlaceProducts(true)} disabled={!!processingTask} />
                 <ActionButton icon="download" label="Download"       onClick={() => {
                   if (uploadedPreview) {
@@ -1458,7 +1463,15 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                       setCustomMotionPrompt('');
                     }}
                     onUpscale={() => handleUpscale(img)}
-                    onRemoveBg={() => handleRemoveBg(img)}
+                    onRemoveBg={() => {
+                      fetch(img.url.startsWith('blob:') ? img.url : `/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`)
+                        .then(r => r.blob())
+                        .then(blob => {
+                          const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
+                          setActiveEditor({ tool: 'remove-bg', imageUrl: img.url, imageFile: file });
+                        })
+                        .catch(() => {});
+                    }}
                     onDownload={() => handleDownload(img)}
                     onAddToAssemble={() => handleAddToAssemble(img)}
                     onCopy={() => handleCopyPrompt(img)}
@@ -1638,6 +1651,27 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               createdAt: Date.now(),
             });
             saveToLibrary({ type: 'image', url: resultUrl, prompt: '[Enhanced] Improve', model: 'grok-edit', preset: 'product' });
+            (window as unknown as Record<string, () => void>).__refreshCredits?.();
+          }}
+          onClose={() => setActiveEditor(null)}
+        />
+      )}
+
+      {activeEditor?.tool === 'remove-bg' && (
+        <RemoveBgEditor
+          imageUrl={activeEditor.imageUrl}
+          imageFile={activeEditor.imageFile}
+          onAccept={(resultUrl) => {
+            setActiveEditor(null);
+            addImage({
+              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type: 'image',
+              url: resultUrl,
+              prompt: '[No Background]',
+              format: 'png',
+              model: 'remove-bg',
+              createdAt: Date.now(),
+            });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}

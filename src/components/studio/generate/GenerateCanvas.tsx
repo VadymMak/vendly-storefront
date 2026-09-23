@@ -8,9 +8,9 @@ import { ImageDetailModal } from './ImageDetailModal';
 import { VideoDetailModal } from './VideoDetailModal';
 import {
   EXAMPLE_PROMPTS, QUICK_FILTERS, OUTPUT_FORMATS,
-  ENHANCEMENT_PRESETS, MOTION_PRESETS, SIZE_PRESETS,
+  ENHANCEMENT_PRESETS, SIZE_PRESETS,
   STYLE_CHIPS,
-  type OutputFormat, type EnhancementPresetId, type MotionPresetId, type SizePresetId,
+  type OutputFormat, type EnhancementPresetId, type SizePresetId,
   type StyleChipId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
@@ -22,6 +22,7 @@ import { PlaceProductsEditor } from './PlaceProductsEditor';
 import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
 import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
+import { AnimateEditor } from '@/components/studio/editors/AnimateEditor';
 
 interface Props {
   userId: string;
@@ -354,107 +355,6 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
   );
 }
 
-function AnimatePanel({ target, selectedMotion, onMotionChange, duration, onDurationChange, customPrompt, onCustomPromptChange, isAnimating, onAnimate, onClose }: {
-  target: MediaItem;
-  selectedMotion: MotionPresetId;
-  onMotionChange: (id: MotionPresetId) => void;
-  duration: 5 | 10;
-  onDurationChange: (d: 5 | 10) => void;
-  customPrompt: string;
-  onCustomPromptChange: (s: string) => void;
-  isAnimating: boolean;
-  onAnimate: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="fixed right-0 top-0 z-50 flex h-full w-80 flex-col border-l border-white/10 bg-[#0d0d14]">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h3 className="text-sm font-semibold text-white">Animate Image</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><IconX /></button>
-        </div>
-
-        <div className="p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={target.url}
-            alt=""
-            className="w-full rounded-lg border border-white/10 object-cover"
-            style={{ maxHeight: 200 }}
-          />
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <p className="mb-2 text-xs font-medium text-gray-400">Motion style</p>
-          <div className="space-y-1.5">
-            {MOTION_PRESETS.map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => onMotionChange(preset.id)}
-                className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-                  selectedMotion === preset.id
-                    ? 'border-green-500/40 bg-green-500/10 text-white'
-                    : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4">
-            <p className="mb-1 text-xs text-gray-500">Or describe motion:</p>
-            <textarea
-              value={customPrompt}
-              onChange={e => onCustomPromptChange(e.target.value)}
-              placeholder="Slow zoom in with steam rising..."
-              rows={2}
-              className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none"
-            />
-          </div>
-
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-medium text-gray-400">Duration</p>
-            <div className="flex gap-2">
-              {([5, 10] as const).map(d => (
-                <button
-                  key={d}
-                  onClick={() => onDurationChange(d)}
-                  className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
-                    duration === d
-                      ? 'border-green-500/40 bg-green-500/10 text-white'
-                      : 'border-white/10 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {d} sec
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-white/10 p-4">
-          <button
-            onClick={onAnimate}
-            disabled={isAnimating}
-            className="w-full rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-          >
-            {isAnimating ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Animating...
-              </span>
-            ) : (
-              `Create Video (${duration * 1} credits)`
-            )}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function GenerateCanvas({ userId: _userId }: Props) {
@@ -469,7 +369,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // Active editor (full-screen overlay editors)
   const [activeEditor, setActiveEditor] = useState<{
-    tool: 'improve' | 'remove-bg' | 'upscale';
+    tool: 'improve' | 'remove-bg' | 'upscale' | 'animate';
     imageUrl: string;
     imageFile: File;
   } | null>(null);
@@ -604,13 +504,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   // Enhance
   const [isEnhancing,    setIsEnhancing]    = useState(false);
 
-  // Animate panel
-  const [animateTarget,      setAnimateTarget]      = useState<MediaItem | null>(null);
-  const [selectedMotion,     setSelectedMotion]     = useState<MotionPresetId>('cinematic');
-  const [animDuration,       setAnimDuration]       = useState<5 | 10>(5);
-  const [customMotionPrompt, setCustomMotionPrompt] = useState('');
-  const [isAnimating,        setIsAnimating]        = useState(false);
-
   // Inpaint
   const [inpaintImage,     setInpaintImage]     = useState<string | null>(null);
   const [showPlaceProducts, setShowPlaceProducts] = useState(false);
@@ -725,70 +618,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     } finally {
       setIsEnhancing(false);
       setProcessingTask(null);
-    }
-  }
-
-  // ── Inline animate ──────────────────────────────────────────────────────────
-
-  async function handleInlineAnimate() {
-    if (!animateTarget || isAnimating) return;
-
-    // Block if user has no video credits (monthly + bonus)
-    const hasVideoCredits = creditStatus
-      ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0
-      : false;
-    if (!hasVideoCredits && !creditStatus?.superuser && !creditStatus?.byok) {
-      setCreditPackReason('video');
-      setShowCreditPack(true);
-      return;
-    }
-
-    setIsAnimating(true);
-    setError(null);
-
-    try {
-      const publicUrl = await getPublicUrl(animateTarget.url);
-      const motionPreset = MOTION_PRESETS.find(p => p.id === selectedMotion);
-      const finalMotionPrompt = customMotionPrompt.trim() || motionPreset?.prompt || 'Subtle cinematic motion';
-
-      const res = await fetch('/api/generate-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt:      finalMotionPrompt,
-          skillId:     'cinematic',
-          aspectRatio: toVideoAspectRatio(SIZE_PRESETS.find(s => s.id === selectedSize)?.aspect_ratio ?? '16:9'),
-          duration:    animDuration,
-          startImage:  publicUrl,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json() as { error?: string; needsUpgrade?: boolean };
-        if (data.needsUpgrade) { setShowUpgrade(true); return; }
-        throw new Error(data.error ?? 'Animation failed');
-      }
-      const data = await res.json() as { jobId: string };
-      const videoUrl = await pollJob(data.jobId);
-
-      const newVideo: MediaItem = {
-        id: `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        type: 'video',
-        url: videoUrl,
-        prompt: finalMotionPrompt,
-        preset: selectedSize,
-        createdAt: Date.now(),
-      };
-      addImage(newVideo);
-      setModalVideo(newVideo);
-      saveToLibrary({ type: 'video', url: videoUrl, prompt: finalMotionPrompt, model: 'kling' });
-      setAnimateTarget(null);
-      setCustomMotionPrompt('');
-      (window as unknown as Record<string, () => void>).__refreshCredits?.();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Animation failed');
-    } finally {
-      setIsAnimating(false);
     }
   }
 
@@ -970,13 +799,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       prompt: 'Uploaded image',
       createdAt: Date.now(),
     };
-  }
-
-  function handleAnimateUploadedImage() {
-    if (!uploadedPreview) return;
-    setAnimateTarget(makeUploadedMediaItem());
-    setSelectedMotion('cinematic');
-    setCustomMotionPrompt('');
   }
 
   async function handleUpscaleUploadedImage() {
@@ -1371,7 +1193,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   }
                 }} highlight disabled={!!processingTask} />
                 <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
-                <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
+                <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={() => {
+                  if (uploadedPreview && uploadedImage) {
+                    setActiveEditor({ tool: 'animate', imageUrl: uploadedPreview, imageFile: uploadedImage });
+                  }
+                }} disabled={!!processingTask} />
                 <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'upscale', imageUrl: uploadedPreview, imageFile: uploadedImage });
@@ -1463,9 +1289,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                         .catch(() => {});
                     }}
                     onAnimate={() => {
-                      setAnimateTarget(img);
-                      setSelectedMotion('cinematic');
-                      setCustomMotionPrompt('');
+                      fetch(img.url.startsWith('blob:') ? img.url : `/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`)
+                        .then(r => r.blob())
+                        .then(blob => {
+                          const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
+                          setActiveEditor({ tool: 'animate', imageUrl: img.url, imageFile: file });
+                        })
+                        .catch(() => {});
                     }}
                     onUpscale={() => {
                       fetch(img.url.startsWith('blob:') ? img.url : `/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`)
@@ -1521,22 +1351,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         </div>
       </div>
 
-      {/* ── Animate panel ──────────────────────────────────────────────────── */}
-      {animateTarget && (
-        <AnimatePanel
-          target={animateTarget}
-          selectedMotion={selectedMotion}
-          onMotionChange={setSelectedMotion}
-          duration={animDuration}
-          onDurationChange={setAnimDuration}
-          customPrompt={customMotionPrompt}
-          onCustomPromptChange={setCustomMotionPrompt}
-          isAnimating={isAnimating}
-          onAnimate={handleInlineAnimate}
-          onClose={() => setAnimateTarget(null)}
-        />
-      )}
-
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       {showUpgrade && (
         <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
@@ -1572,9 +1386,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
           onClose={() => setModalImage(null)}
           onAnimate={() => {
             setModalImage(null);
-            setAnimateTarget(modalImage);
-            setSelectedMotion('cinematic');
-            setCustomMotionPrompt('');
+            fetch(modalImage.url.startsWith('blob:') ? modalImage.url : `/api/studio/proxy-media?url=${encodeURIComponent(modalImage.url)}`)
+              .then(r => r.blob())
+              .then(blob => {
+                const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
+                setActiveEditor({ tool: 'animate', imageUrl: modalImage.url, imageFile: file });
+              })
+              .catch(() => {});
           }}
           onAddToAssemble={() => handleAddToAssemble(modalImage)}
           onDownload={() => handleDownload(modalImage)}
@@ -1602,9 +1420,16 @@ export function GenerateCanvas({ userId: _userId }: Props) {
           onClose={() => setModalVideo(null)}
           onRegenerate={() => {
             setModalVideo(null);
-            // Re-open the animate panel if there are images to animate
             const sourceImg = generatedImages.find(i => i.type === 'image');
-            if (sourceImg) { setAnimateTarget(sourceImg); setSelectedMotion('cinematic'); setCustomMotionPrompt(''); }
+            if (sourceImg) {
+              fetch(sourceImg.url.startsWith('blob:') ? sourceImg.url : `/api/studio/proxy-media?url=${encodeURIComponent(sourceImg.url)}`)
+                .then(r => r.blob())
+                .then(blob => {
+                  const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
+                  setActiveEditor({ tool: 'animate', imageUrl: sourceImg.url, imageFile: file });
+                })
+                .catch(() => {});
+            }
           }}
           onDownload={() => handleDownload(modalVideo)}
           onAddToAssemble={() => handleAddToAssemble(modalVideo)}
@@ -1706,6 +1531,39 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'upscale',
               createdAt: Date.now(),
             });
+            (window as unknown as Record<string, () => void>).__refreshCredits?.();
+          }}
+          onClose={() => setActiveEditor(null)}
+        />
+      )}
+
+      {activeEditor?.tool === 'animate' && (
+        <AnimateEditor
+          imageUrl={activeEditor.imageUrl}
+          selectedSize={selectedSize}
+          hasVideoCredits={
+            creditStatus
+              ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||
+                !!creditStatus.superuser || !!creditStatus.byok
+              : false
+          }
+          onNeedCredits={() => {
+            setCreditPackReason('video');
+            setShowCreditPack(true);
+          }}
+          onAccept={(resultVideoUrl, prompt) => {
+            setActiveEditor(null);
+            const newVideo: MediaItem = {
+              id: `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type: 'video',
+              url: resultVideoUrl,
+              prompt,
+              preset: selectedSize,
+              createdAt: Date.now(),
+            };
+            addImage(newVideo);
+            setModalVideo(newVideo);
+            saveToLibrary({ type: 'video', url: resultVideoUrl, prompt, model: 'kling' });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}

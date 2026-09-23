@@ -19,6 +19,7 @@ import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import { InpaintEditor } from './InpaintEditor';
 import { PlaceProductsEditor } from './PlaceProductsEditor';
+import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
 
 interface Props {
   userId: string;
@@ -461,8 +462,15 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const removeImage     = useStudioStore((s) => s.removeImage);
 
   // Mode
-  type StudioMode = 'create' | 'improve' | 'animate';
+  type StudioMode = 'create' | 'animate';
   const [mode, setMode] = useState<StudioMode>('create');
+
+  // Active editor (full-screen overlay editors)
+  const [activeEditor, setActiveEditor] = useState<{
+    tool: 'improve';
+    imageUrl: string;
+    imageFile: File;
+  } | null>(null);
 
   // Upload
   const [uploadedImage,   setUploadedImage]   = useState<File | null>(null);
@@ -539,11 +547,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    if (mode === 'improve' && improvePanelRef.current) {
-      improvePanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [mode]);
 
   useEffect(() => {
     if (processingTask && processingRef.current) {
@@ -1360,7 +1363,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               <p className="text-center text-sm text-gray-400">What would you like to do?</p>
 
               <div className="mx-auto grid max-w-2xl grid-cols-4 gap-3">
-                <ActionButton icon="sparkle"  label="Improve"        sublabel="2 credits" onClick={() => setMode('improve')} highlight disabled={!!processingTask} />
+                <ActionButton icon="sparkle"  label="Improve"        sublabel="2 credits" onClick={() => {
+                  if (uploadedPreview && uploadedImage) {
+                    setActiveEditor({ tool: 'improve', imageUrl: uploadedPreview, imageFile: uploadedImage });
+                  }
+                }} highlight disabled={!!processingTask} />
                 <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
                 <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={handleAnimateUploadedImage} disabled={!!processingTask} />
                 <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={handleUpscaleUploadedImage} disabled={!!processingTask} />
@@ -1376,47 +1383,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                 }} />
               </div>
 
-              {/* Enhancement presets panel */}
-              {mode === 'improve' && (
-                <div ref={improvePanelRef} className="mx-auto max-w-lg space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <p className="text-sm font-medium text-gray-300">Choose enhancement style</p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {ENHANCEMENT_PRESETS.map(preset => (
-                      <button
-                        key={preset.id}
-                        onClick={() => handleEnhance(preset.id)}
-                        disabled={isEnhancing}
-                        className={`rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
-                          isEnhancing
-                            ? 'cursor-not-allowed opacity-50'
-                            : 'border-white/10 hover:border-green-500/30 hover:bg-green-500/5'
-                        }`}
-                      >
-                        <div className="font-medium text-white">{preset.label}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-gray-500">Or describe the improvement:</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={prompt}
-                        onChange={e => setPrompt(e.target.value)}
-                        placeholder="e.g. warmer lighting, more contrast..."
-                        className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none"
-                      />
-                      <button
-                        onClick={() => handleEnhance()}
-                        disabled={isEnhancing || !prompt.trim()}
-                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {isEnhancing ? 'Improving...' : 'Apply'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Custom edit (default state) */}
               {mode === 'create' && (
@@ -1478,13 +1444,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     onFilterChange={filterId => setImageFilters(s => ({ ...s, [img.id]: filterId }))}
                     onOpen={() => img.type === 'video' ? setModalVideo(img) : setModalImage(img)}
                     onImprove={() => {
-                      // Load result back as upload for further improvement
                       fetch(img.url)
                         .then(r => r.blob())
                         .then(blob => {
                           const file = new File([blob], `result-${Date.now()}.webp`, { type: blob.type || 'image/webp' });
-                          applyUploadedFile(file);
-                          setMode('improve');
+                          setActiveEditor({ tool: 'improve', imageUrl: img.url, imageFile: file });
                         })
                         .catch(() => {});
                     }}
@@ -1654,6 +1618,29 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               createdAt: Date.now(),
             });
           }}
+        />
+      )}
+
+      {activeEditor?.tool === 'improve' && (
+        <ImproveEditor
+          imageUrl={activeEditor.imageUrl}
+          imageFile={activeEditor.imageFile}
+          onAccept={(resultUrl) => {
+            setActiveEditor(null);
+            addImage({
+              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              type: 'image',
+              url: resultUrl,
+              prompt: '[Enhanced] Improve',
+              preset: 'product',
+              format: 'png',
+              model: 'grok-edit',
+              createdAt: Date.now(),
+            });
+            saveToLibrary({ type: 'image', url: resultUrl, prompt: '[Enhanced] Improve', model: 'grok-edit', preset: 'product' });
+            (window as unknown as Record<string, () => void>).__refreshCredits?.();
+          }}
+          onClose={() => setActiveEditor(null)}
         />
       )}
 

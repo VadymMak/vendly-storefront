@@ -19,6 +19,11 @@ export interface PlaceProductsEditorProps {
   onResult: (compositeUrl: string) => void;
 }
 
+export interface EditorCheckpoint {
+  backgroundUrl: string;
+  objects: PlacedObject[];
+}
+
 // ===== Video Generator =====
 
 export interface VideoSkill {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import type { PlacedObject, PlaceProductsEditorProps } from '@/lib/types';
+import type { EditorCheckpoint, PlacedObject, PlaceProductsEditorProps } from '@/lib/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -188,14 +188,17 @@ export function PlaceProductsEditor({
   const [canvasW, setCanvasW]     = useState(MAX_CANVAS);
   const [canvasH, setCanvasH]     = useState(MAX_CANVAS);
   const [bgLoaded, setBgLoaded]   = useState(false);
-  const [exporting, setExporting]     = useState(false);
-  const [blending, setBlending]       = useState(false);
-  const [error, setError]             = useState('');
-  const [splittingId, setSplittingId] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel]     = useState(1);
+  const [exporting, setExporting]         = useState(false);
+  const [blending, setBlending]           = useState(false);
+  const [error, setError]                 = useState('');
+  const [splittingId, setSplittingId]     = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel]         = useState(1);
+  const [historyStack, setHistoryStack]   = useState<EditorCheckpoint[]>([]);
+  const [redoStack, setRedoStack]         = useState<EditorCheckpoint[]>([]);
 
-  const bgImgRef    = useRef<HTMLImageElement | null>(null);
-  const objImgsRef  = useRef<Map<string, HTMLImageElement>>(new Map());
+  const bgImgRef          = useRef<HTMLImageElement | null>(null);
+  const objImgsRef        = useRef<Map<string, HTMLImageElement>>(new Map());
+  const backgroundUrlRef  = useRef<string>(backgroundUrl);
 
   // Refs to avoid stale closures in draw / pointer handlers
   const objectsRef   = useRef<PlacedObject[]>([]);
@@ -544,11 +547,111 @@ export function PlaceProductsEditor({
     setSelectedId(null);
   }, [selectedId]);
 
+  // ── History ────────────────────────────────────────────────────────────────
+
+  const MAX_HISTORY = 15;
+
+  const pushCheckpoint = useCallback(() => {
+    setHistoryStack(prev => [
+      ...prev.slice(-(MAX_HISTORY - 1)),
+      { backgroundUrl: backgroundUrlRef.current, objects: [...objectsRef.current] },
+    ]);
+    setRedoStack([]);
+  }, []);
+
+  const handleUndo = useCallback(async () => {
+    setHistoryStack(prev => {
+      if (prev.length === 0) return prev;
+      const checkpoint = prev[prev.length - 1];
+
+      // Save current state to redo
+      setRedoStack(r => [
+        ...r,
+        { backgroundUrl: backgroundUrlRef.current, objects: [...objectsRef.current] },
+      ]);
+
+      // Load checkpoint background
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        bgImgRef.current = img;
+        backgroundUrlRef.current = checkpoint.backgroundUrl;
+
+        // Reload object images missing from cache
+        const pending = checkpoint.objects.filter(o => !objImgsRef.current.has(o.id));
+        Promise.all(pending.map(o => loadImg(o.src).then(loaded => ({ id: o.id, loaded }))))
+          .then(results => {
+            results.forEach(({ id, loaded }) => objImgsRef.current.set(id, loaded));
+            setObjects(checkpoint.objects);
+            setSelectedId(null);
+            draw();
+          })
+          .catch(() => {
+            setObjects(checkpoint.objects);
+            setSelectedId(null);
+            draw();
+          });
+      };
+      img.src = checkpoint.backgroundUrl;
+
+      return prev.slice(0, -1);
+    });
+  }, [draw]);
+
+  const handleRedo = useCallback(() => {
+    setRedoStack(prev => {
+      if (prev.length === 0) return prev;
+      const redoState = prev[prev.length - 1];
+
+      // Save current state to history
+      setHistoryStack(h => [
+        ...h.slice(-(MAX_HISTORY - 1)),
+        { backgroundUrl: backgroundUrlRef.current, objects: [...objectsRef.current] },
+      ]);
+
+      // Load redo background
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        bgImgRef.current = img;
+        backgroundUrlRef.current = redoState.backgroundUrl;
+
+        const pending = redoState.objects.filter(o => !objImgsRef.current.has(o.id));
+        Promise.all(pending.map(o => loadImg(o.src).then(loaded => ({ id: o.id, loaded }))))
+          .then(results => {
+            results.forEach(({ id, loaded }) => objImgsRef.current.set(id, loaded));
+            setObjects(redoState.objects);
+            setSelectedId(null);
+            draw();
+          })
+          .catch(() => {
+            setObjects(redoState.objects);
+            setSelectedId(null);
+            draw();
+          });
+      };
+      img.src = redoState.backgroundUrl;
+
+      return prev.slice(0, -1);
+    });
+  }, [draw]);
+
   // ── Keyboard shortcuts ──────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        void handleUndo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -558,7 +661,7 @@ export function PlaceProductsEditor({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteSelected]);
+  }, [deleteSelected, handleUndo, handleRedo]);
 
   // ── Canvas zoom: Ctrl+Plus / Ctrl+Minus / Ctrl+0 ─────────────────────
   useEffect(() => {
@@ -722,6 +825,10 @@ export function PlaceProductsEditor({
 
     setBlending(true);
     setError('');
+
+    // Save checkpoint before blend so user can undo
+    pushCheckpoint();
+
     try {
       draw(true);
 
@@ -742,19 +849,33 @@ export function PlaceProductsEditor({
       const json = await resp.json() as { url?: string; error?: string };
 
       if (!resp.ok) {
+        // Blend failed — roll back the checkpoint we pushed
+        setHistoryStack(prev => prev.slice(0, -1));
         setError(json.error ?? 'AI Blend failed');
         return;
       }
+
       if (json.url) {
-        onResult(json.url);
+        // Load blended result as new background
+        const newBg = await loadImg(json.url);
+        bgImgRef.current = newBg;
+        backgroundUrlRef.current = json.url;
+
+        // Bake objects into background — clear them from the editor
+        objImgsRef.current.clear();
+        setObjects([]);
+        setSelectedId(null);
+
+        // Stay in editor — draw with new background, no objects
+        draw();
       }
     } catch (err) {
+      setHistoryStack(prev => prev.slice(0, -1));
       setError(err instanceof Error ? err.message : 'AI Blend failed');
     } finally {
       setBlending(false);
-      draw();
     }
-  }, [blending, objects, draw, onResult]);
+  }, [blending, objects, draw, pushCheckpoint]);
 
   const selectedObj = objects.find(o => o.id === selectedId) ?? null;
 
@@ -767,16 +888,40 @@ export function PlaceProductsEditor({
         className="flex shrink-0 items-center justify-between px-4 py-3"
         style={{ background: '#0f1117', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <button
-          onClick={onClose}
-          className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M19 12H5" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Back
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M19 12H5" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back
+          </button>
+          <button
+            onClick={() => void handleUndo()}
+            disabled={historyStack.length === 0}
+            className="rounded-md px-2 py-1.5 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-30"
+            title="Undo (Ctrl+Z)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 7v6h6" />
+              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+            </svg>
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={redoStack.length === 0}
+            className="rounded-md px-2 py-1.5 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-30"
+            title="Redo (Ctrl+Shift+Z)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 7v6h-6" />
+              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+            </svg>
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-white">Place Products</span>
           {zoomLevel !== 1 && (

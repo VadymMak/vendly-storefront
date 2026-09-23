@@ -14,7 +14,10 @@ const schema = z.object({
 });
 
 const IS_MOCK = process.env.STUDIO_MOCK === 'true';
-const CREDIT_COST = 8;
+
+function getCreditCost(duration: number) {
+  return duration === 10 ? 16 : 8;
+}
 
 export async function POST(request: Request) {
   let rawBody: Record<string, unknown>;
@@ -46,8 +49,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  // Credit check
-  const creditCheck = await checkCredits(session.user.id, 'video', CREDIT_COST);
+  // Credit check — cost depends on duration
+  const creditCost  = getCreditCost(body.duration);
+  const creditCheck = await checkCredits(session.user.id, 'video', creditCost);
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
   }
@@ -76,7 +80,7 @@ export async function POST(request: Request) {
       predictionId: `grok:${result.predictionId}`,
       type:         'video',
       creditType:   'video',
-      creditAmount: CREDIT_COST,
+      creditAmount: creditCost,
     });
 
     return NextResponse.json({ jobId });

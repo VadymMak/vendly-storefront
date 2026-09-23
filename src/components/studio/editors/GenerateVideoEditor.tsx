@@ -33,14 +33,14 @@ export function GenerateVideoEditor({
   onAccept, onClose, hasVideoCredits, onNeedCredits,
 }: GenerateVideoEditorProps) {
   const [prompt,      setPrompt]      = useState('');
-  const [style,       setStyle]       = useState<VideoStyleChipId>('cinematic');
+  const [style,       setStyle]       = useState<VideoStyleChipId>('product');
   const [duration,    setDuration]    = useState<VideoDurationValue>(5);
   const [aspectRatio, setAspectRatio] = useState<VideoAspectRatio>('16:9');
   const [status,      setStatus]      = useState<EditorStatus>('configuring');
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
   const [error,       setError]       = useState<string | null>(null);
 
-  const creditCost = VIDEO_DURATIONS.find(d => d.value === duration)?.credits ?? 8;
+  const creditCost = VIDEO_DURATIONS.find(d => d.seconds === duration)?.credits ?? 8;
 
   async function handleGenerate() {
     if (!hasVideoCredits) { onNeedCredits(); return; }
@@ -59,7 +59,7 @@ export function GenerateVideoEditor({
       const res = await fetch('/api/studio/generate-video-t2v', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, duration, aspectRatio }),
+        body: JSON.stringify({ prompt: finalPrompt, duration: duration, aspectRatio }),
       });
 
       const data = await res.json() as { jobId?: string; error?: string; needsUpgrade?: boolean };
@@ -119,19 +119,19 @@ export function GenerateVideoEditor({
         <div className="flex gap-2">
           {VIDEO_DURATIONS.map(d => (
             <button
-              key={d.value}
+              key={d.seconds}
               disabled={status === 'processing'}
-              onClick={() => setDuration(d.value)}
+              onClick={() => setDuration(d.seconds)}
               className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
-                duration === d.value
+                duration === d.seconds
                   ? 'border-green-500/40 bg-green-500/10'
                   : 'border-white/10 hover:border-white/20'
               }`}
             >
-              <span className={`text-xs font-semibold ${duration === d.value ? 'text-green-400' : 'text-white'}`}>
+              <span className={`text-xs font-semibold ${duration === d.seconds ? 'text-green-400' : 'text-white'}`}>
                 {d.label}
               </span>
-              <span className="text-[10px] text-gray-500">{d.credits} cr</span>
+              <span className="text-[10px] text-gray-500">{d.credits} cr · {d.eta}</span>
             </button>
           ))}
         </div>

@@ -149,21 +149,21 @@ export type SizePresetId = typeof SIZE_PRESETS[number]['id'];
 // ── Video generation constants ───────────────────────────────────────────────
 
 export const VIDEO_STYLE_CHIPS = [
-  { id: 'cinematic',  label: 'Cinematic',  icon: '🎬', promptSuffix: 'cinematic camera motion, professional lighting, film grain, shallow depth of field' },
-  { id: 'commercial', label: 'Commercial', icon: '📱', promptSuffix: 'commercial video style, clean bright lighting, professional production quality' },
-  { id: 'nature',     label: 'Nature',     icon: '🌿', promptSuffix: 'nature documentary style, natural lighting, sweeping aerial shot' },
-  { id: 'abstract',   label: 'Abstract',   icon: '✨', promptSuffix: 'abstract motion graphics, smooth flow, vibrant colors, artistic' },
-  { id: 'custom',     label: 'Custom',     icon: '🎯', promptSuffix: '' },
+  { id: 'product',  label: 'Product',  icon: '📦', promptSuffix: 'professional product video, clean studio lighting, sharp details, commercial e-commerce quality' },
+  { id: 'food',     label: 'Food',     icon: '🍽️', promptSuffix: 'food videography, warm lighting, rich saturated colors, shallow depth of field, appetizing' },
+  { id: 'beauty',   label: 'Beauty',   icon: '💅', promptSuffix: 'beauty and wellness video, soft flattering lighting, elegant composition, spa atmosphere' },
+  { id: 'social',   label: 'Social',   icon: '📱', promptSuffix: 'social media content, vibrant colors, eye-catching composition, trending aesthetic' },
+  { id: 'interior', label: 'Interior', icon: '🏠', promptSuffix: 'interior walkthrough, bright well-lit space, wide angle, inviting atmosphere, architectural detail' },
 ] as const;
 
 export type VideoStyleChipId = typeof VIDEO_STYLE_CHIPS[number]['id'];
 
 export const VIDEO_DURATIONS = [
-  { value: 5,  label: '5s',  credits: 8  },
-  { value: 10, label: '10s', credits: 12 },
+  { seconds: 5  as const, label: 'Quick',  credits: 8,  eta: '~30s' },
+  { seconds: 10 as const, label: 'Social', credits: 16, eta: '~60s' },
 ] as const;
 
-export type VideoDurationValue = (typeof VIDEO_DURATIONS)[number]['value'];
+export type VideoDurationValue = (typeof VIDEO_DURATIONS)[number]['seconds'];
 
 export const VIDEO_ASPECT_RATIOS = [
   { value: '16:9', label: 'Landscape', subtitle: '16:9' },

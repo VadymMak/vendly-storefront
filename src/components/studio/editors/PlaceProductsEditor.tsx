@@ -882,11 +882,11 @@ export function PlaceProductsEditor({
   // ── UI ─────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0b0f' }}>
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0f172a]">
       {/* Header */}
       <div
-        className="flex shrink-0 items-center justify-between px-4 py-3"
-        style={{ background: '#0f1117', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"
+        style={{ background: '#0f172a' }}
       >
         <div className="flex items-center gap-1">
           <button
@@ -923,7 +923,7 @@ export function PlaceProductsEditor({
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white">Place Products</span>
+          <span className="text-sm font-semibold text-white">Place Products</span>
           {zoomLevel !== 1 && (
             <button
               onClick={() => setZoomLevel(1)}
@@ -937,8 +937,7 @@ export function PlaceProductsEditor({
         <button
           onClick={handleExport}
           disabled={exporting || objects.length === 0}
-          className="rounded px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-40"
-          style={{ background: '#16a34a' }}
+          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-40"
         >
           {exporting ? 'Exporting…' : 'Export →'}
         </button>
@@ -981,8 +980,8 @@ export function PlaceProductsEditor({
 
       {/* Bottom tray */}
       <div
-        className="shrink-0 px-4 pb-4 pt-3"
-        style={{ background: '#0f1117', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+        className="shrink-0 border-t border-white/10 px-4 pb-4 pt-3"
+        style={{ background: '#0f172a' }}
       >
         {/* Instructions when no objects placed */}
         {objects.length === 0 && (

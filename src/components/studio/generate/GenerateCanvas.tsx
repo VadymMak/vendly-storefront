@@ -17,8 +17,8 @@ import {
 import { type ModelTier } from '@/lib/studio/config';
 import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
-import { InpaintEditor } from './InpaintEditor';
-import { PlaceProductsEditor } from './PlaceProductsEditor';
+import { InpaintEditor } from '@/components/studio/editors/InpaintEditor';
+import { PlaceProductsEditor } from '@/components/studio/editors/PlaceProductsEditor';
 import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
 import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
@@ -369,7 +369,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // Active editor (full-screen overlay editors)
   const [activeEditor, setActiveEditor] = useState<{
-    tool: 'improve' | 'remove-bg' | 'upscale' | 'animate';
+    tool: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint';
     imageUrl: string;
     imageFile: File;
   } | null>(null);
@@ -379,7 +379,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
   const [dragOver,        setDragOver]        = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
-  const improvePanelRef = useRef<HTMLDivElement>(null);
   const processingRef   = useRef<HTMLDivElement>(null);
 
   const [processingTask, setProcessingTask] = useState<'upscale' | 'removebg' | 'improve' | 'edit' | null>(null);
@@ -505,7 +504,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [isEnhancing,    setIsEnhancing]    = useState(false);
 
   // Inpaint
-  const [inpaintImage,     setInpaintImage]     = useState<string | null>(null);
   const [showPlaceProducts, setShowPlaceProducts] = useState(false);
   const inpaintInputRef = useRef<HTMLInputElement>(null);
 
@@ -1192,7 +1190,11 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     setActiveEditor({ tool: 'improve', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
                 }} highlight disabled={!!processingTask} />
-                <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => { if (uploadedPreview) setInpaintImage(uploadedPreview); }} disabled={!!processingTask} />
+                <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => {
+                  if (uploadedPreview && uploadedImage) {
+                    setActiveEditor({ tool: 'inpaint', imageUrl: uploadedPreview, imageFile: uploadedImage });
+                  }
+                }} disabled={!!processingTask} />
                 <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'animate', imageUrl: uploadedPreview, imageFile: uploadedImage });
@@ -1435,20 +1437,20 @@ export function GenerateCanvas({ userId: _userId }: Props) {
           onAddToAssemble={() => handleAddToAssemble(modalVideo)}
         />
       )}
-      {inpaintImage && (
+      {activeEditor?.tool === 'inpaint' && (
         <InpaintEditor
-          imageUrl={inpaintImage}
-          onClose={() => { URL.revokeObjectURL(inpaintImage); setInpaintImage(null); }}
+          imageUrl={activeEditor.imageUrl}
+          onClose={() => setActiveEditor(null)}
           onResult={(url) => {
+            setActiveEditor(null);
             addImage({
-              id: crypto.randomUUID(),
+              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               type: 'image', url,
-              prompt: '[Inpainted upload]',
+              prompt: '[Inpainted]',
               model: 'flux-fill-pro',
               createdAt: Date.now(),
             });
-            URL.revokeObjectURL(inpaintImage);
-            setInpaintImage(null);
+            (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
         />
       )}
@@ -1579,7 +1581,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         onChange={e => {
           const file = e.target.files?.[0];
           if (!file || !file.type.startsWith('image/')) return;
-          setInpaintImage(URL.createObjectURL(file));
+          setActiveEditor({ tool: 'inpaint', imageUrl: URL.createObjectURL(file), imageFile: file });
           e.target.value = '';
         }}
       />

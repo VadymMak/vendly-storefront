@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { QUICK_FILTERS, PRESET_MAP, type PresetKey, type QuickFilterId } from '@/lib/studio/constants';
-import { InpaintEditor } from './InpaintEditor';
-import { SceneCreator } from './SceneCreator';
-import { PlaceProductsEditor } from './PlaceProductsEditor';
+import { InpaintEditor } from '@/components/studio/editors/InpaintEditor';
+import { SceneCreator } from '@/components/studio/editors/SceneCreator';
+import { PlaceProductsEditor } from '@/components/studio/editors/PlaceProductsEditor';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

@@ -9,19 +9,11 @@ import { SidebarProvider, useSidebarContext } from '@/components/studio/SidebarC
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
-function IconSparkle() {
+function IconHome() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-    </svg>
-  );
-}
-
-function IconPlay() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
   );
 }
@@ -115,14 +107,13 @@ function IconAutoEdit() {
 
 // ── Nav config ───────────────────────────────────────────────────────────────
 
-const PIPELINE_TABS = [
-  { href: '/studio/generate', label: 'Create', Icon: IconSparkle },
-  { href: '/studio/animate',  label: 'Animate',  Icon: IconPlay },
+const MAIN_NAV = [
+  { href: '/studio',          label: 'Home',     Icon: IconHome },
+  { href: '/studio/library',  label: 'Library',  Icon: IconGrid },
   { href: '/studio/assemble', label: 'Assemble', Icon: IconScissors },
 ] as const;
 
 const BOTTOM_NAV = [
-  { href: '/studio/library',  label: 'Library',  Icon: IconGrid },
   { href: '/studio/settings', label: 'Settings', Icon: IconGear },
 ] as const;
 
@@ -184,6 +175,7 @@ function StudioShellInner({ userEmail, children }: { userEmail: string; children
   const isAssembleMode = pathname.startsWith('/studio/assemble');
 
   function isActive(href: string) {
+    if (href === '/studio') return pathname === '/studio';
     return pathname === href || pathname.startsWith(href + '/');
   }
 
@@ -194,9 +186,9 @@ function StudioShellInner({ userEmail, children }: { userEmail: string; children
 
   const sidebarContent = (
     <div className="flex h-full flex-col py-2">
-      {/* Pipeline tabs */}
+      {/* Main nav */}
       <div className="flex flex-col items-center gap-0.5 px-1.5">
-        {PIPELINE_TABS.map(({ href, label, Icon }) => (
+        {MAIN_NAV.map(({ href, label, Icon }) => (
           <SidebarIcon
             key={href}
             href={href}

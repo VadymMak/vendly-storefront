@@ -107,10 +107,11 @@ export function StudioHome({ userId: _userId }: Props) {
   const [prompt,          setPrompt]          = useState('');
   const [isGenerating,    setIsGenerating]    = useState(false);
   const [selectedStyle,   setSelectedStyle]   = useState<StyleChipId>('custom');
-  const [selectedTier,    setSelectedTier]    = useState<ModelTier>('fast');
+  const [selectedTier,    setSelectedTier]    = useState<ModelTier>('quality');
   const [selectedSize,    setSelectedSize]    = useState<SizePresetId>('instagram');
   const [outputFormat,    setOutputFormat]    = useState<OutputFormat>('webp');
   const [error,           setError]           = useState<string | null>(null);
+  const [showAdvanced,    setShowAdvanced]    = useState(false);
 
   // ── Credits ─────────────────────────────────────────────────────────────────
   interface CreditStatus {
@@ -305,33 +306,44 @@ export function StudioHome({ userId: _userId }: Props) {
       });
 
       if (!res.ok) {
-        const data = await res.json() as { error?: string; needsUpgrade?: boolean };
-        if (data.needsUpgrade) {
+        const e = await res.json() as { error?: string; needsUpgrade?: boolean };
+        if (e.needsUpgrade) {
           setCreditPackReason('tier');
           setShowCreditPack(true);
           return;
         }
-        throw new Error(data.error ?? 'Generation failed');
+        throw new Error(e.error ?? 'Generation failed');
       }
 
-      const data = await res.json() as { url: string; model?: string };
+      // API returns binary image, NOT JSON
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      // Read model info from response headers
+      const modelAlias    = res.headers.get('X-Model-Alias') ?? '';
+      const modelProvider = res.headers.get('X-Model-Provider') ?? '';
+      const modelName     = res.headers.get('X-Model-Name') ?? '';
+      const modelLabel    = modelName || tierObj?.label || 'unknown';
+      void modelAlias;
 
       const newImage: MediaItem = {
         id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         type: 'image',
-        url: data.url,
+        url,
         prompt: `[Generated] ${finalPrompt.slice(0, 100)}`,
         preset: selectedSize as PresetKey,
         format: outputFormat,
-        model: data.model ?? tierObj?.label ?? 'unknown',
+        model: modelLabel,
+        provider: modelProvider,
         createdAt: Date.now(),
       };
       addImage(newImage);
       saveToLibrary({
         type: 'image',
-        url: data.url,
+        url,
         prompt: newImage.prompt ?? '',
-        model: newImage.model ?? 'unknown',
+        model: modelLabel,
+        provider: modelProvider,
         preset: selectedSize,
       });
 
@@ -468,68 +480,89 @@ export function StudioHome({ userId: _userId }: Props) {
               ))}
             </div>
 
-            {/* Quality tiers */}
-            <div className="flex gap-2">
-              {TIERS.map(tier => {
-                const locked = isFreePlan && tier.id !== 'fast';
-                return (
-                  <button
-                    key={tier.id}
-                    disabled={locked}
-                    onClick={() => {
-                      if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
-                      setSelectedTier(tier.id);
-                    }}
-                    className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
-                      locked
-                        ? 'cursor-not-allowed border-white/5 opacity-40'
-                        : selectedTier === tier.id
-                        ? 'border-green-500/40 bg-green-500/10'
-                        : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <span className={`text-xs font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
-                      {tier.label}
-                      {locked && <span className="ml-1 text-[10px]">🔒</span>}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {tier.credits} cr · {tier.eta}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Size + Format + Generate */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/[0.06]">
-              <select
-                value={selectedSize}
-                onChange={e => setSelectedSize(e.target.value as SizePresetId)}
-                className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none"
+            {/* ── More options toggle ── */}
+            <button
+              onClick={() => setShowAdvanced(v => !v)}
+              className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              <svg
+                width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className={`transition-transform ${showAdvanced ? 'rotate-90' : ''}`}
+                aria-hidden="true"
               >
-                {SIZE_PRESETS.map(s => (
-                  <option key={s.id} value={s.id} className="bg-[#0d0d14]">
-                    {s.label} — {s.subtitle}
-                  </option>
-                ))}
-              </select>
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+              More options
+            </button>
 
-              <select
-                value={outputFormat}
-                onChange={e => setOutputFormat(e.target.value as OutputFormat)}
-                className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none"
-              >
-                {OUTPUT_FORMATS.map(f => (
-                  <option key={f} value={f} className="bg-[#0d0d14]">{f.toUpperCase()}</option>
-                ))}
-              </select>
+            {/* Quality tiers — hidden by default */}
+            {showAdvanced && (
+              <div className="flex gap-2">
+                {TIERS.map(tier => {
+                  const locked = isFreePlan && tier.id !== 'fast';
+                  return (
+                    <button
+                      key={tier.id}
+                      disabled={locked}
+                      onClick={() => {
+                        if (locked) { setCreditPackReason('tier'); setShowCreditPack(true); return; }
+                        setSelectedTier(tier.id);
+                      }}
+                      className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
+                        locked
+                          ? 'cursor-not-allowed border-white/5 opacity-40'
+                          : selectedTier === tier.id
+                          ? 'border-green-500/40 bg-green-500/10'
+                          : 'border-white/10 hover:border-white/20 hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      <span className={`text-xs font-semibold ${selectedTier === tier.id && !locked ? 'text-green-400' : 'text-white'}`}>
+                        {tier.label}
+                        {locked && <span className="ml-1 text-[10px]">🔒</span>}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        {tier.credits} cr · {tier.eta}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-              <div className="flex-1" />
+            {/* Size + Format — hidden by default */}
+            {showAdvanced && (
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={selectedSize}
+                  onChange={e => setSelectedSize(e.target.value as SizePresetId)}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none"
+                >
+                  {SIZE_PRESETS.map(s => (
+                    <option key={s.id} value={s.id} className="bg-[#0d0d14]">
+                      {s.label} — {s.subtitle}
+                    </option>
+                  ))}
+                </select>
 
+                <select
+                  value={outputFormat}
+                  onChange={e => setOutputFormat(e.target.value as OutputFormat)}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none"
+                >
+                  {OUTPUT_FORMATS.map(f => (
+                    <option key={f} value={f} className="bg-[#0d0d14]">{f.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Generate button — ALWAYS visible */}
+            <div className="pt-1 border-t border-white/[0.06]">
               <button
                 onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
                 disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
-                className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   noCreditsForImages
                     ? 'bg-amber-600 hover:bg-amber-700'
                     : 'bg-green-600 hover:bg-green-700'

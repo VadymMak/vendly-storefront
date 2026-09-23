@@ -34,7 +34,7 @@ export function GenerateVideoEditor({
 }: GenerateVideoEditorProps) {
   const [prompt,      setPrompt]      = useState('');
   const [style,       setStyle]       = useState<VideoStyleChipId>('product');
-  const [duration,    setDuration]    = useState<VideoDurationValue>(5);
+  const [duration,    setDuration]    = useState<VideoDurationValue>(10);
   const [aspectRatio, setAspectRatio] = useState<VideoAspectRatio>('16:9');
   const [status,      setStatus]      = useState<EditorStatus>('configuring');
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
@@ -128,10 +128,10 @@ export function GenerateVideoEditor({
                   : 'border-white/10 hover:border-white/20'
               }`}
             >
-              <span className={`text-xs font-semibold ${duration === d.seconds ? 'text-green-400' : 'text-white'}`}>
+              <span className={`block text-xs font-medium ${duration === d.seconds ? 'text-green-400' : 'text-white'}`}>
                 {d.label}
               </span>
-              <span className="text-[10px] text-gray-500">{d.credits} cr · {d.eta}</span>
+              <span className="text-[10px] text-gray-500 opacity-60">{d.credits} cr · {d.eta}</span>
             </button>
           ))}
         </div>

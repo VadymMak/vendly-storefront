@@ -9,14 +9,14 @@ import { GrokVideoProvider, VideoProviderError } from '@/lib/video';
 
 const schema = z.object({
   prompt:      z.string().min(1).max(1000),
-  duration:    z.union([z.literal(5), z.literal(10)]).default(5),
+  duration:    z.union([z.literal(5), z.literal(10), z.literal(15)]).default(10),
   aspectRatio: z.enum(['9:16', '1:1', '16:9']).default('16:9'),
 });
 
 const IS_MOCK = process.env.STUDIO_MOCK === 'true';
 
 function getCreditCost(duration: number) {
-  return duration === 10 ? 16 : 8;
+  return duration === 15 ? 25 : duration === 10 ? 16 : 8;
 }
 
 export async function POST(request: Request) {

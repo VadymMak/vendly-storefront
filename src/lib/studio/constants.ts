@@ -159,8 +159,9 @@ export const VIDEO_STYLE_CHIPS = [
 export type VideoStyleChipId = typeof VIDEO_STYLE_CHIPS[number]['id'];
 
 export const VIDEO_DURATIONS = [
-  { seconds: 5  as const, label: 'Quick',  credits: 8,  eta: '~30s' },
-  { seconds: 10 as const, label: 'Social', credits: 16, eta: '~60s' },
+  { seconds: 5  as const, label: '5s Quick',   credits: 8,  eta: '~30s gen' },
+  { seconds: 10 as const, label: '10s Social',  credits: 16, eta: '~60s gen' },
+  { seconds: 15 as const, label: '15s Premium', credits: 25, eta: '~90s gen' },
 ] as const;
 
 export type VideoDurationValue = (typeof VIDEO_DURATIONS)[number]['seconds'];

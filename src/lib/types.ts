@@ -563,3 +563,58 @@ export interface CreateState {
   registrationNumber:   string;
   impressumEmail:       string;
 }
+
+// ── Unified Editor Architecture ──────────────────────────────────────────────
+
+import type { ReactNode } from 'react';
+
+export type StudioTool =
+  | 'improve'
+  | 'inpaint'
+  | 'place-products'
+  | 'remove-bg'
+  | 'upscale'
+  | 'animate';
+
+export type EditorStatus =
+  | 'configuring'
+  | 'processing'
+  | 'result-ready'
+  | 'error';
+
+export interface EditorShellProps {
+  title: string;
+  creditCost?: number;
+  status: EditorStatus;
+  onBack: () => void;
+  primaryAction?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    loading?: boolean;
+  };
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+  };
+  error?: string | null;
+  children: ReactNode;
+  sidebar?: ReactNode;
+  bottomPanel?: ReactNode;
+}
+
+export interface BeforeAfterSliderProps {
+  beforeUrl: string;
+  afterUrl: string;
+  beforeLabel?: string;
+  afterLabel?: string;
+  initialPosition?: number;
+  alt?: string;
+}
+
+export interface ProcessingOverlayProps {
+  visible: boolean;
+  message?: string;
+  submessage?: string;
+}

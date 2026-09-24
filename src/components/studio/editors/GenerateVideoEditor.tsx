@@ -281,11 +281,19 @@ export function GenerateVideoEditor({
               className="w-full max-h-[70vh] rounded-xl border border-white/10 bg-black object-contain"
             />
             <button
-              onClick={() => {
-                const a = document.createElement('a');
-                a.href = resultUrl;
-                a.download = `studio-video-${Date.now()}.mp4`;
-                a.click();
+              onClick={async () => {
+                try {
+                  const res = await fetch(resultUrl);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `studio-video-${Date.now()}.mp4`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch {
+                  window.open(resultUrl, '_blank');
+                }
               }}
               className="flex items-center gap-1.5 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-white/[0.05] transition-colors"
             >

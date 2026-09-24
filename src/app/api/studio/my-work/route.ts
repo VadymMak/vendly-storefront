@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = req.nextUrl;
+  const id = searchParams.get('id');
+  if (!id) {
+    return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
+  }
+
+  const job = await db.studioJob.findFirst({
+    where: { id, userId: session.user.id },
+    select: { id: true },
+  });
+
+  if (!job) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  await db.studioJob.update({
+    where: { id },
+    data: { status: 'deleted' },
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {

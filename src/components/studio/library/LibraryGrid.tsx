@@ -17,6 +17,21 @@ interface WorkItem {
   createdAt: string;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function relativeDate(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+}
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 function IconGrid() {
@@ -80,13 +95,12 @@ function LibraryCard({
 
       {/* Prompt + meta */}
       <div className="p-3">
-        {item.prompt ? (
-          <p className="line-clamp-2 text-xs text-gray-400">{item.prompt}</p>
-        ) : (
-          <p className="line-clamp-1 text-xs font-medium capitalize text-gray-300">{label}</p>
+        <p className="line-clamp-1 text-xs font-medium capitalize text-gray-300">{label}</p>
+        {item.prompt && (
+          <p className="mt-0.5 line-clamp-2 text-xs text-gray-500">&ldquo;{item.prompt}&rdquo;</p>
         )}
         <p className="mt-0.5 text-xs text-gray-600">
-          {new Date(item.createdAt).toLocaleDateString()}
+          {relativeDate(item.createdAt)}
           {item.model && ` · ${item.model}`}
         </p>
 
@@ -132,12 +146,15 @@ export function LibraryGrid() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    fetch('/api/studio/my-work?limit=50')
-      .then(r => r.ok ? r.json() : { items: [] })
-      .then((data: { items: WorkItem[] }) => {
+    fetch('/api/studio/my-work?limit=30')
+      .then(r => r.ok ? r.json() : { items: [], nextCursor: null })
+      .then((data: { items: WorkItem[]; nextCursor: string | null }) => {
         setItems(data.items ?? []);
+        setNextCursor(data.nextCursor);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -148,16 +165,56 @@ export function LibraryGrid() {
     if (search) {
       const q = search.toLowerCase();
       if (
-        !item.prompt.toLowerCase().includes(q) &&
         !item.style.toLowerCase().includes(q) &&
-        !item.model.toLowerCase().includes(q)
+        !item.model.toLowerCase().includes(q) &&
+        !(item.prompt || '').toLowerCase().includes(q)
       ) return false;
     }
     return true;
   });
 
-  function handleDelete(id: string) {
+  async function handleFilterChange(newFilter: FilterType) {
+    setFilter(newFilter);
+    setLoaded(false);
+    try {
+      const typeParam = newFilter !== 'all' ? `&type=${newFilter}` : '';
+      const res = await fetch(`/api/studio/my-work?limit=30${typeParam}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json() as { items: WorkItem[]; nextCursor: string | null };
+      setItems(data.items ?? []);
+      setNextCursor(data.nextCursor);
+    } catch {
+      setItems([]);
+      setNextCursor(null);
+    } finally {
+      setLoaded(true);
+    }
+  }
+
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const typeParam = filter !== 'all' ? `&type=${filter}` : '';
+      const res = await fetch(`/api/studio/my-work?limit=30&cursor=${nextCursor}${typeParam}`);
+      if (!res.ok) return;
+      const data = await res.json() as { items: WorkItem[]; nextCursor: string | null };
+      setItems(prev => [...prev, ...(data.items ?? [])]);
+      setNextCursor(data.nextCursor);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
     setItems(prev => prev.filter(i => i.id !== id));
+    try {
+      await fetch(`/api/studio/my-work?id=${id}`, { method: 'DELETE' });
+    } catch {
+      // silently fail — item already removed from UI
+    }
   }
 
   function handleAnimate(item: WorkItem) {
@@ -232,14 +289,14 @@ export function LibraryGrid() {
       {/* Header */}
       <div className="flex-shrink-0 border-b border-white/10 p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-base font-semibold text-white">Library</h1>
+          <h1 className="text-base font-semibold text-white">My Work</h1>
 
           {/* Filter tabs */}
           <div className="flex gap-1">
             {(['all', 'image', 'video'] as const).map(f => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => handleFilterChange(f)}
                 className={[
                   'min-h-[36px] rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                   filter === f ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300',
@@ -255,7 +312,7 @@ export function LibraryGrid() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search style or model…"
+            placeholder="Search prompt, style or model…"
             className="ml-auto rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-white/20"
           />
         </div>
@@ -292,18 +349,32 @@ export function LibraryGrid() {
             )}
           </div>
         ) : (
-          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-            {filtered.map(item => (
-              <LibraryCard
-                key={item.id}
-                item={item}
-                onAnimate={() => handleAnimate(item)}
-                onAddToAssemble={() => handleAddToAssemble(item)}
-                onDownload={() => handleDownload(item)}
-                onDelete={() => handleDelete(item.id)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+              {filtered.map(item => (
+                <LibraryCard
+                  key={item.id}
+                  item={item}
+                  onAnimate={() => handleAnimate(item)}
+                  onAddToAssemble={() => handleAddToAssemble(item)}
+                  onDownload={() => handleDownload(item)}
+                  onDelete={() => handleDelete(item.id)}
+                />
+              ))}
+            </div>
+
+            {nextCursor && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="min-h-[44px] rounded-lg border border-white/10 bg-white/5 px-6 py-2.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load more'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

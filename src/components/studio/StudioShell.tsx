@@ -110,7 +110,7 @@ function IconAutoEdit() {
 
 const MAIN_NAV = [
   { href: '/studio',          label: 'Home',     Icon: IconHome },
-  { href: '/studio/library',  label: 'Library',  Icon: IconGrid },
+  { href: '/studio/library',  label: 'My Work',  Icon: IconGrid },
   { href: '/studio/assemble', label: 'Assemble', Icon: IconScissors },
 ] as const;
 

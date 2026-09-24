@@ -1103,6 +1103,8 @@ export function StudioHome({ userId: _userId }: Props) {
                         src={img.url}
                         className="aspect-square w-full object-cover"
                         muted loop playsInline
+                        preload="metadata"
+                        onError={e => { (e.target as HTMLVideoElement).closest('.group')?.classList.add('hidden'); }}
                         onMouseEnter={e => (e.target as HTMLVideoElement).play().catch(() => {})}
                         onMouseLeave={e => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
                       />

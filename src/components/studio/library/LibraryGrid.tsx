@@ -75,7 +75,7 @@ function LibraryCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.url} alt={item.prompt || label} className="w-full object-cover" loading="lazy" />
         ) : (
-          <video src={item.url} className="w-full object-cover" muted playsInline />
+          <video src={item.url} className="w-full object-cover" muted playsInline preload="metadata" />
         )}
 
         {/* Type badge */}

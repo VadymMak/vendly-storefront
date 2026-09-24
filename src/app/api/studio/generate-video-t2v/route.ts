@@ -11,6 +11,12 @@ import { GrokVideoProvider, FalKlingT2VProvider, VideoProviderError } from '@/li
 import { resolveTextToVideoRoute } from '@/lib/video/resolve-route';
 import type { VideoQualityTier } from '@/lib/video/resolve-route';
 
+/** Appended to every T2V prompt to prevent models from burning text/overlays into footage */
+const CLEAN_FOOTAGE_SUFFIX = ', clean source footage only, no readable text, no titles, no captions, no logos, no watermarks, no emojis, no graphic overlays';
+
+/** Kling negative prompt — uses fal.ai's native negative_prompt field */
+const KLING_NEGATIVE_PROMPT = 'text, readable words, letters, numbers, captions, subtitles, titles, slogans, logos, watermarks, emojis, stickers, graphic overlays, UI elements, borders';
+
 const schema = z.object({
   prompt:      z.string().min(1).max(1000),
   duration:    z.union([z.literal(5), z.literal(10), z.literal(15)]).default(10),
@@ -99,9 +105,10 @@ export async function POST(request: Request) {
 
       const provider = new FalKlingT2VProvider();
       const result   = await provider.createVideo({
-        prompt:      body.prompt,
-        duration:    body.duration,
-        aspectRatio: body.aspectRatio,
+        prompt:         body.prompt + CLEAN_FOOTAGE_SUFFIX,
+        duration:       body.duration,
+        aspectRatio:    body.aspectRatio,
+        negativePrompt: KLING_NEGATIVE_PROMPT,
       }, falKey);
 
       predictionId = `fal-t2v:${result.predictionId}`;
@@ -113,7 +120,7 @@ export async function POST(request: Request) {
 
       const provider = new GrokVideoProvider();
       const result   = await provider.createVideo({
-        prompt:      body.prompt,
+        prompt:      body.prompt + CLEAN_FOOTAGE_SUFFIX,
         duration:    body.duration,
         aspectRatio: body.aspectRatio,
       }, xaiKey);

@@ -169,8 +169,8 @@ export const VIDEO_STYLE_CHIPS = [
   },
   {
     id: 'social', label: 'Social Reel', icon: '📱',
-    promptSuffix:     'short-form social reel, immediate visual hook, bold vibrant color, dynamic motion, vertical mobile-first composition, engaging modern promotional energy',
-    bestPromptSuffix: 'short-form social reel, immediate visual hook, bold vibrant color, dynamic motion, vertical mobile-first composition, engaging modern promotional energy',
+    promptSuffix:     'vertical short-form video footage, one clear subject action, dynamic natural camera movement, vibrant modern color, clean uncluttered composition, fast visual pacing',
+    bestPromptSuffix: 'cinematic vertical short-form footage, dynamic natural camera movement, vibrant modern color, clean composition with open space for later editing, professional visual pacing',
     defaultQuality:   'quick' as const,
   },
   {
@@ -193,7 +193,7 @@ export const VIDEO_STYLE_CHIPS = [
   },
   {
     id: 'fitness', label: 'Fitness', icon: '🏋️',
-    promptSuffix:     'energetic fitness content, motivational atmosphere, dynamic movement, bold lighting, inspiring healthy lifestyle visuals',
+    promptSuffix:     'energetic fitness footage, motivational atmosphere, dynamic movement, bold lighting, inspiring healthy lifestyle visuals',
     bestPromptSuffix: 'cinematic fitness commercial, powerful athletic motion, motivational dramatic lighting, dynamic camera work, inspiring energy, professional sports production, 4K',
     defaultQuality:   'quick' as const,
   },

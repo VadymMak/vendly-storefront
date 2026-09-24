@@ -42,6 +42,7 @@ export function GenerateVideoEditor({
   const [aspectRatio, setAspectRatio] = useState<VideoAspectRatio>('16:9');
   const [status,      setStatus]      = useState<EditorStatus>('configuring');
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
+  const [jobId,       setJobId]       = useState<string | null>(null);
   const [error,       setError]       = useState<string | null>(null);
 
   // Auto-set default quality when style changes
@@ -82,7 +83,9 @@ export function GenerateVideoEditor({
         throw new Error(data.error ?? 'Failed to start video generation');
       }
 
-      const videoUrl = await pollJob(data.jobId!);
+      const currentJobId = data.jobId!;
+      setJobId(currentJobId);
+      const videoUrl = await pollJob(currentJobId);
       setResultUrl(videoUrl);
       setStatus('result-ready');
     } catch (e) {
@@ -233,7 +236,7 @@ export function GenerateVideoEditor({
       }}
       secondaryAction={status === 'result-ready' ? {
         label:   'Generate Again',
-        onClick: () => { setResultUrl(null); setStatus('configuring'); },
+        onClick: () => { setResultUrl(null); setJobId(null); setStatus('configuring'); },
       } : undefined}
       sidebar={sidebar}
     >
@@ -281,18 +284,9 @@ export function GenerateVideoEditor({
               className="w-full max-h-[70vh] rounded-xl border border-white/10 bg-black object-contain"
             />
             <button
-              onClick={async () => {
-                try {
-                  const res = await fetch(resultUrl);
-                  const blob = await res.blob();
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `studio-video-${Date.now()}.mp4`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                } catch {
-                  window.open(resultUrl, '_blank');
+              onClick={() => {
+                if (jobId) {
+                  window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(jobId)}`);
                 }
               }}
               className="flex items-center gap-1.5 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 hover:text-white hover:bg-white/[0.05] transition-colors"

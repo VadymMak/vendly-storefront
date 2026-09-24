@@ -1,0 +1,374 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { usePathname } from 'next/navigation';
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+
+function IconChat() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+      <path d="M8 10h.01M12 10h.01M16 10h.01" />
+    </svg>
+  );
+}
+
+function IconClose() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function IconSend() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function IconSparkle() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z" />
+    </svg>
+  );
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
+
+interface KbChatWidgetProps {
+  userId: string;
+}
+
+export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pathname = usePathname();
+
+  const [sessionId] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const key = 'kb-chat-session';
+    let id = sessionStorage.getItem(key);
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem(key, id);
+    }
+    return id;
+  });
+
+  const currentPage = pathname.split('/studio/')[1]?.split('/')[0] || 'home';
+
+  const transport = useMemo(
+    () => new DefaultChatTransport({
+      api: '/api/studio/kb-chat',
+      body: { sessionId },
+    }),
+    [sessionId],
+  );
+
+  const { messages, sendMessage, status, error, setMessages } = useChat({ transport });
+
+  const isLoading = status === 'submitted' || status === 'streaming';
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+
+  const handleSend = useCallback(() => {
+    const text = input.trim();
+    if (!text || isLoading) return;
+    sendMessage(
+      { text },
+      { body: { currentPage, language: typeof navigator !== 'undefined' ? navigator.language : 'en' } },
+    );
+    setInput('');
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
+  }, [input, isLoading, sendMessage, currentPage]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
+
+  const handleClearChat = useCallback(() => {
+    setMessages([]);
+    try { sessionStorage.removeItem('kb-chat-session'); } catch { /* ignored */ }
+  }, [setMessages]);
+
+  // ── Closed state ─────────────────────────────────────────────────────────
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white shadow-lg shadow-green-600/25 transition-all hover:bg-green-500 hover:shadow-green-500/30 hover:scale-105 active:scale-95"
+        aria-label="Open help chat"
+      >
+        <IconChat />
+      </button>
+    );
+  }
+
+  // ── Open state ───────────────────────────────────────────────────────────
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex h-[520px] w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0d0d14] shadow-2xl shadow-black/40 max-[440px]:bottom-0 max-[440px]:right-0 max-[440px]:h-full max-[440px]:w-full max-[440px]:rounded-none">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/10 bg-[#0a0a0f] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-600/20 text-green-400">
+            <IconSparkle />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">AI Help</h3>
+            <p className="text-[10px] text-gray-500">Ask about Studio features</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
+              aria-label="Clear chat"
+              title="New conversation"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
+            aria-label="Close chat"
+          >
+            <IconClose />
+          </button>
+        </div>
+      </div>
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        {/* Welcome screen */}
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-600/10 text-green-400 mb-3">
+              <IconSparkle />
+            </div>
+            <h4 className="text-sm font-medium text-white mb-1">How can I help?</h4>
+            <p className="text-xs text-gray-500 mb-4">
+              Ask about credits, tools, pricing, or troubleshooting
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {[
+                'How do credits work?',
+                'What tools are free?',
+                'How to remove background?',
+                'Compare plans',
+              ].map((q) => (
+                <button
+                  key={q}
+                  onClick={() => {
+                    sendMessage(
+                      { text: q },
+                      { body: { currentPage, language: typeof navigator !== 'undefined' ? navigator.language : 'en' } },
+                    );
+                  }}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-gray-300 transition-colors hover:border-green-500/30 hover:bg-green-500/10 hover:text-green-400"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Message bubbles */}
+        {messages.map((msg) => {
+          const text = msg.parts
+            .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+            .map(p => p.text)
+            .join('');
+
+          if (!text) return null;
+
+          return (
+            <div
+              key={msg.id}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-green-600 text-white rounded-br-md'
+                    : 'bg-white/[0.06] text-gray-200 rounded-bl-md'
+                }`}
+              >
+                {msg.role === 'assistant' ? (
+                  <div className="kb-chat-prose">
+                    <AssistantMessage content={text} />
+                  </div>
+                ) : (
+                  <span className="whitespace-pre-wrap">{text}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-white/[0.06] px-3.5 py-2.5 text-gray-400">
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-green-400 [animation-delay:0ms]" />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-green-400 [animation-delay:150ms]" />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-green-400 [animation-delay:300ms]" />
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-[13px] text-red-400">
+              Something went wrong.{' '}
+              <button
+                onClick={() => sendMessage()}
+                className="underline hover:text-red-300"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input area */}
+      <form
+        onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+        className="flex items-end gap-2 border-t border-white/10 bg-[#0a0a0f] px-3 py-2.5"
+      >
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask a question..."
+          rows={1}
+          className="flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white placeholder:text-gray-500 focus:border-green-500/50 focus:outline-none focus:ring-1 focus:ring-green-500/20 max-h-[80px] overflow-y-auto"
+          style={{ height: 'auto', minHeight: '36px' }}
+          onInput={(e) => {
+            const el = e.currentTarget;
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+          }}
+          disabled={isLoading}
+        />
+        <button
+          type="submit"
+          disabled={!input.trim() || isLoading}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-green-600 text-white transition-all hover:bg-green-500 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-green-600"
+          aria-label="Send message"
+        >
+          <IconSend />
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ── AssistantMessage — minimal markdown renderer ──────────────────────────────
+
+function AssistantMessage({ content }: { content: string }) {
+  const paragraphs = content.split(/\n\n+/);
+
+  return (
+    <>
+      {paragraphs.map((para, i) => {
+        const lines = para.split('\n');
+        const isList = lines.every(l => /^[\-\*]\s/.test(l.trim()) || l.trim() === '');
+
+        if (isList && lines.some(l => l.trim())) {
+          return (
+            <ul key={i} className="my-1 ml-3 list-disc space-y-0.5 text-[13px]">
+              {lines
+                .filter(l => l.trim())
+                .map((line, j) => (
+                  <li key={j}>
+                    <InlineMarkdown text={line.replace(/^[\-\*]\s*/, '')} />
+                  </li>
+                ))}
+            </ul>
+          );
+        }
+
+        const isNumbered = lines.every(l => /^\d+[\.\)]\s/.test(l.trim()) || l.trim() === '');
+        if (isNumbered && lines.some(l => l.trim())) {
+          return (
+            <ol key={i} className="my-1 ml-3 list-decimal space-y-0.5 text-[13px]">
+              {lines
+                .filter(l => l.trim())
+                .map((line, j) => (
+                  <li key={j}>
+                    <InlineMarkdown text={line.replace(/^\d+[\.\)]\s*/, '')} />
+                  </li>
+                ))}
+            </ol>
+          );
+        }
+
+        return (
+          <p key={i} className={i > 0 ? 'mt-2' : ''}>
+            <InlineMarkdown text={para} />
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
+function InlineMarkdown({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          return (
+            <code key={i} className="rounded bg-white/10 px-1 py-0.5 text-[12px] font-mono text-green-300">
+              {part.slice(1, -1)}
+            </code>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}

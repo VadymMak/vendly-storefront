@@ -1,4 +1,4 @@
-import { streamText, tool, isStepCount } from 'ai';
+import { streamText, tool, isStepCount, UIMessage, convertToModelMessages } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
@@ -26,8 +26,15 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
+function extractTextFromMessage(msg: UIMessage): string {
+  return msg.parts
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map(p => p.text)
+    .join('');
+}
+
 interface KbChatRequestBody {
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages: UIMessage[];
   sessionId: string;
   currentPage?: string;
   errorContext?: string;
@@ -58,8 +65,10 @@ export async function POST(req: NextRequest) {
     return new Response('No user message', { status: 400 });
   }
 
+  const lastUserText = extractTextFromMessage(lastUserMessage);
+
   await db.chatMessage.create({
-    data: { sessionId, userId, role: 'user', content: lastUserMessage.content },
+    data: { sessionId, userId, role: 'user', content: lastUserText },
   });
 
   const [credits, user, recentJobs, superuser] = await Promise.all([
@@ -204,10 +213,12 @@ ${userContextBlock}`;
     }),
   };
 
+  const modelMessages = await convertToModelMessages(messages);
+
   const result = streamText({
     model: openai('gpt-4o-mini'),
     system: systemPrompt,
-    messages,
+    messages: modelMessages,
     tools,
     stopWhen: isStepCount(3),
     temperature: 0.3,

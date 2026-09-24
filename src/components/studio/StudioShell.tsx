@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import CreditCounter from '@/components/studio/CreditCounter';
 import { SidebarProvider, useSidebarContext } from '@/components/studio/SidebarContext';
+import KbChatWidget from '@/components/studio/KbChatWidget';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -167,7 +168,7 @@ interface Props {
 
 // ── Inner shell (uses context) ────────────────────────────────────────────────
 
-function StudioShellInner({ userEmail, children }: { userEmail: string; children: React.ReactNode }) {
+function StudioShellInner({ userId, userEmail, children }: { userId: string; userEmail: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { expandedTool, setExpandedTool } = useSidebarContext();
@@ -240,6 +241,7 @@ function StudioShellInner({ userEmail, children }: { userEmail: string; children
   );
 
   return (
+    <>
     <div className="flex h-screen flex-col overflow-hidden bg-[#0a0a0f] text-white">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 flex h-12 flex-shrink-0 items-center justify-between border-b border-white/10 bg-[#0a0a0f]/90 px-4 backdrop-blur-md">
@@ -294,15 +296,17 @@ function StudioShellInner({ userEmail, children }: { userEmail: string; children
         </main>
       </div>
     </div>
+    <KbChatWidget userId={userId} />
+    </>
   );
 }
 
 // ── Public export ─────────────────────────────────────────────────────────────
 
-export function StudioShell({ userId: _userId, userEmail, children }: Props) {
+export function StudioShell({ userId, userEmail, children }: Props) {
   return (
     <SidebarProvider>
-      <StudioShellInner userEmail={userEmail}>
+      <StudioShellInner userId={userId} userEmail={userEmail}>
         {children}
       </StudioShellInner>
     </SidebarProvider>

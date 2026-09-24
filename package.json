@@ -15,11 +15,13 @@
     "ingest-kb": "npx tsx scripts/ingest-kb.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.74",
     "@anthropic-ai/sdk": "^0.90.0",
     "@fal-ai/client": "^1.10.1",
     "@prisma/client": "^6.19.2",
     "@sparticuz/chromium": "^147.0.0",
     "@vercel/blob": "^2.3.1",
+    "ai": "^7.0.113",
     "bcryptjs": "^3.0.3",
     "dcraw": "^1.0.3",
     "mp4-muxer": "^5.2.2",

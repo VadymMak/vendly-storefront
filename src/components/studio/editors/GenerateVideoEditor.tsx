@@ -44,6 +44,7 @@ export function GenerateVideoEditor({
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
   const [jobId,       setJobId]       = useState<string | null>(null);
   const [error,       setError]       = useState<string | null>(null);
+  const [tooltip,     setTooltip]     = useState<'quick' | 'best' | null>(null);
 
   // Auto-set default quality when style changes
   useEffect(() => {
@@ -134,34 +135,56 @@ export function GenerateVideoEditor({
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-gray-400">Quality</span>
         <div className="flex gap-2">
-          <button
-            disabled={status === 'processing'}
-            onClick={() => setQuality('quick')}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
-              quality === 'quick'
-                ? 'border-green-500/40 bg-green-500/10'
-                : 'border-white/10 hover:border-white/20'
-            }`}
-          >
-            <span className={`text-xs font-medium ${quality === 'quick' ? 'text-green-400' : 'text-white'}`}>
-              ⚡ Quick
-            </span>
-            <span className="text-[10px] text-gray-500">Fast, social-ready</span>
-          </button>
-          <button
-            disabled={status === 'processing'}
-            onClick={() => setQuality('best')}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
-              quality === 'best'
-                ? 'border-green-500/40 bg-green-500/10'
-                : 'border-white/10 hover:border-white/20'
-            }`}
-          >
-            <span className={`text-xs font-medium ${quality === 'best' ? 'text-green-400' : 'text-white'}`}>
-              ✨ Best quality
-            </span>
-            <span className="text-[10px] text-gray-500">Cinematic, commercial</span>
-          </button>
+          <div className="relative flex-1">
+            <button
+              disabled={status === 'processing'}
+              onClick={() => setQuality('quick')}
+              onMouseEnter={() => setTooltip('quick')}
+              onMouseLeave={() => setTooltip(null)}
+              className={`flex w-full flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
+                quality === 'quick'
+                  ? 'border-green-500/40 bg-green-500/10'
+                  : 'border-white/10 hover:border-white/20'
+              }`}
+            >
+              <span className={`text-xs font-medium ${quality === 'quick' ? 'text-green-400' : 'text-white'}`}>
+                ⚡ Quick
+              </span>
+              <span className="text-[10px] text-gray-500">Fast, social-ready</span>
+            </button>
+            {tooltip === 'quick' && (
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-200 shadow-lg ring-1 ring-white/10">
+                <p className="font-medium text-white">Grok Video — fast generation</p>
+                <p className="mt-0.5 text-gray-400">~30–60 sec · good for previews &amp; reels</p>
+                <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+              </div>
+            )}
+          </div>
+          <div className="relative flex-1">
+            <button
+              disabled={status === 'processing'}
+              onClick={() => setQuality('best')}
+              onMouseEnter={() => setTooltip('best')}
+              onMouseLeave={() => setTooltip(null)}
+              className={`flex w-full flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
+                quality === 'best'
+                  ? 'border-green-500/40 bg-green-500/10'
+                  : 'border-white/10 hover:border-white/20'
+              }`}
+            >
+              <span className={`text-xs font-medium ${quality === 'best' ? 'text-green-400' : 'text-white'}`}>
+                ✨ Best quality
+              </span>
+              <span className="text-[10px] text-gray-500">Cinematic, commercial</span>
+            </button>
+            {tooltip === 'best' && (
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-gray-200 shadow-lg ring-1 ring-white/10">
+                <p className="font-medium text-white">Kling v3.0 — premium quality</p>
+                <p className="mt-0.5 text-gray-400">~60–120 sec · cinematic, commercial-grade</p>
+                <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

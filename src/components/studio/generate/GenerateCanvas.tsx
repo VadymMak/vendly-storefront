@@ -15,7 +15,6 @@ import {
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
 import { type ModelTier } from '@/lib/studio/config';
-import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import { InpaintEditor } from '@/components/studio/editors/InpaintEditor';
 import { PlaceProductsEditor } from '@/components/studio/editors/PlaceProductsEditor';
@@ -550,7 +549,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       addImage(newImage);
-      saveToLibrary({ type: 'image', url: data.url, prompt: newImage.prompt ?? '', model: 'grok-edit', preset: 'product' });
       clearUpload();
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) {
@@ -633,7 +631,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       addImage(newImage);
-      saveToLibrary({ type: 'image', url, prompt: `[Generated] ${finalPrompt}`, model: modelLabel, provider: modelProvider, preset: 'product' });
 
       fetch('/api/studio/track-generation', {
         method: 'POST',
@@ -1330,7 +1327,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'grok-edit',
               createdAt: Date.now(),
             });
-            saveToLibrary({ type: 'image', url: resultUrl, prompt: '[Enhanced] Improve', model: 'grok-edit', preset: 'product' });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1405,7 +1401,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             };
             addImage(newVideo);
             setModalVideo(newVideo);
-            saveToLibrary({ type: 'video', url: resultVideoUrl, prompt, model: 'kling' });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}

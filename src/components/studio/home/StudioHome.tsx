@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback, useEffect, type ChangeEvent, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
-import { saveToLibrary } from '@/lib/studio/library-store';
 import {
   EXAMPLE_PROMPTS, SIZE_PRESETS, OUTPUT_FORMATS, STYLE_CHIPS,
   type OutputFormat, type SizePresetId, type StyleChipId,
@@ -385,14 +384,6 @@ export function StudioHome({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       addImage(newImage);
-      saveToLibrary({
-        type: 'image',
-        url,
-        prompt: newImage.prompt ?? '',
-        model: modelLabel,
-        provider: modelProvider,
-        preset: selectedSize,
-      });
 
       setLatestResult({
         url,
@@ -527,7 +518,6 @@ export function StudioHome({ userId: _userId }: Props) {
       model,
       createdAt: Date.now(),
     });
-    saveToLibrary({ type: 'image', url: resultUrl, prompt: resultPrompt, model, preset: 'product' });
     (window as unknown as Record<string, () => void>).__refreshCredits?.();
   }
 
@@ -1239,7 +1229,6 @@ export function StudioHome({ userId: _userId }: Props) {
             };
             addImage(newVideo);
             setModalVideo(newVideo);
-            saveToLibrary({ type: 'video', url: resultVideoUrl, prompt: videoPrompt, model: 'kling' });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1285,7 +1274,6 @@ export function StudioHome({ userId: _userId }: Props) {
             };
             addImage(newVideo);
             setModalVideo(newVideo);
-            saveToLibrary({ type: 'video', url: videoUrl, prompt: videoPrompt, model: 'grok-video' });
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setShowGenerateVideo(false)}

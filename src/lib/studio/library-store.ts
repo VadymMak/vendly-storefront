@@ -1,5 +1,5 @@
-// TODO: Replace localStorage with server-side DB once a generations table is created.
-// Blob URLs from /api/generate-image won't survive page refresh — remote URLs persist fine.
+// DEPRECATED: localStorage library replaced by /api/studio/my-work (StudioJob table).
+// These functions are kept to avoid breaking any remaining imports; remove once all callers are updated.
 
 export interface LibraryItem {
   id: string;

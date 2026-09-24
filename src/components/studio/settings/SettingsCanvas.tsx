@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { clearLibrary } from '@/lib/studio/library-store';
 import { PROVIDER_HELP, getProviderHelp } from '@/lib/studio/provider-help';
 import { ProviderHelpTooltip } from './ProviderHelpTooltip';
 
@@ -25,7 +24,6 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
   const [hints, setHints]               = useState<Record<string, string>>({});
   const [isSaving, setIsSaving]         = useState(false);
   const [saveMsg, setSaveMsg]           = useState<{ ok: boolean; text: string } | null>(null);
-  const [libraryCleared, setLibraryCleared] = useState(false);
   const [apiKeysOpen, setApiKeysOpen]   = useState(false);
 
   useEffect(() => {
@@ -75,12 +73,6 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
       setIsSaving(false);
       setTimeout(() => setSaveMsg(null), 4000);
     }
-  }
-
-  function handleClearLibrary() {
-    clearLibrary();
-    setLibraryCleared(true);
-    setTimeout(() => setLibraryCleared(false), 3000);
   }
 
   const isPaid = planType === 'starter' || planType === 'pro';
@@ -365,24 +357,6 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
           </section>
         )}
 
-        {/* Data */}
-        <section className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">Data</h2>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-gray-300">Clear Library</p>
-                <p className="text-xs text-gray-500">Remove all generation history from this device</p>
-              </div>
-              <button
-                onClick={handleClearLibrary}
-                className="min-h-[44px] rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
-              >
-                {libraryCleared ? '✓ Cleared' : 'Clear library'}
-              </button>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

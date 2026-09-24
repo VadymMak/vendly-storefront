@@ -2,10 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getLibraryItems, removeLibraryItem, type LibraryItem } from '@/lib/studio/library-store';
 import { useStudioStore } from '@/lib/studio/store';
 
 type FilterType = 'all' | 'image' | 'video';
+
+interface WorkItem {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  model: string;
+  style: string;
+  operation: string;
+  createdAt: string;
+}
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -35,19 +44,20 @@ function LibraryCard({
   onDownload,
   onDelete,
 }: {
-  item: LibraryItem;
+  item: WorkItem;
   onAnimate: () => void;
   onAddToAssemble: () => void;
   onDownload: () => void;
   onDelete: () => void;
 }) {
+  const label = item.style || item.operation || item.type;
   return (
     <div className="mb-4 break-inside-avoid overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-colors hover:border-white/20">
       {/* Media */}
       <div className="relative overflow-hidden">
         {item.type === 'image' ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.url} alt={item.prompt} className="w-full object-cover" loading="lazy" />
+          <img src={item.url} alt={label} className="w-full object-cover" loading="lazy" />
         ) : (
           <video src={item.url} className="w-full object-cover" muted playsInline />
         )}
@@ -67,15 +77,15 @@ function LibraryCard({
         </button>
       </div>
 
-      {/* Prompt + meta */}
+      {/* Style + meta */}
       <div className="p-3">
-        <p className="line-clamp-2 text-xs text-gray-400">{item.prompt}</p>
-        <p className="mt-1 text-xs text-gray-600">
+        <p className="line-clamp-1 text-xs font-medium capitalize text-gray-300">{label}</p>
+        <p className="mt-0.5 text-xs text-gray-600">
           {new Date(item.createdAt).toLocaleDateString()}
-          {item.model && ` · Flux ${item.model}`}
+          {item.model && ` · ${item.model}`}
         </p>
 
-        {/* Action buttons — always visible (no hover-only for mobile accessibility) */}
+        {/* Action buttons */}
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {item.type === 'image' && (
             <button
@@ -113,33 +123,40 @@ function LibraryCard({
 
 export function LibraryGrid() {
   const router = useRouter();
-  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [items, setItems] = useState<WorkItem[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setItems(getLibraryItems());
-    setLoaded(true);
+    fetch('/api/studio/my-work?limit=50')
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then((data: { items: WorkItem[] }) => {
+        setItems(data.items ?? []);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
   }, []);
 
   const filtered = items.filter(item => {
     if (filter !== 'all' && item.type !== filter) return false;
-    if (search && !item.prompt.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!item.style.toLowerCase().includes(q) && !item.model.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
   function handleDelete(id: string) {
-    removeLibraryItem(id);
     setItems(prev => prev.filter(i => i.id !== id));
   }
 
-  function handleAnimate(item: LibraryItem) {
+  function handleAnimate(item: WorkItem) {
     if (item.type !== 'image') return;
-    router.push(`/studio/animate?image=${encodeURIComponent(item.url)}&prompt=${encodeURIComponent(item.prompt)}`);
+    router.push(`/studio/animate?image=${encodeURIComponent(item.url)}&prompt=`);
   }
 
-  function handleAddToAssemble(item: LibraryItem) {
+  function handleAddToAssemble(item: WorkItem) {
     const store = useStudioStore.getState();
     store.initDefaultTracks();
     const vt = useStudioStore.getState().timelineTracks.find(t => t.type === 'video');
@@ -152,18 +169,22 @@ export function LibraryGrid() {
         startTime,
         duration: item.type === 'video' ? 5 : 3,
         sourceUrl: item.url,
-        prompt: item.prompt,
+        prompt: '',
       });
     }
     router.push('/studio/assemble');
   }
 
-  async function handleDownload(item: LibraryItem) {
+  async function handleDownload(item: WorkItem) {
     const ext = item.type === 'video' ? 'mp4' : 'webp';
     const filename = `studio-${item.type}-${Date.now()}.${ext}`;
     try {
-      let blob: Blob;
+      if (item.type === 'video') {
+        window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(item.id)}`);
+        return;
+      }
 
+      let blob: Blob;
       if (item.url.startsWith('blob:')) {
         const res = await fetch(item.url);
         blob = await res.blob();
@@ -194,7 +215,6 @@ export function LibraryGrid() {
       setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     } catch (err) {
       console.error('[download]', err);
-      if (item.type === 'video') window.open(item.url, '_blank');
     }
   }
 
@@ -226,7 +246,7 @@ export function LibraryGrid() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search prompts…"
+            placeholder="Search style or model…"
             className="ml-auto rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-white/20"
           />
         </div>

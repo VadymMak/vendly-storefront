@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, type ChangeEvent, type DragEvent, type Key
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { VideoSkill } from '@/lib/types';
 import UpgradeModal from '@/components/studio/UpgradeModal';
-import { saveToLibrary } from '@/lib/studio/library-store';
 import { useStudioStore } from '@/lib/studio/store';
 import { AccordionSection } from '@/components/studio/AccordionSection';
 
@@ -301,7 +300,6 @@ export function AnimateCanvas({ userId: _userId }: Props) {
 
       if (resultUrl) {
         setVideoUrl(resultUrl);
-        saveToLibrary({ type: 'video', url: resultUrl, prompt: motionPrompt });
         addVideo({
           id: `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           type: 'video',

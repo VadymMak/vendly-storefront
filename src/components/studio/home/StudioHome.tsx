@@ -437,6 +437,7 @@ export function StudioHome({ userId: _userId }: Props) {
             id: string;
             type: 'image' | 'video';
             url: string;
+            prompt?: string;
             model?: string;
             style?: string;
             operation?: string;
@@ -449,6 +450,7 @@ export function StudioHome({ userId: _userId }: Props) {
             id:        item.id,
             type:      item.type,
             url:       item.url,
+            prompt:    item.prompt ?? '',
             model:     item.model,
             createdAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
           });

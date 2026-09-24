@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
+import { createJob } from '@/lib/studio-jobs';
+import { db } from '@/lib/db';
 
 export const maxDuration = 60;
 
@@ -69,6 +71,22 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[remove-bg] Done:', finalBlob.url);
+    const capturedUrl = finalBlob.url;
+    createJob({
+      userId:       session.user.id,
+      predictionId: `remove-bg:${Date.now()}`,
+      type:         'remove-bg',
+      creditType:   'image',
+      creditAmount: 1,
+      metadata:     { modelUsed: 'remove-bg', provider: 'replicate' },
+    }).then(async (jobId) => {
+      await db.studioJob.update({
+        where: { id: jobId },
+        data:  { status: 'succeeded', outputUrl: capturedUrl },
+      });
+    }).catch((err) => {
+      console.error('[remove-bg] Failed to save to StudioJob:', err);
+    });
     return NextResponse.json({ url: finalBlob.url });
   } catch (error) {
     console.error('[remove-bg] Error:', error);

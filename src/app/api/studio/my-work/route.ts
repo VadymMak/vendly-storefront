@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       id:        job.id,
       type:      isVideo ? 'video' as const : 'image' as const,
       url:       job.outputUrl!,
+      prompt:    (meta.prompt as string) ?? '',
       model:     (meta.modelUsed as string) ?? '',
       style:     (meta.style as string) ?? '',
       operation: job.type,

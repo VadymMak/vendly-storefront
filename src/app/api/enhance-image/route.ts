@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
+import { createJob } from '@/lib/studio-jobs';
 import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
@@ -132,6 +133,21 @@ export async function POST(req: Request) {
         await deductCredit(session.user.id, 'image');
       }
 
+      const capturedSupirUrl = blob.url;
+      createJob({
+        userId:       session.user.id,
+        predictionId: `supir:${Date.now()}`,
+        type:         'upscale',
+        creditType:   'image',
+        creditAmount: 1,
+        metadata:     { modelUsed: 'topazlabs/image-upscale', provider: 'replicate' },
+      }).then(async (jobId) => {
+        await db.studioJob.update({
+          where: { id: jobId },
+          data:  { status: 'succeeded', outputUrl: capturedSupirUrl },
+        });
+      }).catch((err) => { console.error('[enhance-image supir] StudioJob save failed:', err); });
+
       return NextResponse.json({ url: blob.url });
     } catch (err) {
       console.error('[enhance-image supir]', err);
@@ -186,6 +202,21 @@ export async function POST(req: Request) {
     if (!creditCheck.byok) {
       await deductCredit(session.user.id, 'image');
     }
+
+    const capturedUrl = blob.url;
+    createJob({
+      userId:       session.user.id,
+      predictionId: `upscale:${Date.now()}`,
+      type:         'upscale',
+      creditType:   'image',
+      creditAmount: 1,
+      metadata:     { modelUsed: 'nightmareai/real-esrgan', provider: 'replicate' },
+    }).then(async (jobId) => {
+      await db.studioJob.update({
+        where: { id: jobId },
+        data:  { status: 'succeeded', outputUrl: capturedUrl },
+      });
+    }).catch((err) => { console.error('[enhance-image] StudioJob save failed:', err); });
 
     return NextResponse.json({ url: blob.url });
   } catch (err) {

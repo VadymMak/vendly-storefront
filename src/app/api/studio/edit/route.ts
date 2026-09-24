@@ -9,6 +9,8 @@ import { getModel } from '@/lib/studio/config';
 import { getProvider } from '@/lib/studio/providers';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
+import { createJob } from '@/lib/studio-jobs';
+import { db } from '@/lib/db';
 
 export const maxDuration = 60;
 
@@ -116,6 +118,27 @@ export async function POST(req: Request) {
       creditCost: model.byokOnly ? 0 : model.creditCost,
       byok:       model.byokOnly ?? (creditCheck.byok ?? false),
       metadata:   { promptLength: prompt.length },
+    });
+
+    const capturedUrl = result.url;
+    createJob({
+      userId:       session.user.id,
+      predictionId: `img:${modelAlias}:${Date.now()}`,
+      type:         'ai-edit',
+      creditType:   model.byokOnly ? undefined : 'image',
+      creditAmount: model.byokOnly ? 0 : model.creditCost,
+      metadata: {
+        prompt,
+        modelUsed: modelAlias,
+        provider:  model.provider,
+      },
+    }).then(async (jobId) => {
+      await db.studioJob.update({
+        where: { id: jobId },
+        data:  { status: 'succeeded', outputUrl: capturedUrl },
+      });
+    }).catch((err) => {
+      console.error('[studio/edit] Failed to save to StudioJob:', err);
     });
 
     return NextResponse.json({ url: result.url });

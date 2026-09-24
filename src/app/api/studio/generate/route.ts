@@ -8,6 +8,8 @@ import { getModel, LEGACY_GENERATE_ALIAS, TIER_ROUTES, MODEL_CATALOG, type Model
 import { getProvider } from '@/lib/studio/providers';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
+import { createJob } from '@/lib/studio-jobs';
+import { db } from '@/lib/db';
 
 export const maxDuration = 120;
 
@@ -226,7 +228,33 @@ export async function POST(request: Request) {
       response.headers.set('X-Model-Alias', alias);
       response.headers.set('X-Model-Provider', model.provider);
       response.headers.set('X-Model-Name', model.displayName);
-      response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name');
+      response.headers.set('X-Output-Url', result.url);
+      response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name, X-Output-Url');
+
+      // Fire-and-forget: persist to StudioJob so it appears in My Work
+      const capturedUrl = result.url;
+      createJob({
+        userId:       session.user.id,
+        predictionId: `img:${alias}:${Date.now()}`,
+        type:         'image',
+        creditType:   model.byokOnly ? undefined : 'image',
+        creditAmount: model.byokOnly ? 0 : model.creditCost,
+        metadata: {
+          prompt,
+          modelUsed:    alias,
+          provider:     model.provider,
+          aspect_ratio,
+          outputFormat,
+        },
+      }).then(async (jobId) => {
+        await db.studioJob.update({
+          where: { id: jobId },
+          data:  { status: 'succeeded', outputUrl: capturedUrl },
+        });
+      }).catch((err) => {
+        console.error('[studio/generate] Failed to save to StudioJob:', err);
+      });
+
       return response;
     } catch (err) {
       const durationMs = Date.now() - startTime;

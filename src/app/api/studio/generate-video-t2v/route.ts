@@ -135,6 +135,7 @@ export async function POST(request: Request) {
       creditType:   'video',
       creditAmount: route.creditCost,
       metadata: {
+        prompt:      body.prompt,
         qualityTier: route.qualityTier,
         routeReason: route.reason,
         modelUsed:   route.provider,

@@ -10,6 +10,7 @@ interface WorkItem {
   id: string;
   type: 'image' | 'video';
   url: string;
+  prompt: string;
   model: string;
   style: string;
   operation: string;
@@ -57,7 +58,7 @@ function LibraryCard({
       <div className="relative overflow-hidden">
         {item.type === 'image' ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.url} alt={label} className="w-full object-cover" loading="lazy" />
+          <img src={item.url} alt={item.prompt || label} className="w-full object-cover" loading="lazy" />
         ) : (
           <video src={item.url} className="w-full object-cover" muted playsInline />
         )}
@@ -77,9 +78,13 @@ function LibraryCard({
         </button>
       </div>
 
-      {/* Style + meta */}
+      {/* Prompt + meta */}
       <div className="p-3">
-        <p className="line-clamp-1 text-xs font-medium capitalize text-gray-300">{label}</p>
+        {item.prompt ? (
+          <p className="line-clamp-2 text-xs text-gray-400">{item.prompt}</p>
+        ) : (
+          <p className="line-clamp-1 text-xs font-medium capitalize text-gray-300">{label}</p>
+        )}
         <p className="mt-0.5 text-xs text-gray-600">
           {new Date(item.createdAt).toLocaleDateString()}
           {item.model && ` · ${item.model}`}
@@ -142,7 +147,11 @@ export function LibraryGrid() {
     if (filter !== 'all' && item.type !== filter) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!item.style.toLowerCase().includes(q) && !item.model.toLowerCase().includes(q)) return false;
+      if (
+        !item.prompt.toLowerCase().includes(q) &&
+        !item.style.toLowerCase().includes(q) &&
+        !item.model.toLowerCase().includes(q)
+      ) return false;
     }
     return true;
   });
@@ -153,7 +162,7 @@ export function LibraryGrid() {
 
   function handleAnimate(item: WorkItem) {
     if (item.type !== 'image') return;
-    router.push(`/studio/animate?image=${encodeURIComponent(item.url)}&prompt=`);
+    router.push(`/studio/animate?image=${encodeURIComponent(item.url)}&prompt=${encodeURIComponent(item.prompt)}`);
   }
 
   function handleAddToAssemble(item: WorkItem) {

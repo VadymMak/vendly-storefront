@@ -142,9 +142,6 @@ export function StudioHome({ userId: _userId }: Props) {
 
   const [showGenerateVideo, setShowGenerateVideo] = useState(false);
 
-  // Hero mode: image generation or video generation
-  const [heroMode, setHeroMode] = useState<'image' | 'video'>('image');
-
   // After upload in hero, show inline tool picker instead of defaulting to Improve
   const [uploadedFile, setUploadedFile] = useState<{ url: string; file: File } | null>(null);
 
@@ -271,7 +268,6 @@ export function StudioHome({ userId: _userId }: Props) {
 
   function handleQuickToolClick(toolId: QuickTool['id']) {
     if (toolId === 'generate-image') {
-      setHeroMode('image');
       setUploadedFile(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => {
@@ -281,13 +277,7 @@ export function StudioHome({ userId: _userId }: Props) {
       return;
     }
     if (toolId === 'generate-video') {
-      setHeroMode('video');
-      setUploadedFile(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(() => {
-        const textarea = document.querySelector<HTMLTextAreaElement>('textarea[placeholder*="Describe"]');
-        textarea?.focus();
-      }, 300);
+      setShowGenerateVideo(true);
       return;
     }
     // Image-based tool: set pending intent and scroll to upload zone
@@ -666,40 +656,15 @@ export function StudioHome({ userId: _userId }: Props) {
                   </h2>
                 </div>
 
-                {/* Image / Video toggle */}
-                <div className="flex rounded-lg bg-white/[0.03] border border-white/10 p-0.5">
-                  <button
-                    onClick={() => setHeroMode('image')}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      heroMode === 'image'
-                        ? 'bg-green-600/20 text-green-400 border border-green-500/30'
-                        : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    🖼️ Image
-                  </button>
-                  <button
-                    onClick={() => setHeroMode('video')}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      heroMode === 'video'
-                        ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30'
-                        : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    🎬 Video
-                  </button>
-                </div>
-
                 <textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && heroMode === 'image') { e.preventDefault(); void handleGenerate(); } }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleGenerate(); } }}
                   placeholder="Describe what you want to create..."
                   className="w-full h-24 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/40 transition-colors resize-none"
                 />
 
-                {/* Style chips — image mode only */}
-                {heroMode === 'image' && (
+                {/* Style chips */}
                 <div className="flex flex-wrap gap-1.5">
                   {STYLE_CHIPS.map(chip => (
                     <button
@@ -716,10 +681,8 @@ export function StudioHome({ userId: _userId }: Props) {
                     </button>
                   ))}
                 </div>
-                )}
 
-                {/* Quality tiers — image mode only */}
-                {heroMode === 'image' && (
+                {/* Quality tiers */}
                 <div className="flex gap-2">
                   {TIERS.map(tier => {
                     const locked = isFreePlan && tier.id !== 'fast';
@@ -750,11 +713,8 @@ export function StudioHome({ userId: _userId }: Props) {
                     );
                   })}
                 </div>
-                )}
 
-                {/* More options — image mode only */}
-                {heroMode === 'image' && (
-                <>
+                {/* More options */}
                 <button
                   onClick={() => setShowAdvanced(v => !v)}
                   className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
@@ -779,33 +739,18 @@ export function StudioHome({ userId: _userId }: Props) {
                     </select>
                   </div>
                 )}
-                </>
-                )}
 
-                {/* CTA button — switches between image and video mode */}
+                {/* Generate button */}
                 <div className="pt-1 border-t border-white/[0.06]">
-                  {heroMode === 'image' ? (
-                    <button
-                      onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
-                      disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
-                      className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                        noCreditsForImages ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      {noCreditsForImages ? 'No credits · Buy more' : <>Create image · {activeTierCredits} cr</>}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        if (!prompt.trim()) return;
-                        setShowGenerateVideo(true);
-                      }}
-                      disabled={!prompt.trim()}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Generate video · 8 cr
-                    </button>
-                  )}
+                  <button
+                    onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
+                    disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
+                    className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      noCreditsForImages ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {noCreditsForImages ? 'No credits · Buy more' : <>Create image · {activeTierCredits} cr</>}
+                  </button>
                 </div>
 
                 {/* Example prompts */}
@@ -1616,7 +1561,6 @@ export function StudioHome({ userId: _userId }: Props) {
 
       {showGenerateVideo && (
         <GenerateVideoEditor
-          initialPrompt={heroMode === 'video' ? prompt : undefined}
           hasVideoCredits={
             creditStatus
               ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||

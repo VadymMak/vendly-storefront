@@ -371,10 +371,12 @@ model KbChunk {
   content    String
   tokens     Int
   embedding  Unsupported("vector(1536)")
+  tsv        Unsupported("tsvector")?
   metadata   Json?
   createdAt  DateTime   @default(now())
 
   @@index([documentId])
+  @@index([tsv], map: "KbChunk_tsv_idx", type: Gin)
 }
 
 model ChatMessage {

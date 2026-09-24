@@ -425,9 +425,22 @@ export function StudioHome({ userId: _userId }: Props) {
   // ── Download helper ─────────────────────────────────────────────────────────
 
   function handleDownload(img: MediaItem) {
+    const ext = img.type === 'video' ? 'mp4' : (img.format ?? 'webp');
+    const filename = `studio-${img.type}-${Date.now()}.${ext}`;
+
+    // External video URLs need proxy to bypass CORS
+    if (img.type === 'video' && img.url && !img.url.startsWith('blob:') && !img.url.startsWith('/')) {
+      if (img.jobId) {
+        window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(img.jobId)}`);
+      } else {
+        window.location.assign(`/api/studio/proxy-image?url=${encodeURIComponent(img.url)}&download=${encodeURIComponent(filename)}`);
+      }
+      return;
+    }
+
     const a = document.createElement('a');
     a.href = img.url;
-    a.download = `studio-${img.type}-${Date.now()}.${img.format ?? 'webp'}`;
+    a.download = filename;
     a.click();
   }
 
@@ -1216,13 +1229,14 @@ export function StudioHome({ userId: _userId }: Props) {
             setCreditPackReason('video');
             setShowCreditPack(true);
           }}
-          onAccept={(videoUrl, videoPrompt) => {
+          onAccept={(videoUrl, videoPrompt, jobId) => {
             setShowGenerateVideo(false);
             const newVideo: MediaItem = {
               id:        `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               type:      'video',
               url:       videoUrl,
               prompt:    `[T2V] ${videoPrompt.slice(0, 100)}`,
+              jobId,
               createdAt: Date.now(),
             };
             addImage(newVideo);

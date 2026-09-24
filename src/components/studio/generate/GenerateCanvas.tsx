@@ -680,6 +680,17 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     const ext = img.type === 'video' ? 'mp4' : (img.format ?? 'webp');
     const filename = `studio-${Date.now()}.${ext}`;
 
+    // External video URLs — use server-side proxy to bypass CORS
+    if (img.type === 'video' && img.url && !img.url.startsWith('blob:') && !img.url.startsWith('/')) {
+      if (img.jobId) {
+        window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(img.jobId)}`);
+      } else {
+        const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}&download=${encodeURIComponent(filename)}`;
+        window.location.assign(proxyUrl);
+      }
+      return;
+    }
+
     try {
       let blob: Blob;
 
@@ -713,12 +724,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     } catch (err) {
       console.error('[download]', err instanceof Error ? err.message : err, 'url:', img.url);
-      if (img.type === 'video') {
-        setError('Download failed — try right-click → Save Video As on the player');
-        window.open(img.url, '_blank');
-      } else {
-        setError('Download failed — please try again');
-      }
+      setError('Download failed — please try again');
     }
   }
 

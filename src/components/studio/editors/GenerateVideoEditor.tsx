@@ -12,7 +12,7 @@ import type { VideoQualityTier } from '@/lib/video/resolve-route';
 const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'space', 'service', 'hospitality', 'fashion'];
 
 interface GenerateVideoEditorProps {
-  onAccept: (videoUrl: string, prompt: string) => void;
+  onAccept: (videoUrl: string, prompt: string, jobId: string) => void;
   onClose:  () => void;
   hasVideoCredits: boolean;
   onNeedCredits:   () => void;
@@ -232,7 +232,7 @@ export function GenerateVideoEditor({
         onClick:  () => void handleGenerate(),
       } : {
         label:   'Accept & Save',
-        onClick: () => { if (resultUrl) onAccept(resultUrl, prompt.trim()); },
+        onClick: () => { if (resultUrl && jobId) onAccept(resultUrl, prompt.trim(), jobId); },
       }}
       secondaryAction={status === 'result-ready' ? {
         label:   'Generate Again',

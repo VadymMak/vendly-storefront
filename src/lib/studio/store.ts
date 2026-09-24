@@ -12,6 +12,7 @@ export interface MediaItem {
   preset?: string;
   format?: string;
   duration?: number;
+  jobId?: string;
   createdAt: number;
 }
 

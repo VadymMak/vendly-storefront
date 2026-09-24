@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, type ChangeEvent, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
-import { saveToLibrary } from '@/lib/studio/library-store';
+import { saveToLibrary, getLibraryItems } from '@/lib/studio/library-store';
 import {
   EXAMPLE_PROMPTS, SIZE_PRESETS, OUTPUT_FORMATS, STYLE_CHIPS,
   type OutputFormat, type SizePresetId, type StyleChipId,
@@ -421,6 +421,26 @@ export function StudioHome({ userId: _userId }: Props) {
     const timer = setTimeout(() => setCreateSlow(true), 15_000);
     return () => clearTimeout(timer);
   }, [createView]);
+
+  // ── Load Recent Work from localStorage Library on mount ──────────────────────
+  useEffect(() => {
+    if (generatedImages.length > 0) return;
+    try {
+      const items = getLibraryItems();
+      if (!items.length) return;
+      for (const item of items.slice(0, 8).reverse()) {
+        addImage({
+          id:        item.id,
+          type:      item.type,
+          url:       item.url,
+          prompt:    item.prompt,
+          model:     item.model,
+          preset:    item.preset,
+          createdAt: item.createdAt,
+        });
+      }
+    } catch { /* localStorage unavailable */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Download helper ─────────────────────────────────────────────────────────
 
@@ -1109,7 +1129,11 @@ export function StudioHome({ userId: _userId }: Props) {
           videoUrl={modalVideo.url}
           prompt={modalVideo.prompt}
           aspectRatio={SIZE_PRESETS.find(s => s.id === modalVideo.preset)?.aspect_ratio}
-          onClose={() => setModalVideo(null)}
+          onClose={() => {
+            const wasT2V = modalVideo.prompt?.startsWith('[T2V]');
+            setModalVideo(null);
+            if (wasT2V) setShowGenerateVideo(true);
+          }}
           onRegenerate={() => {
             setModalVideo(null);
             if (modalVideo.prompt?.startsWith('[T2V]')) {

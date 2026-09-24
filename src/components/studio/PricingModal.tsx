@@ -16,11 +16,11 @@ function getPlanDisplay(key: PlanKey) {
   switch (key) {
     case 'starter': return {
       name: 'Starter', price: 9,
-      features: ['100 images/month', '5 videos/month', 'Best & HD quality tiers', 'Own API keys supported'],
+      features: ['100 images/month', '20 video credits/month', 'Best & HD quality tiers', 'Own API keys supported'],
     };
     case 'pro': return {
       name: 'Pro', price: 19,
-      features: ['300 images/month', '15 videos/month', 'Best & HD quality tiers', 'Priority generation queue', 'Own API keys supported'],
+      features: ['300 images/month', '60 video credits/month', 'Best & HD quality tiers', 'Priority generation queue', 'Own API keys supported'],
     };
     case 'byok_creator': return {
       name: 'BYOK Creator', price: 7,

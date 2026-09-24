@@ -57,7 +57,7 @@ interface PlanRow {
 
 const PLAN_ROWS: PlanRow[] = [
   { labelKey: 'imagesMonth',    free: '5',              starter: '50',           pro: '150' },
-  { labelKey: 'videosMonth',    free: '1 (5s only)',    starter: '3',            pro: '8' },
+  { labelKey: 'videosMonth',    free: '0',              starter: '20 credits',   pro: '60 credits' },
   { labelKey: 'video10s',       free: false,            starter: '2 credits',    pro: '2 credits' },
   { labelKey: 'allTools',       free: true,             starter: true,           pro: true },
   { labelKey: 'promptEnhance',  free: true,             starter: true,           pro: true },

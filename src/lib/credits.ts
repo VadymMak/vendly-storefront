@@ -3,8 +3,8 @@ import { db } from "@/lib/db";
 // Credit allowances per plan (monthly reset values)
 export const PLAN_CREDITS = {
   free:         { images: 15,  videos: 0  },
-  starter:      { images: 100, videos: 5  },
-  pro:          { images: 300, videos: 15 },
+  starter:      { images: 100, videos: 20 },
+  pro:          { images: 300, videos: 60 },
   byok_creator: { images: 0,   videos: 0  },
 } as const;
 
@@ -275,14 +275,14 @@ export const SUBSCRIPTION_PLANS = {
     price: 9,
     priceId: process.env.STRIPE_PRICE_STARTER!,
     credits: PLAN_CREDITS.starter,
-    features: ['100 images/month', '5 videos/month', 'Best & HD quality', 'Own API keys'],
+    features: ['100 images/month', '20 video credits/month', 'Best & HD quality', 'Own API keys'],
   },
   pro: {
     name: 'Pro',
     price: 19,
     priceId: process.env.STRIPE_PRICE_PRO!,
     credits: PLAN_CREDITS.pro,
-    features: ['300 images/month', '15 videos/month', 'Best & HD quality', 'Priority queue', 'Own API keys'],
+    features: ['300 images/month', '60 video credits/month', 'Best & HD quality', 'Priority queue', 'Own API keys'],
   },
   byok_creator: {
     name: 'BYOK Creator',

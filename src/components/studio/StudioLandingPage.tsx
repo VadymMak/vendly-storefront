@@ -138,7 +138,7 @@ type PlanRow = { label: string; free: string | boolean; starter: string | boolea
 
 const PLAN_ROWS: PlanRow[] = [
   { label: 'imagesMonth',     free: '5',          starter: '50',          pro: '150' },
-  { label: 'videosMonth',     free: '1',          starter: '3',           pro: '8' },
+  { label: 'videosMonth',     free: '0',          starter: '20 credits',  pro: '60 credits' },
   { label: 'video10s',        free: false,         starter: true,          pro: true },
   { label: 'allTools',        free: true,          starter: true,          pro: true },
   { label: 'creditPacks',     free: true,          starter: true,          pro: true },

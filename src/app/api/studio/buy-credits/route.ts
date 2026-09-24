@@ -6,14 +6,14 @@ import { stripe } from '@/lib/stripe';
 export const CREDIT_PACKS = {
   pack_s: {
     name:        'Credit Pack S',
-    description: '120 images + 5 videos',
+    description: '120 images + 20 video credits',
     price:       1200, // €12.00 in cents
     images:      120,
     videos:      5,
   },
   pack_l: {
     name:        'Credit Pack L',
-    description: '350 images + 15 videos',
+    description: '350 images + 60 video credits',
     price:       2900, // €29.00 in cents
     images:      350,
     videos:      15,

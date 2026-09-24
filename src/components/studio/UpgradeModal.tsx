@@ -64,7 +64,7 @@ export default function UpgradeModal({ isOpen, onClose, type = 'general' }: Upgr
           >
             <div>
               <div className="font-semibold text-gray-900 dark:text-white">Credit Pack S</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">120 images + 5 videos</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">120 images + 20 video credits</div>
               <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Credits never expire</div>
             </div>
             <div className="text-lg font-bold text-green-600">
@@ -82,7 +82,7 @@ export default function UpgradeModal({ isOpen, onClose, type = 'general' }: Upgr
             </span>
             <div>
               <div className="font-semibold text-gray-900 dark:text-white">Credit Pack L</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">350 images + 15 videos</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">350 images + 60 video credits</div>
               <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Credits never expire</div>
             </div>
             <div className="text-lg font-bold text-green-600">

@@ -1,4 +1,5 @@
 import { FalKlingProvider } from './fal-kling-provider';
+import { FalKlingT2VProvider } from './fal-kling-t2v-provider';
 import { KlingProvider } from './kling-provider';
 import { KlingDirectProvider } from './kling-direct-provider';
 import { WanProvider } from './wan-provider';
@@ -7,6 +8,7 @@ import type { VideoProvider } from './provider';
 
 export * from './provider';
 export { FalKlingProvider } from './fal-kling-provider';
+export { FalKlingT2VProvider } from './fal-kling-t2v-provider';
 export { KlingProvider } from './kling-provider';
 export { KlingDirectProvider } from './kling-direct-provider';
 export { WanProvider } from './wan-provider';

@@ -149,19 +149,44 @@ export type SizePresetId = typeof SIZE_PRESETS[number]['id'];
 // ── Video generation constants ───────────────────────────────────────────────
 
 export const VIDEO_STYLE_CHIPS = [
-  { id: 'product',  label: 'Product',  icon: '📦', promptSuffix: 'professional product video, clean studio lighting, sharp details, commercial e-commerce quality' },
-  { id: 'food',     label: 'Food',     icon: '🍽️', promptSuffix: 'food videography, warm lighting, rich saturated colors, shallow depth of field, appetizing' },
-  { id: 'beauty',   label: 'Beauty',   icon: '💅', promptSuffix: 'beauty and wellness video, soft flattering lighting, elegant composition, spa atmosphere' },
-  { id: 'social',   label: 'Social',   icon: '📱', promptSuffix: 'social media content, vibrant colors, eye-catching composition, trending aesthetic' },
-  { id: 'interior', label: 'Interior', icon: '🏠', promptSuffix: 'interior walkthrough, bright well-lit space, wide angle, inviting atmosphere, architectural detail' },
+  {
+    id: 'product', label: 'Product', icon: '📦',
+    promptSuffix:     'professional product video, clean studio lighting, sharp details, commercial e-commerce quality',
+    bestPromptSuffix: 'cinematic product videography, ultra-realistic studio lighting, precise product geometry, smooth controlled camera motion, commercial 4K quality',
+    defaultQuality:   'best' as const,
+  },
+  {
+    id: 'food', label: 'Food', icon: '🍽️',
+    promptSuffix:     'food videography, warm lighting, rich saturated colors, shallow depth of field, appetizing',
+    bestPromptSuffix: 'cinematic food photography, warm ambient lighting, rich saturated colors, extreme shallow depth of field, appetizing texture detail, steam and movement, 4K',
+    defaultQuality:   'best' as const,
+  },
+  {
+    id: 'beauty', label: 'Beauty', icon: '💅',
+    promptSuffix:     'beauty and wellness video, soft flattering lighting, elegant composition, spa atmosphere',
+    bestPromptSuffix: 'luxury beauty commercial, soft flattering lighting, elegant smooth motion, premium skin texture detail, cinematic close-ups, 4K',
+    defaultQuality:   'best' as const,
+  },
+  {
+    id: 'social', label: 'Social', icon: '📱',
+    promptSuffix:     'social media content, vibrant colors, eye-catching composition, trending aesthetic, dynamic energy',
+    bestPromptSuffix: 'social media content, vibrant colors, eye-catching composition, trending aesthetic, dynamic energy',
+    defaultQuality:   'quick' as const,
+  },
+  {
+    id: 'interior', label: 'Interior', icon: '🏠',
+    promptSuffix:     'interior walkthrough, bright well-lit space, wide angle, inviting atmosphere, architectural detail',
+    bestPromptSuffix: 'cinematic interior walkthrough, smooth steadicam movement, natural sunlight, realistic depth and scale, architectural coherence, 4K',
+    defaultQuality:   'best' as const,
+  },
 ] as const;
 
 export type VideoStyleChipId = typeof VIDEO_STYLE_CHIPS[number]['id'];
 
 export const VIDEO_DURATIONS = [
-  { seconds: 5  as const, label: '5s Quick',   credits: 8,  eta: '~30s gen' },
-  { seconds: 10 as const, label: '10s Social',  credits: 16, eta: '~60s gen' },
-  { seconds: 15 as const, label: '15s Premium', credits: 25, eta: '~90s gen' },
+  { seconds: 5  as const, label: '5s',  quickCredits: 4,  bestCredits: 10, eta: '~30s' },
+  { seconds: 10 as const, label: '10s', quickCredits: 8,  bestCredits: 18, eta: '~60s' },
+  { seconds: 15 as const, label: '15s', quickCredits: 12, bestCredits: 28, eta: '~90s' },
 ] as const;
 
 export type VideoDurationValue = (typeof VIDEO_DURATIONS)[number]['seconds'];

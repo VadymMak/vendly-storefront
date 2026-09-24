@@ -8,7 +8,7 @@
  * Select the active provider with the VIDEO_PROVIDER env var — see ./index.ts.
  */
 
-export type VideoProviderName = 'fal' | 'kling' | 'kling-direct' | 'wan';
+export type VideoProviderName = 'fal' | 'fal-t2v' | 'kling' | 'kling-direct' | 'wan';
 
 /** Camera motion vocabulary — provider-agnostic. */
 export const VALID_CAMERA_TYPES = [

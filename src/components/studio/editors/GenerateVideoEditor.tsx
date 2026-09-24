@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import {
   VIDEO_STYLE_CHIPS, VIDEO_DURATIONS, VIDEO_ASPECT_RATIOS,
   type VideoStyleChipId, type VideoDurationValue, type VideoAspectRatio,
 } from '@/lib/studio/constants';
+import type { VideoQualityTier } from '@/lib/video/resolve-route';
+
+const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'interior'];
 
 interface GenerateVideoEditorProps {
   onAccept: (videoUrl: string, prompt: string) => void;
@@ -19,7 +22,7 @@ async function pollJob(jobId: string, timeoutMs = 600_000): Promise<string> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, 4000));
-    const res = await fetch(`/api/studio/job/${jobId}`);
+    const res  = await fetch(`/api/studio/job/${jobId}`);
     const data = await res.json() as { status: string; outputUrl?: string; error?: string };
     if (data.status === 'succeeded' && data.outputUrl) return data.outputUrl;
     if (data.status === 'failed' || data.status === 'canceled') {
@@ -34,32 +37,43 @@ export function GenerateVideoEditor({
 }: GenerateVideoEditorProps) {
   const [prompt,      setPrompt]      = useState('');
   const [style,       setStyle]       = useState<VideoStyleChipId>('product');
+  const [quality,     setQuality]     = useState<VideoQualityTier>('best');
   const [duration,    setDuration]    = useState<VideoDurationValue>(10);
   const [aspectRatio, setAspectRatio] = useState<VideoAspectRatio>('16:9');
   const [status,      setStatus]      = useState<EditorStatus>('configuring');
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
   const [error,       setError]       = useState<string | null>(null);
 
-  const creditCost = VIDEO_DURATIONS.find(d => d.seconds === duration)?.credits ?? 8;
+  // Auto-set default quality when style changes
+  useEffect(() => {
+    const chip = VIDEO_STYLE_CHIPS.find(s => s.id === style);
+    if (chip?.defaultQuality) setQuality(chip.defaultQuality);
+  }, [style]);
+
+  const durObj    = VIDEO_DURATIONS.find(d => d.seconds === duration);
+  const creditCost = quality === 'best'
+    ? (durObj?.bestCredits  ?? 10)
+    : (durObj?.quickCredits ?? 4);
 
   async function handleGenerate() {
     if (!hasVideoCredits) { onNeedCredits(); return; }
     const trimmed = prompt.trim();
     if (!trimmed) return;
 
-    const styleChip = VIDEO_STYLE_CHIPS.find(s => s.id === style);
-    const finalPrompt = styleChip?.promptSuffix
-      ? `${trimmed}, ${styleChip.promptSuffix}`
-      : trimmed;
+    const styleChip  = VIDEO_STYLE_CHIPS.find(s => s.id === style);
+    const suffix     = quality === 'best' && styleChip?.bestPromptSuffix
+      ? styleChip.bestPromptSuffix
+      : (styleChip?.promptSuffix ?? '');
+    const finalPrompt = suffix ? `${trimmed}, ${suffix}` : trimmed;
 
     setStatus('processing');
     setError(null);
 
     try {
       const res = await fetch('/api/studio/generate-video-t2v', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, duration: duration, aspectRatio }),
+        body:    JSON.stringify({ prompt: finalPrompt, duration, aspectRatio, style, quality }),
       });
 
       const data = await res.json() as { jobId?: string; error?: string; needsUpgrade?: boolean };
@@ -113,27 +127,65 @@ export function GenerateVideoEditor({
         </div>
       </div>
 
+      {/* Quality toggle */}
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-gray-400">Quality</span>
+        <div className="flex gap-2">
+          <button
+            disabled={status === 'processing'}
+            onClick={() => setQuality('quick')}
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
+              quality === 'quick'
+                ? 'border-green-500/40 bg-green-500/10'
+                : 'border-white/10 hover:border-white/20'
+            }`}
+          >
+            <span className={`text-xs font-medium ${quality === 'quick' ? 'text-green-400' : 'text-white'}`}>
+              ⚡ Quick
+            </span>
+            <span className="text-[10px] text-gray-500">Fast, social-ready</span>
+          </button>
+          <button
+            disabled={status === 'processing'}
+            onClick={() => setQuality('best')}
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
+              quality === 'best'
+                ? 'border-green-500/40 bg-green-500/10'
+                : 'border-white/10 hover:border-white/20'
+            }`}
+          >
+            <span className={`text-xs font-medium ${quality === 'best' ? 'text-green-400' : 'text-white'}`}>
+              ✨ Best quality
+            </span>
+            <span className="text-[10px] text-gray-500">Cinematic, commercial</span>
+          </button>
+        </div>
+      </div>
+
       {/* Duration */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-gray-400">Duration</span>
         <div className="flex gap-2">
-          {VIDEO_DURATIONS.map(d => (
-            <button
-              key={d.seconds}
-              disabled={status === 'processing'}
-              onClick={() => setDuration(d.seconds)}
-              className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
-                duration === d.seconds
-                  ? 'border-green-500/40 bg-green-500/10'
-                  : 'border-white/10 hover:border-white/20'
-              }`}
-            >
-              <span className={`block text-xs font-medium ${duration === d.seconds ? 'text-green-400' : 'text-white'}`}>
-                {d.label}
-              </span>
-              <span className="text-[10px] text-gray-500 opacity-60">{d.credits} cr · {d.eta}</span>
-            </button>
-          ))}
+          {VIDEO_DURATIONS.map(d => {
+            const dCredits = quality === 'best' ? d.bestCredits : d.quickCredits;
+            return (
+              <button
+                key={d.seconds}
+                disabled={status === 'processing'}
+                onClick={() => setDuration(d.seconds)}
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all disabled:opacity-50 ${
+                  duration === d.seconds
+                    ? 'border-green-500/40 bg-green-500/10'
+                    : 'border-white/10 hover:border-white/20'
+                }`}
+              >
+                <span className={`block text-xs font-medium ${duration === d.seconds ? 'text-green-400' : 'text-white'}`}>
+                  {d.label}
+                </span>
+                <span className="text-[10px] text-gray-500 opacity-60">{dCredits} cr · {d.eta}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -171,7 +223,7 @@ export function GenerateVideoEditor({
       onBack={onClose}
       error={error ?? undefined}
       primaryAction={status !== 'result-ready' ? {
-        label:    status === 'processing' ? 'Generating…' : `Generate · ${creditCost} cr`,
+        label:    status === 'processing' ? 'Generating…' : `Generate ${quality === 'best' ? '✨ Best' : '⚡ Quick'} · ${creditCost} cr`,
         loading:  status === 'processing',
         disabled: !prompt.trim() || status === 'processing',
         onClick:  () => void handleGenerate(),
@@ -212,7 +264,9 @@ export function GenerateVideoEditor({
             </div>
             <div>
               <p className="text-sm font-medium text-white">Generating your video…</p>
-              <p className="mt-1 text-xs text-gray-500">This may take 30–120 seconds</p>
+              <p className="mt-1 text-xs text-gray-500">
+                {quality === 'best' ? 'Best quality takes 60–120 seconds' : 'This may take 30–60 seconds'}
+              </p>
             </div>
             <p className="max-w-xs text-xs text-gray-400 line-clamp-2">&ldquo;{prompt}&rdquo;</p>
           </div>
@@ -242,6 +296,23 @@ export function GenerateVideoEditor({
               </svg>
               Download
             </button>
+
+            {/* Upgrade CTA: Quick result on premium style */}
+            {quality === 'quick' && PREMIUM_STYLES.includes(style) && (
+              <button
+                onClick={() => {
+                  setQuality('best');
+                  setResultUrl(null);
+                  setStatus('configuring');
+                }}
+                className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-400 transition-colors hover:bg-purple-500/20"
+              >
+                <span>✨</span>
+                <span>
+                  Create Best-quality version · {VIDEO_DURATIONS.find(d => d.seconds === duration)?.bestCredits ?? 10} cr
+                </span>
+              </button>
+            )}
           </div>
         ) : null}
       </div>

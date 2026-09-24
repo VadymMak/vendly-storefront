@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
-import { FalKlingProvider, KlingDirectProvider, GrokVideoProvider } from '@/lib/video';
+import { FalKlingProvider, FalKlingT2VProvider, KlingDirectProvider, GrokVideoProvider } from '@/lib/video';
 
 export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit';
 export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
@@ -117,11 +117,23 @@ async function pollVideoPrediction(
 ): Promise<PolledPrediction | null> {
   console.log('[job-poll] predictionId:', predictionId, 'isGrok:', predictionId.startsWith('grok:'));
   try {
-    // fal.ai predictions — prefixed with "fal:"
+    // fal.ai I2V predictions — prefixed with "fal:"
     if (predictionId.startsWith('fal:')) {
       const requestId = predictionId.replace('fal:', '');
       const key = falKey || process.env.FAL_KEY || '';
       const result = await new FalKlingProvider().pollVideo(requestId, key);
+      return {
+        status:    toJobStatus(result.status),
+        outputUrl: result.videoUrl,
+        error:     result.error,
+      };
+    }
+
+    // fal.ai Kling T2V predictions — prefixed with "fal-t2v:"
+    if (predictionId.startsWith('fal-t2v:')) {
+      const requestId = predictionId.replace('fal-t2v:', '');
+      const key = falKey || process.env.FAL_KEY || '';
+      const result = await new FalKlingT2VProvider().pollVideo(requestId, key);
       return {
         status:    toJobStatus(result.status),
         outputUrl: result.videoUrl,

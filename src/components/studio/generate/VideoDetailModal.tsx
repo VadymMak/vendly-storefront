@@ -57,6 +57,18 @@ export function VideoDetailModal({ videoUrl, prompt, aspectRatio, onClose, onReg
         {/* Bottom bar */}
         <div className="flex items-center gap-2 border-t border-white/10 p-4">
           <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm font-medium text-gray-300 transition-colors hover:border-white/20 hover:bg-white/[0.03]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Back
+          </button>
+
+          <div className="mx-1 h-5 w-px bg-white/10" />
+
+          <button
             onClick={onRegenerate}
             className="flex items-center gap-1.5 rounded-lg border border-green-500/30 bg-green-500/5 px-3 py-1.5 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/10"
           >

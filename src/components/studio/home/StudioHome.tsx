@@ -1112,8 +1112,12 @@ export function StudioHome({ userId: _userId }: Props) {
           onClose={() => setModalVideo(null)}
           onRegenerate={() => {
             setModalVideo(null);
-            const sourceImg = generatedImages.find(i => i.type === 'image');
-            if (sourceImg) openEditorFromResult(sourceImg, 'animate');
+            if (modalVideo.prompt?.startsWith('[T2V]')) {
+              setShowGenerateVideo(true);
+            } else {
+              const sourceImg = generatedImages.find(i => i.type === 'image');
+              if (sourceImg) openEditorFromResult(sourceImg, 'animate');
+            }
           }}
           onDownload={() => handleDownload(modalVideo)}
           onAddToAssemble={() => {}}

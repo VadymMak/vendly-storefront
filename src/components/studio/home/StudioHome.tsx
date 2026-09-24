@@ -24,7 +24,7 @@ import { VideoDetailModal } from '@/components/studio/generate/VideoDetailModal'
 // ── Quick tool config ─────────────────────────────────────────────────────────
 
 interface QuickTool {
-  id: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products' | 'generate-video';
+  id: 'generate-image' | 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products' | 'generate-video';
   label: string;
   description: string;
   credits: string;
@@ -34,6 +34,14 @@ interface QuickTool {
 }
 
 const QUICK_TOOLS: QuickTool[] = [
+  {
+    id: 'generate-image',
+    label: 'Generate Image',
+    description: 'Create from a text prompt',
+    credits: 'from 1 credit',
+    iconSvg: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z',
+    noImage: true,
+  },
   {
     id: 'improve',
     label: 'Improve Photo',
@@ -134,14 +142,20 @@ export function StudioHome({ userId: _userId }: Props) {
 
   const [showGenerateVideo, setShowGenerateVideo] = useState(false);
 
+  // Hero mode: image generation or video generation
+  const [heroMode, setHeroMode] = useState<'image' | 'video'>('image');
+
+  // After upload in hero, show inline tool picker instead of defaulting to Improve
+  const [uploadedFile, setUploadedFile] = useState<{ url: string; file: File } | null>(null);
+
+  // When a tool catalog card is clicked, pre-select this intent for the next upload
+  const [pendingIntent, setPendingIntent] = useState<QuickTool['id'] | null>(null);
+
   const [createSlow, setCreateSlow] = useState(false);
 
   const [showPlaceProducts, setShowPlaceProducts] = useState(false);
   const [placeProductsBgUrl, setPlaceProductsBgUrl] = useState<string | null>(null);
 
-  // ── Upload state (for Quick Tools) ──────────────────────────────────────────
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const pendingToolRef = useRef<QuickTool['id'] | null>(null);
 
   // ── Create (text-to-image) state ────────────────────────────────────────────
   const [prompt,          setPrompt]          = useState('');
@@ -253,46 +267,37 @@ export function StudioHome({ userId: _userId }: Props) {
     };
   }, []);
 
-  // ── Quick Tool click → open file picker → open editor ──────────────────────
+  // ── Quick Tool click → catalog shortcuts ────────────────────────────────────
 
   function handleQuickToolClick(toolId: QuickTool['id']) {
+    if (toolId === 'generate-image') {
+      setHeroMode('image');
+      setUploadedFile(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        const textarea = document.querySelector<HTMLTextAreaElement>('textarea[placeholder*="Describe"]');
+        textarea?.focus();
+      }, 300);
+      return;
+    }
     if (toolId === 'generate-video') {
-      setShowGenerateVideo(true);
+      setHeroMode('video');
+      setUploadedFile(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        const textarea = document.querySelector<HTMLTextAreaElement>('textarea[placeholder*="Describe"]');
+        textarea?.focus();
+      }, 300);
       return;
     }
-    if (toolId === 'place-products') {
-      pendingToolRef.current = 'place-products';
-      fileInputRef.current?.click();
-      return;
-    }
-    pendingToolRef.current = toolId;
-    fileInputRef.current?.click();
+    // Image-based tool: set pending intent and scroll to upload zone
+    setPendingIntent(toolId);
+    setUploadedFile(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => heroUploadRef.current?.click(), 400);
   }
 
-  function handleFileSelected(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    const toolId = pendingToolRef.current;
-    if (!toolId) return;
-
-    const url = URL.createObjectURL(file);
-
-    if (toolId === 'place-products') {
-      setPlaceProductsBgUrl(url);
-      setShowPlaceProducts(true);
-    } else {
-      setActiveEditor({
-        tool: toolId as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
-        imageUrl: url,
-        imageFile: file,
-      });
-    }
-
-    pendingToolRef.current = null;
-    e.target.value = '';
-  }
-
-  // ── Hero Upload (Edit a photo) ──────────────────────────────────────────────
+  // ── Hero Upload (Start with a photo) ────────────────────────────────────────
 
   const heroUploadRef = useRef<HTMLInputElement>(null);
 
@@ -300,7 +305,22 @@ export function StudioHome({ userId: _userId }: Props) {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
     const url = URL.createObjectURL(file);
-    setActiveEditor({ tool: 'improve', imageUrl: url, imageFile: file });
+
+    if (pendingIntent && pendingIntent !== 'generate-image' && pendingIntent !== 'generate-video') {
+      if (pendingIntent === 'place-products') {
+        setPlaceProductsBgUrl(url);
+        setShowPlaceProducts(true);
+      } else {
+        setActiveEditor({
+          tool: pendingIntent as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
+          imageUrl: url,
+          imageFile: file,
+        });
+      }
+      setPendingIntent(null);
+    } else {
+      setUploadedFile({ url, file });
+    }
     e.target.value = '';
   }
 
@@ -311,7 +331,38 @@ export function StudioHome({ userId: _userId }: Props) {
     const file = e.dataTransfer.files[0];
     if (!file || !file.type.startsWith('image/')) return;
     const url = URL.createObjectURL(file);
-    setActiveEditor({ tool: 'improve', imageUrl: url, imageFile: file });
+
+    if (pendingIntent && pendingIntent !== 'generate-image' && pendingIntent !== 'generate-video') {
+      if (pendingIntent === 'place-products') {
+        setPlaceProductsBgUrl(url);
+        setShowPlaceProducts(true);
+      } else {
+        setActiveEditor({
+          tool: pendingIntent as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
+          imageUrl: url,
+          imageFile: file,
+        });
+      }
+      setPendingIntent(null);
+    } else {
+      setUploadedFile({ url, file });
+    }
+  }
+
+  function handleInlineToolSelect(toolId: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products') {
+    if (!uploadedFile) return;
+    if (toolId === 'place-products') {
+      setPlaceProductsBgUrl(uploadedFile.url);
+      setShowPlaceProducts(true);
+    } else {
+      setActiveEditor({
+        tool: toolId,
+        imageUrl: uploadedFile.url,
+        imageFile: uploadedFile.file,
+      });
+    }
+    setUploadedFile(null);
+    setPendingIntent(null);
   }
 
   // ── Generate (text-to-image) ────────────────────────────────────────────────
@@ -581,7 +632,7 @@ export function StudioHome({ userId: _userId }: Props) {
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            ✨ Create New
+            ✨ Create
           </button>
           <button
             onClick={() => setMobileTab('edit')}
@@ -591,7 +642,7 @@ export function StudioHome({ userId: _userId }: Props) {
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            📷 Edit Photo
+            📷 Upload
           </button>
         </div>
 
@@ -611,22 +662,44 @@ export function StudioHome({ userId: _userId }: Props) {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
                     </svg>
-                    Create an image
+                    Create something new
                   </h2>
-                  <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
-                    Text-to-Image
-                  </span>
+                </div>
+
+                {/* Image / Video toggle */}
+                <div className="flex rounded-lg bg-white/[0.03] border border-white/10 p-0.5">
+                  <button
+                    onClick={() => setHeroMode('image')}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      heroMode === 'image'
+                        ? 'bg-green-600/20 text-green-400 border border-green-500/30'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    🖼️ Image
+                  </button>
+                  <button
+                    onClick={() => setHeroMode('video')}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      heroMode === 'video'
+                        ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    🎬 Video
+                  </button>
                 </div>
 
                 <textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleGenerate(); } }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && heroMode === 'image') { e.preventDefault(); void handleGenerate(); } }}
                   placeholder="Describe what you want to create..."
                   className="w-full h-24 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/40 transition-colors resize-none"
                 />
 
-                {/* Style chips */}
+                {/* Style chips — image mode only */}
+                {heroMode === 'image' && (
                 <div className="flex flex-wrap gap-1.5">
                   {STYLE_CHIPS.map(chip => (
                     <button
@@ -643,8 +716,10 @@ export function StudioHome({ userId: _userId }: Props) {
                     </button>
                   ))}
                 </div>
+                )}
 
-                {/* Quality tiers — ALWAYS visible */}
+                {/* Quality tiers — image mode only */}
+                {heroMode === 'image' && (
                 <div className="flex gap-2">
                   {TIERS.map(tier => {
                     const locked = isFreePlan && tier.id !== 'fast';
@@ -675,8 +750,11 @@ export function StudioHome({ userId: _userId }: Props) {
                     );
                   })}
                 </div>
+                )}
 
-                {/* More options toggle */}
+                {/* More options — image mode only */}
+                {heroMode === 'image' && (
+                <>
                 <button
                   onClick={() => setShowAdvanced(v => !v)}
                   className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
@@ -701,18 +779,33 @@ export function StudioHome({ userId: _userId }: Props) {
                     </select>
                   </div>
                 )}
+                </>
+                )}
 
-                {/* Generate button */}
+                {/* CTA button — switches between image and video mode */}
                 <div className="pt-1 border-t border-white/[0.06]">
-                  <button
-                    onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
-                    disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
-                    className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                      noCreditsForImages ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                  >
-                    {noCreditsForImages ? 'No credits · Buy more' : <>Create · {activeTierCredits} cr</>}
-                  </button>
+                  {heroMode === 'image' ? (
+                    <button
+                      onClick={noCreditsForImages ? () => setShowCreditPack(true) : () => void handleGenerate()}
+                      disabled={isGenerating || (!noCreditsForImages && !prompt.trim())}
+                      className={`w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                        noCreditsForImages ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'
+                      }`}
+                    >
+                      {noCreditsForImages ? 'No credits · Buy more' : <>Create image · {activeTierCredits} cr</>}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (!prompt.trim()) return;
+                        setShowGenerateVideo(true);
+                      }}
+                      disabled={!prompt.trim()}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Generate video · 8 cr
+                    </button>
+                  )}
                 </div>
 
                 {/* Example prompts */}
@@ -1106,7 +1199,7 @@ export function StudioHome({ userId: _userId }: Props) {
 
           </div>
 
-          {/* Card B: Edit a photo */}
+          {/* Card B: Start with a photo */}
           <div className={`rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 flex flex-col gap-4 ${
             mobileTab === 'create' ? 'hidden md:flex' : 'flex'
           }`}>
@@ -1117,64 +1210,115 @@ export function StudioHome({ userId: _userId }: Props) {
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
-                Edit a photo
+                Start with a photo
               </h2>
-              <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-                7 AI Tools
-              </span>
+              {pendingIntent && pendingIntent !== 'generate-image' && pendingIntent !== 'generate-video' && (
+                <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+                  {QUICK_TOOLS.find(t => t.id === pendingIntent)?.label}
+                </span>
+              )}
             </div>
 
-            <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleHeroDrop}
-              onClick={() => heroUploadRef.current?.click()}
-              className={`flex-1 min-h-[200px] flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
-                dragOver
-                  ? 'border-green-500/60 bg-green-500/5'
-                  : 'border-white/10 hover:border-white/20 bg-white/[0.01] hover:bg-white/[0.03]'
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                dragOver ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-gray-400'
-              }`}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-300">
-                  Drop a photo or <span className="text-green-400 underline">browse</span>
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Improve, remove background, upscale, animate, edit, or place products
-                </p>
-              </div>
-            </div>
+            {uploadedFile ? (
+              /* ── Inline tool picker (after upload) ─────────────────────── */
+              <div className="flex flex-col gap-3" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
+                {/* Thumbnail preview */}
+                <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/20">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={uploadedFile.url} alt="Uploaded" className="w-full max-h-[140px] object-contain" />
+                  <button
+                    onClick={() => { URL.revokeObjectURL(uploadedFile.url); setUploadedFile(null); }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs hover:bg-black/80"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-            <input
-              ref={heroUploadRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleHeroUpload}
-            />
+                <p className="text-xs text-gray-400">What would you like to do?</p>
+
+                {/* Tool options grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: 'improve' as const,        label: 'Improve quality',          credits: '2 cr', icon: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z' },
+                    { id: 'remove-bg' as const,      label: 'Remove background',        credits: '1 cr', icon: 'M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12' },
+                    { id: 'upscale' as const,        label: 'Make larger & sharper',    credits: '1 cr', icon: 'M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7' },
+                    { id: 'animate' as const,        label: 'Animate this photo',        credits: '5 cr', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+                    { id: 'inpaint' as const,        label: 'Change or remove something', credits: '2 cr', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' },
+                    { id: 'place-products' as const, label: 'Put in a new scene',        credits: 'Free', icon: 'M3 3h18v18H3zM15 9a4 4 0 11-8 0 4 4 0 018 0zM3 21l6-6' },
+                  ]).map(tool => (
+                    <button
+                      key={tool.id}
+                      onClick={() => handleInlineToolSelect(tool.id)}
+                      className="flex items-center gap-2.5 p-2.5 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all text-left"
+                    >
+                      <div className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400" aria-hidden="true">
+                          <path d={tool.icon} />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-medium text-white block">{tool.label}</span>
+                        <span className="text-[10px] text-green-400">{tool.credits}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* ── Drop zone (before upload) ─────────────────────────────── */
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleHeroDrop}
+                onClick={() => heroUploadRef.current?.click()}
+                className={`flex-1 min-h-[200px] flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+                  dragOver
+                    ? 'border-green-500/60 bg-green-500/5'
+                    : 'border-white/10 hover:border-white/20 bg-white/[0.01] hover:bg-white/[0.03]'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                  dragOver ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-gray-400'
+                }`}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-300">
+                    Drop a photo or <span className="text-green-400 underline">browse</span>
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Upload to enhance, edit, or transform
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Hidden hero file input — always in DOM */}
+          <input
+            ref={heroUploadRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleHeroUpload}
+          />
         </div>
 
         {/* ── Quick Actions ───────────────────────────────────────────────── */}
         <div className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Quick Actions
+            Explore tools
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {QUICK_TOOLS.map(tool => (
               <button
                 key={tool.id}
                 onClick={() => handleQuickToolClick(tool.id)}
-                className={`flex flex-col text-left p-4 rounded-xl border transition-all group ${
+                className={`flex flex-col text-left p-3 rounded-xl border transition-all group ${
                   tool.noImage
                     ? 'border-purple-500/20 bg-purple-500/[0.03] hover:bg-purple-500/[0.07] hover:border-purple-500/40'
                     : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30'
@@ -1294,14 +1438,6 @@ export function StudioHome({ userId: _userId }: Props) {
       {/* MODALS & EDITORS                                                   */}
       {/* ════════════════════════════════════════════════════════════════════ */}
 
-      {/* Hidden file input for Quick Tools */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelected}
-      />
 
       {/* Credit / pricing modals */}
       <CreditPackModal
@@ -1480,6 +1616,7 @@ export function StudioHome({ userId: _userId }: Props) {
 
       {showGenerateVideo && (
         <GenerateVideoEditor
+          initialPrompt={heroMode === 'video' ? prompt : undefined}
           hasVideoCredits={
             creditStatus
               ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||

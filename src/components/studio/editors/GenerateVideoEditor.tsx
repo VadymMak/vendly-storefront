@@ -12,6 +12,7 @@ import type { VideoQualityTier } from '@/lib/video/resolve-route';
 const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'space', 'service', 'hospitality', 'fashion'];
 
 interface GenerateVideoEditorProps {
+  initialPrompt?:  string;
   onAccept: (videoUrl: string, prompt: string, jobId: string) => void;
   onClose:  () => void;
   hasVideoCredits: boolean;
@@ -33,9 +34,9 @@ async function pollJob(jobId: string, timeoutMs = 600_000): Promise<string> {
 }
 
 export function GenerateVideoEditor({
-  onAccept, onClose, hasVideoCredits, onNeedCredits,
+  initialPrompt, onAccept, onClose, hasVideoCredits, onNeedCredits,
 }: GenerateVideoEditorProps) {
-  const [prompt,      setPrompt]      = useState('');
+  const [prompt,      setPrompt]      = useState(initialPrompt ?? '');
   const [style,       setStyle]       = useState<VideoStyleChipId>('product');
   const [quality,     setQuality]     = useState<VideoQualityTier>('best');
   const [duration,    setDuration]    = useState<VideoDurationValue>(10);

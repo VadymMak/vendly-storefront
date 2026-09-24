@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, type ChangeEvent, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import {
@@ -121,6 +121,8 @@ export function StudioHome({ userId: _userId }: Props) {
     credits: number;
     type?: 'image' | 'video';
     jobId?: string;
+    operation?: 'generate' | 't2v' | 'animate' | 'improve' | 'remove-bg' | 'upscale' | 'inpaint' | 'place-products';
+    sourceUrl?: string;
   } | null>(null);
 
   // ── Active editor state ─────────────────────────────────────────────────────
@@ -404,6 +406,7 @@ export function StudioHome({ userId: _userId }: Props) {
         provider: modelProvider,
         tier: tierObj?.label ?? 'Quick',
         credits: tierObj?.credits ?? 1,
+        operation: 'generate',
       });
       setCreateView('result');
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
@@ -522,7 +525,13 @@ export function StudioHome({ userId: _userId }: Props) {
 
   // ── Editor result handlers ──────────────────────────────────────────────────
 
-  function handleEditorResult(resultUrl: string, resultPrompt: string, model: string) {
+  function handleEditorResult(
+    resultUrl: string,
+    resultPrompt: string,
+    model: string,
+    operation?: 'improve' | 'remove-bg' | 'upscale' | 'inpaint' | 'place-products',
+    sourceUrl?: string,
+  ) {
     addImage({
       id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       type: 'image',
@@ -533,6 +542,21 @@ export function StudioHome({ userId: _userId }: Props) {
       createdAt: Date.now(),
     });
     showSaved();
+
+    // Show inline result for all tools (unified flow)
+    setLatestResult({
+      url: resultUrl,
+      prompt: resultPrompt,
+      model,
+      provider: '',
+      tier: '',
+      credits: 0,
+      type: 'image',
+      operation: operation ?? 'generate',
+      sourceUrl,
+    });
+    setCreateView('result');
+
     (window as unknown as Record<string, () => void>).__refreshCredits?.();
   }
 
@@ -782,7 +806,18 @@ export function StudioHome({ userId: _userId }: Props) {
               <div className="flex flex-col gap-4" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-white">
-                    {latestResult.type === 'video' ? 'Your video is ready' : 'Your image is ready'}
+                    {(() => {
+                      switch (latestResult.operation) {
+                        case 'improve': return 'Enhanced image ready';
+                        case 'remove-bg': return 'Background removed';
+                        case 'upscale': return 'HD version ready';
+                        case 'inpaint': return 'Edit complete';
+                        case 'place-products': return 'Composite ready';
+                        case 'animate': return 'Your video is ready';
+                        case 't2v': return 'Your video is ready';
+                        default: return latestResult.type === 'video' ? 'Your video is ready' : 'Your image is ready';
+                      }
+                    })()}
                   </h2>
                   {latestResult.credits > 0 && (
                     <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
@@ -894,20 +929,35 @@ export function StudioHome({ userId: _userId }: Props) {
                     </div>
                   </>
                 ) : (
-                  <>
-                    {/* Image primary actions */}
-                    <div className="grid grid-cols-2 gap-2">
+                  /* Image action buttons — operation-aware */
+                  (() => {
+                    const op = latestResult.operation;
+
+                    // Helper to open result in editor
+                    const editWith = (tool: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint') => {
+                      openResultInEditor(tool);
+                    };
+
+                    const downloadBtn = (
                       <button
-                        onClick={() => openResultInEditor('improve')}
-                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = latestResult.url;
+                          a.download = `studio-${op || 'image'}-${Date.now()}.${outputFormat}`;
+                          a.click();
+                        }}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
-                        Improve
+                        Download
                       </button>
+                    );
+
+                    const animateBtn = (
                       <button
-                        onClick={() => openResultInEditor('animate')}
+                        onClick={() => editWith('animate')}
                         className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -915,26 +965,23 @@ export function StudioHome({ userId: _userId }: Props) {
                         </svg>
                         Animate
                       </button>
-                    </div>
+                    );
 
-                    {/* Image secondary row */}
-                    <div className="flex gap-2">
+                    const improveBtn = (
                       <button
-                        onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = latestResult.url;
-                          a.download = `studio-image-${Date.now()}.${outputFormat}`;
-                          a.click();
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                        onClick={() => editWith('improve')}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
                         </svg>
-                        Download
+                        Improve
                       </button>
+                    );
+
+                    const upscaleBtn = (
                       <button
-                        onClick={() => openResultInEditor('upscale')}
+                        onClick={() => editWith('upscale')}
                         className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -942,8 +989,11 @@ export function StudioHome({ userId: _userId }: Props) {
                         </svg>
                         Upscale
                       </button>
+                    );
+
+                    const removeBgBtn = (
                       <button
-                        onClick={() => openResultInEditor('remove-bg')}
+                        onClick={() => editWith('remove-bg')}
                         className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -951,27 +1001,105 @@ export function StudioHome({ userId: _userId }: Props) {
                         </svg>
                         No BG
                       </button>
-                    </div>
+                    );
 
-                    {/* Image iteration buttons */}
-                    <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
+                    const placeProductsBtn = (
                       <button
-                        onClick={() => { setLatestResult(null); setPrompt(''); setCreateView('form'); }}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                        onClick={() => {
+                          setLatestResult(null);
+                          setCreateView('form');
+                          setPlaceProductsBgUrl(latestResult.url);
+                          setShowPlaceProducts(true);
+                        }}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                          <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
                         </svg>
-                        Create another
+                        Place Products
                       </button>
+                    );
+
+                    const editAgainBtn = (
                       <button
-                        onClick={() => { setLatestResult(null); setCreateView('form'); }}
-                        className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/[0.06] transition-colors"
+                        onClick={() => {
+                          setLatestResult(null);
+                          setCreateView('form');
+                          if (latestResult.sourceUrl && op === 'inpaint') {
+                            openEditorFromResult(
+                              { id: 'reedit', type: 'image', url: latestResult.sourceUrl, createdAt: Date.now() } as MediaItem,
+                              'inpaint',
+                            );
+                          }
+                        }}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
                       >
-                        Edit prompt
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Edit Again
                       </button>
-                    </div>
-                  </>
+                    );
+
+                    // Choose buttons based on operation
+                    let primaryRow: ReactNode;
+                    let secondaryRow: ReactNode;
+
+                    switch (op) {
+                      case 'improve':
+                        primaryRow = <>{downloadBtn}{upscaleBtn}</>;
+                        secondaryRow = <>{animateBtn}{removeBgBtn}</>;
+                        break;
+                      case 'remove-bg':
+                        primaryRow = <>{placeProductsBtn}{downloadBtn}</>;
+                        secondaryRow = <>{animateBtn}{improveBtn}</>;
+                        break;
+                      case 'upscale':
+                        primaryRow = <>{downloadBtn}{animateBtn}</>;
+                        secondaryRow = <>{improveBtn}{removeBgBtn}</>;
+                        break;
+                      case 'inpaint':
+                        primaryRow = <>{editAgainBtn}{downloadBtn}</>;
+                        secondaryRow = <>{animateBtn}{improveBtn}</>;
+                        break;
+                      case 'place-products':
+                        primaryRow = <>{animateBtn}{downloadBtn}</>;
+                        secondaryRow = <>{upscaleBtn}{improveBtn}</>;
+                        break;
+                      default: // 'generate' or undefined
+                        primaryRow = <>{improveBtn}{animateBtn}</>;
+                        secondaryRow = <>{downloadBtn}{upscaleBtn}{removeBgBtn}</>;
+                        break;
+                    }
+
+                    // "Create another" text changes by operation
+                    const createAnotherLabel = op === 'inpaint' ? 'Edit another' :
+                      op === 'place-products' ? 'New composition' : 'Create another';
+
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">{primaryRow}</div>
+                        <div className="flex gap-2">{secondaryRow}</div>
+                        <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
+                          <button
+                            onClick={() => { setLatestResult(null); setPrompt(''); setCreateView('form'); }}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            {createAnotherLabel}
+                          </button>
+                          <button
+                            onClick={() => { setLatestResult(null); setCreateView('form'); }}
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/[0.06] transition-colors"
+                          >
+                            Edit prompt
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()
                 )}
               </div>
             )}
@@ -1217,17 +1345,8 @@ export function StudioHome({ userId: _userId }: Props) {
             if (modalImage.prompt) navigator.clipboard.writeText(modalImage.prompt).catch(() => {});
           }}
           onInpaintResult={(url: string) => {
-            addImage({
-              id: `img-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              type: 'image', url,
-              prompt: `[Inpainted] ${modalImage.prompt ?? ''}`,
-              preset: modalImage.preset,
-              format: modalImage.format ?? 'webp',
-              model: 'flux-fill-pro',
-              createdAt: Date.now(),
-            });
-            showSaved();
             setModalImage(null);
+            handleEditorResult(url, `[Inpainted] ${modalImage?.prompt ?? ''}`, 'flux-fill-pro', 'inpaint', modalImage?.url);
           }}
           galleryImages={generatedImages.filter(i => i.type === 'image').map(i => i.url)}
         />
@@ -1265,7 +1384,7 @@ export function StudioHome({ userId: _userId }: Props) {
           imageFile={activeEditor.imageFile}
           onAccept={(resultUrl) => {
             setActiveEditor(null);
-            handleEditorResult(resultUrl, '[Enhanced] Improve', 'grok-edit');
+            handleEditorResult(resultUrl, '[Enhanced] Improve', 'grok-edit', 'improve', activeEditor.imageUrl);
           }}
           onClose={() => setActiveEditor(null)}
         />
@@ -1277,7 +1396,7 @@ export function StudioHome({ userId: _userId }: Props) {
           onClose={() => setActiveEditor(null)}
           onResult={(url) => {
             setActiveEditor(null);
-            handleEditorResult(url, '[Inpainted]', 'flux-fill-pro');
+            handleEditorResult(url, '[Inpainted]', 'flux-fill-pro', 'inpaint', activeEditor.imageUrl);
           }}
         />
       )}
@@ -1288,7 +1407,7 @@ export function StudioHome({ userId: _userId }: Props) {
           imageFile={activeEditor.imageFile}
           onAccept={(resultUrl) => {
             setActiveEditor(null);
-            handleEditorResult(resultUrl, '[No Background]', 'remove-bg');
+            handleEditorResult(resultUrl, '[No Background]', 'remove-bg', 'remove-bg', activeEditor.imageUrl);
           }}
           onClose={() => setActiveEditor(null)}
         />
@@ -1300,7 +1419,7 @@ export function StudioHome({ userId: _userId }: Props) {
           imageFile={activeEditor.imageFile}
           onAccept={(resultUrl) => {
             setActiveEditor(null);
-            handleEditorResult(resultUrl, '[Upscaled]', 'upscale');
+            handleEditorResult(resultUrl, '[Upscaled]', 'upscale', 'upscale', activeEditor.imageUrl);
           }}
           onClose={() => setActiveEditor(null)}
         />
@@ -1336,6 +1455,7 @@ export function StudioHome({ userId: _userId }: Props) {
               url: resultVideoUrl, prompt: videoPrompt,
               model: '', provider: '', tier: 'Video', credits: 0,
               type: 'video',
+              operation: 'animate',
             });
             setCreateView('result');
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
@@ -1353,7 +1473,7 @@ export function StudioHome({ userId: _userId }: Props) {
           onResult={(url) => {
             setShowPlaceProducts(false);
             setPlaceProductsBgUrl(null);
-            handleEditorResult(url, '[Composite] Place Products', 'place-products');
+            handleEditorResult(url, '[Composite] Place Products', 'place-products', 'place-products');
           }}
         />
       )}
@@ -1387,6 +1507,7 @@ export function StudioHome({ userId: _userId }: Props) {
               url: videoUrl, prompt: videoPrompt,
               model: '', provider: '', tier: 'Video', credits: 0,
               type: 'video', jobId,
+              operation: 't2v',
             });
             setCreateView('result');
             (window as unknown as Record<string, () => void>).__refreshCredits?.();

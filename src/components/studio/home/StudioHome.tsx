@@ -119,6 +119,8 @@ export function StudioHome({ userId: _userId }: Props) {
     provider: string;
     tier: string;
     credits: number;
+    type?: 'image' | 'video';
+    jobId?: string;
   } | null>(null);
 
   // ── Active editor state ─────────────────────────────────────────────────────
@@ -779,26 +781,41 @@ export function StudioHome({ userId: _userId }: Props) {
             {createView === 'result' && latestResult && (
               <div className="flex flex-col gap-4" style={{ animation: 'fadeSlideUp 200ms ease-out' }}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-white">Your image is ready</h2>
-                  <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-                    {latestResult.tier} · {latestResult.credits} cr
-                  </span>
+                  <h2 className="text-sm font-semibold text-white">
+                    {latestResult.type === 'video' ? 'Your video is ready' : 'Your image is ready'}
+                  </h2>
+                  {latestResult.credits > 0 && (
+                    <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                      {latestResult.tier} · {latestResult.credits} cr
+                    </span>
+                  )}
                 </div>
 
-                {/* Image preview — click opens ImageDetailModal */}
+                {/* Preview — click opens detail modal */}
                 <button
                   onClick={() => {
                     const match = generatedImages.find(img => img.url === latestResult.url);
-                    if (match) setModalImage(match);
+                    if (!match) return;
+                    if (latestResult.type === 'video') setModalVideo(match);
+                    else setModalImage(match);
                   }}
                   className="relative w-full rounded-xl overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={latestResult.url}
-                    alt="Generated result"
-                    className="w-full max-h-[320px] object-contain"
-                  />
+                  {latestResult.type === 'video' ? (
+                    /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                    <video
+                      src={latestResult.url}
+                      autoPlay loop muted playsInline
+                      className="w-full max-h-[320px] object-contain"
+                    />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={latestResult.url}
+                      alt="Generated result"
+                      className="w-full max-h-[320px] object-contain"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-70 transition-opacity" aria-hidden="true">
                       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
@@ -810,82 +827,152 @@ export function StudioHome({ userId: _userId }: Props) {
                   &ldquo;{latestResult.prompt}&rdquo;
                 </p>
 
-                {/* Primary actions */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => openResultInEditor('improve')}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                    </svg>
-                    Improve
-                  </button>
-                  <button
-                    onClick={() => openResultInEditor('animate')}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Animate
-                  </button>
-                </div>
+                {latestResult.type === 'video' ? (
+                  <>
+                    {/* Video action buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          if (latestResult.jobId) {
+                            window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(latestResult.jobId)}`);
+                          } else {
+                            const a = document.createElement('a');
+                            a.href = latestResult.url;
+                            a.download = `studio-video-${Date.now()}.mp4`;
+                            a.click();
+                          }
+                        }}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download
+                      </button>
+                      <button
+                        onClick={() => {
+                          const store = useStudioStore.getState();
+                          store.initDefaultTracks();
+                          const vt = useStudioStore.getState().timelineTracks.find(t => t.type === 'video');
+                          if (vt) {
+                            const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
+                            const last = sorted.at(-1);
+                            const startTime = last ? last.startTime + last.duration : 0;
+                            store.addClipToTrack(vt.id, {
+                              type: 'video', startTime, duration: 5,
+                              sourceUrl: latestResult.url, prompt: latestResult.prompt,
+                            });
+                          }
+                          router.push('/studio/assemble');
+                        }}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /><line x1="17" y1="17" x2="22" y2="17" />
+                        </svg>
+                        Add to Assemble
+                      </button>
+                    </div>
 
-                {/* Secondary row */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = latestResult.url;
-                      a.download = `studio-image-${Date.now()}.${outputFormat}`;
-                      a.click();
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Download
-                  </button>
-                  <button
-                    onClick={() => openResultInEditor('upscale')}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7" />
-                    </svg>
-                    Upscale
-                  </button>
-                  <button
-                    onClick={() => openResultInEditor('remove-bg')}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" />
-                    </svg>
-                    No BG
-                  </button>
-                </div>
+                    {/* Iteration buttons */}
+                    <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
+                      <button
+                        onClick={() => { setLatestResult(null); setPrompt(''); setCreateView('form'); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Create another
+                      </button>
+                      <button
+                        onClick={() => { setLatestResult(null); setCreateView('form'); setShowGenerateVideo(true); }}
+                        className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        Create variation
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Image primary actions */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => openResultInEditor('improve')}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                        </svg>
+                        Improve
+                      </button>
+                      <button
+                        onClick={() => openResultInEditor('animate')}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Animate
+                      </button>
+                    </div>
 
-                {/* Iteration buttons */}
-                <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
-                  <button
-                    onClick={() => { setLatestResult(null); setPrompt(''); setCreateView('form'); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Create another
-                  </button>
-                  <button
-                    onClick={() => { setLatestResult(null); setCreateView('form'); }}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/[0.06] transition-colors"
-                  >
-                    Edit prompt
-                  </button>
-                </div>
+                    {/* Image secondary row */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = latestResult.url;
+                          a.download = `studio-image-${Date.now()}.${outputFormat}`;
+                          a.click();
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download
+                      </button>
+                      <button
+                        onClick={() => openResultInEditor('upscale')}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7" />
+                        </svg>
+                        Upscale
+                      </button>
+                      <button
+                        onClick={() => openResultInEditor('remove-bg')}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" />
+                        </svg>
+                        No BG
+                      </button>
+                    </div>
+
+                    {/* Image iteration buttons */}
+                    <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
+                      <button
+                        onClick={() => { setLatestResult(null); setPrompt(''); setCreateView('form'); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Create another
+                      </button>
+                      <button
+                        onClick={() => { setLatestResult(null); setCreateView('form'); }}
+                        className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      >
+                        Edit prompt
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1242,8 +1329,13 @@ export function StudioHome({ userId: _userId }: Props) {
               createdAt: Date.now(),
             };
             addImage(newVideo);
-            setModalVideo(newVideo);
             showSaved();
+            setLatestResult({
+              url: resultVideoUrl, prompt: videoPrompt,
+              model: '', provider: '', tier: 'Video', credits: 0,
+              type: 'video',
+            });
+            setCreateView('result');
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1288,8 +1380,13 @@ export function StudioHome({ userId: _userId }: Props) {
               createdAt: Date.now(),
             };
             addImage(newVideo);
-            setModalVideo(newVideo);
             showSaved();
+            setLatestResult({
+              url: videoUrl, prompt: videoPrompt,
+              model: '', provider: '', tier: 'Video', credits: 0,
+              type: 'video', jobId,
+            });
+            setCreateView('result');
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setShowGenerateVideo(false)}

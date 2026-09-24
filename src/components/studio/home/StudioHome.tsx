@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, type ChangeEvent, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
-import { saveToLibrary, getLibraryItems } from '@/lib/studio/library-store';
+import { saveToLibrary } from '@/lib/studio/library-store';
 import {
   EXAMPLE_PROMPTS, SIZE_PRESETS, OUTPUT_FORMATS, STYLE_CHIPS,
   type OutputFormat, type SizePresetId, type StyleChipId,
@@ -422,24 +422,40 @@ export function StudioHome({ userId: _userId }: Props) {
     return () => clearTimeout(timer);
   }, [createView]);
 
-  // ── Load Recent Work from localStorage Library on mount ──────────────────────
+  // ── Load recent work from server on mount ────────────────────────────────────
   useEffect(() => {
     if (generatedImages.length > 0) return;
-    try {
-      const items = getLibraryItems();
-      if (!items.length) return;
-      for (const item of items.slice(0, 8).reverse()) {
-        addImage({
-          id:        item.id,
-          type:      item.type,
-          url:       item.url,
-          prompt:    item.prompt,
-          model:     item.model,
-          preset:    item.preset,
-          createdAt: item.createdAt,
-        });
-      }
-    } catch { /* localStorage unavailable */ }
+
+    let cancelled = false;
+    async function loadRecent() {
+      try {
+        const res = await fetch('/api/studio/my-work?limit=4');
+        if (!res.ok || cancelled) return;
+        const data = await res.json() as {
+          items?: Array<{
+            id: string;
+            type: 'image' | 'video';
+            url: string;
+            model?: string;
+            style?: string;
+            operation?: string;
+            createdAt?: string;
+          }>;
+        };
+        if (cancelled || !data.items?.length) return;
+        for (const item of data.items.reverse()) {
+          addImage({
+            id:        item.id,
+            type:      item.type,
+            url:       item.url,
+            model:     item.model,
+            createdAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
+          });
+        }
+      } catch { /* not critical */ }
+    }
+    loadRecent();
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Download helper ─────────────────────────────────────────────────────────
@@ -497,7 +513,7 @@ export function StudioHome({ userId: _userId }: Props) {
 
   // ── Recent work (last 8) ────────────────────────────────────────────────────
 
-  const recentImages = generatedImages.slice(0, 8);
+  const recentImages = generatedImages.slice(0, 4);
 
   // ── Editor result handlers ──────────────────────────────────────────────────
 
@@ -969,12 +985,12 @@ export function StudioHome({ userId: _userId }: Props) {
           </div>
         </div>
 
-        {/* ── Recent Work ─────────────────────────────────────────────────── */}
+        {/* ── Continue Working ────────────────────────────────────────────── */}
         {recentImages.length > 0 && (
           <div className="space-y-3 pt-4 border-t border-white/[0.06]">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Recent Work
+                Continue Working
               </h3>
               <button
                 onClick={() => router.push('/studio/library')}

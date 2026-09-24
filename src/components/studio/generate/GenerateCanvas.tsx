@@ -460,6 +460,13 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [modalImage,  setModalImage]  = useState<MediaItem | null>(null);
   const [modalVideo,  setModalVideo]  = useState<MediaItem | null>(null);
   const [addedToast,  setAddedToast]  = useState<string | null>(null);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const savedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showSaved() {
+    setShowSavedToast(true);
+    if (savedToastTimer.current) clearTimeout(savedToastTimer.current);
+    savedToastTimer.current = setTimeout(() => setShowSavedToast(false), 3000);
+  }
   const [copyStates,  setCopyStates]  = useState<Record<string, boolean>>({});
   const [imageFilters, setImageFilters] = useState<Record<string, string>>({});
 
@@ -549,6 +556,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       addImage(newImage);
+      showSaved();
       clearUpload();
       (window as unknown as Record<string, () => void>).__refreshCredits?.();
     } catch (e) {
@@ -631,6 +639,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       addImage(newImage);
+      showSaved();
 
       fetch('/api/studio/track-generation', {
         method: 'POST',
@@ -1246,6 +1255,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'flux-fill-pro',
               createdAt: Date.now(),
             });
+            showSaved();
             setModalImage(null);
           }}
           galleryImages={generatedImages.filter(i => i.type === 'image').map(i => i.url)}
@@ -1287,6 +1297,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'flux-fill-pro',
               createdAt: Date.now(),
             });
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
         />
@@ -1307,6 +1318,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               format: 'webp',
               createdAt: Date.now(),
             });
+            showSaved();
           }}
         />
       )}
@@ -1327,6 +1339,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'grok-edit',
               createdAt: Date.now(),
             });
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1348,6 +1361,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'remove-bg',
               createdAt: Date.now(),
             });
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1369,6 +1383,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               model: 'upscale',
               createdAt: Date.now(),
             });
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1401,6 +1416,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
             };
             addImage(newVideo);
             setModalVideo(newVideo);
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1420,6 +1436,15 @@ export function GenerateCanvas({ userId: _userId }: Props) {
           e.target.value = '';
         }}
       />
+
+      {showSavedToast && (
+        <div className="animate-toast-in fixed bottom-6 left-1/2 z-50 flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">
+          <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Saved to My Work
+        </div>
+      )}
 
       {/* Added to timeline toast */}
       {addedToast && (

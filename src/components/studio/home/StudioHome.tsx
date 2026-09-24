@@ -101,6 +101,15 @@ export function StudioHome({ userId: _userId }: Props) {
   const addImage        = useStudioStore((s) => s.addImage);
   const removeImage     = useStudioStore((s) => s.removeImage);
 
+  // ── Saved toast ─────────────────────────────────────────────────────────────
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const savedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showSaved() {
+    setShowSavedToast(true);
+    if (savedToastTimer.current) clearTimeout(savedToastTimer.current);
+    savedToastTimer.current = setTimeout(() => setShowSavedToast(false), 3000);
+  }
+
   // ── Create view state machine ────────────────────────────────────────────────
   const [createView, setCreateView] = useState<CreateViewState>('form');
   const [latestResult, setLatestResult] = useState<{
@@ -384,6 +393,7 @@ export function StudioHome({ userId: _userId }: Props) {
         createdAt: Date.now(),
       };
       addImage(newImage);
+      showSaved();
 
       setLatestResult({
         url,
@@ -518,6 +528,7 @@ export function StudioHome({ userId: _userId }: Props) {
       model,
       createdAt: Date.now(),
     });
+    showSaved();
     (window as unknown as Record<string, () => void>).__refreshCredits?.();
   }
 
@@ -1124,6 +1135,7 @@ export function StudioHome({ userId: _userId }: Props) {
               model: 'flux-fill-pro',
               createdAt: Date.now(),
             });
+            showSaved();
             setModalImage(null);
           }}
           galleryImages={generatedImages.filter(i => i.type === 'image').map(i => i.url)}
@@ -1229,6 +1241,7 @@ export function StudioHome({ userId: _userId }: Props) {
             };
             addImage(newVideo);
             setModalVideo(newVideo);
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setActiveEditor(null)}
@@ -1274,10 +1287,20 @@ export function StudioHome({ userId: _userId }: Props) {
             };
             addImage(newVideo);
             setModalVideo(newVideo);
+            showSaved();
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
           onClose={() => setShowGenerateVideo(false)}
         />
+      )}
+
+      {showSavedToast && (
+        <div className="animate-toast-in fixed bottom-6 left-1/2 z-50 flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">
+          <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Saved to My Work
+        </div>
       )}
     </div>
   );

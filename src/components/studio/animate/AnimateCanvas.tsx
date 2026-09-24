@@ -108,6 +108,15 @@ export function AnimateCanvas({ userId: _userId }: Props) {
   // Store
   const addVideo = useStudioStore((s) => s.addVideo);
 
+  // Saved toast
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const savedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showSaved() {
+    setShowSavedToast(true);
+    if (savedToastTimer.current) clearTimeout(savedToastTimer.current);
+    savedToastTimer.current = setTimeout(() => setShowSavedToast(false), 3000);
+  }
+
   // Pre-fill from query params (pipeline from Generate mode)
   const imageParam = searchParams.get('image');
   const promptParam = searchParams.get('prompt');
@@ -308,6 +317,7 @@ export function AnimateCanvas({ userId: _userId }: Props) {
           duration: selectedSkill.duration,
           createdAt: Date.now(),
         });
+        showSaved();
         (window as unknown as Record<string, () => void>).__refreshCredits?.();
       }
     } catch (e) {
@@ -685,6 +695,15 @@ export function AnimateCanvas({ userId: _userId }: Props) {
       </div>
 
       {showUpgrade && <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />}
+
+      {showSavedToast && (
+        <div className="animate-toast-in fixed bottom-6 left-1/2 z-50 flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">
+          <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Saved to My Work
+        </div>
+      )}
     </div>
   );
 }

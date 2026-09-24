@@ -113,6 +113,10 @@ RULES:
 8. If the user asks how to do something, give step-by-step instructions from the KB.
 9. For pricing questions, always mention the current plans: Free (€0, 15 images/month), Starter (€9, 100 images + 5 videos), Pro (€19, 300 images + 15 videos), BYOK Creator (€7, unlimited with own keys).
 10. If the user's question is about generating images/videos (not about HOW to use the tool, but actually wanting to generate), politely explain that you are the help assistant and they should use the Studio tools directly. Do NOT generate anything.
+11. When the user asks to open, go to, or try a specific Studio tool, call openStudioTool — it renders as a clickable navigation button. Do not just say "click here" without calling the tool.
+12. When the user describes a creative goal (e.g., "I want to make a product video"), call suggestWorkflow to provide context from the knowledge base and a navigation button to the most relevant tool.
+13. When the user asks whether they can use a specific tool or feature, call checkToolAvailability to give them a precise answer based on their actual plan and credits.
+14. After calling any navigation tool, add a brief text explanation of what the tool does and what to expect.
 
 ${userContextBlock}`;
 
@@ -211,6 +215,106 @@ ${userContextBlock}`;
         };
       },
     }),
+
+    openStudioTool: tool({
+      description: 'Navigate the user directly to a specific Studio tool or page. Use when the user asks to open, go to, or try a specific tool. Returns a navigation action that renders as a clickable button in the chat.',
+      inputSchema: z.object({
+        toolName: z.enum(['home', 'generate-image', 'generate-video', 'assemble', 'library', 'pricing', 'settings'])
+          .describe('The Studio page to open: home=main dashboard, generate-image=image generator, generate-video=video/animation generator, assemble=video editor, library=saved files, pricing=plans & pricing, settings=account settings'),
+      }),
+      execute: async ({ toolName }: { toolName: string }) => {
+        const destinations: Record<string, { path: string; label: string }> = {
+          'home':            { path: '/studio',          label: 'Studio Home' },
+          'generate-image':  { path: '/studio/generate', label: 'Generate Image' },
+          'generate-video':  { path: '/studio/animate',  label: 'Generate Video' },
+          'assemble':        { path: '/studio/assemble', label: 'Video Editor' },
+          'library':         { path: '/studio/library',  label: 'My Library' },
+          'pricing':         { path: '/studio/pricing',  label: 'Plans & Pricing' },
+          'settings':        { path: '/studio/settings', label: 'Settings' },
+        };
+        const dest = destinations[toolName] ?? destinations['home'];
+        return { action: 'navigate', path: dest.path, label: dest.label };
+      },
+    }),
+
+    checkToolAvailability: tool({
+      description: "Check whether a specific Studio tool is available for the current user based on their plan and remaining credits. Use when the user asks 'can I use X?' or 'do I have access to Y?'",
+      inputSchema: z.object({
+        toolName: z.string().describe("The tool or feature to check, e.g. 'video generation', 'BYOK', 'background removal', 'image generation'"),
+      }),
+      execute: async ({ toolName }: { toolName: string }) => {
+        const lower = toolName.toLowerCase();
+        const isVideo = lower.includes('video') || lower.includes('animat');
+        const isByok = lower.includes('byok') || lower.includes('api key') || lower.includes('own key');
+
+        if (isByok) {
+          return {
+            available: credits.byokEnabled || superuser,
+            plan: credits.planType,
+            note: credits.byokEnabled
+              ? 'BYOK is enabled — you can generate with your own API keys.'
+              : 'BYOK Creator plan (€7/mo) unlocks unlimited generation with your own API keys.',
+          };
+        }
+
+        if (isVideo) {
+          const total = credits.monthlyVideos + credits.bonusVideos;
+          const available = total > 0 || superuser || credits.byokEnabled;
+          return {
+            available,
+            videoCredits: total,
+            plan: credits.planType,
+            note: !available
+              ? 'No video credits remaining. Upgrade to Starter (€9/mo, 5 videos) or Pro (€19/mo, 15 videos), or enable BYOK.'
+              : null,
+          };
+        }
+
+        // Default: image tools
+        const total = credits.monthlyImages + credits.bonusImages;
+        const available = total > 0 || superuser || credits.byokEnabled;
+        return {
+          available,
+          imageCredits: total,
+          plan: credits.planType,
+          note: !available
+            ? 'No image credits remaining. They reset monthly, or upgrade your plan for more.'
+            : null,
+        };
+      },
+    }),
+
+    suggestWorkflow: tool({
+      description: 'Suggest a step-by-step workflow for accomplishing a creative goal with Studio tools. Returns a navigation action pointing to the most relevant tool. Use when the user describes a creative goal like "I want to create a product video" or "help me edit my photos".',
+      inputSchema: z.object({
+        goal: z.string().describe("The user's creative goal in English, e.g. 'create an animated product video' or 'remove background from product photo'"),
+      }),
+      execute: async ({ goal }: { goal: string }) => {
+        const embedding = await generateEmbedding(goal);
+        const docs = await hybridSearch(embedding, goal, 3);
+
+        const lower = goal.toLowerCase();
+        let path = '/studio';
+        let label = 'Studio Home';
+
+        if (lower.includes('video') || lower.includes('animat')) {
+          path = '/studio/animate'; label = 'Generate Video';
+        } else if (lower.includes('assemble') || lower.includes('edit') || lower.includes('clip') || lower.includes('timeline')) {
+          path = '/studio/assemble'; label = 'Video Editor';
+        } else if (lower.includes('image') || lower.includes('generate') || lower.includes('create') || lower.includes('background')) {
+          path = '/studio/generate'; label = 'Generate Image';
+        } else if (lower.includes('library') || lower.includes('saved') || lower.includes('download')) {
+          path = '/studio/library'; label = 'My Library';
+        }
+
+        return {
+          action: 'navigate',
+          path,
+          label,
+          relatedDocs: docs.slice(0, 2).map(d => ({ title: d.title, heading: d.heading, excerpt: d.content.slice(0, 200) })),
+        };
+      },
+    }),
   };
 
   const modelMessages = await convertToModelMessages(messages);
@@ -220,7 +324,7 @@ ${userContextBlock}`;
     system: systemPrompt,
     messages: modelMessages,
     tools,
-    stopWhen: isStepCount(3),
+    stopWhen: isStepCount(5),
     temperature: 0.3,
     onEnd: async ({ text }) => {
       if (text) {

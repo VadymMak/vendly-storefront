@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -48,12 +48,34 @@ interface KbChatWidgetProps {
   userId: string;
 }
 
+type NavAction = { path: string; label: string };
+
+type ToolInvocationPart = {
+  type: 'tool-invocation';
+  toolInvocation: {
+    toolCallId: string;
+    toolName: string;
+    state: string;
+    args: Record<string, unknown>;
+    result?: Record<string, unknown>;
+  };
+};
+
+function extractNavActions(parts: { type: string; [k: string]: unknown }[]): NavAction[] {
+  return (parts as ToolInvocationPart[])
+    .filter(p => p.type === 'tool-invocation' && p.toolInvocation?.state === 'result')
+    .map(p => p.toolInvocation.result as Record<string, unknown>)
+    .filter(r => r?.action === 'navigate' && typeof r.path === 'string' && typeof r.label === 'string')
+    .map(r => ({ path: r.path as string, label: r.label as string }));
+}
+
 export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const [sessionId] = useState(() => {
     if (typeof window === 'undefined') return '';
@@ -213,7 +235,11 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
             .map(p => p.text)
             .join('');
 
-          if (!text) return null;
+          const navActions = msg.role === 'assistant'
+            ? extractNavActions(msg.parts as { type: string; [k: string]: unknown }[])
+            : [];
+
+          if (!text && navActions.length === 0) return null;
 
           return (
             <div
@@ -228,9 +254,29 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
                 }`}
               >
                 {msg.role === 'assistant' ? (
-                  <div className="kb-chat-prose">
-                    <AssistantMessage content={text} />
-                  </div>
+                  <>
+                    {text && (
+                      <div className="kb-chat-prose">
+                        <AssistantMessage content={text} />
+                      </div>
+                    )}
+                    {navActions.length > 0 && (
+                      <div className={`flex flex-wrap gap-1.5 ${text ? 'mt-2.5' : ''}`}>
+                        {navActions.map((nav, i) => (
+                          <button
+                            key={i}
+                            onClick={() => { router.push(nav.path); setIsOpen(false); }}
+                            className="flex items-center gap-1.5 rounded-lg border border-green-500/30 bg-green-600/15 px-3 py-1.5 text-[12px] font-medium text-green-400 transition-colors hover:border-green-500/50 hover:bg-green-600/25 hover:text-green-300"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                            {nav.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <span className="whitespace-pre-wrap">{text}</span>
                 )}

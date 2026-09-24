@@ -9,7 +9,7 @@ import {
 } from '@/lib/studio/constants';
 import type { VideoQualityTier } from '@/lib/video/resolve-route';
 
-const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'interior'];
+const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'space', 'service', 'hospitality', 'fashion'];
 
 interface GenerateVideoEditorProps {
   onAccept: (videoUrl: string, prompt: string) => void;

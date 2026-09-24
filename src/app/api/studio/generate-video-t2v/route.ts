@@ -15,7 +15,7 @@ const schema = z.object({
   prompt:      z.string().min(1).max(1000),
   duration:    z.union([z.literal(5), z.literal(10), z.literal(15)]).default(10),
   aspectRatio: z.enum(['9:16', '1:1', '16:9']).default('16:9'),
-  style:       z.enum(['product', 'food', 'beauty', 'social', 'interior']).default('product'),
+  style:       z.enum(['product', 'food', 'beauty', 'social', 'space', 'service', 'hospitality', 'fitness', 'fashion']).default('product'),
   quality:     z.enum(['quick', 'best']).default('quick'),
 });
 

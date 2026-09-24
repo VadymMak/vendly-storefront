@@ -9,7 +9,7 @@ export interface VideoRouteResult {
   reason: string;
 }
 
-const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'interior'];
+const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'space', 'service', 'hospitality', 'fashion'];
 
 const QUICK_CREDITS: Record<number, number> = { 5: 4, 10: 8, 15: 12 };
 const BEST_CREDITS:  Record<number, number> = { 5: 10, 10: 18, 15: 28 };

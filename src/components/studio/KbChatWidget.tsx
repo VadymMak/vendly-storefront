@@ -229,7 +229,7 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
         )}
 
         {/* Message bubbles */}
-        {messages.map((msg) => {
+        {messages.map((msg, msgIdx) => {
           const text = msg.parts
             .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
             .map(p => p.text)
@@ -241,10 +241,16 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
 
           if (!text && navActions.length === 0) return null;
 
+          // Get preceding user question for feedback
+          const precedingUserMsg = messages.slice(0, msgIdx).reverse().find(m => m.role === 'user');
+          const precedingQuestion = precedingUserMsg?.parts
+            .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+            .map(p => p.text).join('') || '';
+
           return (
             <div
               key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}
             >
               <div
                 className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
@@ -276,6 +282,12 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
                         ))}
                       </div>
                     )}
+                    <FeedbackButtons
+                      messageId={msg.id}
+                      sessionId={sessionId}
+                      question={precedingQuestion}
+                      answer={text}
+                    />
                   </>
                 ) : (
                   <span className="whitespace-pre-wrap">{text}</span>
@@ -344,6 +356,65 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
           <IconSend />
         </button>
       </form>
+    </div>
+  );
+}
+
+// ── FeedbackButtons ───────────────────────────────────────────────────────────
+
+function FeedbackButtons({ messageId, sessionId, question, answer }: {
+  messageId: string;
+  sessionId: string;
+  question: string;
+  answer: string;
+}) {
+  const [submitted, setSubmitted] = useState<'up' | 'down' | null>(null);
+
+  const sendFeedback = async (rating: 'up' | 'down') => {
+    setSubmitted(rating);
+    try {
+      await fetch('/api/studio/kb-chat/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, sessionId, rating, question, answer }),
+      });
+    } catch {
+      // Feedback is best-effort — ignore errors
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-600">
+        {submitted === 'up' ? '👍' : '👎'} Thanks for feedback
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <button
+        onClick={() => sendFeedback('up')}
+        className="rounded p-0.5 text-gray-600 transition-colors hover:bg-green-500/10 hover:text-green-400"
+        aria-label="Helpful"
+        title="Helpful"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
+          <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+        </svg>
+      </button>
+      <button
+        onClick={() => sendFeedback('down')}
+        className="rounded p-0.5 text-gray-600 transition-colors hover:bg-red-500/10 hover:text-red-400"
+        aria-label="Not helpful"
+        title="Not helpful"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z" />
+          <path d="M17 2h3a2 2 0 012 2v7a2 2 0 01-2 2h-3" />
+        </svg>
+      </button>
     </div>
   );
 }

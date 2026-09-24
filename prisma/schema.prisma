@@ -391,3 +391,21 @@ model ChatMessage {
   @@index([userId, sessionId])
   @@index([sessionId])
 }
+
+model KbChatFeedback {
+  id        String   @id @default(cuid())
+  messageId String
+  sessionId String
+  userId    String
+  rating    String
+  comment   String?
+  question  String
+  answer    String
+  kbGap     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([rating])
+  @@index([kbGap])
+  @@index([createdAt])
+}

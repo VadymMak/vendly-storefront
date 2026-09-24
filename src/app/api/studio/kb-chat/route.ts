@@ -5,7 +5,9 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { generateEmbedding } from '@/lib/kb/embedding';
 import { hybridSearch } from '@/lib/kb/search';
+import { trackKbGap, saveKbInteractionToBrain } from '@/lib/kb/learning';
 import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { getBrainStudioContext } from '@/lib/studio/brain-client';
 import { NextRequest } from 'next/server';
 
 // === Rate limiter (in-memory, per user) ===
@@ -100,6 +102,11 @@ export async function POST(req: NextRequest) {
       : '',
   ].filter(Boolean).join('\n');
 
+  // Brain context — only for superusers, fire-and-forget-on-error, 3s timeout
+  const brainContext = superuser
+    ? await getBrainStudioContext(lastUserText)
+    : '';
+
   const systemPrompt = `You are VendShop AI Studio's help assistant. You answer questions about the platform's tools, features, credits, pricing, and troubleshooting.
 
 RULES:
@@ -118,7 +125,8 @@ RULES:
 13. When the user asks whether they can use a specific tool or feature, call checkToolAvailability to give them a precise answer based on their actual plan and credits.
 14. After calling any navigation tool, add a brief text explanation of what the tool does and what to expect.
 
-${userContextBlock}`;
+${userContextBlock}
+${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}` : ''}`;
 
   const tools = {
     searchDocs: tool({
@@ -130,6 +138,8 @@ ${userContextBlock}`;
         const queryEmbedding = await generateEmbedding(query);
         const results = await hybridSearch(queryEmbedding, query, 5);
         if (results.length === 0) {
+          trackKbGap({ sessionId, userId, question: lastUserText, searchQuery: query })
+            .catch(() => {});
           return { found: false, message: 'No matching documentation found.' };
         }
         return {
@@ -326,11 +336,18 @@ ${userContextBlock}`;
     tools,
     stopWhen: isStepCount(5),
     temperature: 0.3,
-    onEnd: async ({ text }) => {
+    onEnd: async ({ text, steps }) => {
       if (text) {
         await db.chatMessage.create({
           data: { sessionId, userId, role: 'assistant', content: text },
         });
+
+        const toolsUsed = steps
+          .flatMap(s => (s.toolCalls as Array<{ toolName: string }>)?.map(tc => tc.toolName) ?? []);
+
+        if (text.length > 50) {
+          saveKbInteractionToBrain({ question: lastUserText, answer: text, toolsUsed });
+        }
       }
     },
   });

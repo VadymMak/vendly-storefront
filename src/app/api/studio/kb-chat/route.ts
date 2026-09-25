@@ -427,8 +427,8 @@ export async function POST(req: NextRequest) {
       },
     }),
 
-    generate_video: tool({
-      description: 'Generate a video from an image. Requires a source image URL. Cost: Quick tier 4-12 credits (5s/10s/15s), Best tier 10-28 credits. ALWAYS call getUserCredits first, tell the user the cost, and WAIT for their confirmation before calling this tool.',
+    animate_video: tool({
+      description: 'Animate an existing image into a short video (image-to-video). Requires a source image URL — generate an image first if the user has none. Cost: 5 video credits (any duration). ALWAYS call getUserCredits first, tell the user the cost, and WAIT for their confirmation before calling this tool.',
       inputSchema: z.object({
         prompt: z.string().describe('Motion description, e.g. "slow zoom in, cinematic"'),
         imageUrl: z.string().optional().describe('Source image URL. Required if no image was previously generated.'),
@@ -442,6 +442,36 @@ export async function POST(req: NextRequest) {
         const result = await executeTool('image_to_video', { prompt, duration: Number(duration), aspectRatio }, ctx, cookieHeader, userId);
         if (result.error) return { error: result.error };
         return { action: 'video_job_started', jobId: result.jobId, message: result.message };
+      },
+    }),
+
+    generate_video_from_text: tool({
+      description: 'Generate a video from a text description (text-to-video). No image needed. Two quality tiers: Quick (~30s, cheaper) and Best (~2-5 min, higher quality). Cost depends on duration and quality: Quick 5s=4cr, 10s=8cr, 15s=12cr; Best 5s=10cr, 10s=18cr, 15s=28cr. ALWAYS call getUserCredits first, tell the user the cost, and WAIT for their confirmation before calling this tool.',
+      inputSchema: z.object({
+        prompt: z.string().describe('Scene description, e.g. "A coffee cup on a wooden table, steam rising, warm morning light"'),
+        duration: z.enum(['5', '10', '15']).default('10').describe('Video duration in seconds'),
+        aspectRatio: z.enum(['9:16', '16:9', '1:1']).default('16:9').describe('Aspect ratio'),
+        quality: z.enum(['quick', 'best']).default('quick').describe('Quality tier: quick (~30s, Grok) or best (~2-5min, Kling v3.0)'),
+        style: z.enum(['product', 'food', 'beauty', 'social', 'space', 'service', 'hospitality', 'fitness', 'fashion']).default('product').describe('Visual style preset'),
+      }),
+      execute: async ({ prompt, duration, aspectRatio, quality, style }: { prompt: string; duration: string; aspectRatio: string; quality: string; style: string }) => {
+        const BASE_URL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const res = await fetch(`${BASE_URL}/api/studio/generate-video-t2v`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
+          body: JSON.stringify({ prompt, duration: Number(duration), aspectRatio, quality, style }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Video generation failed' })) as { error?: string };
+          return { error: err.error || 'Video generation failed' };
+        }
+
+        const data = await res.json() as { jobId?: string; message?: string; videoUrl?: string };
+        if (data.videoUrl) {
+          return { action: 'video_generated', url: data.videoUrl, message: data.message || 'Video generated!' };
+        }
+        return { action: 'video_job_started', jobId: data.jobId, message: data.message || 'Video generation started. It will appear in your gallery when ready.' };
       },
     }),
 

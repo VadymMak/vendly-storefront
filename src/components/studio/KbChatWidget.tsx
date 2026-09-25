@@ -4,6 +4,15 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { usePathname, useRouter } from 'next/navigation';
+import { useStudioStore } from '@/lib/studio/store';
+import {
+  moveClipWithHistory,
+  trimClipWithHistory,
+  splitClipWithHistory,
+  duplicateClipWithHistory,
+  removeClipWithHistory,
+  addTextOverlayWithHistory,
+} from '@/lib/studio/history-commands';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +70,78 @@ type ToolInvocationPart = {
   };
 };
 
+type TimelineCommandResult = {
+  action: 'timeline_command';
+  command: string;
+  args: Record<string, unknown>;
+  message?: string;
+};
+
+type MediaGeneratedResult = {
+  action: 'media_generated';
+  type: 'image' | 'video' | 'audio';
+  url: string;
+};
+
+function executeTimelineCommand(cmd: TimelineCommandResult) {
+  const store = useStudioStore.getState();
+  const { command, args } = cmd;
+
+  switch (command) {
+    case 'addClipToTrack': {
+      const { trackId, clipType, sourceUrl, startTime, duration } = args as {
+        trackId: string; clipType: 'video' | 'image' | 'audio' | 'text';
+        sourceUrl: string; startTime: number; duration: number;
+      };
+      store.addClipToTrack(trackId, { type: clipType, sourceUrl, startTime, duration });
+      break;
+    }
+    case 'moveClip':
+      moveClipWithHistory(
+        args.clipId as string,
+        args.newTrackId as string,
+        args.newStartTime as number,
+      );
+      break;
+    case 'trimClip':
+      trimClipWithHistory(
+        args.clipId as string,
+        args.newStartTime as number,
+        args.newDuration as number,
+      );
+      break;
+    case 'splitClip':
+      splitClipWithHistory(args.clipId as string, args.splitTime as number);
+      break;
+    case 'duplicateClip':
+      duplicateClipWithHistory(args.clipId as string);
+      break;
+    case 'removeClip':
+      removeClipWithHistory(args.clipId as string);
+      break;
+    case 'addTextOverlay': {
+      const pos = args.position as string;
+      const styleIn = args.style as string;
+      const ovStyle: 'brand' | 'subtitle' | 'cta' | 'custom' =
+        styleIn === 'title' ? 'brand' : styleIn === 'subtitle' ? 'subtitle' : 'custom';
+      const ovPos: 'top' | 'center' | 'bottom' =
+        pos === 'top' ? 'top' : pos === 'middle' ? 'center' : 'bottom';
+      addTextOverlayWithHistory({
+        text: args.text as string,
+        position: ovPos,
+        style: ovStyle,
+        from: args.startTime as number,
+        to: (args.startTime as number) + (args.duration as number),
+        color: '#ffffff',
+      });
+      break;
+    }
+    case 'setPlayhead':
+      store.setPlayheadTime?.(args.time as number);
+      break;
+  }
+}
+
 function extractNavActions(parts: { type: string; [k: string]: unknown }[]): NavAction[] {
   return (parts as ToolInvocationPart[])
     .filter(p => p.type === 'tool-invocation' && p.toolInvocation?.state === 'result')
@@ -77,6 +158,8 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
   const pathname = usePathname();
   const router = useRouter();
 
+  const executedCommandsRef = useRef<Set<string>>(new Set());
+
   const [sessionId] = useState(() => {
     if (typeof window === 'undefined') return '';
     const key = 'kb-chat-session';
@@ -89,6 +172,19 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
   });
 
   const currentPage = pathname.split('/studio/')[1]?.split('/')[0] || 'home';
+
+  const timelineTracks = useStudioStore(s => s.timelineTracks);
+
+  const getMessageBody = useCallback(() => {
+    const base: Record<string, unknown> = {
+      currentPage,
+      language: typeof navigator !== 'undefined' ? navigator.language : 'en',
+    };
+    if (currentPage === 'assemble') {
+      base.timelineState = { tracks: timelineTracks };
+    }
+    return base;
+  }, [currentPage, timelineTracks]);
 
   const transport = useMemo(
     () => new DefaultChatTransport({
@@ -112,18 +208,39 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
     }
   }, [isOpen]);
 
+  // Process timeline_command results from assistant messages
+  useEffect(() => {
+    for (const msg of messages) {
+      if (msg.role !== 'assistant') continue;
+      for (const part of msg.parts as unknown as ToolInvocationPart[]) {
+        if (
+          part.type !== 'tool-invocation' ||
+          part.toolInvocation?.state !== 'result' ||
+          !part.toolInvocation.result
+        ) continue;
+        const { toolCallId, result } = part.toolInvocation;
+        if (executedCommandsRef.current.has(toolCallId)) continue;
+        if ((result as Record<string, unknown>).action === 'timeline_command') {
+          executedCommandsRef.current.add(toolCallId);
+          try {
+            executeTimelineCommand(result as TimelineCommandResult);
+          } catch (e) {
+            console.error('[KbChatWidget] timeline command failed:', e);
+          }
+        }
+      }
+    }
+  }, [messages]);
+
   const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text || isLoading) return;
-    sendMessage(
-      { text },
-      { body: { currentPage, language: typeof navigator !== 'undefined' ? navigator.language : 'en' } },
-    );
+    sendMessage({ text }, { body: getMessageBody() });
     setInput('');
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
     }
-  }, [input, isLoading, sendMessage, currentPage]);
+  }, [input, isLoading, sendMessage, getMessageBody]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -165,8 +282,10 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
             <IconSparkle />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">AI Help</h3>
-            <p className="text-[10px] text-gray-500">Ask about Studio features</p>
+            <h3 className="text-sm font-semibold text-white">AI Assistant</h3>
+            <p className="text-[10px] text-gray-500">
+              {currentPage === 'assemble' ? 'Edit your timeline' : currentPage === 'generate' ? 'Generate & enhance' : currentPage === 'animate' ? 'Animate your visuals' : 'Ask about Studio'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -214,10 +333,7 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
                 <button
                   key={q}
                   onClick={() => {
-                    sendMessage(
-                      { text: q },
-                      { body: { currentPage, language: typeof navigator !== 'undefined' ? navigator.language : 'en' } },
-                    );
+                    sendMessage({ text: q }, { body: getMessageBody() });
                   }}
                   className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-gray-300 transition-colors hover:border-green-500/30 hover:bg-green-500/10 hover:text-green-400"
                 >
@@ -239,7 +355,23 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
             ? extractNavActions(msg.parts as { type: string; [k: string]: unknown }[])
             : [];
 
-          if (!text && navActions.length === 0) return null;
+          const mediaResults: MediaGeneratedResult[] = msg.role === 'assistant'
+            ? (msg.parts as unknown as ToolInvocationPart[])
+                .filter(p => p.type === 'tool-invocation' && p.toolInvocation?.state === 'result')
+                .map(p => p.toolInvocation.result as Record<string, unknown>)
+                .filter(r => r?.action === 'media_generated')
+                .map(r => r as unknown as MediaGeneratedResult)
+            : [];
+
+          const timelineActions: TimelineCommandResult[] = msg.role === 'assistant'
+            ? (msg.parts as unknown as ToolInvocationPart[])
+                .filter(p => p.type === 'tool-invocation' && p.toolInvocation?.state === 'result')
+                .map(p => p.toolInvocation.result as Record<string, unknown>)
+                .filter(r => r?.action === 'timeline_command')
+                .map(r => r as unknown as TimelineCommandResult)
+            : [];
+
+          if (!text && navActions.length === 0 && mediaResults.length === 0 && timelineActions.length === 0) return null;
 
           // Get preceding user question for feedback
           const precedingUserMsg = messages.slice(0, msgIdx).reverse().find(m => m.role === 'user');
@@ -279,6 +411,35 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
                             </svg>
                             {nav.label}
                           </button>
+                        ))}
+                      </div>
+                    )}
+                    {mediaResults.length > 0 && (
+                      <div className={`flex flex-col gap-2 ${text ? 'mt-2.5' : ''}`}>
+                        {mediaResults.map((m, i) => (
+                          m.type === 'image' ? (
+                            <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg border border-white/10">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.url} alt="Generated" className="w-full h-auto max-h-48 object-cover" />
+                            </a>
+                          ) : (
+                            <div key={i} className="rounded-lg border border-white/10 p-2 text-[11px] text-green-400">
+                              {m.type === 'video' ? '🎬' : '🔊'} Generated {m.type} —{' '}
+                              <a href={m.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-300">open</a>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    )}
+                    {timelineActions.length > 0 && (
+                      <div className={`flex flex-col gap-1 ${text ? 'mt-2' : ''}`}>
+                        {timelineActions.map((cmd, i) => (
+                          <div key={i} className="flex items-center gap-1.5 rounded-md bg-green-600/10 border border-green-500/20 px-2 py-1 text-[11px] text-green-400">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            {cmd.message ?? cmd.command}
+                          </div>
                         ))}
                       </div>
                     )}

@@ -8,6 +8,9 @@ import { hybridSearch } from '@/lib/kb/search';
 import { trackKbGap, saveKbInteractionToBrain } from '@/lib/kb/learning';
 import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
 import { getBrainStudioContext } from '@/lib/studio/brain-client';
+import { executeTool } from '@/lib/studio/tool-executor';
+import type { SessionContext } from '@/lib/studio/types';
+import { PAGE_CAPABILITIES } from '@/lib/studio/chat-tools';
 import { NextRequest } from 'next/server';
 
 // === Rate limiter (in-memory, per user) ===
@@ -35,12 +38,30 @@ function extractTextFromMessage(msg: UIMessage): string {
     .join('');
 }
 
+interface TimelineClipSnapshot {
+  id: string;
+  trackId: string;
+  type: string;
+  sourceUrl: string;
+  startTime: number;
+  duration: number;
+  label?: string;
+}
+
+interface TimelineTrackSnapshot {
+  id: string;
+  type: string;
+  clips: TimelineClipSnapshot[];
+}
+
 interface KbChatRequestBody {
   messages: UIMessage[];
   sessionId: string;
   currentPage?: string;
   errorContext?: string;
   language?: string;
+  timelineState?: { tracks: TimelineTrackSnapshot[] };
+  lastGeneratedImageUrl?: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -55,8 +76,10 @@ export async function POST(req: NextRequest) {
     return new Response('Too many requests', { status: 429 });
   }
 
+  const cookieHeader = req.headers.get('cookie') ?? '';
   const body = (await req.json()) as KbChatRequestBody;
-  const { messages, sessionId, currentPage, errorContext, language } = body;
+  const { messages, sessionId, currentPage, errorContext, language, timelineState, lastGeneratedImageUrl } = body;
+  const isActionPage = ['generate', 'animate', 'assemble'].includes(currentPage ?? '');
 
   if (!messages?.length || !sessionId) {
     return new Response('Bad request', { status: 400 });
@@ -107,11 +130,17 @@ export async function POST(req: NextRequest) {
     ? await getBrainStudioContext(lastUserText)
     : '';
 
-  const systemPrompt = `You are VendShop AI Studio's help assistant. You answer questions about the platform's tools, features, credits, pricing, and troubleshooting.
+  const rule10 = isActionPage
+    ? `10. You are on the ${currentPage} page and CAN perform actions directly using your tools. When the user asks to generate/create/edit something, USE the appropriate tool — do not redirect them to the UI.`
+    : `10. If the user's question is about generating images/videos (not about HOW to use the tool, but actually wanting to generate), politely explain that you are the help assistant and they should use the Studio tools directly. Do NOT generate anything.`;
+
+  const pageCapabilityBlock = PAGE_CAPABILITIES[currentPage ?? ''] ?? '';
+
+  const systemPrompt = `You are VendShop AI Studio's AI Assistant. You answer questions about the platform's tools, features, credits, pricing, and troubleshooting. On action pages you can also perform actions directly.
 
 RULES:
 1. Answer ONLY based on the knowledge base documents retrieved by the searchDocs tool. If the knowledge base doesn't contain the answer, say so honestly — never invent features or prices.
-2. When the user asks a question, ALWAYS call searchDocs first before answering. Do not answer from memory alone.
+2. When the user asks a factual question about features/pricing, ALWAYS call searchDocs first. For action requests (generate, edit, timeline), call the action tool directly.
 3. Be concise — 2-4 sentences for simple questions, more for complex ones.
 4. Use the user's language: if they write in Russian/Ukrainian (Cyrillic), answer in Russian. If they write in English, answer in English. Default to the UI language (${user?.uiLanguage || language || 'en'}).
 5. For troubleshooting: check the user's recent jobs and credits context. If they describe an error, check if it matches a known issue in the KB.
@@ -119,11 +148,12 @@ RULES:
 7. When citing specific credit costs or limits, be precise — use exact numbers from the KB.
 8. If the user asks how to do something, give step-by-step instructions from the KB.
 9. For pricing questions, always mention the current plans: Free (€0, 15 images/month), Starter (€9, 100 images + 20 video credits), Pro (€19, 300 images + 60 video credits), BYOK Creator (€7, unlimited with own keys).
-10. If the user's question is about generating images/videos (not about HOW to use the tool, but actually wanting to generate), politely explain that you are the help assistant and they should use the Studio tools directly. Do NOT generate anything.
+${rule10}
 11. When the user asks to open, go to, or try a specific Studio tool, call openStudioTool — it renders as a clickable navigation button. Do not just say "click here" without calling the tool.
 12. When the user describes a creative goal (e.g., "I want to make a product video"), call suggestWorkflow to provide context from the knowledge base and a navigation button to the most relevant tool.
 13. When the user asks whether they can use a specific tool or feature, call checkToolAvailability to give them a precise answer based on their actual plan and credits.
 14. After calling any navigation tool, add a brief text explanation of what the tool does and what to expect.
+${pageCapabilityBlock ? `\n## Page context\n${pageCapabilityBlock}` : ''}
 
 ${userContextBlock}
 ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}` : ''}`;
@@ -294,6 +324,201 @@ ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}`
       },
     }),
 
+    // ── Generate page tools ──────────────────────────────────────────────────
+    ...(currentPage === 'generate' ? {
+      generate_image: tool({
+        description: 'Generate an image from a text prompt. Call this when the user asks to create, generate, or make an image.',
+        inputSchema: z.object({
+          prompt: z.string().describe('Detailed image description in English'),
+          aspect_ratio: z.enum(['1:1', '9:16', '16:9', '4:3', '3:4']).default('1:1').describe('Image aspect ratio'),
+        }),
+        execute: async ({ prompt, aspect_ratio }: { prompt: string; aspect_ratio: string }) => {
+          const ctx: SessionContext = { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
+          const result = await executeTool('generate_image', { prompt, aspect_ratio }, ctx, cookieHeader);
+          if (result.error) return { error: result.error };
+          if (result.media) return { action: 'media_generated', type: 'image', url: result.media.url };
+          return result;
+        },
+      }),
+
+      remove_background: tool({
+        description: 'Remove background from an image. Use the last generated image or an explicit URL.',
+        inputSchema: z.object({
+          imageUrl: z.string().optional().describe('URL of the image. If not provided, uses the last generated image.'),
+        }),
+        execute: async ({ imageUrl }: { imageUrl?: string }) => {
+          const imgUrl = imageUrl || lastGeneratedImageUrl;
+          if (!imgUrl) return { error: 'No image available. Generate an image first, then I can remove the background.' };
+          const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
+          const result = await executeTool('remove_background', {}, ctx, cookieHeader);
+          if (result.error) return { error: result.error };
+          if (result.media) return { action: 'media_generated', type: 'image', url: result.media.url };
+          return result;
+        },
+      }),
+
+      upscale: tool({
+        description: 'Upscale or enhance image quality. Use the last generated image or an explicit URL.',
+        inputSchema: z.object({
+          imageUrl: z.string().optional().describe('URL of the image. If not provided, uses the last generated image.'),
+          type: z.enum(['upscale', 'portrait']).default('upscale'),
+        }),
+        execute: async ({ imageUrl, type }: { imageUrl?: string; type: string }) => {
+          const imgUrl = imageUrl || lastGeneratedImageUrl;
+          if (!imgUrl) return { error: 'No image available. Generate an image first, then I can upscale it.' };
+          const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
+          const result = await executeTool('upscale', { type }, ctx, cookieHeader);
+          if (result.error) return { error: result.error };
+          if (result.media) return { action: 'media_generated', type: 'image', url: result.media.url };
+          return result;
+        },
+      }),
+    } : {}),
+
+    // ── Animate page tools ───────────────────────────────────────────────────
+    ...(currentPage === 'animate' ? {
+      generate_video: tool({
+        description: 'Generate a video from an image. Requires a source image URL.',
+        inputSchema: z.object({
+          prompt: z.string().describe('Motion description, e.g. "slow zoom in, cinematic"'),
+          imageUrl: z.string().optional().describe('Source image URL. Required if no image was previously generated.'),
+          duration: z.enum(['5', '10']).default('5').describe('Video duration in seconds'),
+          aspectRatio: z.enum(['9:16', '16:9', '1:1']).default('9:16'),
+        }),
+        execute: async ({ prompt, imageUrl, duration, aspectRatio }: { prompt: string; imageUrl?: string; duration: string; aspectRatio: string }) => {
+          const imgUrl = imageUrl || lastGeneratedImageUrl;
+          if (!imgUrl) return { error: 'Please provide an image URL or generate an image first, then I can animate it.' };
+          const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
+          const result = await executeTool('image_to_video', { prompt, duration: Number(duration), aspectRatio }, ctx, cookieHeader);
+          if (result.error) return { error: result.error };
+          return { action: 'video_job_started', jobId: result.jobId, message: result.message };
+        },
+      }),
+    } : {}),
+
+    // ── Assemble page tools ──────────────────────────────────────────────────
+    ...(currentPage === 'assemble' ? {
+      get_timeline: tool({
+        description: 'Get the current timeline state. ALWAYS call this before modifying the timeline.',
+        inputSchema: z.object({}),
+        execute: async () => {
+          const tracks = timelineState?.tracks ?? [];
+          if (tracks.length === 0) return { tracks: [], message: 'The timeline is empty.' };
+          const summary = tracks.map(t =>
+            `Track "${t.id}" (${t.type}): ${t.clips.length} clip(s)${t.clips.length ? ' — ' + t.clips.map(c => `"${c.label || c.type}" at ${c.startTime}s (${c.duration}s)`).join(', ') : ''}`
+          ).join('\n');
+          return { tracks, summary };
+        },
+      }),
+
+      add_clip: tool({
+        description: 'Add a media clip to a track in the timeline.',
+        inputSchema: z.object({
+          trackId: z.string().describe('Track ID to add the clip to (from get_timeline)'),
+          clipType: z.enum(['image', 'video', 'audio', 'text']),
+          sourceUrl: z.string().describe('URL of the media'),
+          startTime: z.number().min(0).describe('Start time in seconds'),
+          duration: z.number().min(0.1).describe('Duration in seconds'),
+          label: z.string().optional(),
+        }),
+        execute: async (args: { trackId: string; clipType: string; sourceUrl: string; startTime: number; duration: number; label?: string }) => ({
+          action: 'timeline_command',
+          command: 'addClipToTrack',
+          args,
+          message: `Adding ${args.clipType} clip to track "${args.trackId}" at ${args.startTime}s`,
+        }),
+      }),
+
+      move_clip: tool({
+        description: 'Move a clip to a different position or track.',
+        inputSchema: z.object({
+          clipId: z.string().describe('ID of the clip to move'),
+          newTrackId: z.string().describe('Target track ID'),
+          newStartTime: z.number().min(0).describe('New start time in seconds'),
+        }),
+        execute: async (args: { clipId: string; newTrackId: string; newStartTime: number }) => ({
+          action: 'timeline_command',
+          command: 'moveClip',
+          args,
+        }),
+      }),
+
+      trim_clip: tool({
+        description: 'Trim a clip to change its start time and/or duration.',
+        inputSchema: z.object({
+          clipId: z.string(),
+          newStartTime: z.number().min(0).describe('New start time in seconds'),
+          newDuration: z.number().min(0.1).describe('New duration in seconds'),
+        }),
+        execute: async (args: { clipId: string; newStartTime: number; newDuration: number }) => ({
+          action: 'timeline_command',
+          command: 'trimClip',
+          args,
+        }),
+      }),
+
+      split_clip: tool({
+        description: 'Split a clip into two at the given timeline time.',
+        inputSchema: z.object({
+          clipId: z.string(),
+          splitTime: z.number().describe('Absolute timeline time in seconds to split at'),
+        }),
+        execute: async (args: { clipId: string; splitTime: number }) => ({
+          action: 'timeline_command',
+          command: 'splitClip',
+          args,
+        }),
+      }),
+
+      duplicate_clip: tool({
+        description: 'Duplicate a clip (appended after original).',
+        inputSchema: z.object({ clipId: z.string() }),
+        execute: async (args: { clipId: string }) => ({
+          action: 'timeline_command',
+          command: 'duplicateClip',
+          args,
+        }),
+      }),
+
+      remove_clip: tool({
+        description: 'Remove a clip from the timeline. ALWAYS confirm with the user before calling this.',
+        inputSchema: z.object({ clipId: z.string().describe('ID of the clip to remove') }),
+        execute: async (args: { clipId: string }) => ({
+          action: 'timeline_command',
+          command: 'removeClip',
+          args,
+        }),
+      }),
+
+      add_text_overlay: tool({
+        description: 'Add a text overlay or title to the video.',
+        inputSchema: z.object({
+          text: z.string().describe('Text content'),
+          startTime: z.number().min(0).describe('When the text appears (seconds)'),
+          duration: z.number().min(0.5).describe('How long the text is visible (seconds)'),
+          position: z.enum(['top', 'middle', 'bottom']).default('bottom'),
+          style: z.enum(['title', 'subtitle', 'caption']).default('caption'),
+        }),
+        execute: async (args: { text: string; startTime: number; duration: number; position: string; style: string }) => ({
+          action: 'timeline_command',
+          command: 'addTextOverlay',
+          args,
+        }),
+      }),
+
+      set_playhead: tool({
+        description: 'Move the playhead to a specific time position.',
+        inputSchema: z.object({
+          time: z.number().min(0).describe('Playhead position in seconds'),
+        }),
+        execute: async (args: { time: number }) => ({
+          action: 'timeline_command',
+          command: 'setPlayhead',
+          args,
+        }),
+      }),
+    } : {}),
+
     suggestWorkflow: tool({
       description: 'Suggest a step-by-step workflow for accomplishing a creative goal with Studio tools. Returns a navigation action pointing to the most relevant tool. Use when the user describes a creative goal like "I want to create a product video" or "help me edit my photos".',
       inputSchema: z.object({
@@ -330,11 +555,11 @@ ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}`
   const modelMessages = await convertToModelMessages(messages);
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai(isActionPage ? 'gpt-4o' : 'gpt-4o-mini'),
     system: systemPrompt,
     messages: modelMessages,
     tools,
-    stopWhen: isStepCount(5),
+    stopWhen: isStepCount(isActionPage ? 8 : 5),
     temperature: 0.3,
     onEnd: async ({ text, steps }) => {
       if (text) {

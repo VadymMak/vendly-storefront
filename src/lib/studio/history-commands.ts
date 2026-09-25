@@ -5,14 +5,33 @@ import type { TextOverlay } from '@/lib/slideshow-renderer';
 
 export function removeClipWithHistory(clipId: string) {
   const store = useStudioStore.getState();
-  const clip = store.timelineTracks.flatMap(t => t.clips).find(c => c.id === clipId);
+  const tracks = store.timelineTracks;
+  const clip = tracks.flatMap(t => t.clips).find(c => c.id === clipId);
   if (!clip) return;
   const snapshot: TimelineClip = { ...clip };
+
+  // Snapshot linked "Original audio" clip for video/image clips
+  let linkedSnapshot: TimelineClip | null = null;
+  if (clip.type === 'video' || clip.type === 'image') {
+    for (const track of tracks) {
+      if (track.type !== 'audio') continue;
+      const linked = track.clips.find(c =>
+        c.audioName === 'Original audio' &&
+        c.sourceUrl === clip.sourceUrl &&
+        Math.abs(c.startTime - clip.startTime) < 0.01
+      );
+      if (linked) { linkedSnapshot = { ...linked }; break; }
+    }
+  }
 
   useHistoryStore.getState().push({
     label: 'Delete clip',
     execute: () => useStudioStore.getState().removeClip(clipId),
-    undo: () => useStudioStore.getState().restoreClip(snapshot),
+    undo: () => {
+      const s = useStudioStore.getState();
+      s.restoreClip(snapshot);
+      if (linkedSnapshot) s.restoreClip(linkedSnapshot);
+    },
   });
 }
 

@@ -241,13 +241,67 @@ export const useStudioStore = create<StudioStore>()(
         }),
 
       removeClip: (clipId) =>
-        set((s) => ({
-          timelineTracks: s.timelineTracks.map(t => ({
-            ...t,
-            clips: t.clips.filter(c => c.id !== clipId),
-          })),
-          selectedClipId: s.selectedClipId === clipId ? null : s.selectedClipId,
-        })),
+        set((s) => {
+          // Find the clip being deleted
+          let deletedClip: TimelineClip | undefined;
+          for (const track of s.timelineTracks) {
+            const found = track.clips.find(c => c.id === clipId);
+            if (found) { deletedClip = found; break; }
+          }
+          if (!deletedClip) return {};
+
+          // Find linked "Original audio" clip (same sourceUrl + startTime on audio track)
+          let linkedAudioClipId: string | null = null;
+          if (deletedClip.type === 'video' || deletedClip.type === 'image') {
+            for (const track of s.timelineTracks) {
+              if (track.type !== 'audio') continue;
+              const linked = track.clips.find(c =>
+                c.audioName === 'Original audio' &&
+                c.sourceUrl === deletedClip!.sourceUrl &&
+                Math.abs(c.startTime - deletedClip!.startTime) < 0.01
+              );
+              if (linked) { linkedAudioClipId = linked.id; break; }
+            }
+          }
+
+          return {
+            timelineTracks: s.timelineTracks.map(track => {
+              let clips = track.clips;
+
+              // Remove deleted clip and ripple-shift on its track
+              if (clips.some(c => c.id === clipId)) {
+                clips = clips
+                  .filter(c => c.id !== clipId)
+                  .map(c => ({
+                    ...c,
+                    startTime: Math.max(0, c.startTime > deletedClip!.startTime
+                      ? c.startTime - deletedClip!.duration
+                      : c.startTime),
+                  }));
+              }
+
+              // Remove linked audio clip and ripple-shift on audio track
+              if (linkedAudioClipId && clips.some(c => c.id === linkedAudioClipId)) {
+                const linkedClip = clips.find(c => c.id === linkedAudioClipId);
+                if (linkedClip) {
+                  const linkedStart = linkedClip.startTime;
+                  const linkedDuration = linkedClip.duration;
+                  clips = clips
+                    .filter(c => c.id !== linkedAudioClipId)
+                    .map(c => ({
+                      ...c,
+                      startTime: Math.max(0, c.startTime > linkedStart
+                        ? c.startTime - linkedDuration
+                        : c.startTime),
+                    }));
+                }
+              }
+
+              return { ...track, clips };
+            }),
+            selectedClipId: s.selectedClipId === clipId ? null : s.selectedClipId,
+          };
+        }),
 
       moveClip: (clipId, newTrackId, newStartTime) =>
         set((s) => {
@@ -315,9 +369,16 @@ export const useStudioStore = create<StudioStore>()(
 
       restoreClip: (clip) =>
         set((s) => ({
-          timelineTracks: s.timelineTracks.map(t =>
-            t.id === clip.trackId ? { ...t, clips: [...t.clips, clip] } : t
-          ),
+          timelineTracks: s.timelineTracks.map(t => {
+            if (t.id !== clip.trackId) return t;
+            const shifted = t.clips.map(c => ({
+              ...c,
+              startTime: c.startTime >= clip.startTime
+                ? c.startTime + clip.duration
+                : c.startTime,
+            }));
+            return { ...t, clips: [...shifted, clip] };
+          }),
         })),
 
       updateTextClipOverlay: (clipId, partial) =>

@@ -1631,7 +1631,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) useStudioStore.getState().trimClip(selectedClip.id, selectedClip.startTime, v); }}
                 className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500/60" />
             </div>
-            <button onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
+            <button onClick={e => { e.stopPropagation(); removeClipWithHistory(selectedClip.id); }}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300">
               <IconX size={12} /> Remove
             </button>
@@ -1740,7 +1740,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               </div>
             </div>
             <button
-              onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
+              onClick={e => { e.stopPropagation(); removeClipWithHistory(selectedClip.id); }}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300"
             >
               <IconX size={12} /> Remove
@@ -1796,7 +1796,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               />
             </div>
             <button
-              onClick={e => { e.stopPropagation(); removeClipFn(selectedClip.id); }}
+              onClick={e => { e.stopPropagation(); removeClipWithHistory(selectedClip.id); }}
               className="flex w-full items-center justify-center gap-2 rounded border border-red-500/20 py-1.5 text-xs text-red-400 transition-colors hover:border-red-500/40 hover:text-red-300"
             >
               <IconX size={12} /> Remove clip

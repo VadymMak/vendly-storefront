@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
-import { checkCredits, deductCredit } from '@/lib/credits';
+import { checkCredits, consumeCredits } from '@/lib/credits';
 
 export const maxDuration = 120;
 
@@ -84,6 +84,9 @@ export async function POST(req: NextRequest) {
     contentType: 'image/webp',
   });
 
-  await deductCredit(session.user.id, 'image', 1, 'replicate');
+  const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+  if (!consume.success) {
+    return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+  }
   return NextResponse.json({ url: finalBlob.url });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
-import { checkCredits, deductCredit } from '@/lib/credits';
+import { checkCredits, consumeCredits } from '@/lib/credits';
 
 export const maxDuration = 120;
 
@@ -103,13 +103,15 @@ export async function POST(req: NextRequest) {
       { access: 'public', contentType: 'image/png' },
     );
 
-    await deductCredit(session.user.id, 'image', 1);
+    const consume = await consumeCredits(session.user.id, 'image', 1);
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+    }
 
     console.log('[ai-blend] Done:', finalBlob.url);
     return NextResponse.json({ url: finalBlob.url });
   } catch (error) {
     console.error('[ai-blend] Error:', error);
-    const message = error instanceof Error ? error.message : 'AI Blend failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'AI blend failed. Please try again.' }, { status: 500 });
   }
 }

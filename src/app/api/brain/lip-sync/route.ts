@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
+import { auth } from '@/lib/auth';
+import { checkCredits, consumeCredits } from '@/lib/credits';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
 
@@ -9,6 +11,9 @@ export async function POST(req: NextRequest) {
   if (!BRAIN_API_KEY || apiKey !== BRAIN_API_KEY) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const session = await auth();
+  const userId = session?.user?.id;
 
   try {
     const body = (await req.json()) as {
@@ -30,6 +35,13 @@ export async function POST(req: NextRequest) {
         { error: 'Provide video_url (preferred) or face_image.' },
         { status: 400 },
       );
+    }
+
+    if (userId) {
+      const creditCheck = await checkCredits(userId, 'image', 2);
+      if (!creditCheck.allowed) {
+        return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
+      }
     }
 
     const replicateToken = process.env.REPLICATE_API_TOKEN;
@@ -88,6 +100,10 @@ export async function POST(req: NextRequest) {
       contentType: 'video/mp4',
     });
 
+    if (userId) {
+      await consumeCredits(userId, 'image', 2);
+    }
+
     return NextResponse.json({
       url:   blob.url,
       media: { type: 'video', url: blob.url },
@@ -95,9 +111,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('[brain/lip-sync]', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Lip-sync generation failed. Please try again.' }, { status: 500 });
   }
 }

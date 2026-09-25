@@ -4,11 +4,18 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
-import { checkCredits, deductCredit } from '@/lib/credits';
+import { checkCredits, consumeCredits } from '@/lib/credits';
 
 export const maxDuration = 120;
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export async function POST(req: NextRequest) {
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  if (contentLength > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,6 +36,9 @@ export async function POST(req: NextRequest) {
 
     if (!image) {
       return NextResponse.json({ error: 'Missing image' }, { status: 400 });
+    }
+    if (image.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
     }
     if (!mask) {
       return NextResponse.json({ error: 'Missing mask' }, { status: 400 });
@@ -106,7 +116,10 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[inpaint] Done:', finalBlob.url);
-    await deductCredit(session.user.id, 'image', 1, 'replicate');
+    const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+    }
     const capturedUrl = finalBlob.url;
     createJob({
       userId:       session.user.id,

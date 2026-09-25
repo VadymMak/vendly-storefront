@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import { auth } from '@/lib/auth';
+import { checkCredits, consumeCredits } from '@/lib/credits';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
 
@@ -16,6 +18,9 @@ export async function POST(req: NextRequest) {
   if (!BRAIN_API_KEY || apiKey !== BRAIN_API_KEY) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const session = await auth();
+  const userId = session?.user?.id;
 
   try {
     const body = (await req.json()) as {
@@ -41,6 +46,13 @@ export async function POST(req: NextRequest) {
     }
     if (text.length > 5000) {
       return NextResponse.json({ error: 'Text too long. Maximum 5000 characters.' }, { status: 400 });
+    }
+
+    if (userId) {
+      const creditCheck = await checkCredits(userId, 'image', 1);
+      if (!creditCheck.allowed) {
+        return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
+      }
     }
 
     const elKey = elevenlabs_api_key || process.env.ELEVENLABS_API_KEY || '';
@@ -74,11 +86,9 @@ export async function POST(req: NextRequest) {
     );
 
     if (!response.ok) {
-      const errText = await response.text().catch(() => 'Unknown ElevenLabs error');
-      return NextResponse.json(
-        { error: `ElevenLabs error ${response.status}: ${errText}` },
-        { status: 502 },
-      );
+      const errText = await response.text().catch(() => '');
+      console.error(`[brain/voiceover] ElevenLabs ${response.status}:`, errText);
+      return NextResponse.json({ error: 'Voiceover generation failed. Please try again.' }, { status: 502 });
     }
 
     const audioBuffer = Buffer.from(await response.arrayBuffer());
@@ -86,6 +96,10 @@ export async function POST(req: NextRequest) {
       access: 'public',
       contentType: 'audio/mpeg',
     });
+
+    if (userId) {
+      await consumeCredits(userId, 'image', 1);
+    }
 
     return NextResponse.json({
       url:        blob.url,
@@ -97,9 +111,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('[brain/voiceover]', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Voiceover generation failed. Please try again.' }, { status: 500 });
   }
 }

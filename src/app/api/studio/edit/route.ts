@@ -2,7 +2,7 @@ import { put } from '@vercel/blob';
 import sharp from 'sharp';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel } from '@/lib/studio/config';
@@ -14,7 +14,14 @@ import { db } from '@/lib/db';
 
 export const maxDuration = 60;
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
 export async function POST(req: Request) {
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  if (contentLength > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
+  }
+
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -35,14 +42,16 @@ export async function POST(req: Request) {
     ?? (formData.get('provider') === 'grok' ? 'edit-grok' : 'edit-kontext');
 
   if (!file)   return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
   if (!prompt) return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
 
   // Rate limit
   const ip       = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits  = await getOrCreateCredits(session.user.id);
-  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.aiEdit;
+  const rateLimit = RATE_LIMITS.aiEdit[planType] || RATE_LIMITS.aiEdit.free;
 
-  if (!(await checkRateLimitWithBypass(`edit:${ip}:${session.user.id}`, RATE_LIMITS.aiEdit[planType], session.user.id))) {
+  if (!(await checkRateLimitWithBypass(`edit:${ip}:${session.user.id}`, rateLimit, session.user.id))) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
@@ -103,7 +112,10 @@ export async function POST(req: Request) {
     const durationMs = Date.now() - startTime;
 
     if (!model.byokOnly && !creditCheck.byok) {
-      await deductCredit(session.user.id, model.creditType);
+      const consume = await consumeCredits(session.user.id, model.creditType as 'image' | 'video');
+      if (!consume.success) {
+        return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+      }
     }
 
     await logUsage({
@@ -159,6 +171,6 @@ export async function POST(req: Request) {
       errorMessage: msg,
     });
     console.error(`[studio/edit][${modelAlias}]`, err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Image editing failed. Please try again.' }, { status: 500 });
   }
 }

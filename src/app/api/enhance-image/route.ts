@@ -36,7 +36,14 @@ function extractUrl(output: unknown): string | null {
   return null;
 }
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export async function POST(req: Request) {
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  if (contentLength > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
+  }
+
   // ── Parse body (needed for honeypot — must come before auth) ──────────────────
   let formData: FormData;
   try {
@@ -61,6 +68,7 @@ export async function POST(req: Request) {
     : 'upscale';
 
   if (!file) return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
 
   // ── Rate limit ────────────────────────────────────────────────────────────────
   const ip       = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';

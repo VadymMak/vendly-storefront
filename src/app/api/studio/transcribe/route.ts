@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { isSuperuser, getOrCreateCredits, deductCredit } from '@/lib/credits';
+import { isSuperuser, getOrCreateCredits, consumeCredits } from '@/lib/credits';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const TRANSCRIBE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -110,7 +110,10 @@ export async function POST(req: NextRequest) {
     };
 
     if (!superuser) {
-      await deductCredit(userId, 'image', 1);
+      const consume = await consumeCredits(userId, 'image', 1);
+      if (!consume.success) {
+        return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+      }
     }
 
     return NextResponse.json({
@@ -120,7 +123,7 @@ export async function POST(req: NextRequest) {
       words: data.words ?? [],
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('[transcribe]', err);
+    return NextResponse.json({ error: 'Transcription failed. Please try again.' }, { status: 500 });
   }
 }

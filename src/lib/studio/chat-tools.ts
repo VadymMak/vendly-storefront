@@ -27,6 +27,7 @@ export const TOOL_PAGE_MAP: Record<string, string[]> = {
   remove_clip:           ['assemble'],
   add_text_overlay:      ['assemble'],
   set_playhead:          ['assemble'],
+  auto_caption:          ['assemble'],
 };
 
 export function getToolsForPage(currentPage: string): string[] {
@@ -60,6 +61,7 @@ You are on the VIDEO EDITOR (Assemble) page. In addition to help, you can:
 - Remove clips (remove_clip) — destructive, confirm with the user first
 - Add text overlays/titles (add_text_overlay)
 - Set playhead position (set_playhead)
+- Auto-generate captions from audio (auto_caption) — transcribes speech and creates synced subtitle clips
 All timeline mutations are undoable (Ctrl+Z).`,
 
   library: `You are on the MY WORK library page. Help the user find, filter, or manage their saved generations.`,

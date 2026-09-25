@@ -517,6 +517,21 @@ ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}`
           args,
         }),
       }),
+
+      auto_caption: tool({
+        description: 'Automatically transcribe audio on the timeline and add synced text captions. Use when the user says "add captions", "subtitle this", "transcribe the audio", "add subtitles", etc.',
+        inputSchema: z.object({
+          style: z.enum(['subtitle', 'karaoke', 'word-by-word', 'sentence']).default('subtitle')
+            .describe('Caption style: subtitle (classic), karaoke (typewriter), word-by-word (Instagram Reels pop), sentence (full sentences)'),
+          language: z.string().optional().describe('ISO 639-1 language code (en, sk, uk, cs, de). Leave empty for auto-detect.'),
+          wordsPerLine: z.number().min(2).max(8).default(4),
+        }),
+        execute: async ({ style, language, wordsPerLine }: { style: string; language?: string; wordsPerLine: number }) => ({
+          action: 'auto_caption',
+          args: { style, language, wordsPerLine },
+          message: 'Starting auto-caption transcription...',
+        }),
+      }),
     } : {}),
 
     suggestWorkflow: tool({

@@ -220,13 +220,18 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
         ) continue;
         const { toolCallId, result } = part.toolInvocation;
         if (executedCommandsRef.current.has(toolCallId)) continue;
-        if ((result as Record<string, unknown>).action === 'timeline_command') {
+        const action = (result as Record<string, unknown>).action;
+        if (action === 'timeline_command') {
           executedCommandsRef.current.add(toolCallId);
           try {
             executeTimelineCommand(result as TimelineCommandResult);
           } catch (e) {
             console.error('[KbChatWidget] timeline command failed:', e);
           }
+        } else if (action === 'auto_caption') {
+          executedCommandsRef.current.add(toolCallId);
+          const args = (result as Record<string, unknown>).args as Record<string, unknown>;
+          window.dispatchEvent(new CustomEvent('studio:auto-caption', { detail: args }));
         }
       }
     }

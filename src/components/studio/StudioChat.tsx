@@ -7,6 +7,7 @@ import { renderSlideshow, DEFAULT_SEQUENCE } from '@/lib/slideshow-renderer';
 import type { SlideshowConfig, SlideshowItem, TransitionType, VideoStyle, OnProgress } from '@/lib/slideshow-renderer';
 import ChatMessageBubble from './ChatMessage';
 import SkillPicker from './SkillPicker';
+import { groupWordsIntoCaptions } from '@/lib/studio/caption-utils';
 
 function isErrorMessage(content: string): boolean {
   if (!content) return false;
@@ -261,25 +262,6 @@ const WELCOME_MESSAGE: ChatMessage = {
 const SESSION_KEY = 'studio-chat-session';
 const MAX_MESSAGES = 30;
 
-// Groups Whisper word-level timestamps into readable caption lines.
-// 4 words per line is optimal for subtitle readability at video pace.
-function groupWordsIntoCaptions(
-  words: Array<{ word: string; start: number; end: number }>,
-  wordsPerLine = 4,
-): import('@/lib/slideshow-renderer').TextOverlay[] {
-  const overlays: import('@/lib/slideshow-renderer').TextOverlay[] = [];
-  for (let i = 0; i < words.length; i += wordsPerLine) {
-    const chunk = words.slice(i, i + wordsPerLine);
-    overlays.push({
-      text:     chunk.map((w) => w.word).join(' ').trim(),
-      position: 'bottom',
-      style:    'subtitle',
-      from:     chunk[0].start,
-      to:       chunk[chunk.length - 1].end + 0.15,
-    });
-  }
-  return overlays;
-}
 
 export default function StudioChat({ userId, userEmail }: Props) {
   void userId;

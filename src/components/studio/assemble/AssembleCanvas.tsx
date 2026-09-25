@@ -23,6 +23,9 @@ import type { PresetCategory } from '@/lib/fonts/text-presets';
 import { loadGoogleFont, loadGoogleFontBoth } from '@/lib/fonts/font-loader';
 import { AutoAssembleModal } from './AutoAssembleModal';
 import { BrandKitPanel } from './BrandKitPanel';
+import { groupWordsIntoCaptions, captionsToTimelineClips } from '@/lib/studio/caption-utils';
+import type { CaptionStyle } from '@/lib/studio/caption-utils';
+import { extractAudioForTranscription } from '@/lib/studio/audio-extract';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -274,6 +277,15 @@ function IconDownload() {
       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
       <polyline points="7 10 12 15 17 10"/>
       <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  );
+}
+
+function IconCaptions() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="1" y="4" width="22" height="16" rx="2" />
+      <path d="M7 15h4M13 15h4M7 11h10" />
     </svg>
   );
 }
@@ -778,6 +790,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const clearAllTracks     = useStudioStore(s => s.clearAllTracks);
   const initDefaultTracks  = useStudioStore(s => s.initDefaultTracks);
   const addClipToTrack     = useStudioStore(s => s.addClipToTrack);
+  const addTrack           = useStudioStore(s => s.addTrack);
   const selectedClipId     = useStudioStore(s => s.selectedClipId);
   const setSelectedClipId  = useStudioStore(s => s.setSelectedClipId);
   const removeClipFn            = useStudioStore(s => s.removeClip);
@@ -873,6 +886,13 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [projectName, setProjectName]       = useState('Untitled Clip');
   const [editingName, setEditingName]       = useState(false);
   const [error, setError]                   = useState<string | null>(null);
+  const [isCaptioning, setIsCaptioning]             = useState(false);
+  const [captionProgress, setCaptionProgress]       = useState('');
+  const [showCaptionSettings, setShowCaptionSettings] = useState(false);
+  const [captionStyle, setCaptionStyle]             = useState<CaptionStyle>('subtitle');
+  const [captionWordsPerLine, setCaptionWordsPerLine] = useState(4);
+  const [captionFontSize, setCaptionFontSize]       = useState(36);
+  const [captionLanguage, setCaptionLanguage]       = useState('');
 
   // Inspector toggle
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -1301,7 +1321,144 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // (previewOverlays moved above as editorPreviewOverlays)
 
-  // ── New Project ────────────────────────────────────────────────────────────
+  // ── Auto-Captions ──────────────────────────────────────────────────────────
+
+  async function handleAutoCaptions(overrides?: {
+    style?: CaptionStyle;
+    language?: string;
+    wordsPerLine?: number;
+  }) {
+    const style = overrides?.style ?? captionStyle;
+    const wordsPerLine = overrides?.wordsPerLine ?? captionWordsPerLine;
+    const language = overrides?.language ?? captionLanguage;
+
+    const allClips = timelineTracks.flatMap(t => t.clips);
+    const mediaClips = allClips.filter(c => c.type === 'audio' || c.type === 'video');
+
+    if (mediaClips.length === 0) {
+      setError('No audio or video clips on timeline. Add media with audio first.');
+      return;
+    }
+
+    setIsCaptioning(true);
+    setCaptionProgress('Extracting audio...');
+
+    try {
+      const audioSource = await extractAudioForTranscription(
+        mediaClips.map(c => ({ type: c.type, sourceUrl: c.sourceUrl, id: c.id })),
+      );
+      if (!audioSource) {
+        setError('Could not extract audio from timeline clips.');
+        setIsCaptioning(false);
+        return;
+      }
+
+      setCaptionProgress('Transcribing with Whisper AI...');
+
+      let res: Response;
+      if (audioSource.file) {
+        const formData = new FormData();
+        formData.append('audio', audioSource.file);
+        if (language) formData.append('language', language);
+        res = await fetch('/api/studio/transcribe', { method: 'POST', body: formData });
+      } else {
+        res = await fetch('/api/studio/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio_url: audioSource.url, language: language || undefined }),
+        });
+      }
+
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error || `Transcription failed (${res.status})`);
+      }
+
+      const data = await res.json() as {
+        text: string;
+        words: Array<{ word: string; start: number; end: number }>;
+        language?: string;
+      };
+
+      if (!data.words?.length) {
+        setError('No speech detected in the audio.');
+        setIsCaptioning(false);
+        return;
+      }
+
+      setCaptionProgress(`Generating ${style} captions (${data.words.length} words)...`);
+
+      const sourceClip = mediaClips[0];
+      const offsetSeconds = sourceClip?.startTime ?? 0;
+
+      const captions = groupWordsIntoCaptions(data.words, {
+        style,
+        wordsPerLine,
+        fontSize: captionFontSize,
+        offsetSeconds,
+      });
+
+      let textTrack = timelineTracks.find(t => t.type === 'text');
+      if (!textTrack) {
+        addTrack('text');
+        textTrack = useStudioStore.getState().timelineTracks.find(t => t.type === 'text')!;
+      }
+
+      const clipData = captionsToTimelineClips(captions, textTrack.id);
+      const addedClipIds: string[] = [];
+      const store = useStudioStore.getState();
+      const historyStore = useHistoryStore.getState();
+
+      historyStore.push({
+        label: `Auto-caption (${captions.length} segments)`,
+        execute: () => {
+          for (const { trackId, clip } of clipData) {
+            store.addClipToTrack(trackId, clip);
+          }
+          const track = useStudioStore.getState().timelineTracks.find(t => t.id === textTrack!.id);
+          if (track) {
+            const newClips = track.clips.slice(-clipData.length);
+            addedClipIds.push(...newClips.map(c => c.id));
+          }
+        },
+        undo: () => {
+          for (const id of addedClipIds) {
+            useStudioStore.getState().removeClip(id);
+          }
+        },
+      });
+
+      setCaptionProgress('');
+      setIsCaptioning(false);
+      setShowCaptionSettings(false);
+
+      console.log(
+        `[auto-caption] Created ${captions.length} clips (${style}, ${data.words.length} words, lang: ${data.language ?? 'auto'})`,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Auto-caption failed: ${msg}`);
+      setIsCaptioning(false);
+      setCaptionProgress('');
+    }
+  }
+
+  // Listen for AI chat auto-caption trigger
+  useEffect(() => {
+    function handleChatCaption(e: Event) {
+      const { style, language, wordsPerLine } = (e as CustomEvent<{
+        style?: CaptionStyle;
+        language?: string;
+        wordsPerLine?: number;
+      }>).detail;
+      void handleAutoCaptions({ style, language, wordsPerLine });
+    }
+    window.addEventListener('studio:auto-caption', handleChatCaption);
+    return () => window.removeEventListener('studio:auto-caption', handleChatCaption);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+// ── New Project ────────────────────────────────────────────────────────────
 
   function handleNewProject() {
     if (!confirm('Clear timeline and start over?')) return;
@@ -2344,11 +2501,109 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               🏷️ Brand
             </button>
 
+            {/* Auto-Caption */}
+            <div className="relative ml-auto">
+              <button
+                onClick={() => setShowCaptionSettings(v => !v)}
+                disabled={isCaptioning}
+                title="Auto-generate captions from audio"
+                className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-600 disabled:opacity-50 transition-colors"
+              >
+                {isCaptioning ? (
+                  <>
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    <span>{captionProgress || 'Captioning...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <IconCaptions />
+                    <span>Auto-Caption</span>
+                  </>
+                )}
+              </button>
+
+              {showCaptionSettings && !isCaptioning && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-white/10 bg-slate-800 p-4 shadow-xl">
+                  <h4 className="mb-3 text-sm font-semibold text-white">Caption Settings</h4>
+
+                  <label className="mb-2 block text-xs text-slate-400">Style</label>
+                  <div className="mb-3 grid grid-cols-2 gap-1.5">
+                    {(['subtitle', 'karaoke', 'word-by-word', 'sentence'] as CaptionStyle[]).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setCaptionStyle(s)}
+                        className={`rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                          captionStyle === s
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        {s === 'word-by-word' ? 'Word Pop' : s.charAt(0).toUpperCase() + s.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {(captionStyle === 'subtitle' || captionStyle === 'karaoke') && (
+                    <div className="mb-3">
+                      <label className="mb-1 block text-xs text-slate-400">
+                        Words per line: {captionWordsPerLine}
+                      </label>
+                      <input
+                        type="range" min={2} max={8} value={captionWordsPerLine}
+                        onChange={e => setCaptionWordsPerLine(Number(e.target.value))}
+                        className="w-full accent-green-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mb-3">
+                    <label className="mb-1 block text-xs text-slate-400">
+                      Font size: {captionFontSize}px
+                    </label>
+                    <input
+                      type="range" min={20} max={72} value={captionFontSize}
+                      onChange={e => setCaptionFontSize(Number(e.target.value))}
+                      className="w-full accent-green-500"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="mb-1 block text-xs text-slate-400">Language (optional)</label>
+                    <select
+                      value={captionLanguage}
+                      onChange={e => setCaptionLanguage(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-slate-700 px-2 py-1.5 text-xs text-white"
+                    >
+                      <option value="">Auto-detect</option>
+                      <option value="en">English</option>
+                      <option value="sk">Slovenčina</option>
+                      <option value="cs">Čeština</option>
+                      <option value="uk">Українська</option>
+                      <option value="de">Deutsch</option>
+                      <option value="ru">Русский</option>
+                      <option value="es">Español</option>
+                      <option value="fr">Français</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => void handleAutoCaptions()}
+                    className="w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500 transition-colors"
+                  >
+                    Generate Captions (1 credit)
+                  </button>
+                  <p className="mt-2 text-center text-[10px] text-slate-500">
+                    Ctrl+Z to undo all captions at once
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* New Project */}
             <button
               onClick={handleNewProject}
               title="New project"
-              className="ml-auto rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-gray-400 transition-colors hover:border-white/20 hover:text-gray-200"
+              className="rounded-md border border-white/10 px-2.5 py-1.5 text-xs text-gray-400 transition-colors hover:border-white/20 hover:text-gray-200"
             >
               New Project
             </button>

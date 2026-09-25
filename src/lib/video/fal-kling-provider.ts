@@ -1,4 +1,4 @@
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 import type {
   CameraMotion,
   CameraType,
@@ -51,7 +51,7 @@ interface FalVideoOutput {
  */
 export class FalKlingProvider implements VideoProvider {
   async createVideo(req: VideoGenerationRequest, apiKey: string): Promise<VideoGenerationResult> {
-    fal.config({ credentials: apiKey });
+    const fal = createFalClient({ credentials: apiKey });
 
     const prompt = req.camera
       ? `${req.prompt}${buildCameraFragment(req.camera)}`
@@ -86,7 +86,7 @@ export class FalKlingProvider implements VideoProvider {
   }
 
   async pollVideo(predictionId: string, apiKey: string): Promise<VideoGenerationResult> {
-    fal.config({ credentials: apiKey });
+    const fal = createFalClient({ credentials: apiKey });
 
     try {
       const statusResult = await fal.queue.status(MODEL_ID, {

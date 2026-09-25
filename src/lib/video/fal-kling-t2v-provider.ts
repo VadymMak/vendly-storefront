@@ -1,4 +1,4 @@
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 import type {
   VideoGenerationRequest,
   VideoGenerationResult,
@@ -25,7 +25,7 @@ interface FalVideoOutput {
 
 export class FalKlingT2VProvider implements VideoProvider {
   async createVideo(req: VideoGenerationRequest, apiKey: string): Promise<VideoGenerationResult> {
-    fal.config({ credentials: apiKey });
+    const fal = createFalClient({ credentials: apiKey });
 
     // Kling T2V supports 5s and 10s only — clamp 15s to 10s
     const duration = String(req.duration === 15 ? 10 : (req.duration ?? 5));
@@ -55,7 +55,7 @@ export class FalKlingT2VProvider implements VideoProvider {
   }
 
   async pollVideo(predictionId: string, apiKey: string): Promise<VideoGenerationResult> {
-    fal.config({ credentials: apiKey });
+    const fal = createFalClient({ credentials: apiKey });
 
     try {
       const statusResult = await fal.queue.status(MODEL_ID, {

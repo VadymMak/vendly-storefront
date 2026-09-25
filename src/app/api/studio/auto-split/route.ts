@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import sharp from 'sharp';
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'FAL_KEY not configured' }, { status: 500 });
     }
 
-    fal.config({ credentials: falKey });
+    const fal = createFalClient({ credentials: falKey });
 
     // 1) SAM2 auto-segment
     console.log('[auto-split] Calling SAM2 auto-segment...');

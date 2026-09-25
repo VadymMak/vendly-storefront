@@ -195,6 +195,92 @@ export async function deductCredit(
 }
 
 /**
+ * Atomic credit consumption — check AND deduct in one DB transaction.
+ * Prevents negative balances under concurrent requests.
+ * Returns { success: true } or { success: false, reason }.
+ */
+export async function consumeCredits(
+  userId: string,
+  type: CreditType,
+  amount: number = 1,
+  provider?: string,
+): Promise<{ success: boolean; reason?: string; byok?: boolean }> {
+  if (await isSuperuser(userId)) {
+    await db.studioCredits.update({
+      where: { userId },
+      data: type === 'image'
+        ? { totalGeneratedImages: { increment: amount } }
+        : { totalGeneratedVideos: { increment: amount } },
+    });
+    return { success: true, byok: false };
+  }
+
+  const credits = await getOrCreateCredits(userId);
+  const userPlan = (credits.planType || 'free') as string;
+
+  const isByok = provider
+    ? await hasUserApiKey(userId, provider)
+    : await hasAnyApiKey(userId);
+
+  if (isByok && userPlan === 'byok_creator') {
+    await db.studioCredits.update({
+      where: { userId },
+      data: type === 'image'
+        ? { totalGeneratedImages: { increment: amount } }
+        : { totalGeneratedVideos: { increment: amount } },
+    });
+    return { success: true, byok: true };
+  }
+
+  const result = await db.$transaction(async (tx) => {
+    const current = await tx.studioCredits.findUnique({ where: { userId } });
+    if (!current) return { success: false as const, reason: 'No credits record' };
+
+    if (type === 'image') {
+      const available = current.monthlyImages + current.bonusImages;
+      if (available < amount) {
+        return { success: false as const, reason: 'No image credits remaining' };
+      }
+      const fromBonus   = Math.min(current.bonusImages, amount);
+      const fromMonthly = Math.min(current.monthlyImages, amount - fromBonus);
+      await tx.studioCredits.update({
+        where: { userId },
+        data: {
+          bonusImages:          { decrement: fromBonus },
+          monthlyImages:        { decrement: fromMonthly },
+          totalGeneratedImages: { increment: amount },
+        },
+      });
+    } else {
+      const available = current.monthlyVideos + current.bonusVideos;
+      if (available < amount) {
+        const isFree = current.planType === 'free';
+        return {
+          success: false as const,
+          reason: isFree
+            ? 'Video generation requires a paid plan or credit pack.'
+            : 'No video credits remaining.',
+        };
+      }
+      const fromBonus   = Math.min(current.bonusVideos, amount);
+      const fromMonthly = Math.min(current.monthlyVideos, amount - fromBonus);
+      await tx.studioCredits.update({
+        where: { userId },
+        data: {
+          bonusVideos:          { decrement: fromBonus },
+          monthlyVideos:        { decrement: fromMonthly },
+          totalGeneratedVideos: { increment: amount },
+        },
+      });
+    }
+
+    return { success: true as const };
+  });
+
+  return result;
+}
+
+/**
  * Reset monthly credits based on plan.
  * Called by Vercel Cron daily at 02:00 UTC.
  * Only resets users whose lastReset is >30 days ago.

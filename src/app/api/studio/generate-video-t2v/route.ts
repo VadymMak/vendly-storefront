@@ -56,10 +56,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  const [userIsSuperuser, videoJobCount] = await Promise.all([
-    isSuperuser(userId),
-    db.studioJob.count({ where: { userId, type: 'video' } }),
-  ]);
+  const userIsSuperuser = await isSuperuser(userId);
+
+  // Atomic first-free-video claim — prevents two concurrent requests both getting the free trial
+  let isFirstVideoEver = false;
+  if (!credits.freeVideoUsed && !userIsSuperuser) {
+    const claimed = await db.studioCredits.updateMany({
+      where: { userId, freeVideoUsed: false },
+      data:  { freeVideoUsed: true },
+    });
+    isFirstVideoEver = claimed.count === 1;
+  }
 
   const availableVideoCredits = credits.monthlyVideos + credits.bonusVideos;
 
@@ -70,7 +77,7 @@ export async function POST(request: Request) {
     planType,
     isSuperuser:          userIsSuperuser,
     byokEnabled:          credits.byokEnabled,
-    isFirstVideoEver:     videoJobCount === 0,
+    isFirstVideoEver,
     availableVideoCredits,
   });
 

@@ -74,18 +74,20 @@ export async function refreshJobStatus(
     },
   });
 
-  // Deduct credit exactly once on success
+  // Deduct credit exactly once on success — atomic claim prevents double-charge
   if (newStatus === 'succeeded' && !job.creditDeducted && job.creditType) {
-    const { deductCredit } = await import('@/lib/credits');
-    await deductCredit(
-      job.userId,
-      job.creditType as 'image' | 'video',
-      job.creditAmount,
-    );
-    await db.studioJob.update({
-      where: { id: jobId },
-      data: { creditDeducted: true },
+    const claimed = await db.studioJob.updateMany({
+      where: { id: jobId, creditDeducted: false },
+      data:  { creditDeducted: true },
     });
+    if (claimed.count === 1) {
+      const { consumeCredits } = await import('@/lib/credits');
+      await consumeCredits(
+        job.userId,
+        job.creditType as 'image' | 'video',
+        job.creditAmount,
+      );
+    }
   }
 
   return {

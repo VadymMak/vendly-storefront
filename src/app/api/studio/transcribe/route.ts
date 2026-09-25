@@ -3,6 +3,19 @@ import { auth } from '@/lib/auth';
 import { isSuperuser, getOrCreateCredits, deductCredit } from '@/lib/credits';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const TRANSCRIBE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+
+function isAllowedTranscribeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|localhost)/i.test(parsed.hostname)) return false;
+    const allowed = ['vercel-storage.com', 'replicate.delivery', 'fal.media'];
+    return allowed.some(d => parsed.hostname === d || parsed.hostname.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -48,11 +61,21 @@ export async function POST(req: NextRequest) {
       if (!body.audio_url) {
         return NextResponse.json({ error: 'audio_url or audio file required' }, { status: 400 });
       }
+      if (!isAllowedTranscribeUrl(body.audio_url)) {
+        return NextResponse.json({ error: 'Audio URL not allowed' }, { status: 400 });
+      }
       const audioRes = await fetch(body.audio_url);
       if (!audioRes.ok) {
         return NextResponse.json({ error: 'Failed to fetch audio from URL' }, { status: 400 });
       }
+      const cl = audioRes.headers.get('Content-Length');
+      if (cl && parseInt(cl, 10) > TRANSCRIBE_MAX_BYTES) {
+        return NextResponse.json({ error: 'Audio file too large (max 25MB)' }, { status: 413 });
+      }
       audioBlob = await audioRes.blob();
+      if (audioBlob.size > TRANSCRIBE_MAX_BYTES) {
+        return NextResponse.json({ error: 'Audio file too large (max 25MB)' }, { status: 413 });
+      }
     }
 
     const whisperForm = new FormData();

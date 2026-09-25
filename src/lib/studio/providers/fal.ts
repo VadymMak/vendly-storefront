@@ -1,4 +1,4 @@
-import { fal } from '@fal-ai/client';
+import { createFalClient } from '@fal-ai/client';
 import type { ImageProvider, ImageGenerateRequest, ImageEditRequest, MediaResult } from '../config';
 
 const ASPECT_TO_FAL_SIZE: Record<string, string> = {
@@ -14,7 +14,7 @@ const ASPECT_TO_FAL_SIZE: Record<string, string> = {
 
 export class FalProvider implements ImageProvider {
   async generate(req: ImageGenerateRequest, apiKey: string, modelId: string): Promise<MediaResult> {
-    fal.config({ credentials: apiKey });
+    const fal = createFalClient({ credentials: apiKey });
 
     const imageSize = ASPECT_TO_FAL_SIZE[req.aspectRatio ?? '1:1'] ?? 'square_hd';
 
@@ -40,7 +40,7 @@ export class FalProvider implements ImageProvider {
   }
 
   async edit(req: ImageEditRequest, apiKey: string, modelId: string): Promise<MediaResult> {
-    fal.config({ credentials: apiKey });
+    const fal = createFalClient({ credentials: apiKey });
 
     const result = await fal.subscribe(modelId, {
       input: {

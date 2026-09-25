@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { checkCredits, deductCredit, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
+import { checkCredits, consumeCredits, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel, LEGACY_GENERATE_ALIAS, TIER_ROUTES, MODEL_CATALOG, type ModelEntry } from '@/lib/studio/config';
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
       delete body.modelAlias;
       body.tier = 'fast';
     }
+    body.provider = undefined;
   }
 
   // Rate limit
@@ -179,9 +180,10 @@ export async function POST(request: Request) {
   let lastError = 'Generation failed';
 
   for (const { alias, model, apiKey } of candidates) {
+    const creditCost = model.creditCost ?? 1;
     let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
     if (!model.byokOnly) {
-      creditCheck = await checkCredits(session.user.id, model.creditType, 1, model.apiKeyProvider);
+      creditCheck = await checkCredits(session.user.id, model.creditType, creditCost, model.apiKeyProvider);
       if (!creditCheck.allowed) {
         return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
       }
@@ -207,7 +209,10 @@ export async function POST(request: Request) {
       }
 
       if (!model.byokOnly && !creditCheck.byok) {
-        await deductCredit(session.user.id, model.creditType, 1, model.apiKeyProvider);
+        const consume = await consumeCredits(session.user.id, model.creditType, creditCost, model.apiKeyProvider);
+        if (!consume.success) {
+          return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 402 });
+        }
       }
 
       await logUsage({

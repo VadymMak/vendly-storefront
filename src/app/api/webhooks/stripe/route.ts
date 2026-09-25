@@ -28,6 +28,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
+  // Idempotency guard — Stripe retries and manual resends must not double-grant
+  try {
+    const existing = await db.stripeEvent.findUnique({ where: { eventId: event.id } });
+    if (existing) {
+      console.log(`[stripe] Duplicate event ${event.id}, skipping`);
+      return NextResponse.json({ received: true });
+    }
+    await db.stripeEvent.create({ data: { eventId: event.id, type: event.type } });
+  } catch (err) {
+    // Table may not exist in dev — log and continue rather than hard fail
+    console.error('[stripe] StripeEvent idempotency check failed:', err);
+  }
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;

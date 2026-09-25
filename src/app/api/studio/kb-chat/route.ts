@@ -11,6 +11,7 @@ import { getBrainStudioContext } from '@/lib/studio/brain-client';
 import { executeTool } from '@/lib/studio/tool-executor';
 import type { SessionContext } from '@/lib/studio/types';
 import { getToolsForPage } from '@/lib/studio/chat-tools';
+import { MODEL_CATALOG, getVideoCreditCost } from '@/lib/studio/config';
 import {
   SKILL_CORE,
   SKILL_GENERATION,
@@ -206,18 +207,19 @@ export async function POST(req: NextRequest) {
         lastReset: credits.lastReset.toISOString(),
         isSuperuser: superuser,
         costReference: {
-          image_quick: 1,
-          image_best: 2,
-          image_hd: 3,
-          video_quick_5s: 4,
-          video_quick_10s: 8,
-          video_quick_15s: 12,
-          video_best_5s: 10,
-          video_best_10s: 18,
-          video_best_15s: 28,
-          remove_bg: 1,
-          upscale: 1,
-          auto_caption: 1,
+          image_quick:    MODEL_CATALOG['fal-schnell']?.creditCost ?? 1,
+          image_best:     MODEL_CATALOG['fal-dev']?.creditCost ?? 2,
+          image_hd:       MODEL_CATALOG['img-premium']?.creditCost ?? 3,
+          video_quick_5s: getVideoCreditCost('vid-quick', 5),
+          video_quick_10s: getVideoCreditCost('vid-quick', 10),
+          video_quick_15s: getVideoCreditCost('vid-quick', 15),
+          video_best_5s:  getVideoCreditCost('vid-best', 5),
+          video_best_10s: getVideoCreditCost('vid-best', 10),
+          video_best_15s: getVideoCreditCost('vid-best', 15),
+          animate:        getVideoCreditCost('vid-animate', 5),
+          remove_bg:      1,
+          upscale:        1,
+          auto_caption:   1,
         },
       }),
     }),

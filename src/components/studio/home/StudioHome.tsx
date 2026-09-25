@@ -5,13 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import {
   EXAMPLE_PROMPTS, SIZE_PRESETS, PLATFORM_IMAGE_PRESETS, OUTPUT_FORMATS, STYLE_CHIPS,
-  VIDEO_STYLE_CHIPS, VIDEO_DURATIONS, VIDEO_ASPECT_RATIOS, PLATFORM_VIDEO_PRESETS,
   type OutputFormat, type PlatformImagePresetId, type StyleChipId,
-  type VideoStyleChipId, type VideoDurationValue, type VideoAspectRatio, type PlatformVideoPresetId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
 import { type ModelTier } from '@/lib/studio/config';
-import type { VideoQualityTier } from '@/lib/video/resolve-route';
 import CreditPackModal from '@/components/studio/CreditPackModal';
 import PricingModal from '@/components/studio/PricingModal';
 import { InpaintEditor } from '@/components/studio/editors/InpaintEditor';
@@ -174,20 +171,6 @@ export function StudioHome({ userId: _userId }: Props) {
       : PLATFORM_IMAGE_PRESETS.filter(p => p.platform === platformFilter),
   [platformFilter]);
 
-  // ── Create mode toggle (Image / Video) ──────────────────────────────────────
-  type CreateMode = 'image' | 'video';
-  const [createMode,          setCreateMode]          = useState<CreateMode>('image');
-  const [videoStyle,          setVideoStyle]          = useState<VideoStyleChipId>('product');
-  const [videoQuality,        setVideoQuality]        = useState<VideoQualityTier>('best');
-  const [videoDuration,       setVideoDuration]       = useState<VideoDurationValue>(5);
-  const [videoAspectRatio,    setVideoAspectRatio]    = useState<VideoAspectRatio>('16:9');
-  const [videoPresetId,       setVideoPresetId]       = useState<PlatformVideoPresetId | null>(null);
-  const [showVideoAdvanced,   setShowVideoAdvanced]   = useState(false);
-  const [videoCreateView,     setVideoCreateView]     = useState<'form' | 'creating' | 'result'>('form');
-  const [videoResultUrl,      setVideoResultUrl]      = useState<string | null>(null);
-  const [videoJobId,          setVideoJobId]          = useState<string | null>(null);
-  const [videoError,          setVideoError]          = useState<string | null>(null);
-
   // ── Credits ─────────────────────────────────────────────────────────────────
   interface CreditStatus {
     plan: string;
@@ -267,11 +250,6 @@ export function StudioHome({ userId: _userId }: Props) {
   ];
 
   const activeTierCredits = TIERS.find(t => t.id === selectedTier)?.credits ?? 1;
-
-  const videoDurObj    = VIDEO_DURATIONS.find(d => d.seconds === videoDuration);
-  const videoCreditCost = videoQuality === 'best'
-    ? (videoDurObj?.bestCredits  ?? 10)
-    : (videoDurObj?.quickCredits ?? 4);
 
   // ── Modals ──────────────────────────────────────────────────────────────────
   const [modalImage, setModalImage] = useState<MediaItem | null>(null);
@@ -527,79 +505,6 @@ export function StudioHome({ userId: _userId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt, isGenerating, noCreditsForImages, selectedPreset, selectedStyle, selectedTier, outputFormat, addImage, catalogModels]);
 
-  async function handleGenerateVideo() {
-    const hasVidCredits = creditStatus
-      ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||
-        !!creditStatus.superuser || !!creditStatus.byok
-      : true;
-
-    if (!hasVidCredits) {
-      setCreditPackReason('video');
-      setShowCreditPack(true);
-      return;
-    }
-
-    const trimmed = prompt.trim();
-    if (!trimmed) return;
-
-    const styleChip = VIDEO_STYLE_CHIPS.find(s => s.id === videoStyle);
-    const suffix = videoQuality === 'best' && styleChip?.bestPromptSuffix
-      ? styleChip.bestPromptSuffix
-      : (styleChip?.promptSuffix ?? '');
-    const finalPrompt = suffix ? `${trimmed}, ${suffix}` : trimmed;
-
-    setVideoCreateView('creating');
-    setVideoError(null);
-
-    try {
-      const res = await fetch('/api/studio/generate-video-t2v', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt:      finalPrompt,
-          duration:    videoDuration,
-          aspectRatio: videoAspectRatio,
-          style:       videoStyle,
-          quality:     videoQuality,
-        }),
-      });
-
-      const data = await res.json() as { jobId?: string; error?: string; needsUpgrade?: boolean };
-      if (!res.ok) {
-        if (data.needsUpgrade) {
-          setCreditPackReason('video');
-          setShowCreditPack(true);
-          setVideoCreateView('form');
-          return;
-        }
-        throw new Error(data.error ?? 'Failed to start video generation');
-      }
-
-      const currentJobId = data.jobId!;
-      setVideoJobId(currentJobId);
-
-      const deadline = Date.now() + 600_000;
-      while (Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 4000));
-        const pollRes  = await fetch(`/api/studio/job/${currentJobId}`);
-        const pollData = await pollRes.json() as { status: string; outputUrl?: string; error?: string };
-        if (pollData.status === 'succeeded' && pollData.outputUrl) {
-          setVideoResultUrl(pollData.outputUrl);
-          setVideoCreateView('result');
-          (window as unknown as Record<string, () => void>).__refreshCredits?.();
-          return;
-        }
-        if (pollData.status === 'failed' || pollData.status === 'canceled') {
-          throw new Error(pollData.error ?? `Job ${pollData.status}`);
-        }
-      }
-      throw new Error('Video generation timed out');
-    } catch (e) {
-      setVideoError(e instanceof Error ? e.message : 'Generation failed');
-      setVideoCreateView('form');
-    }
-  }
-
   useEffect(() => {
     if (createView !== 'creating') {
       setCreateSlow(false);
@@ -796,59 +701,13 @@ export function StudioHome({ userId: _userId }: Props) {
                   </h2>
                 </div>
 
-                {/* Mode toggle: Image / Video */}
-                <div className="flex items-center gap-1 rounded-lg bg-white/5 p-0.5 self-start">
-                  <button
-                    onClick={() => setCreateMode('image')}
-                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                      createMode === 'image'
-                        ? 'bg-green-600 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                    Image
-                  </button>
-                  <button
-                    onClick={() => setCreateMode('video')}
-                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                      createMode === 'video'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polygon points="23 7 16 12 23 17 23 7" />
-                      <rect x="1" y="5" width="15" height="14" rx="2" />
-                    </svg>
-                    Video
-                  </button>
-                </div>
-
                 <textarea
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (createMode === 'video') void handleGenerateVideo();
-                      else void handleGenerate();
-                    }
-                  }}
-                  placeholder={createMode === 'video' ? 'Describe your video...' : 'Describe what you want to create...'}
-                  className={`w-full h-24 rounded-xl border bg-white/[0.03] px-3.5 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors resize-none ${
-                    createMode === 'video'
-                      ? 'border-white/10 focus:border-purple-500/40'
-                      : 'border-white/10 focus:border-green-500/40'
-                  }`}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleGenerate(); } }}
+                  placeholder="Describe what you want to create..."
+                  className="w-full h-24 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/40 transition-colors resize-none"
                 />
-
-                {/* ── Image-specific controls ──────────────────────── */}
-                {createMode === 'image' && (<>
 
                 {/* Style chips */}
                 <div className="flex flex-wrap gap-1.5">
@@ -981,244 +840,6 @@ export function StudioHome({ userId: _userId }: Props) {
                 {error && (
                   <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
                 )}
-
-                </>)}
-                {/* ── END image-specific ────────────────────────────── */}
-
-                {/* ── Video form ───────────────────────────────────── */}
-                {createMode === 'video' && videoCreateView === 'form' && (<>
-
-                  {/* Video style chips */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {VIDEO_STYLE_CHIPS.map(chip => (
-                      <button
-                        key={chip.id}
-                        onClick={() => setVideoStyle(chip.id)}
-                        className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                          videoStyle === chip.id
-                            ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
-                            : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-                        }`}
-                      >
-                        <span className="mr-1">{chip.icon}</span>
-                        {chip.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Quick / Best quality */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setVideoQuality('quick')}
-                      className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
-                        videoQuality === 'quick'
-                          ? 'border-purple-500/40 bg-purple-500/10'
-                          : 'border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      <span className={`text-xs font-semibold ${videoQuality === 'quick' ? 'text-purple-400' : 'text-white'}`}>
-                        ⚡ Quick
-                      </span>
-                      <span className="text-[10px] text-gray-500">
-                        {videoDurObj?.quickCredits ?? 4} cr · ~30s
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setVideoQuality('best')}
-                      className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-all ${
-                        videoQuality === 'best'
-                          ? 'border-purple-500/40 bg-purple-500/10'
-                          : 'border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      <span className={`text-xs font-semibold ${videoQuality === 'best' ? 'text-purple-400' : 'text-white'}`}>
-                        ✨ Best
-                      </span>
-                      <span className="text-[10px] text-gray-500">
-                        {videoDurObj?.bestCredits ?? 10} cr · ~60s
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* More options — collapsible */}
-                  <button
-                    onClick={() => setShowVideoAdvanced(v => !v)}
-                    className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-gray-300 transition-colors"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showVideoAdvanced ? 'rotate-90' : ''}`} aria-hidden="true">
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                    More options
-                    <span className="text-gray-600">
-                      · {videoDuration}s · {videoAspectRatio}
-                      {videoPresetId ? ` · ${PLATFORM_VIDEO_PRESETS.find(p => p.id === videoPresetId)?.label ?? ''}` : ''}
-                    </span>
-                  </button>
-
-                  {showVideoAdvanced && (
-                    <div className="space-y-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                      {/* Platform */}
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Platform</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {PLATFORM_VIDEO_PRESETS.map(p => (
-                            <button
-                              key={p.id}
-                              onClick={() => {
-                                if (videoPresetId === p.id) {
-                                  setVideoPresetId(null);
-                                } else {
-                                  setVideoPresetId(p.id);
-                                  setVideoAspectRatio(p.aspect_ratio);
-                                  setVideoDuration(p.defaultDuration);
-                                }
-                              }}
-                              className={`rounded-lg border px-2 py-1 text-[11px] transition-colors ${
-                                videoPresetId === p.id
-                                  ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
-                                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20'
-                              }`}
-                            >
-                              {p.icon} {p.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Duration */}
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Duration</span>
-                        <div className="flex gap-2">
-                          {VIDEO_DURATIONS.map(d => (
-                            <button
-                              key={d.seconds}
-                              onClick={() => { setVideoDuration(d.seconds); setVideoPresetId(null); }}
-                              className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-1.5 text-center text-xs transition-all ${
-                                videoDuration === d.seconds
-                                  ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
-                                  : 'border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              {d.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Aspect Ratio */}
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Aspect Ratio</span>
-                        <div className="flex gap-2">
-                          {VIDEO_ASPECT_RATIOS.map(ar => (
-                            <button
-                              key={ar.value}
-                              onClick={() => { setVideoAspectRatio(ar.value); setVideoPresetId(null); }}
-                              className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg border px-2 py-1.5 text-center text-xs transition-all ${
-                                videoAspectRatio === ar.value
-                                  ? 'border-purple-500/40 bg-purple-500/10 text-purple-400'
-                                  : 'border-white/10 text-gray-400 hover:border-white/20'
-                              }`}
-                            >
-                              {ar.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Create video button */}
-                  <div className="pt-1 border-t border-white/[0.06]">
-                    <button
-                      onClick={() => void handleGenerateVideo()}
-                      disabled={!prompt.trim()}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Create video · {videoCreditCost} cr
-                    </button>
-                  </div>
-
-                  {videoError && (
-                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{videoError}</p>
-                  )}
-
-                </>)}
-
-                {/* Video — creating */}
-                {createMode === 'video' && videoCreateView === 'creating' && (
-                  <div className="flex flex-col items-center justify-center gap-5 py-8">
-                    <div className="relative h-16 w-16 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400" aria-hidden="true">
-                        <polygon points="23 7 16 12 23 17 23 7" />
-                        <rect x="1" y="5" width="15" height="14" rx="2" />
-                      </svg>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-white">Creating your video…</p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {videoQuality === 'best' ? 'Best quality · 60–120 seconds' : 'Quick · 30–60 seconds'}
-                      </p>
-                    </div>
-                    <p className="line-clamp-2 max-w-xs text-center text-xs text-gray-400">&ldquo;{prompt}&rdquo;</p>
-                  </div>
-                )}
-
-                {/* Video — result */}
-                {createMode === 'video' && videoCreateView === 'result' && videoResultUrl && (
-                  <div className="flex flex-col gap-4">
-                    <video
-                      src={videoResultUrl}
-                      controls
-                      autoPlay
-                      loop
-                      playsInline
-                      className="w-full max-h-[300px] rounded-xl border border-white/10 bg-black object-contain"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          const newVideo: MediaItem = {
-                            id:        `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                            type:      'video',
-                            url:       videoResultUrl,
-                            prompt:    `[T2V] ${prompt.trim().slice(0, 100)}`,
-                            jobId:     videoJobId ?? undefined,
-                            createdAt: Date.now(),
-                          };
-                          addImage(newVideo);
-                          showSaved();
-                          setVideoCreateView('form');
-                          setVideoResultUrl(null);
-                          setVideoJobId(null);
-                          setPrompt('');
-                        }}
-                        className="flex-1 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
-                      >
-                        Save to gallery
-                      </button>
-                      <button
-                        onClick={() => { setVideoCreateView('form'); setVideoResultUrl(null); setVideoJobId(null); }}
-                        className="rounded-xl border border-white/10 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-white/[0.05] hover:text-white"
-                      >
-                        Again
-                      </button>
-                    </div>
-                    {videoJobId && (
-                      <button
-                        onClick={() => window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(videoJobId)}`)}
-                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-4 py-2 text-xs text-gray-300 transition-colors hover:bg-white/[0.05] hover:text-white"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download
-                      </button>
-                    )}
-                  </div>
-                )}
-                {/* ── END video form ────────────────────────────────── */}
-
               </>
             )}
 

@@ -207,6 +207,24 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     enabled: true,
   },
 
+  // ── Video Generation (I2V — Image to Video / Animate) ────────────────────
+  'vid-animate': {
+    displayName:    'Kling v2.1 (Animate)',
+    provider:       'fal-video',
+    modelId:        'fal-ai/kling-video/v2/master/image-to-video',
+    operation:      'video',
+    tier:           'quality',
+    costPerCall:    0.30,
+    creditCost:     5,
+    creditType:     'video',
+    apiKeyProvider: 'fal',
+    envKeyName:     'FAL_KEY',
+    supportedDurations:    [5, 10],
+    supportedAspectRatios: ['16:9', '9:16', '1:1'],
+    creditsByDuration:     { 5: 5, 10: 5 },
+    enabled: true,
+  },
+
   // ── Image Editing ─────────────────────────────────────────────────────────
   'edit-kontext': {
     displayName:    'Flux Kontext Pro',

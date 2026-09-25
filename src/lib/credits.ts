@@ -33,11 +33,6 @@ export async function isSuperuser(userId: string): Promise<boolean> {
   );
 }
 
-// How many credits a video costs (5s=1, 10s=2)
-export function getVideoCreditCost(durationSeconds: number): number {
-  return durationSeconds <= 5 ? 1 : 2;
-}
-
 /**
  * Single source of truth for BYOK check — reads UserApiKey table.
  */

@@ -3,7 +3,8 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
-import { checkCredits, getOrCreateCredits, getVideoCreditCost, isSuperuser } from '@/lib/credits';
+import { checkCredits, getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { getVideoCreditCost } from '@/lib/studio/config';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
   }
 
   // ── Credit check (still required — deduction happens later in job polling) ─
-  const creditAmount = getVideoCreditCost(body.duration);
+  const creditAmount = getVideoCreditCost('vid-animate', body.duration ?? 5);
   // Don't bind to specific provider — any BYOK key counts for byok_creator bypass
   const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
   if (!creditCheck.allowed) {

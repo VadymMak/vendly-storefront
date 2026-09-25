@@ -14,6 +14,7 @@ import { saveMediaBlob, loadMediaBlob } from '@/lib/studio/media-db';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE, MOTION_PRESETS } from '@/lib/slideshow-renderer';
 import { estimateExport, formatTimeEstimate } from '@/lib/studio/export-estimate';
+import { RepurposeModal } from '@/components/studio/repurpose/RepurposeModal';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
 import { NLETimeline } from './Timeline';
 import { FontPicker } from './FontPicker';
@@ -885,6 +886,8 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [renderEta, setRenderEta]           = useState<number | undefined>(undefined);
   const [renderElapsed, setRenderElapsed]   = useState<number>(0);
   const [resultSize, setResultSize]         = useState<number>(0);
+  const [showRepurpose, setShowRepurpose]   = useState(false);
+  const resultBlobDataRef                   = useRef<Blob | null>(null);
   const [resultUrl, setResultUrl]           = useState<string | null>(null);
   const [resultMime, setResultMime]         = useState('video/mp4');
   const [projectName, setProjectName]       = useState('Untitled Clip');
@@ -1607,6 +1610,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       });
 
       setResultSize(result.blob.size);
+      resultBlobDataRef.current = result.blob;
       const url = URL.createObjectURL(result.blob);
       resultBlobRef.current = url;
       setResultUrl(url);
@@ -2708,13 +2712,21 @@ export function AssembleCanvas({ userId: _userId }: Props) {
               className="max-h-[65vh] w-full rounded-xl object-contain"
               style={{ backgroundColor: '#000' }}
             />
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={handleDownload}
                 className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
               >
                 <IconDownload /> Download MP4
               </button>
+              {resultBlobDataRef.current && (
+                <button
+                  onClick={() => setShowRepurpose(true)}
+                  className="rounded-lg border border-green-600/50 px-5 py-2.5 text-sm font-medium text-green-400 transition-colors hover:border-green-500 hover:text-green-300"
+                >
+                  📦 Marketing Package
+                </button>
+              )}
               <button
                 onClick={() => { setResultUrl(null); setRenderProgress(0); }}
                 className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-gray-400 transition-colors hover:border-white/20 hover:text-white"
@@ -2727,6 +2739,15 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Repurpose Modal */}
+      {showRepurpose && resultBlobDataRef.current && (
+        <RepurposeModal
+          sourceBlob={resultBlobDataRef.current}
+          baseName={projectName.replace(/\s+/g, '-').toLowerCase() || 'clip'}
+          onClose={() => setShowRepurpose(false)}
+        />
       )}
 
       {/* Error toast */}

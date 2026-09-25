@@ -370,7 +370,7 @@ export async function POST(req: NextRequest) {
       }),
       execute: async ({ prompt, aspect_ratio }: { prompt: string; aspect_ratio: string }) => {
         const ctx: SessionContext = { lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
-        const result = await executeTool('generate_image', { prompt, aspect_ratio }, ctx, cookieHeader);
+        const result = await executeTool('generate_image', { prompt, aspect_ratio }, ctx, cookieHeader, userId);
         if (result.error) return { error: result.error };
         if (result.media) return { action: 'media_generated', type: 'image', url: result.media.url };
         return result;
@@ -386,7 +386,7 @@ export async function POST(req: NextRequest) {
         const imgUrl = imageUrl || lastGeneratedImageUrl;
         if (!imgUrl) return { error: 'No image available. Generate an image first, then I can remove the background.' };
         const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
-        const result = await executeTool('remove_background', {}, ctx, cookieHeader);
+        const result = await executeTool('remove_background', {}, ctx, cookieHeader, userId);
         if (result.error) return { error: result.error };
         if (result.media) return { action: 'media_generated', type: 'image', url: result.media.url };
         return result;
@@ -403,7 +403,7 @@ export async function POST(req: NextRequest) {
         const imgUrl = imageUrl || lastGeneratedImageUrl;
         if (!imgUrl) return { error: 'No image available. Generate an image first, then I can upscale it.' };
         const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
-        const result = await executeTool('upscale', { type }, ctx, cookieHeader);
+        const result = await executeTool('upscale', { type }, ctx, cookieHeader, userId);
         if (result.error) return { error: result.error };
         if (result.media) return { action: 'media_generated', type: 'image', url: result.media.url };
         return result;
@@ -422,7 +422,7 @@ export async function POST(req: NextRequest) {
         const imgUrl = imageUrl || lastGeneratedImageUrl;
         if (!imgUrl) return { error: 'Please provide an image URL or generate an image first, then I can animate it.' };
         const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
-        const result = await executeTool('image_to_video', { prompt, duration: Number(duration), aspectRatio }, ctx, cookieHeader);
+        const result = await executeTool('image_to_video', { prompt, duration: Number(duration), aspectRatio }, ctx, cookieHeader, userId);
         if (result.error) return { error: result.error };
         return { action: 'video_job_started', jobId: result.jobId, message: result.message };
       },

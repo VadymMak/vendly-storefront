@@ -1,4 +1,5 @@
 import type { VideoStyleChipId } from '@/lib/studio/constants';
+import { getVideoCreditCost } from '@/lib/studio/config';
 
 export type VideoQualityTier = 'quick' | 'best';
 
@@ -10,9 +11,6 @@ export interface VideoRouteResult {
 }
 
 const PREMIUM_STYLES: VideoStyleChipId[] = ['product', 'food', 'beauty', 'space', 'service', 'hospitality', 'fashion'];
-
-const QUICK_CREDITS: Record<number, number> = { 5: 4, 10: 8, 15: 12 };
-const BEST_CREDITS:  Record<number, number> = { 5: 10, 10: 18, 15: 28 };
 
 export function resolveTextToVideoRoute(input: {
   style: VideoStyleChipId;
@@ -47,7 +45,7 @@ export function resolveTextToVideoRoute(input: {
     return {
       provider:    'xai',
       qualityTier: 'quick',
-      creditCost:  QUICK_CREDITS[durationSeconds] ?? 4,
+      creditCost:  getVideoCreditCost('vid-quick', durationSeconds),
       reason:      'free_plan_grok_only',
     };
   }
@@ -62,12 +60,12 @@ export function resolveTextToVideoRoute(input: {
   }
 
   if (quality === 'best') {
-    const cost = BEST_CREDITS[durationSeconds] ?? 10;
+    const cost = getVideoCreditCost('vid-best', durationSeconds);
     if (availableVideoCredits < cost) {
       return {
         provider:    'xai',
         qualityTier: 'quick',
-        creditCost:  QUICK_CREDITS[durationSeconds] ?? 4,
+        creditCost:  getVideoCreditCost('vid-quick', durationSeconds),
         reason:      'insufficient_credits_fallback_quick',
       };
     }
@@ -84,7 +82,7 @@ export function resolveTextToVideoRoute(input: {
   return {
     provider:    'xai',
     qualityTier: 'quick',
-    creditCost:  QUICK_CREDITS[durationSeconds] ?? 4,
+    creditCost:  getVideoCreditCost('vid-quick', durationSeconds),
     reason:      'quick_route',
   };
 }

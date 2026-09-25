@@ -25,7 +25,7 @@ export interface ImageProvider {
 // ── Catalog types ─────────────────────────────────────────────────────────────
 
 export type OperationType = 'generate' | 'edit' | 'upscale' | 'remove-bg' | 'video';
-export type ProviderName  = 'replicate' | 'xai' | 'bfl' | 'fal';
+export type ProviderName  = 'replicate' | 'xai' | 'bfl' | 'fal' | 'xai-video' | 'fal-video';
 export type ModelTier     = 'fast' | 'quality' | 'premium';
 
 export interface ModelEntry {
@@ -43,6 +43,11 @@ export interface ModelEntry {
   supportedRatios?: string[];
   maxInputSize?:    number;
   enabled:          boolean;
+  // Video-specific (only for operation: 'video')
+  supportedDurations?:      number[];
+  supportedAspectRatios?:   string[];
+  creditsByDuration?:       Record<number, number>;
+  estimatedTimeByDuration?: Record<number, string>;
 }
 
 // ── MODEL_CATALOG — single source of truth ───────────────────────────────────
@@ -166,6 +171,42 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     enabled: true,
   },
 
+  // ── Video Generation (T2V) ────────────────────────────────────────────────
+  'vid-quick': {
+    displayName:    'Grok Video 1.5 (Quick)',
+    provider:       'xai-video',
+    modelId:        'grok-imagine-video-1.5',
+    operation:      'video',
+    tier:           'fast',
+    costPerCall:    0.40,
+    creditCost:     4,
+    creditType:     'video',
+    apiKeyProvider: 'xai',
+    envKeyName:     'XAI_API_KEY',
+    supportedDurations:    [5, 10, 15],
+    supportedAspectRatios: ['16:9', '9:16', '1:1'],
+    creditsByDuration:     { 5: 4, 10: 8, 15: 12 },
+    estimatedTimeByDuration: { 5: '~30s', 10: '~60s', 15: '~90s' },
+    enabled: true,
+  },
+  'vid-best': {
+    displayName:    'Kling v3.0 (Best)',
+    provider:       'fal-video',
+    modelId:        'fal-ai/kling-video/v3/standard/text-to-video',
+    operation:      'video',
+    tier:           'quality',
+    costPerCall:    0.50,
+    creditCost:     10,
+    creditType:     'video',
+    apiKeyProvider: 'fal',
+    envKeyName:     'FAL_KEY',
+    supportedDurations:    [5, 10, 15],
+    supportedAspectRatios: ['16:9', '9:16', '1:1'],
+    creditsByDuration:     { 5: 10, 10: 18, 15: 28 },
+    estimatedTimeByDuration: { 5: '~2min', 10: '~3min', 15: '~5min' },
+    enabled: true,
+  },
+
   // ── Image Editing ─────────────────────────────────────────────────────────
   'edit-kontext': {
     displayName:    'Flux Kontext Pro',
@@ -255,3 +296,26 @@ export const TIER_INFO: Record<ModelTier, { label: string; description: string; 
   quality: { label: 'Best',  description: 'Recommended',   creditCost: 2, estimatedSeconds: '~8s'  },
   premium: { label: 'HD',    description: 'Highest detail', creditCost: 3, estimatedSeconds: '~15s' },
 };
+
+// ── Video tier routing ────────────────────────────────────────────────────────
+
+export const VIDEO_TIER_ROUTES: Record<'fast' | 'quality', TierRoute[]> = {
+  fast: [
+    { alias: 'vid-quick', priority: 1 },
+  ],
+  quality: [
+    { alias: 'vid-best',  priority: 1 },
+    { alias: 'vid-quick', priority: 2 },
+  ],
+};
+
+export const VIDEO_TIER_INFO: Record<'fast' | 'quality', { label: string; description: string; estimatedSeconds: string }> = {
+  fast:    { label: 'Quick', description: 'Fast preview',      estimatedSeconds: '~30s'  },
+  quality: { label: 'Best',  description: 'Cinematic quality', estimatedSeconds: '~2min' },
+};
+
+export function getVideoCreditCost(alias: string, durationSeconds: number): number {
+  const model = MODEL_CATALOG[alias];
+  if (!model?.creditsByDuration) return 0;
+  return model.creditsByDuration[durationSeconds] ?? model.creditCost;
+}

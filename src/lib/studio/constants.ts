@@ -1,3 +1,5 @@
+import { getVideoCreditCost } from '@/lib/studio/config';
+
 export const PRESET_MAP = {
   og:      { label: 'OG Image',     display: '1200 × 630',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1200, target_height: 630  },
   cover:   { label: 'Cover / Hero', display: '1440 × 810',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1440, target_height: 810  },
@@ -208,10 +210,10 @@ export const VIDEO_STYLE_CHIPS = [
 export type VideoStyleChipId = typeof VIDEO_STYLE_CHIPS[number]['id'];
 
 export const VIDEO_DURATIONS = [
-  { seconds: 5  as const, label: '5s',  quickCredits: 4,  bestCredits: 10, eta: '~30s' },
-  { seconds: 10 as const, label: '10s', quickCredits: 8,  bestCredits: 18, eta: '~60s' },
-  { seconds: 15 as const, label: '15s', quickCredits: 12, bestCredits: 28, eta: '~90s' },
-] as const;
+  { seconds: 5  as const, label: '5s',  quickCredits: getVideoCreditCost('vid-quick', 5),  bestCredits: getVideoCreditCost('vid-best', 5),  eta: '~30s' },
+  { seconds: 10 as const, label: '10s', quickCredits: getVideoCreditCost('vid-quick', 10), bestCredits: getVideoCreditCost('vid-best', 10), eta: '~60s' },
+  { seconds: 15 as const, label: '15s', quickCredits: getVideoCreditCost('vid-quick', 15), bestCredits: getVideoCreditCost('vid-best', 15), eta: '~90s' },
+];
 
 export type VideoDurationValue = (typeof VIDEO_DURATIONS)[number]['seconds'];
 

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import {
-  EXAMPLE_PROMPTS, SIZE_PRESETS, OUTPUT_FORMATS, STYLE_CHIPS,
-  type OutputFormat, type SizePresetId, type StyleChipId,
+  EXAMPLE_PROMPTS, SIZE_PRESETS, PLATFORM_IMAGE_PRESETS, OUTPUT_FORMATS, STYLE_CHIPS,
+  type OutputFormat, type PlatformImagePresetId, type StyleChipId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
 import { type ModelTier } from '@/lib/studio/config';
@@ -159,10 +159,17 @@ export function StudioHome({ userId: _userId }: Props) {
   const [isGenerating,    setIsGenerating]    = useState(false);
   const [selectedStyle,   setSelectedStyle]   = useState<StyleChipId>('custom');
   const [selectedTier,    setSelectedTier]    = useState<ModelTier>('quality');
-  const [selectedSize,    setSelectedSize]    = useState<SizePresetId>('instagram');
+  const [selectedPreset,  setSelectedPreset]  = useState<PlatformImagePresetId>('ig-feed');
+  const [platformFilter,  setPlatformFilter]  = useState<string>('all');
   const [outputFormat,    setOutputFormat]    = useState<OutputFormat>('webp');
   const [error,           setError]           = useState<string | null>(null);
   const [showAdvanced,    setShowAdvanced]    = useState(false);
+
+  const filteredPresets = useMemo(() =>
+    platformFilter === 'all'
+      ? PLATFORM_IMAGE_PRESETS
+      : PLATFORM_IMAGE_PRESETS.filter(p => p.platform === platformFilter),
+  [platformFilter]);
 
   // ── Credits ─────────────────────────────────────────────────────────────────
   interface CreditStatus {
@@ -405,7 +412,7 @@ export function StudioHome({ userId: _userId }: Props) {
       return;
     }
 
-    const size = SIZE_PRESETS.find(s => s.id === selectedSize) ?? SIZE_PRESETS[0];
+    const size = PLATFORM_IMAGE_PRESETS.find(s => s.id === selectedPreset) ?? PLATFORM_IMAGE_PRESETS[0];
     setIsGenerating(true);
     setCreateView('creating');
     setError(null);
@@ -469,7 +476,7 @@ export function StudioHome({ userId: _userId }: Props) {
         type: 'image',
         url,
         prompt: `[Generated] ${finalPrompt.slice(0, 100)}`,
-        preset: selectedSize as PresetKey,
+        preset: selectedPreset as PresetKey,
         format: outputFormat,
         model: modelLabel,
         provider: modelProvider,
@@ -496,7 +503,7 @@ export function StudioHome({ userId: _userId }: Props) {
       setIsGenerating(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prompt, isGenerating, noCreditsForImages, selectedSize, selectedStyle, selectedTier, outputFormat, addImage, catalogModels]);
+  }, [prompt, isGenerating, noCreditsForImages, selectedPreset, selectedStyle, selectedTier, outputFormat, addImage, catalogModels]);
 
   useEffect(() => {
     if (createView !== 'creating') {
@@ -765,11 +772,39 @@ export function StudioHome({ userId: _userId }: Props) {
 
                 {showAdvanced && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <select value={selectedSize} onChange={e => setSelectedSize(e.target.value as SizePresetId)} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none">
-                      {SIZE_PRESETS.map(s => (
-                        <option key={s.id} value={s.id} className="bg-[#0d0d14]">{s.label} — {s.subtitle}</option>
-                      ))}
-                    </select>
+                    <div className="w-full space-y-2">
+                      <div className="flex flex-wrap gap-1">
+                        {(['all', 'instagram', 'tiktok', 'youtube', 'facebook', 'linkedin', 'generic'] as const).map(p => (
+                          <button
+                            key={p}
+                            onClick={() => setPlatformFilter(p)}
+                            className={`rounded px-2 py-0.5 text-xs transition-colors ${
+                              platformFilter === p
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
+                            }`}
+                          >
+                            {p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {filteredPresets.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => setSelectedPreset(s.id)}
+                            className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors ${
+                              selectedPreset === s.id
+                                ? 'border-indigo-500 bg-indigo-500/20 text-white'
+                                : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:text-white'
+                            }`}
+                          >
+                            <span>{s.icon} {s.label}</span>
+                            <span className="block text-[10px] text-gray-500">{s.subtitle}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <select value={outputFormat} onChange={e => setOutputFormat(e.target.value as OutputFormat)} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-gray-300 outline-none">
                       {OUTPUT_FORMATS.map(f => (
                         <option key={f} value={f} className="bg-[#0d0d14]">{f.toUpperCase()}</option>
@@ -1475,7 +1510,7 @@ export function StudioHome({ userId: _userId }: Props) {
         <VideoDetailModal
           videoUrl={modalVideo.url}
           prompt={modalVideo.prompt}
-          aspectRatio={SIZE_PRESETS.find(s => s.id === modalVideo.preset)?.aspect_ratio}
+          aspectRatio={(PLATFORM_IMAGE_PRESETS.find(s => s.id === modalVideo.preset) ?? SIZE_PRESETS.find(s => s.id === modalVideo.preset))?.aspect_ratio}
           onClose={() => {
             const wasT2V = modalVideo.prompt?.startsWith('[T2V]');
             setModalVideo(null);
@@ -1547,7 +1582,7 @@ export function StudioHome({ userId: _userId }: Props) {
       {activeEditor?.tool === 'animate' && (
         <AnimateEditor
           imageUrl={activeEditor.imageUrl}
-          selectedSize={selectedSize}
+          selectedSize={selectedPreset}
           hasVideoCredits={
             creditStatus
               ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||
@@ -1565,7 +1600,7 @@ export function StudioHome({ userId: _userId }: Props) {
               type: 'video',
               url: resultVideoUrl,
               prompt: videoPrompt,
-              preset: selectedSize,
+              preset: selectedPreset,
               createdAt: Date.now(),
             };
             addImage(newVideo);

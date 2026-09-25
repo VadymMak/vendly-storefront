@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MOTION_PRESETS, SIZE_PRESETS, type MotionPresetId } from '@/lib/studio/constants';
+import { MOTION_PRESETS, SIZE_PRESETS, PLATFORM_IMAGE_PRESETS, type MotionPresetId } from '@/lib/studio/constants';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
@@ -192,7 +192,7 @@ export function AnimateEditor({
       setUsedPrompt(finalPrompt);
 
       const aspectRatio = toVideoAspectRatio(
-        SIZE_PRESETS.find(s => s.id === selectedSize)?.aspect_ratio ?? '16:9',
+        (PLATFORM_IMAGE_PRESETS.find(s => s.id === selectedSize) ?? SIZE_PRESETS.find(s => s.id === selectedSize))?.aspect_ratio ?? '16:9',
       );
 
       const res = await fetch('/api/generate-video', {

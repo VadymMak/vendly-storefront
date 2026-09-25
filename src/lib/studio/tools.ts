@@ -18,7 +18,7 @@ export const STUDIO_TOOLS: ToolDefinition[] = [
   {
     name: 'generate_image',
     description:
-      'Generate a new image from a text description. Use for creating product photos, lifestyle scenes, backgrounds, any image from scratch.',
+      'Generate a new image from a text description. Use for creating product photos, lifestyle scenes, backgrounds, any image from scratch. Optionally specify platform for social-media-optimized dimensions (instagram, instagram_square, instagram_story, tiktok, youtube, youtube_banner, facebook, linkedin, pinterest).',
     apiRoute: '/api/studio/generate',
     model: 'Flux Schnell',
     provider: 'replicate',

@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import {
-  VIDEO_STYLE_CHIPS, VIDEO_DURATIONS, VIDEO_ASPECT_RATIOS,
-  type VideoStyleChipId, type VideoDurationValue, type VideoAspectRatio,
+  VIDEO_STYLE_CHIPS, VIDEO_DURATIONS, VIDEO_ASPECT_RATIOS, PLATFORM_VIDEO_PRESETS,
+  type VideoStyleChipId, type VideoDurationValue, type VideoAspectRatio, type PlatformVideoPresetId,
 } from '@/lib/studio/constants';
 import type { VideoQualityTier } from '@/lib/video/resolve-route';
 
@@ -39,8 +39,9 @@ export function GenerateVideoEditor({
   const [prompt,      setPrompt]      = useState(initialPrompt ?? '');
   const [style,       setStyle]       = useState<VideoStyleChipId>('product');
   const [quality,     setQuality]     = useState<VideoQualityTier>('best');
-  const [duration,    setDuration]    = useState<VideoDurationValue>(10);
-  const [aspectRatio, setAspectRatio] = useState<VideoAspectRatio>('16:9');
+  const [duration,      setDuration]      = useState<VideoDurationValue>(10);
+  const [aspectRatio,   setAspectRatio]   = useState<VideoAspectRatio>('16:9');
+  const [videoPreset,   setVideoPreset]   = useState<PlatformVideoPresetId | null>(null);
   const [status,      setStatus]      = useState<EditorStatus>('configuring');
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
   const [jobId,       setJobId]       = useState<string | null>(null);
@@ -181,6 +182,36 @@ export function GenerateVideoEditor({
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Platform presets */}
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-gray-400">Platform Preset</span>
+        <div className="flex flex-wrap gap-1.5">
+          {PLATFORM_VIDEO_PRESETS.map(p => (
+            <button
+              key={p.id}
+              disabled={status === 'processing'}
+              onClick={() => {
+                if (videoPreset === p.id) {
+                  setVideoPreset(null);
+                } else {
+                  setVideoPreset(p.id);
+                  setAspectRatio(p.aspect_ratio);
+                  setDuration(p.defaultDuration);
+                }
+              }}
+              className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors disabled:opacity-50 ${
+                videoPreset === p.id
+                  ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:text-white'
+              }`}
+            >
+              <span>{p.icon} {p.label}</span>
+              <span className="block text-[10px] text-gray-500">{p.subtitle}</span>
+            </button>
+          ))}
         </div>
       </div>
 

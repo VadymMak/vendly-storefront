@@ -1,3 +1,7 @@
+// ── Social platforms ──────────────────────────────────────────────────────────
+
+export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'linkedin' | 'pinterest' | 'ecommerce' | 'generic';
+
 // ── Place Products (Image Composite) ─────────────────────────────────────────
 
 export interface PlacedObject {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
 import UpgradeModal from '@/components/studio/UpgradeModal';
 import CreditPackModal from '@/components/studio/CreditPackModal';
 import PricingModal from '@/components/studio/PricingModal';
@@ -8,10 +8,10 @@ import { ImageDetailModal } from './ImageDetailModal';
 import { VideoDetailModal } from './VideoDetailModal';
 import {
   EXAMPLE_PROMPTS, QUICK_FILTERS, OUTPUT_FORMATS,
-  ENHANCEMENT_PRESETS, SIZE_PRESETS,
+  ENHANCEMENT_PRESETS, SIZE_PRESETS, PLATFORM_IMAGE_PRESETS,
   STYLE_CHIPS,
-  type OutputFormat, type EnhancementPresetId, type SizePresetId,
-  type StyleChipId,
+  type OutputFormat, type EnhancementPresetId,
+  type PlatformImagePresetId, type StyleChipId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
 import { type ModelTier } from '@/lib/studio/config';
@@ -211,12 +211,11 @@ function ResultCard({ img, onImprove, onAnimate, onUpscale, onRemoveBg, onDownlo
         {isVideo ? (
           <video
             src={img.url}
-            className={`w-full object-cover ${
-              img.preset === 'instagram'            ? 'aspect-[4/5]'  :
-              img.preset === 'story'                ? 'aspect-[9/16]' :
-              img.preset === 'square' || img.preset === 'product' ? 'aspect-square' :
-              'aspect-video'
-            }`}
+            className={`w-full object-cover ${(() => {
+              const p = PLATFORM_IMAGE_PRESETS.find(s => s.id === img.preset) ?? SIZE_PRESETS.find(s => s.id === img.preset);
+              const ar = p?.aspect_ratio;
+              return ar === '4:5' ? 'aspect-[4/5]' : ar === '9:16' ? 'aspect-[9/16]' : ar === '1:1' ? 'aspect-square' : 'aspect-video';
+            })()}`}
             muted loop playsInline
             onMouseEnter={e => (e.target as HTMLVideoElement).play().catch(() => {})}
             onMouseLeave={e => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
@@ -410,8 +409,15 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [selectedModel,   setSelectedModel] = useState<string>('');
   const [selectedStyle,   setSelectedStyle] = useState<StyleChipId>('custom');
   const [showAdvanced,    setShowAdvanced]  = useState(false);
-  const [selectedSize,    setSelectedSize]  = useState<SizePresetId>('instagram');
+  const [selectedPreset,  setSelectedPreset]  = useState<PlatformImagePresetId>('ig-feed');
+  const [platformFilter,  setPlatformFilter]  = useState<string>('all');
   const [outputFormat,    setOutputFormat]  = useState<OutputFormat>('webp');
+
+  const filteredPresets = useMemo(() =>
+    platformFilter === 'all'
+      ? PLATFORM_IMAGE_PRESETS
+      : PLATFORM_IMAGE_PRESETS.filter(p => p.platform === platformFilter),
+  [platformFilter]);
 
   const TIERS: { id: ModelTier; label: string; desc: string; credits: number; eta: string }[] = [
     { id: 'fast',    label: 'Quick', desc: 'Fast draft',     credits: 1, eta: '~3s'  },
@@ -586,7 +592,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       return;
     }
 
-    const size = SIZE_PRESETS.find(s => s.id === selectedSize) ?? SIZE_PRESETS[0];
+    const size = PLATFORM_IMAGE_PRESETS.find(s => s.id === selectedPreset) ?? PLATFORM_IMAGE_PRESETS[0];
     setIsGenerating(true);
     setError(null);
 
@@ -653,7 +659,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       setIsGenerating(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prompt, isGenerating, noCreditsForImages, selectedSize, outputFormat, selectedModel, selectedTier, selectionMode, selectedStyle, uploadedImage]);
+  }, [prompt, isGenerating, noCreditsForImages, selectedPreset, outputFormat, selectedModel, selectedTier, selectionMode, selectedStyle, uploadedImage]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -878,19 +884,43 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                   </div>
                 )}
 
-                {/* ── Controls row: Size + Format + Generate ───────── */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <select
-                    value={selectedSize}
-                    onChange={e => setSelectedSize(e.target.value as SizePresetId)}
-                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 outline-none"
-                  >
-                    {SIZE_PRESETS.map(s => (
-                      <option key={s.id} value={s.id} className="bg-[#0d0d14]">
-                        {s.label} — {s.subtitle}
-                      </option>
+                {/* ── Platform preset chips ─────────────────────────── */}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1">
+                    {(['all', 'instagram', 'tiktok', 'youtube', 'facebook', 'linkedin', 'generic'] as const).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setPlatformFilter(p)}
+                        className={`rounded px-2 py-0.5 text-xs transition-colors ${
+                          platformFilter === p
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
+                        }`}
+                      >
+                        {p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1)}
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {filteredPresets.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedPreset(s.id)}
+                        className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors ${
+                          selectedPreset === s.id
+                            ? 'border-indigo-500 bg-indigo-500/20 text-white'
+                            : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:text-white'
+                        }`}
+                      >
+                        <span>{s.icon} {s.label}</span>
+                        <span className="block text-[10px] text-gray-500">{s.subtitle}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Controls row: Format + Generate ──────────────── */}
+                <div className="flex flex-wrap items-center gap-3">
 
                   <select
                     value={outputFormat}
@@ -1287,7 +1317,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         <VideoDetailModal
           videoUrl={modalVideo.url}
           prompt={modalVideo.prompt}
-          aspectRatio={SIZE_PRESETS.find(s => s.id === modalVideo.preset)?.aspect_ratio}
+          aspectRatio={(PLATFORM_IMAGE_PRESETS.find(s => s.id === modalVideo.preset) ?? SIZE_PRESETS.find(s => s.id === modalVideo.preset))?.aspect_ratio}
           onClose={() => setModalVideo(null)}
           onRegenerate={() => {
             setModalVideo(null);
@@ -1415,7 +1445,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       {activeEditor?.tool === 'animate' && (
         <AnimateEditor
           imageUrl={activeEditor.imageUrl}
-          selectedSize={selectedSize}
+          selectedSize={selectedPreset}
           hasVideoCredits={
             creditStatus
               ? (creditStatus.monthly.videos.remaining + creditStatus.bonus.videos) > 0 ||
@@ -1433,7 +1463,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               type: 'video',
               url: resultVideoUrl,
               prompt,
-              preset: selectedSize,
+              preset: selectedPreset,
               createdAt: Date.now(),
             };
             addImage(newVideo);

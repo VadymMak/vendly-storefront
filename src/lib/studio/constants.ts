@@ -222,3 +222,40 @@ export const VIDEO_ASPECT_RATIOS = [
 ] as const;
 
 export type VideoAspectRatio = (typeof VIDEO_ASPECT_RATIOS)[number]['value'];
+
+// ── Platform image presets ────────────────────────────────────────────────────
+
+export const PLATFORM_IMAGE_PRESETS = [
+  { id: 'ig-feed',     platform: 'instagram', label: 'IG Feed Post',      subtitle: '4:5 · 1080×1350',  aspect_ratio: '4:5',  megapixels: '1', target_width: 1080, target_height: 1350, icon: '📸' },
+  { id: 'ig-story',    platform: 'instagram', label: 'IG Story / Reel',   subtitle: '9:16 · 1080×1920', aspect_ratio: '9:16', megapixels: '1', target_width: 1080, target_height: 1920, icon: '📸' },
+  { id: 'ig-square',   platform: 'instagram', label: 'IG Square',         subtitle: '1:1 · 1080×1080',  aspect_ratio: '1:1',  megapixels: '1', target_width: 1080, target_height: 1080, icon: '📸' },
+  { id: 'tiktok',      platform: 'tiktok',    label: 'TikTok',            subtitle: '9:16 · 1080×1920', aspect_ratio: '9:16', megapixels: '1', target_width: 1080, target_height: 1920, icon: '🎵' },
+  { id: 'yt-thumb',    platform: 'youtube',   label: 'YT Thumbnail',      subtitle: '16:9 · 1280×720',  aspect_ratio: '16:9', megapixels: '1', target_width: 1280, target_height: 720,  icon: '▶️' },
+  { id: 'yt-banner',   platform: 'youtube',   label: 'YT Channel Banner', subtitle: '16:9 · 2560×1440', aspect_ratio: '16:9', megapixels: '1', target_width: 2560, target_height: 1440, icon: '▶️' },
+  { id: 'fb-post',     platform: 'facebook',  label: 'FB Post',           subtitle: '1:1 · 1200×1200',  aspect_ratio: '1:1',  megapixels: '1', target_width: 1200, target_height: 1200, icon: '👥' },
+  { id: 'fb-cover',    platform: 'facebook',  label: 'FB Cover',          subtitle: '16:9 · 820×312',   aspect_ratio: '16:9', megapixels: '1', target_width: 820,  target_height: 312,  icon: '👥' },
+  { id: 'linkedin',    platform: 'linkedin',  label: 'LinkedIn Post',     subtitle: '16:9 · 1200×628',  aspect_ratio: '16:9', megapixels: '1', target_width: 1200, target_height: 628,  icon: '💼' },
+  { id: 'pinterest',   platform: 'pinterest', label: 'Pinterest Pin',     subtitle: '2:3 · 1000×1500',  aspect_ratio: '2:3',  megapixels: '1', target_width: 1000, target_height: 1500, icon: '📌' },
+  { id: 'product',     platform: 'ecommerce', label: 'Product Shot',      subtitle: '1:1 · 800×800',    aspect_ratio: '1:1',  megapixels: '1', target_width: 800,  target_height: 800,  icon: '🛒' },
+  { id: 'landscape',   platform: 'generic',   label: 'Landscape',         subtitle: '16:9 · 1920×1080', aspect_ratio: '16:9', megapixels: '1', target_width: 1920, target_height: 1080, icon: '🖼️' },
+  { id: 'square',      platform: 'generic',   label: 'Square',            subtitle: '1:1 · 1080×1080',  aspect_ratio: '1:1',  megapixels: '1', target_width: 1080, target_height: 1080, icon: '⬜' },
+  { id: 'portrait',    platform: 'generic',   label: 'Portrait',          subtitle: '9:16 · 1080×1920', aspect_ratio: '9:16', megapixels: '1', target_width: 1080, target_height: 1920, icon: '📱' },
+] as const;
+
+export type PlatformImagePresetId = typeof PLATFORM_IMAGE_PRESETS[number]['id'];
+
+// ── Platform video presets ────────────────────────────────────────────────────
+
+export const PLATFORM_VIDEO_PRESETS = [
+  { id: 'ig-reel',      platform: 'instagram', label: 'IG Reel',       subtitle: '9:16 · 90s max',  aspect_ratio: '9:16' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '📸' },
+  { id: 'ig-story-v',   platform: 'instagram', label: 'IG Story',      subtitle: '9:16 · 15s max',  aspect_ratio: '9:16' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '📸' },
+  { id: 'tiktok-v',     platform: 'tiktok',    label: 'TikTok',        subtitle: '9:16 · 60s max',  aspect_ratio: '9:16' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '🎵' },
+  { id: 'yt-short',     platform: 'youtube',   label: 'YT Short',      subtitle: '9:16 · 60s max',  aspect_ratio: '9:16' as VideoAspectRatio, defaultDuration: 10 as VideoDurationValue, icon: '▶️' },
+  { id: 'yt-video',     platform: 'youtube',   label: 'YT Video',      subtitle: '16:9',            aspect_ratio: '16:9' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '▶️' },
+  { id: 'fb-reel-v',    platform: 'facebook',  label: 'FB Reel',       subtitle: '9:16 · 90s max',  aspect_ratio: '9:16' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '👥' },
+  { id: 'land-v',       platform: 'generic',   label: 'Landscape',     subtitle: '16:9',            aspect_ratio: '16:9' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '🖼️' },
+  { id: 'sq-v',         platform: 'generic',   label: 'Square',        subtitle: '1:1',             aspect_ratio: '1:1'  as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '⬜' },
+  { id: 'port-v',       platform: 'generic',   label: 'Portrait',      subtitle: '9:16',            aspect_ratio: '9:16' as VideoAspectRatio, defaultDuration: 5  as VideoDurationValue, icon: '📱' },
+] as const;
+
+export type PlatformVideoPresetId = typeof PLATFORM_VIDEO_PRESETS[number]['id'];

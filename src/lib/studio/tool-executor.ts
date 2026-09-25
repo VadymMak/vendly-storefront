@@ -159,9 +159,27 @@ async function executeGenerateImage(
     'grok':      'quality',
   };
 
+  // Platform preset lookup — maps platform name to aspect_ratio + dimensions
+  const platformPresetMap: Record<string, { aspect_ratio: string; target_width: number; target_height: number }> = {
+    'instagram':        { aspect_ratio: '4:5',  target_width: 1080, target_height: 1350 },
+    'instagram_square': { aspect_ratio: '1:1',  target_width: 1080, target_height: 1080 },
+    'instagram_story':  { aspect_ratio: '9:16', target_width: 1080, target_height: 1920 },
+    'tiktok':           { aspect_ratio: '9:16', target_width: 1080, target_height: 1920 },
+    'youtube':          { aspect_ratio: '16:9', target_width: 1280, target_height: 720  },
+    'youtube_banner':   { aspect_ratio: '16:9', target_width: 2560, target_height: 1440 },
+    'facebook':         { aspect_ratio: '1:1',  target_width: 1200, target_height: 1200 },
+    'linkedin':         { aspect_ratio: '16:9', target_width: 1200, target_height: 628  },
+    'pinterest':        { aspect_ratio: '2:3',  target_width: 1000, target_height: 1500 },
+  };
+
   const provider = String(params.provider || 'flux');
   const isGrok   = provider === 'grok';
   const tier     = providerToTier[provider] || 'fast';
+
+  const platformDims = params.platform
+    ? platformPresetMap[String(params.platform)] ?? null
+    : null;
+  const aspectRatio = platformDims?.aspect_ratio ?? String(params.aspect_ratio || '1:1');
 
   const res = await fetch(`${BASE_URL}/api/studio/generate`, {
     method: 'POST',
@@ -171,8 +189,9 @@ async function executeGenerateImage(
     },
     body: JSON.stringify({
       prompt:        params.prompt || '',
-      aspect_ratio:  params.aspect_ratio || '1:1',
+      aspect_ratio:  aspectRatio,
       output_format: 'webp',
+      ...(platformDims ? { target_width: platformDims.target_width, target_height: platformDims.target_height } : {}),
       ...(isGrok
         ? { modelAlias: 'img-grok' }
         : { tier }),

@@ -47,6 +47,7 @@ export async function executeCombo(
   userInput: string,
   context: SessionContext,
   cookieHeader: string,
+  userId?: string,
 ): Promise<ComboResult> {
   const results: StepResult[] = [];
   let currentContext = { ...context };
@@ -134,6 +135,7 @@ export async function executeCombo(
           },
           animCtx,
           cookieHeader,
+          userId,
         );
 
         if (result.jobId) {
@@ -203,7 +205,7 @@ export async function executeCombo(
     if (step.tool === 'generate_image' && params.use_lora && currentContext.loraModel) {
       const loraResult = await executeTool('generate_character', {
         scene_description: String(params.scene_description || ''),
-      }, currentContext, cookieHeader);
+      }, currentContext, cookieHeader, userId);
 
       const loraStepResult: StepResult = { stepIndex: i, description: step.description };
       if (loraResult.error) {
@@ -225,6 +227,7 @@ export async function executeCombo(
       params,
       currentContext,
       cookieHeader,
+      userId,
     );
 
     const stepResult: StepResult = {

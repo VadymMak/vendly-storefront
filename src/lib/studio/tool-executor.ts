@@ -1,5 +1,7 @@
 import { put } from '@vercel/blob';
 import type { ToolName, MediaAttachment, SessionContext } from './types';
+import { getUserApiKey } from './get-user-key';
+import { consumeCredits } from '@/lib/credits';
 
 interface ToolResult {
   media?: MediaAttachment;
@@ -105,6 +107,7 @@ export async function executeTool(
   params: Record<string, string | number | boolean>,
   context: SessionContext,
   cookieHeader: string,
+  userId?: string,
 ): Promise<ToolResult> {
   try {
     switch (tool) {
@@ -113,11 +116,11 @@ export async function executeTool(
       case 'generate_with_reference':
         return await executeGenerateWithReference(params, context, cookieHeader);
       case 'generate_character':
-        return await executeGenerateCharacter(params, context, cookieHeader);
+        return await executeGenerateCharacter(params, context, cookieHeader, userId);
       case 'talking_avatar':
-        return await executeTalkingAvatar(params, context, cookieHeader);
+        return await executeTalkingAvatar(params, context, cookieHeader, userId);
       case 'voiceover':
-        return await executeVoiceover(params, cookieHeader);
+        return await executeVoiceover(params, cookieHeader, userId);
       case 'image_to_video':
         return await executeGenerateVideo(params, context, cookieHeader);
       case 'edit_image':
@@ -473,6 +476,7 @@ async function executeGenerateCharacter(
   params: Record<string, string | number | boolean>,
   context: SessionContext,
   _cookieHeader: string,
+  userId?: string,
 ): Promise<ToolResult> {
   // LoRA path: use trained face model if set in context
   if (context.loraModel) {
@@ -491,6 +495,13 @@ async function executeGenerateCharacter(
     const REPLICATE_API_KEY = process.env.REPLICATE_API_TOKEN || '';
     if (!REPLICATE_API_KEY) {
       return { error: 'REPLICATE_API_TOKEN not configured' };
+    }
+
+    if (userId) {
+      const consume = await consumeCredits(userId, 'image', 1);
+      if (!consume.success) {
+        return { error: consume.reason ?? 'Insufficient credits' };
+      }
     }
 
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
@@ -605,7 +616,15 @@ async function executeTalkingAvatar(
   params: Record<string, string | number | boolean>,
   context: SessionContext,
   _cookieHeader: string,
+  userId?: string,
 ): Promise<ToolResult> {
+  if (userId) {
+    const consume = await consumeCredits(userId, 'video', 1);
+    if (!consume.success) {
+      return { error: consume.reason ?? 'Insufficient credits' };
+    }
+  }
+
   const audioUrl = (params.audio_url as string) || context.lastAudioUrl;
   if (!audioUrl) {
     return {
@@ -673,8 +692,16 @@ async function executeTalkingAvatar(
 
 async function executeVoiceover(
   params: Record<string, string | number | boolean>,
-  cookieHeader: string,
+  _cookieHeader: string,
+  userId?: string,
 ): Promise<ToolResult> {
+  if (userId) {
+    const consume = await consumeCredits(userId, 'image', 1);
+    if (!consume.success) {
+      return { error: consume.reason ?? 'Insufficient credits' };
+    }
+  }
+
   const text = params.text as string;
   if (!text) {
     return {
@@ -688,18 +715,15 @@ async function executeVoiceover(
     return { error: 'Brain API key not configured' };
   }
 
-  // Fetch user's ElevenLabs key from DB (falls back to env var in voiceover route)
+  // Read ElevenLabs key directly from DB — avoids HTTP round-trip through a route that's now deleted
   let elevenlabsKey: string | undefined;
-  try {
-    const keyRes = await fetch(`${BASE_URL}/api/user/api-keys/decrypted?provider=elevenlabs`, {
-      headers: { Cookie: cookieHeader },
-    });
-    if (keyRes.ok) {
-      const keyData = await keyRes.json() as { key: string | null };
-      elevenlabsKey = keyData.key ?? undefined;
+  if (userId) {
+    try {
+      const key = await getUserApiKey(userId, 'elevenlabs');
+      elevenlabsKey = key ?? undefined;
+    } catch {
+      // falls back to ELEVENLABS_API_KEY env var in voiceover route
     }
-  } catch {
-    // ignore — voiceover route falls back to ELEVENLABS_API_KEY env var
   }
 
   const res = await fetch(`${BASE_URL}/api/brain/voiceover`, {

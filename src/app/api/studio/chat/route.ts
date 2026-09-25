@@ -116,6 +116,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    // Block arbitrary LoRA model injection from client — only FACE_REGISTRY values are trusted
+    if (context.loraModel) {
+      const allowedLoraModels = new Set(
+        Object.values(FACE_REGISTRY)
+          .map(e => e.loraModel)
+          .filter(Boolean) as string[],
+      );
+      if (!allowedLoraModels.has(context.loraModel)) {
+        console.warn(`[studio/chat] Rejected unknown loraModel: ${context.loraModel}`);
+        context.loraModel = null;
+        context.loraTriggerWord = null;
+      }
+    }
+
     // Auto-animate next ad clip scene — bypasses agent entirely
     if (message === '__animate_next__' && context.adClipState) {
       const { scenes, videos } = context.adClipState;
@@ -128,7 +142,7 @@ export async function POST(req: NextRequest) {
           prompt: 'slow dolly forward, cinematic movement, warm atmospheric',
           aspectRatio: '9:16',
           duration: 5,
-        }, animCtx, cookieHeader);
+        }, animCtx, cookieHeader, session.user.id);
 
         return NextResponse.json({
           message: `🎬 Animating scene ${nextIndex + 1}/${scenes.length}... (~30-60 sec)`,
@@ -299,7 +313,7 @@ export async function POST(req: NextRequest) {
         prompt: cleanMotion,
         aspectRatio,
         duration,
-      }, context, cookieHeader);
+      }, context, cookieHeader, session.user.id);
 
       if (animResult.error) {
         return NextResponse.json({
@@ -375,7 +389,7 @@ export async function POST(req: NextRequest) {
         });
 
         // loraModel already set in context from extraction block
-        const loraResult = await executeCombo(loraSteps, sceneBase, context, cookieHeader);
+        const loraResult = await executeCombo(loraSteps, sceneBase, context, cookieHeader, session.user.id);
 
         const comboImages = loraResult.steps
           .filter((s) => s.media?.type === 'image')
@@ -507,7 +521,7 @@ export async function POST(req: NextRequest) {
           ...context,
           ...(context.faceMode === 'lora' ? { loraModel: context.loraModel ?? FACE_REGISTRY['ANNA']?.loraModel ?? '', loraTriggerWord: context.loraTriggerWord ?? FACE_REGISTRY['ANNA']?.triggerWord ?? null } : {}),
         };
-        const movieResult = await executeCombo(movieSteps, '', movieCtx, cookieHeader);
+        const movieResult = await executeCombo(movieSteps, '', movieCtx, cookieHeader, session.user.id);
 
         const comboImages = movieResult.steps
           .filter((s) => s.media?.type === 'image')
@@ -686,7 +700,7 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        const comboResult = await executeCombo(stepsToRun, subject, comboContext, cookieHeader);
+        const comboResult = await executeCombo(stepsToRun, subject, comboContext, cookieHeader, session.user.id);
 
         const allMedia = comboResult.steps.filter((s) => s.media).map((s) => s.media!);
         const lastMedia = allMedia[allMedia.length - 1];
@@ -732,7 +746,7 @@ export async function POST(req: NextRequest) {
                 prompt: motionPrompts[idx] ?? motionPrompts[0],
                 aspectRatio: '9:16',
                 duration: 5,
-              }, animCtx, cookieHeader);
+              }, animCtx, cookieHeader, session.user!.id);
               return result.jobId ?? null;
             })
           );
@@ -828,6 +842,7 @@ export async function POST(req: NextRequest) {
         toolParams,
         context,
         cookieHeader,
+        session.user.id,
       );
 
       if (result.error) {

@@ -72,6 +72,8 @@ export interface RenderProgress {
   totalFrames: number;
   percent: number;
   phase: 'rendering' | 'audio';
+  elapsedMs?: number;
+  etaSeconds?: number;
 }
 
 export type OnProgress = (progress: RenderProgress) => void;
@@ -1361,6 +1363,15 @@ export async function renderSlideshow(
 
   if (items.length < 2) throw new Error('At least 2 items required');
 
+  const renderStart = performance.now();
+  const timedProgress: OnProgress = (p) => {
+    const elapsedMs = performance.now() - renderStart;
+    const etaSeconds = p.percent > 1
+      ? Math.round((elapsedMs / p.percent) * (100 - p.percent) / 1000)
+      : undefined;
+    onProgress({ ...p, elapsedMs, etaSeconds });
+  };
+
   const minDuration = Math.min(...items.map((item) => item.duration));
   // Silently fall back to hard cut rather than crashing export
   const safeTransition = transitionDuration < minDuration ? transitionDuration : 0;
@@ -1418,26 +1429,26 @@ export async function renderSlideshow(
   if (webCodecsAvailable) {
     try {
       videoBlob = await renderPass1WebCodecs(
-        canvas, ctx, config, items, startTimes, totalFrames, fps, W, H, onProgress, pass1Max,
+        canvas, ctx, config, items, startTimes, totalFrames, fps, W, H, timedProgress, pass1Max,
       );
       mimeType = 'video/mp4';
       console.log('[export] Pass 1 completed via WebCodecs — frame-accurate MP4');
     } catch (err) {
       console.warn('[export] WebCodecs failed, falling back to MediaRecorder:', err);
       videoBlob = await renderPass1MediaRecorder(
-        canvas, ctx, config, items, startTimes, totalFrames, fps, onProgress, pass1Max,
+        canvas, ctx, config, items, startTimes, totalFrames, fps, timedProgress, pass1Max,
       );
       mimeType = videoBlob.type || 'video/webm';
     }
   } else {
     console.log('[export] WebCodecs not available, using MediaRecorder fallback');
     videoBlob = await renderPass1MediaRecorder(
-      canvas, ctx, config, items, startTimes, totalFrames, fps, onProgress, pass1Max,
+      canvas, ctx, config, items, startTimes, totalFrames, fps, timedProgress, pass1Max,
     );
     mimeType = videoBlob.type || 'video/webm';
   }
 
-  onProgress({ currentFrame: totalFrames, totalFrames, percent: pass1Max, phase: 'rendering' });
+  timedProgress({ currentFrame: totalFrames, totalFrames, percent: pass1Max, phase: 'rendering' });
 
   if (!hasAudio) return { blob: videoBlob, mimeType };
 
@@ -1456,7 +1467,7 @@ export async function renderSlideshow(
     config.musicFile ?? null,
     audioPassMime,
     (p) => {
-      onProgress({
+      timedProgress({
         currentFrame: totalFrames,
         totalFrames,
         percent: pass1Max + Math.round(p * (100 - pass1Max)),
@@ -1467,7 +1478,7 @@ export async function renderSlideshow(
     config.audioClips,
   );
 
-  onProgress({ currentFrame: totalFrames, totalFrames, percent: 100, phase: 'audio' });
+  timedProgress({ currentFrame: totalFrames, totalFrames, percent: 100, phase: 'audio' });
 
   return { blob: finalBlob, mimeType: audioPassMime };
 }

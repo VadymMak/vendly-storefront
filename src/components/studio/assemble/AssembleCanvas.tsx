@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useStudioStore } from '@/lib/studio/store';
 import { useHistoryStore } from '@/lib/studio/history';
 import {
@@ -13,6 +13,7 @@ import { fileToDataUrl, urlToDataUrl } from '@/lib/studio/media-utils';
 import { saveMediaBlob, loadMediaBlob } from '@/lib/studio/media-db';
 import { useSidebarContext } from '@/components/studio/SidebarContext';
 import { renderSlideshow, DEFAULT_SEQUENCE, MOTION_PRESETS } from '@/lib/slideshow-renderer';
+import { estimateExport, formatTimeEstimate } from '@/lib/studio/export-estimate';
 import type { SlideshowItem, SlideshowConfig, TransitionType, TextOverlay } from '@/lib/slideshow-renderer';
 import { NLETimeline } from './Timeline';
 import { FontPicker } from './FontPicker';
@@ -881,11 +882,22 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const [isRendering, setIsRendering]       = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
   const [renderPhase, setRenderPhase]       = useState<'rendering' | 'audio'>('rendering');
+  const [renderEta, setRenderEta]           = useState<number | undefined>(undefined);
+  const [renderElapsed, setRenderElapsed]   = useState<number>(0);
+  const [resultSize, setResultSize]         = useState<number>(0);
   const [resultUrl, setResultUrl]           = useState<string | null>(null);
   const [resultMime, setResultMime]         = useState('video/mp4');
   const [projectName, setProjectName]       = useState('Untitled Clip');
   const [editingName, setEditingName]       = useState(false);
   const [error, setError]                   = useState<string | null>(null);
+
+  const exportEstimate = useMemo(() => estimateExport({
+    clipCount: videoClips.length,
+    totalDurationSeconds: totalDuration,
+    aspectRatio,
+    hasAudio: !!audioTrack,
+  }), [videoClips.length, totalDuration, aspectRatio, audioTrack]);
+
   const [isCaptioning, setIsCaptioning]             = useState(false);
   const [captionProgress, setCaptionProgress]       = useState('');
   const [showCaptionSettings, setShowCaptionSettings] = useState(false);
@@ -1585,11 +1597,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         audioClips: exportAudioClips.length > 0 ? exportAudioClips : undefined,
       };
 
+      setRenderEta(undefined);
+      setRenderElapsed(0);
       const result = await renderSlideshow(config, (progress) => {
         setRenderProgress(progress.percent);
         setRenderPhase(progress.phase);
+        if (progress.elapsedMs !== undefined) setRenderElapsed(progress.elapsedMs);
+        setRenderEta(progress.etaSeconds);
       });
 
+      setResultSize(result.blob.size);
       const url = URL.createObjectURL(result.blob);
       resultBlobRef.current = url;
       setResultUrl(url);
@@ -2205,7 +2222,15 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                 <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
                   <div className="h-full rounded-full bg-green-600 transition-all duration-300" style={{ width: `${renderProgress}%` }} />
                 </div>
-                <p className="text-xs text-gray-500">{renderProgress}%</p>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span>{renderProgress}%</span>
+                  {renderEta !== undefined && renderEta > 0 && (
+                    <span>ETA {formatTimeEstimate(renderEta)}</span>
+                  )}
+                  {renderElapsed > 2000 && renderEta === 0 && (
+                    <span>finishing…</span>
+                  )}
+                </div>
               </div>
             ) : videoClips.length > 0 && cW > 0 && cH > 0 ? (
               <div
@@ -2609,15 +2634,22 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             </button>
 
             {/* Export */}
-            <button
-              onClick={() => void handleExport()}
-              disabled={isRendering || videoClips.length < 2}
-              title="Export video"
-              className="ml-2 flex items-center gap-2 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <IconDownload />
-              {isRendering ? `Exporting ${renderProgress}%` : 'Export Clip'}
-            </button>
+            <div className="ml-2 flex flex-col items-end gap-0.5">
+              <button
+                onClick={() => void handleExport()}
+                disabled={isRendering || videoClips.length < 2}
+                title="Export video"
+                className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <IconDownload />
+                {isRendering ? `Exporting ${renderProgress}%` : 'Export Clip'}
+              </button>
+              {!isRendering && videoClips.length >= 2 && exportEstimate.estimatedLabel && (
+                <span className="text-[10px] text-gray-600">
+                  {exportEstimate.estimatedLabel} · {exportEstimate.estimatedSizeLabel}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* NLE Timeline */}
@@ -2656,7 +2688,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
             >
               <IconX size={20} />
             </button>
-            <h3 className="text-sm font-medium text-gray-300">Export Preview</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-medium text-gray-300">Export Preview</h3>
+              {resultSize > 0 && (
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-gray-500">
+                  {resultSize < 1024 * 1024
+                    ? `${Math.round(resultSize / 1024)} KB`
+                    : `${(resultSize / (1024 * 1024)).toFixed(1)} MB`}
+                </span>
+              )}
+            </div>
             <video
               src={resultUrl}
               controls

@@ -53,6 +53,14 @@ export interface SlideshowConfig {
   fps: number;
   audioFile?: File;   // voiceover -- full volume, no loop
   musicFile?: File;   // background music -- low volume, looping
+  audioClips?: Array<{
+    sourceUrl: string;
+    startTime: number;
+    duration: number;
+    volume?: number;
+    fadeInDuration?: number;
+    fadeOutDuration?: number;
+  }>;
   grain?: number;     // 0-1 film grain intensity; 0 = off (default); 0.2 = cinematic; 0.35 = vintage
   style?: VideoStyle; // default: 'none'
   textOverlays?: TextOverlay[];
@@ -1026,6 +1034,7 @@ async function addAudioToVideo(
   mimeType: string,
   onProgress: (p: number) => void,
   expectedDuration?: number,
+  audioClips?: Array<{ sourceUrl: string; startTime: number; duration: number; volume?: number; fadeInDuration?: number; fadeOutDuration?: number }>,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const videoUrl = URL.createObjectURL(videoBlob);
@@ -1096,6 +1105,37 @@ async function addAudioToVideo(
           gain.gain.linearRampToValueAtTime(0, startAt + duration);
           src.start(startAt);
           sources.push(src);
+        }
+
+        // Timeline audio clips (video original audio tracks)
+        if (audioClips && audioClips.length > 0) {
+          await Promise.all(audioClips.map(async (clip) => {
+            if (!clip.sourceUrl) return;
+            try {
+              const res = await fetch(clip.sourceUrl);
+              if (!res.ok) return;
+              const arrayBuf = await res.arrayBuffer();
+              const buf = await audioCtx.decodeAudioData(arrayBuf);
+              const src = audioCtx.createBufferSource();
+              const gain = audioCtx.createGain();
+              src.buffer = buf;
+              src.connect(gain);
+              gain.connect(audioDest);
+              const vol     = clip.volume ?? 1;
+              const fadeIn  = clip.fadeInDuration  ?? 0.3;
+              const fadeOut = clip.fadeOutDuration ?? 0.3;
+              const clipStart = startAt + clip.startTime;
+              const clipEnd   = clipStart + clip.duration;
+              gain.gain.setValueAtTime(0,   clipStart);
+              gain.gain.linearRampToValueAtTime(vol, clipStart + Math.max(fadeIn, 0.01));
+              gain.gain.setValueAtTime(vol, Math.max(clipStart, clipEnd - Math.max(fadeOut, 0.01)));
+              gain.gain.linearRampToValueAtTime(0, clipEnd);
+              src.start(clipStart, 0, clip.duration);
+              sources.push(src);
+            } catch (err) {
+              console.warn('[export] Skipping audio clip (fetch/decode failed):', err);
+            }
+          }));
         }
 
         const videoStream  = canvas.captureStream(30);
@@ -1363,7 +1403,7 @@ export async function renderSlideshow(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  const hasAudio = !!config.audioFile || !!config.musicFile;
+  const hasAudio = !!config.audioFile || !!config.musicFile || (config.audioClips?.length ?? 0) > 0;
   const pass1Max = hasAudio ? 70 : 100;
 
   // ── Pass 1: video-only rendering ──────────────────────────────────────────────
@@ -1424,6 +1464,7 @@ export async function renderSlideshow(
       });
     },
     totalDuration,
+    config.audioClips,
   );
 
   onProgress({ currentFrame: totalFrames, totalFrames, percent: 100, phase: 'audio' });

@@ -48,6 +48,48 @@ const TRANSITION_OPTIONS: { value: TransitionType; label: string }[] = [
 const TRANSITION_DUR = 0.5;
 const FPS = 30;
 const IMAGE_DUR_OPTIONS = [2, 3, 4, 5];
+const FADE_DURATION_DEFAULT = 0.3;
+const DRIFT_THRESHOLD = 0.12;
+
+function syncAudioClips(
+  currentTime: number,
+  clips: TimelineClip[],
+  audioMap: Map<string, HTMLAudioElement>,
+  activeSet: Set<string>,
+  isMuted: boolean,
+) {
+  for (const clip of clips) {
+    if (clip.type !== 'audio' || clip.muted) continue;
+    const el = audioMap.get(clip.id);
+    if (!el) continue;
+    const clipEnd = clip.startTime + clip.duration;
+    const isInRange = currentTime >= clip.startTime && currentTime < clipEnd;
+    if (isInRange) {
+      const localTime = currentTime - clip.startTime;
+      const expectedTime = localTime;
+      if (!activeSet.has(clip.id)) {
+        el.currentTime = expectedTime;
+        el.muted = isMuted;
+        el.play().catch(() => {});
+        activeSet.add(clip.id);
+      } else {
+        const drift = Math.abs(el.currentTime - expectedTime);
+        if (drift > DRIFT_THRESHOLD) el.currentTime = expectedTime;
+      }
+      const fadeIn  = clip.fadeInDuration  ?? FADE_DURATION_DEFAULT;
+      const fadeOut = clip.fadeOutDuration ?? FADE_DURATION_DEFAULT;
+      const base    = clip.volume ?? 1;
+      const inGain  = fadeIn  > 0 ? Math.min(localTime / fadeIn, 1) : 1;
+      const outGain = fadeOut > 0 ? Math.min((clip.duration - localTime) / fadeOut, 1) : 1;
+      el.volume = Math.max(0, Math.min(1, base * Math.min(inGain, outGain)));
+    } else {
+      if (activeSet.has(clip.id)) {
+        el.pause();
+        activeSet.delete(clip.id);
+      }
+    }
+  }
+}
 
 function easeInOutCubic(t: number): number {
   const c = Math.max(0, Math.min(1, t));
@@ -874,9 +916,12 @@ export function AssembleCanvas({ userId: _userId }: Props) {
   const audioMapRef    = useRef<Map<string, HTMLAudioElement>>(new Map());
   const musicAudioRef  = useRef<HTMLAudioElement | null>(null);
   const isMutedRef     = useRef(false);
+  const activeAudioRef = useRef<Set<string>>(new Set());
+  const audioClipsRef  = useRef<TimelineClip[]>(audioClips);
 
   useEffect(() => { phTimeRef.current = playheadTime; }, [playheadTime]);
   useEffect(() => { totalDurRef.current = totalDuration; }, [totalDuration]);
+  useEffect(() => { audioClipsRef.current = audioClips; }, [audioClips]);
 
   // ── Measure canvas area for JS-computed canvas size ───────────────────────
   useEffect(() => {
@@ -945,12 +990,16 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       const next = Math.min(phTimeRef.current + dt, totalDurRef.current);
       phTimeRef.current = next;
       setPlayheadTime(next);
-      // Correct music drift if it falls more than 0.5s behind the playhead
+      // Music drift correction
       const music = musicAudioRef.current;
       if (music && !music.paused && Math.abs(music.currentTime - next) > 0.5) {
         music.currentTime = next;
       }
+      // RAF-driven audio clip lifecycle
+      syncAudioClips(next, audioClipsRef.current, audioMapRef.current, activeAudioRef.current, isMutedRef.current);
       if (next >= totalDurRef.current) {
+        for (const el of audioMapRef.current.values()) el.pause();
+        activeAudioRef.current.clear();
         setIsPlaying(false);
         return;
       }
@@ -1042,45 +1091,24 @@ export function AssembleCanvas({ userId: _userId }: Props) {
 
   // ── Audio: play/pause sync on isPlaying change ────────────────────────────
 
-  const FADE_DURATION = 0.3;
-
   useEffect(() => {
-    const map = audioMapRef.current;
     const music = musicAudioRef.current;
     if (!isPlaying) {
-      for (const el of map.values()) el.pause();
+      // Pause all audio clips; RAF tick manages play — just stop everything here
+      for (const el of audioMapRef.current.values()) el.pause();
+      activeAudioRef.current.clear();
       if (music) music.pause();
       return;
     }
-    // Start audio clips within playhead range
-    for (const clip of audioClips) {
-      const el = map.get(clip.id);
-      if (!el || !clip.sourceUrl) continue;
-      const offset = phTimeRef.current - clip.startTime;
-      if (offset >= 0 && offset < clip.duration) {
-        el.currentTime = offset;
-        // Initial fade volume at clip boundary
-        const timeToEnd = clip.duration - offset;
-        let vol = 1;
-        if (offset < FADE_DURATION) vol = offset / FADE_DURATION;
-        else if (timeToEnd < FADE_DURATION) vol = timeToEnd / FADE_DURATION;
-        el.volume = Math.max(0, Math.min(1, vol));
-        el.muted = isMutedRef.current;
-        el.play().catch(() => {
-          setTimeout(() => { el.play().catch(() => {}); }, 50);
-        });
-      } else {
-        el.pause();
-      }
-    }
+    // Audio clips are started/stopped by RAF tick's syncAudioClips — nothing to do here
     // Music always plays from current playhead
     if (music) {
-      music.currentTime = phTimeRef.current;
       const ph = phTimeRef.current;
       const totalDur = totalDurRef.current;
+      music.currentTime = ph;
       let musicVol = 0.5;
-      if (ph < FADE_DURATION) musicVol = 0.5 * (ph / FADE_DURATION);
-      else if (totalDur > 0 && totalDur - ph < FADE_DURATION) musicVol = 0.5 * ((totalDur - ph) / FADE_DURATION);
+      if (ph < FADE_DURATION_DEFAULT) musicVol = 0.5 * (ph / FADE_DURATION_DEFAULT);
+      else if (totalDur > 0 && totalDur - ph < FADE_DURATION_DEFAULT) musicVol = 0.5 * ((totalDur - ph) / FADE_DURATION_DEFAULT);
       music.volume = Math.max(0, Math.min(0.5, musicVol));
       music.muted = isMutedRef.current;
       music.play().catch(() => {
@@ -1088,12 +1116,14 @@ export function AssembleCanvas({ userId: _userId }: Props) {
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, audioClips.length, musicDataUrl]);
+  }, [isPlaying, musicDataUrl]);
 
   // ── Audio: seek when scrubbing ────────────────────────────────────────────
 
   useEffect(() => {
     if (isPlaying) return;
+    // Ensure no clips are marked active while paused
+    activeAudioRef.current.clear();
     const map = audioMapRef.current;
     for (const clip of audioClips) {
       const el = map.get(clip.id);
@@ -1372,6 +1402,19 @@ export function AssembleCanvas({ userId: _userId }: Props) {
         })
       );
 
+      // Collect audio clips from the audio track for export
+      const exportAudioClips = audioTrack?.clips
+        .filter(c => !c.muted && c.sourceUrl)
+        .map(c => ({
+          sourceUrl: c.sourceUrl!.startsWith('idb://') ? (idbUrlsRef.current[c.sourceUrl!] ?? '') : c.sourceUrl!,
+          startTime: c.startTime,
+          duration: c.duration,
+          volume: c.volume,
+          fadeInDuration: c.fadeInDuration,
+          fadeOutDuration: c.fadeOutDuration,
+        }))
+        .filter(c => c.sourceUrl) ?? [];
+
       const config: SlideshowConfig = {
         items: slideshowItems,
         transitionDuration: TRANSITION_DUR,
@@ -1382,6 +1425,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
           ? await fetch(musicDataUrl).then(r => r.blob()).then(b => new File([b], musicName ?? 'music', { type: b.type }))
           : undefined,
         textOverlays: globalOverlays.length ? globalOverlays : undefined,
+        audioClips: exportAudioClips.length > 0 ? exportAudioClips : undefined,
       };
 
       const result = await renderSlideshow(config, (progress) => {

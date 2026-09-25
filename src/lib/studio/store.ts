@@ -28,6 +28,10 @@ export interface TimelineClip {
   prompt?: string;
   overlayData?: TextOverlay;
   audioName?: string;
+  volume?: number;          // 0–1, default 1
+  fadeInDuration?: number;  // seconds, default 0.3
+  fadeOutDuration?: number; // seconds, default 0.3
+  muted?: boolean;
 }
 
 export interface TimelineTrack {

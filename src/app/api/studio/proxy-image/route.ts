@@ -91,8 +91,9 @@ export async function GET(request: NextRequest) {
     }
 
     const headers: Record<string, string> = {
-      'Content-Type': rawContentType,
-      'Cache-Control': 'public, max-age=3600',
+      'Content-Type':           rawContentType,
+      'Cache-Control':          'public, max-age=3600',
+      'X-Content-Type-Options': 'nosniff',
     };
     if (download) headers['Content-Disposition'] = `attachment; filename="${download.replace(/[^a-zA-Z0-9._-]/g, '_')}"`;
 

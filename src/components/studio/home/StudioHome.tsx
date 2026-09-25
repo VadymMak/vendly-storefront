@@ -339,6 +339,44 @@ export function StudioHome({ userId: _userId }: Props) {
     }
   }
 
+  function handleAddToAssemble(item: { url: string; type?: string; prompt?: string; duration?: number }) {
+    const store = useStudioStore.getState();
+    store.initDefaultTracks();
+    const tracks = useStudioStore.getState().timelineTracks;
+    const vt = tracks.find(t => t.type === 'video');
+    if (!vt) return;
+
+    const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
+    const last = sorted.at(-1);
+    const startTime = last ? last.startTime + last.duration : 0;
+    const isVideo = item.type === 'video' || (item.url?.includes('.mp4') ?? false) || (item.url?.includes('/video') ?? false);
+    const duration = isVideo ? (item.duration ?? 5) : 3;
+
+    store.addClipToTrack(vt.id, {
+      type: isVideo ? 'video' : 'image',
+      startTime,
+      duration,
+      sourceUrl: item.url,
+      prompt: item.prompt ?? '',
+    });
+
+    if (isVideo) {
+      const at = useStudioStore.getState().timelineTracks.find(t => t.type === 'audio');
+      if (at) {
+        store.addClipToTrack(at.id, {
+          type: 'audio',
+          startTime,
+          duration,
+          sourceUrl: item.url,
+          audioName: 'Original audio',
+          prompt: '',
+        });
+      }
+    }
+
+    router.push('/studio/assemble');
+  }
+
   function handleInlineToolSelect(toolId: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products') {
     if (!uploadedFile) return;
     if (toolId === 'place-products') {
@@ -1420,7 +1458,7 @@ export function StudioHome({ userId: _userId }: Props) {
             setModalImage(null);
             openEditorFromResult(modalImage, 'animate');
           }}
-          onAddToAssemble={() => {}}
+          onAddToAssemble={() => { if (modalImage) handleAddToAssemble({ url: modalImage.url, type: 'image', prompt: modalImage.prompt }); }}
           onDownload={() => handleDownload(modalImage)}
           onCopy={() => {
             if (modalImage.prompt) navigator.clipboard.writeText(modalImage.prompt).catch(() => {});
@@ -1453,7 +1491,7 @@ export function StudioHome({ userId: _userId }: Props) {
             }
           }}
           onDownload={() => handleDownload(modalVideo)}
-          onAddToAssemble={() => {}}
+          onAddToAssemble={() => { if (modalVideo) handleAddToAssemble({ url: modalVideo.url, type: 'video', prompt: modalVideo.prompt }); }}
         />
       )}
 

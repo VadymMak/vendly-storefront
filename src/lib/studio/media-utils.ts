@@ -72,3 +72,48 @@ export async function urlToDataUrl(url: string): Promise<string> {
   console.warn('[media-utils] All conversion methods failed, returning original URL:', url);
   return url;
 }
+
+/**
+ * Check if a video URL has an audio track.
+ * Returns true by default if the browser API is unavailable.
+ */
+export async function videoHasAudio(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
+
+    video.onloadedmetadata = () => {
+      // @ts-expect-error — audioTracks not in all TS defs
+      const tracks = video.audioTracks as { length: number } | undefined;
+      resolve(tracks ? tracks.length > 0 : true);
+      video.remove();
+    };
+
+    video.onerror = () => {
+      resolve(false);
+      video.remove();
+    };
+
+    video.src = url;
+  });
+}
+
+/**
+ * Get video duration in seconds, defaulting to 5 on error.
+ */
+export async function getVideoDuration(url: string): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      resolve(isFinite(video.duration) && video.duration > 0 ? video.duration : 5);
+      video.remove();
+    };
+    video.onerror = () => {
+      resolve(5);
+      video.remove();
+    };
+    video.src = url;
+  });
+}

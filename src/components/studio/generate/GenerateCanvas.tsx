@@ -668,13 +668,35 @@ export function GenerateCanvas({ userId: _userId }: Props) {
     const store = useStudioStore.getState();
     store.initDefaultTracks();
     const vt = useStudioStore.getState().timelineTracks.find(t => t.type === 'video');
+    const isVideo = img.type === 'video' || (img.url?.includes('.mp4') ?? false) || (img.url?.includes('/video') ?? false);
+    const duration = isVideo ? 5 : 3;
+
     if (vt) {
       const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
       const last = sorted.at(-1);
       const startTime = last ? last.startTime + last.duration : 0;
-      store.addClipToTrack(vt.id, { type: 'image', startTime, duration: 3, sourceUrl: img.url, prompt: img.prompt });
+      store.addClipToTrack(vt.id, {
+        type: isVideo ? 'video' : 'image',
+        startTime,
+        duration,
+        sourceUrl: img.url,
+        prompt: img.prompt,
+      });
+      if (isVideo) {
+        const at = useStudioStore.getState().timelineTracks.find(t => t.type === 'audio');
+        if (at) {
+          store.addClipToTrack(at.id, {
+            type: 'audio',
+            startTime,
+            duration,
+            sourceUrl: img.url,
+            audioName: 'Original audio',
+            prompt: '',
+          });
+        }
+      }
     } else {
-      store.addToTimeline({ type: 'image', url: img.url, prompt: img.prompt });
+      store.addToTimeline({ type: isVideo ? 'video' : 'image', url: img.url, prompt: img.prompt, duration });
     }
     setAddedToast(img.id);
     setTimeout(() => setAddedToast(null), 2000);

@@ -230,13 +230,27 @@ export function LibraryGrid() {
       const sorted = [...vt.clips].sort((a, b) => a.startTime - b.startTime);
       const last = sorted.at(-1);
       const startTime = last ? last.startTime + last.duration : 0;
+      const duration = item.type === 'video' ? 5 : 3;
       store.addClipToTrack(vt.id, {
         type: item.type as 'video' | 'image',
         startTime,
-        duration: item.type === 'video' ? 5 : 3,
+        duration,
         sourceUrl: item.url,
-        prompt: '',
+        prompt: item.prompt,
       });
+      if (item.type === 'video') {
+        const at = useStudioStore.getState().timelineTracks.find(t => t.type === 'audio');
+        if (at) {
+          store.addClipToTrack(at.id, {
+            type: 'audio',
+            startTime,
+            duration,
+            sourceUrl: item.url,
+            audioName: 'Original audio',
+            prompt: '',
+          });
+        }
+      }
     }
     router.push('/studio/assemble');
   }

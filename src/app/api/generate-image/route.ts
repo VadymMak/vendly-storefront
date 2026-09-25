@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
-import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokGenerate } from '@/lib/xai-client';
@@ -50,9 +50,10 @@ export async function POST(request: Request) {
   // ── Rate limit ────────────────────────────────────────────────────────────────
   const ip       = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits  = await getOrCreateCredits(session.user.id);
-  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
+  const rateLimit = RATE_LIMITS.generateImage[planType] || RATE_LIMITS.generateImage.free;
 
-  if (!(await checkRateLimitWithBypass(`img:${ip}:${session.user.id}`, RATE_LIMITS.generateImage[planType], session.user.id))) {
+  if (!(await checkRateLimitWithBypass(`img:${ip}:${session.user.id}`, rateLimit, session.user.id))) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       { status: 429 },
@@ -74,8 +75,13 @@ export async function POST(request: Request) {
 
   console.log('API received:', { aspect_ratio, megapixels, targetW, targetH, requested_format, provider: body.provider });
 
-  // ── Grok Imagine path (BYOK — no credit deduction) ────────────────────────────
+  // ── Grok Imagine path ────────────────────────────────────────────────────────
   if (body.provider === 'grok') {
+    const grokCreditCheck = await checkCredits(session.user.id, 'image', 1, 'xai');
+    if (!grokCreditCheck.allowed) {
+      return NextResponse.json({ error: grokCreditCheck.reason, needsUpgrade: true }, { status: 403 });
+    }
+
     const ASPECT_TO_SIZE: Record<string, string> = {
       '1:1':  '1024x1024',
       '9:16': '1024x1792',
@@ -135,6 +141,10 @@ export async function POST(request: Request) {
         ? `grok-${targetW}x${targetH}-${Date.now()}.${ext}`
         : `grok-${Date.now()}.${ext}`;
 
+      if (!grokCreditCheck.byok) {
+        await consumeCredits(session.user.id, 'image', 1, 'xai');
+      }
+
       return new Response(new Uint8Array(resized), {
         headers: {
           'Content-Type':        contentType,
@@ -144,7 +154,7 @@ export async function POST(request: Request) {
       });
     } catch (err) {
       console.error('Grok error:', err);
-      return NextResponse.json({ error: 'Grok generation failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 500 });
     }
   }
 
@@ -200,11 +210,16 @@ export async function POST(request: Request) {
       const reduxFetch = await fetch(reduxUrl);
       const reduxBuf = Buffer.from(await reduxFetch.arrayBuffer());
 
-      if (!creditCheck.byok) await deductCredit(session.user.id, 'image');
+      if (!creditCheck.byok) {
+        const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+        if (!consume.success) {
+          return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+        }
+      }
       return new Response(reduxBuf, { headers: { 'Content-Type': 'image/webp' } });
     } catch (err) {
       console.error('[flux-redux] Replicate error:', err);
-      return NextResponse.json({ error: 'Flux Redux generation failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 500 });
     }
   }
 
@@ -240,10 +255,14 @@ export async function POST(request: Request) {
         outputFormat: bflOutputFormat,
       });
 
-      return await processImageResponse(bflUrl, targetW, targetH, requested_format, 'flux-pro');
+      const response = await processImageResponse(bflUrl, targetW, targetH, requested_format, 'flux-pro');
+      if (!creditCheck.byok) {
+        await consumeCredits(session.user.id, 'image', 1);
+      }
+      return response;
     } catch (err) {
       console.error('[flux-pro] BFL error:', err);
-      return NextResponse.json({ error: 'BFL generation failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 500 });
     }
   }
 
@@ -315,7 +334,10 @@ export async function POST(request: Request) {
       }
 
       if (!devCreditCheck.byok) {
-        await deductCredit(session.user.id, 'image');
+        const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+        if (!consume.success) {
+          return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+        }
       }
 
       const devName = targetW && targetH
@@ -332,10 +354,10 @@ export async function POST(request: Request) {
     } catch (err) {
       console.error('[flux-dev] Replicate error:', err);
       if (isQuotaError(err)) {
-        const bflFallback = await tryBflFallback(session.user.id, prompt, aspect_ratio, targetW, targetH, requested_format);
+        const bflFallback = await tryBflFallback(session.user.id, prompt, aspect_ratio, targetW, targetH, requested_format, devCreditCheck.byok ?? false);
         if (bflFallback) return bflFallback;
       }
-      return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 500 });
     }
   }
 
@@ -434,7 +456,10 @@ export async function POST(request: Request) {
       : `flux-${Date.now()}.${ext}`;
 
     if (!creditCheck.byok) {
-      await deductCredit(session.user.id, 'image');
+      const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+      if (!consume.success) {
+        return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+      }
     }
 
     return new Response(new Uint8Array(resized), {
@@ -447,10 +472,10 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error('Replicate error:', err);
     if (isQuotaError(err)) {
-      const bflFallback = await tryBflFallback(session.user.id, prompt, aspect_ratio, targetW, targetH, requested_format);
+      const bflFallback = await tryBflFallback(session.user.id, prompt, aspect_ratio, targetW, targetH, requested_format, creditCheck.byok ?? false);
       if (bflFallback) return bflFallback;
     }
-    return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 500 });
   }
 }
 
@@ -516,6 +541,7 @@ async function tryBflFallback(
   targetW:   number | undefined,
   targetH:   number | undefined,
   format:    'webp' | 'png' | 'jpeg',
+  byok:      boolean,
 ): Promise<Response | null> {
   try {
     const rec = await db.userApiKey.findUnique({
@@ -528,7 +554,13 @@ async function tryBflFallback(
     const { width, height } = aspectToSize(ratio);
     const bflFormat = format === 'webp' ? 'png' : format;
     const url = await bflGenerate(apiKey, 'flux-2-pro', { prompt, width, height, outputFormat: bflFormat });
-    return processImageResponse(url, targetW, targetH, format, 'flux-pro-fallback');
+    const response = await processImageResponse(url, targetW, targetH, format, 'flux-pro-fallback');
+
+    if (!byok) {
+      await consumeCredits(userId, 'image', 1);
+    }
+
+    return response;
   } catch (fallbackErr) {
     console.error('[generate-image] BFL fallback failed:', fallbackErr);
     return null;

@@ -10,10 +10,11 @@ export const TOOL_PAGE_MAP: Record<string, string[]> = {
   suggestWorkflow:       ['*'],
 
   // ── Generation (pages where creating content makes sense) ─────────────────
-  generate_image:        ['home', 'generate', 'animate', 'library'],
-  remove_background:     ['home', 'generate', 'remove-bg', 'library'],
-  upscale:               ['home', 'generate', 'upscale', 'library'],
-  generate_video:        ['home', 'generate-video', 'animate', 'library'],
+  generate_image:             ['home', 'generate', 'animate', 'library'],
+  remove_background:          ['home', 'generate', 'remove-bg', 'library'],
+  upscale:                    ['home', 'generate', 'upscale', 'library'],
+  animate_video:              ['home', 'animate', 'library'],
+  generate_video_from_text:   ['home', 'generate-video', 'library'],
 
   // ── Timeline (assemble page only) ─────────────────────────────────────────
   get_timeline:          ['assemble'],

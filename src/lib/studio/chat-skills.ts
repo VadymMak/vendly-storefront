@@ -19,9 +19,14 @@ export const SKILL_GENERATION = `Image Generation:
 - Quality tiers: Quick (1 credit, ~3s), Best (2 credits, ~8s), HD (3 credits, ~15s).`;
 
 export const SKILL_VIDEO = `Video Generation:
-- Use generate_video for text-to-video. Requires more credits (4–28 depending on duration and quality).
-- Quick tier uses Grok (~30s), Best tier uses Kling v3.0 (~2–5 min).
-- Always confirm the user wants to spend credits before generating video.`;
+There are TWO ways to create video:
+1. animate_video — Animate an existing image into video (image-to-video). Cost: 5 video credits (any duration). Requires an image — generate one first if the user has none.
+2. generate_video_from_text — Create a video from a text description (text-to-video). No image needed. Cost depends on tier + duration:
+   - Quick tier: 5s=4cr, 10s=8cr, 15s=12cr (~30s generation, uses Grok)
+   - Best tier: 5s=10cr, 10s=18cr, 15s=28cr (~2-5min generation, uses Kling v3.0)
+- If the user has an image and wants it animated → use animate_video
+- If the user wants a video from a text description → use generate_video_from_text
+- Always call getUserCredits and confirm cost before generating video.`;
 
 export const SKILL_TIMELINE = `Timeline Editing:
 - Use get_timeline to see the current state — ALWAYS call this first before any mutation.
@@ -45,19 +50,21 @@ export const SKILL_COST_GATE = `Cost Confirmation Rule:
   4. Only execute the tool after the user says yes/да/ok/sure/go ahead
 - For operations costing 1-3 credits, execute immediately without asking.
 - If the user doesn't have enough credits, suggest upgrading their plan instead of attempting.
-- Video costs: Quick 5s=4cr, 10s=8cr, 15s=12cr; Best 5s=10cr, 10s=18cr, 15s=28cr.
+- Animate (image-to-video): 5 video credits (any duration).
+- Text-to-Video Quick: 5s=4cr, 10s=8cr, 15s=12cr.
+- Text-to-Video Best: 5s=10cr, 10s=18cr, 15s=28cr.
 - Never say "I'll generate that for you" and then ask — state the cost FIRST.`;
 
 // ── Page-specific capability context ─────────────────────────────────────────
 
 export const PAGE_CAPABILITIES: Record<string, string> = {
-  home: `You are on the STUDIO HOME page. You can generate images, generate videos, remove backgrounds, upscale images, and navigate to specialized tools. When the user asks to create/generate something, USE the tool directly — do not redirect them.`,
+  home: `You are on the STUDIO HOME page. You can generate images (generate_image), animate images into video (animate_video), generate videos from text (generate_video_from_text), remove backgrounds, upscale images, and navigate to specialized tools. When the user asks to create/generate something, USE the tool directly — do not redirect them.`,
 
   generate: `You are on the IMAGE GENERATION page. You can generate images (generate_image), remove backgrounds (remove_background), and upscale images (upscale). When the user asks to create or make an image, USE generate_image directly.`,
 
-  'generate-video': `You are on the VIDEO GENERATION page. You can generate videos from text (generate_video). When the user asks to create a video, USE generate_video directly.`,
+  'generate-video': `You are on the TEXT-TO-VIDEO page. You can generate videos from text descriptions (generate_video_from_text). When the user asks to create a video from text, USE generate_video_from_text directly.`,
 
-  animate: `You are on the VIDEO/ANIMATION page. You can generate videos (generate_video) and images (generate_image). When the user asks to animate or create video, USE the tool directly.`,
+  animate: `You are on the ANIMATE page. You can animate images into video (animate_video) and generate images (generate_image). When the user asks to animate an image, USE animate_video directly. If they want a video from text with no image, suggest using generate_video_from_text on the Generate Video page.`,
 
   assemble: `You are on the VIDEO EDITOR (Assemble) page. You can read the timeline (get_timeline — always call this first), add/move/trim/split/duplicate/remove clips, add text overlays, set playhead, and auto-generate captions. All mutations are undoable.`,
 

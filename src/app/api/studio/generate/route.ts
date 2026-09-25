@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
 
   const credits  = await getOrCreateCredits(session.user.id);
-  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
 
   // Credit check first — clear message beats a rate-limit error for exhausted users
   const quickCreditCheck = await checkCredits(session.user.id, 'image');

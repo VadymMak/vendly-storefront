@@ -152,17 +152,30 @@ async function executeGenerateImage(
   params: Record<string, string | number | boolean>,
   cookieHeader: string,
 ): Promise<ToolResult> {
-  const res = await fetch(`${BASE_URL}/api/generate-image`, {
+  const providerToTier: Record<string, string> = {
+    'flux':      'fast',
+    'flux-dev':  'quality',
+    'flux-pro':  'premium',
+    'grok':      'quality',
+  };
+
+  const provider = String(params.provider || 'flux');
+  const isGrok   = provider === 'grok';
+  const tier     = providerToTier[provider] || 'fast';
+
+  const res = await fetch(`${BASE_URL}/api/studio/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Cookie: cookieHeader,
     },
     body: JSON.stringify({
-      prompt: params.prompt || '',
-      aspect_ratio: params.aspect_ratio || '1:1',
+      prompt:        params.prompt || '',
+      aspect_ratio:  params.aspect_ratio || '1:1',
       output_format: 'webp',
-      provider: params.provider || 'flux',
+      ...(isGrok
+        ? { modelAlias: 'img-grok' }
+        : { tier }),
       ...(params.reference_image ? { reference_image: params.reference_image } : {}),
     }),
   });

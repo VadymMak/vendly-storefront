@@ -4,6 +4,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
+import { checkCredits, deductCredit } from '@/lib/credits';
 
 export const maxDuration = 60;
 
@@ -11,6 +12,11 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const creditCheck = await checkCredits(session.user.id, 'image', 1, 'replicate');
+  if (!creditCheck.allowed) {
+    return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
 
   try {
@@ -71,6 +77,7 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[remove-bg] Done:', finalBlob.url);
+    await deductCredit(session.user.id, 'image', 1, 'replicate');
     const capturedUrl = finalBlob.url;
     createJob({
       userId:       session.user.id,

@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 50);
 
   const feedback = await db.studioFeedback.findMany({
-    where: tool ? { tool } : {},
+    where: { userId: session.user.id, ...(tool ? { tool } : {}) },
     orderBy: { createdAt: 'desc' },
     take: limit,
     select: {

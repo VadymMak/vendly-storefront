@@ -37,6 +37,11 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   let body: EnhanceBody;
   try {
     body = await request.json() as EnhanceBody;
@@ -55,9 +60,6 @@ export async function POST(request: Request) {
   let userMsg: string;
 
   if (skillId) {
-    const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
     const keyRecord = await db.userApiKey.findUnique({
       where: { userId_provider: { userId: session.user.id, provider: 'anthropic' } },
     });

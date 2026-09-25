@@ -14,8 +14,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = registerSchema.parse(body);
 
+    const normalizedEmail = data.email.toLowerCase();
+
     const existing = await db.user.findUnique({
-      where: { email: data.email },
+      where: { email: normalizedEmail },
     });
 
     if (existing) {
@@ -29,7 +31,7 @@ export async function POST(request: Request) {
 
     const user = await db.user.create({
       data: {
-        email: data.email,
+        email: normalizedEmail,
         passwordHash,
         name: data.name,
       },

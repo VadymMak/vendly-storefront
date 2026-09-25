@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
 
-  if (!file.type.startsWith('image/')) {
-    return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
+  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+    return NextResponse.json({ error: 'Only image files are allowed (SVG not supported)' }, { status: 400 });
   }
 
   if (file.size > 10 * 1024 * 1024) {

@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
     'x.ai',
     'xai.com',
     'oaidalleapiprodscus.blob.core.windows.net',
-    'commondatastorage.googleapis.com',
     'klingai.com',
     'bfl.ai',
   ];
@@ -65,6 +64,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, {
       headers: { 'Accept': 'image/*,video/*,*/*' },
       redirect: 'manual',
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (response.status >= 300 && response.status < 400) {
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
 
     const headers: Record<string, string> = {
       'Content-Type':           rawContentType,
-      'Cache-Control':          'public, max-age=3600',
+      'Cache-Control':          'private',
       'X-Content-Type-Options': 'nosniff',
     };
     if (download) headers['Content-Disposition'] = `attachment; filename="${download.replace(/[^a-zA-Z0-9._-]/g, '_')}"`;

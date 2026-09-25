@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
-import { getOrCreateCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokMultiImageEdit } from '@/lib/xai-client';
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits = await getOrCreateCredits(session.user.id);
-  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.aiEdit;
 
   if (!(await checkRateLimitWithBypass(
     `scene:${ip}:${session.user.id}`,
@@ -58,6 +58,11 @@ export async function POST(req: Request) {
 
   if (isAbusivePrompt(prompt.trim())) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
+  }
+
+  const creditCheck = await checkCredits(session.user.id, 'image', 1);
+  if (!creditCheck.allowed) {
+    return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
 
   const xaiKeyRecord = await db.userApiKey.findUnique({
@@ -93,6 +98,7 @@ export async function POST(req: Request) {
       { access: 'public', contentType },
     );
 
+    await consumeCredits(session.user.id, 'image', 1);
     return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error('[scene-compose] Error:', err);

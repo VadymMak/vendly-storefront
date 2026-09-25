@@ -9,13 +9,11 @@ export const TOOL_PAGE_MAP: Record<string, string[]> = {
   checkToolAvailability: ['*'],
   suggestWorkflow:       ['*'],
 
-  // /studio/generate
-  generate_image:        ['generate'],
-  remove_background:     ['generate'],
-  upscale:               ['generate'],
-
-  // /studio/animate
-  generate_video:        ['animate'],
+  // Generation tools — available on ALL pages
+  generate_image:        ['*'],
+  remove_background:     ['*'],
+  upscale:               ['*'],
+  generate_video:        ['*'],
 
   // /studio/assemble
   get_timeline:          ['assemble'],
@@ -42,29 +40,38 @@ export function getToolsForPage(currentPage: string): string[] {
 
 export const PAGE_CAPABILITIES: Record<string, string> = {
   generate: `
-You are on the IMAGE GENERATION page. In addition to help, you can:
+You are on the IMAGE GENERATION page. You can:
 - Generate images from text prompts (generate_image)
 - Remove backgrounds (remove_background — requires an image in context)
 - Upscale images to 4K (upscale — requires an image in context)
-When the user asks to create/generate/make an image, USE the generate_image tool directly instead of telling them to use the UI.`,
+When the user asks to create/generate/make an image, USE the generate_image tool directly.`,
 
   animate: `
-You are on the VIDEO/ANIMATION page. In addition to help, you can:
+You are on the VIDEO/ANIMATION page. You can:
 - Generate videos from text prompts (generate_video)
+- Generate images to use as video frames (generate_image)
 When the user asks to create a video or animate something, USE the tool directly.`,
 
   assemble: `
-You are on the VIDEO EDITOR (Assemble) page. In addition to help, you can:
+You are on the VIDEO EDITOR (Assemble) page. You can:
 - Read the current timeline (get_timeline) — ALWAYS call this first before any mutation
 - Add clips to tracks (add_clip)
 - Move, trim, split, duplicate clips (move_clip, trim_clip, split_clip, duplicate_clip)
 - Remove clips (remove_clip) — destructive, confirm with the user first
 - Add text overlays/titles (add_text_overlay)
 - Set playhead position (set_playhead)
-- Auto-generate captions from audio (auto_caption) — transcribes speech and creates synced subtitle clips
+- Auto-generate captions from audio (auto_caption)
+- Generate images/videos to add to the timeline (generate_image, generate_video)
 All timeline mutations are undoable (Ctrl+Z).`,
 
-  library: `You are on the MY WORK library page. Help the user find, filter, or manage their saved generations.`,
+  library: `You are on the MY WORK library page. Help the user find, filter, or manage their saved generations. You can also generate new images/videos if asked.`,
 
-  home: `You are on the STUDIO HOME page. Use openStudioTool to navigate the user to the right tool, or suggestWorkflow to guide them toward their creative goal.`,
+  home: `You are on the STUDIO HOME page. You can:
+- Generate images from text prompts (generate_image)
+- Generate videos from text prompts (generate_video)
+- Remove backgrounds (remove_background)
+- Upscale images (upscale)
+- Navigate the user to specialized tools (openStudioTool)
+- Suggest creative workflows (suggestWorkflow)
+When the user asks to create/generate something, USE the tool directly — do not redirect them.`,
 };

@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   const cookieHeader = req.headers.get('cookie') ?? '';
   const body = (await req.json()) as KbChatRequestBody;
   const { messages, sessionId, currentPage, errorContext, language, timelineState, lastGeneratedImageUrl } = body;
-  const isActionPage = ['generate', 'animate', 'assemble'].includes(currentPage ?? '');
+  const hasTimelineTools = currentPage === 'assemble';
 
   if (!messages?.length || !sessionId) {
     return new Response('Bad request', { status: 400 });
@@ -130,11 +130,9 @@ export async function POST(req: NextRequest) {
     ? await getBrainStudioContext(lastUserText)
     : '';
 
-  const rule10 = isActionPage
-    ? `10. You are on the ${currentPage} page and CAN perform actions directly using your tools. When the user asks to generate/create/edit something, USE the appropriate tool — do not redirect them to the UI.`
-    : `10. If the user's question is about generating images/videos (not about HOW to use the tool, but actually wanting to generate), politely explain that you are the help assistant and they should use the Studio tools directly. Do NOT generate anything.`;
+  const rule10 = `10. You CAN generate images and videos on ANY page using your tools (generate_image, generate_video, remove_background, upscale). When the user asks to generate/create/edit something, USE the appropriate tool directly — never say you can't generate or redirect them to the Studio UI.`;
 
-  const pageCapabilityBlock = PAGE_CAPABILITIES[currentPage ?? ''] ?? '';
+  const pageCapabilityBlock = PAGE_CAPABILITIES[currentPage ?? 'home'] || PAGE_CAPABILITIES['home'];
 
   const systemPrompt = `You are VendShop AI Studio's AI Assistant. You answer questions about the platform's tools, features, credits, pricing, and troubleshooting. On action pages you can also perform actions directly.
 
@@ -324,9 +322,8 @@ ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}`
       },
     }),
 
-    // ── Generate page tools ──────────────────────────────────────────────────
-    ...(currentPage === 'generate' ? {
-      generate_image: tool({
+    // ── Generation tools — available on ALL pages ────────────────────────────
+    generate_image: tool({
         description: 'Generate an image from a text prompt. Call this when the user asks to create, generate, or make an image.',
         inputSchema: z.object({
           prompt: z.string().describe('Detailed image description in English'),
@@ -373,31 +370,27 @@ ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}`
           return result;
         },
       }),
-    } : {}),
 
-    // ── Animate page tools ───────────────────────────────────────────────────
-    ...(currentPage === 'animate' ? {
-      generate_video: tool({
-        description: 'Generate a video from an image. Requires a source image URL.',
-        inputSchema: z.object({
-          prompt: z.string().describe('Motion description, e.g. "slow zoom in, cinematic"'),
-          imageUrl: z.string().optional().describe('Source image URL. Required if no image was previously generated.'),
-          duration: z.enum(['5', '10']).default('5').describe('Video duration in seconds'),
-          aspectRatio: z.enum(['9:16', '16:9', '1:1']).default('9:16'),
-        }),
-        execute: async ({ prompt, imageUrl, duration, aspectRatio }: { prompt: string; imageUrl?: string; duration: string; aspectRatio: string }) => {
-          const imgUrl = imageUrl || lastGeneratedImageUrl;
-          if (!imgUrl) return { error: 'Please provide an image URL or generate an image first, then I can animate it.' };
-          const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
-          const result = await executeTool('image_to_video', { prompt, duration: Number(duration), aspectRatio }, ctx, cookieHeader);
-          if (result.error) return { error: result.error };
-          return { action: 'video_job_started', jobId: result.jobId, message: result.message };
-        },
+    generate_video: tool({
+      description: 'Generate a video from an image. Requires a source image URL.',
+      inputSchema: z.object({
+        prompt: z.string().describe('Motion description, e.g. "slow zoom in, cinematic"'),
+        imageUrl: z.string().optional().describe('Source image URL. Required if no image was previously generated.'),
+        duration: z.enum(['5', '10']).default('5').describe('Video duration in seconds'),
+        aspectRatio: z.enum(['9:16', '16:9', '1:1']).default('9:16'),
       }),
-    } : {}),
+      execute: async ({ prompt, imageUrl, duration, aspectRatio }: { prompt: string; imageUrl?: string; duration: string; aspectRatio: string }) => {
+        const imgUrl = imageUrl || lastGeneratedImageUrl;
+        if (!imgUrl) return { error: 'Please provide an image URL or generate an image first, then I can animate it.' };
+        const ctx: SessionContext = { lastImageUrl: imgUrl, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null };
+        const result = await executeTool('image_to_video', { prompt, duration: Number(duration), aspectRatio }, ctx, cookieHeader);
+        if (result.error) return { error: result.error };
+        return { action: 'video_job_started', jobId: result.jobId, message: result.message };
+      },
+    }),
 
     // ── Assemble page tools ──────────────────────────────────────────────────
-    ...(currentPage === 'assemble' ? {
+    ...(hasTimelineTools ? {
       get_timeline: tool({
         description: 'Get the current timeline state. ALWAYS call this before modifying the timeline.',
         inputSchema: z.object({}),
@@ -570,11 +563,11 @@ ${brainContext ? `\n## Relevant context from previous sessions\n${brainContext}`
   const modelMessages = await convertToModelMessages(messages);
 
   const result = streamText({
-    model: openai(isActionPage ? 'gpt-4o' : 'gpt-4o-mini'),
+    model: openai('gpt-4o'),
     system: systemPrompt,
     messages: modelMessages,
     tools,
-    stopWhen: isStepCount(isActionPage ? 8 : 5),
+    stopWhen: isStepCount(8),
     temperature: 0.3,
     onEnd: async ({ text, steps }) => {
       if (text) {

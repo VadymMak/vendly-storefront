@@ -42,6 +42,8 @@ export function GenerateVideoEditor({
   const [duration,      setDuration]      = useState<VideoDurationValue>(10);
   const [aspectRatio,   setAspectRatio]   = useState<VideoAspectRatio>('16:9');
   const [videoPreset,   setVideoPreset]   = useState<PlatformVideoPresetId | null>(null);
+  const [showStyle,     setShowStyle]     = useState(false);
+  const [showPreset,    setShowPreset]    = useState(false);
   const [status,      setStatus]      = useState<EditorStatus>('configuring');
   const [resultUrl,   setResultUrl]   = useState<string | null>(null);
   const [jobId,       setJobId]       = useState<string | null>(null);
@@ -112,25 +114,41 @@ export function GenerateVideoEditor({
         />
       </div>
 
-      {/* Style chips */}
+      {/* Style — collapsible */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-gray-400">Style</span>
-        <div className="flex flex-wrap gap-1.5">
-          {VIDEO_STYLE_CHIPS.map(chip => (
-            <button
-              key={chip.id}
-              disabled={status === 'processing'}
-              onClick={() => setStyle(chip.id)}
-              className={`rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 ${
-                style === chip.id
-                  ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                  : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-              }`}
-            >
-              <span className="mr-1">{chip.icon}</span>{chip.label}
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowStyle(v => !v)}
+          className="flex items-center justify-between text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
+        >
+          <span>
+            Style
+            <span className="ml-2 text-gray-500">
+              {VIDEO_STYLE_CHIPS.find(c => c.id === style)?.icon} {VIDEO_STYLE_CHIPS.find(c => c.id === style)?.label}
+            </span>
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showStyle ? 'rotate-90' : ''}`} aria-hidden="true">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+        {showStyle && (
+          <div className="flex flex-wrap gap-1.5">
+            {VIDEO_STYLE_CHIPS.map(chip => (
+              <button
+                key={chip.id}
+                disabled={status === 'processing'}
+                onClick={() => { setStyle(chip.id); setShowStyle(false); }}
+                className={`rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 ${
+                  style === chip.id
+                    ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                    : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                }`}
+              >
+                <span className="mr-1">{chip.icon}</span>{chip.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Quality toggle */}
@@ -185,34 +203,53 @@ export function GenerateVideoEditor({
         </div>
       </div>
 
-      {/* Platform presets */}
+      {/* Platform Preset — collapsible */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-gray-400">Platform Preset</span>
-        <div className="flex flex-wrap gap-1.5">
-          {PLATFORM_VIDEO_PRESETS.map(p => (
-            <button
-              key={p.id}
-              disabled={status === 'processing'}
-              onClick={() => {
-                if (videoPreset === p.id) {
-                  setVideoPreset(null);
-                } else {
-                  setVideoPreset(p.id);
-                  setAspectRatio(p.aspect_ratio);
-                  setDuration(p.defaultDuration);
-                }
-              }}
-              className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors disabled:opacity-50 ${
-                videoPreset === p.id
-                  ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:text-white'
-              }`}
-            >
-              <span>{p.icon} {p.label}</span>
-              <span className="block text-[10px] text-gray-500">{p.subtitle}</span>
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowPreset(v => !v)}
+          className="flex items-center justify-between text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
+        >
+          <span>
+            Platform Preset
+            {videoPreset && (
+              <span className="ml-2 text-gray-500">
+                {PLATFORM_VIDEO_PRESETS.find(p => p.id === videoPreset)?.icon} {PLATFORM_VIDEO_PRESETS.find(p => p.id === videoPreset)?.label}
+              </span>
+            )}
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showPreset ? 'rotate-90' : ''}`} aria-hidden="true">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+        {showPreset && (
+          <div className="flex flex-wrap gap-1.5">
+            {PLATFORM_VIDEO_PRESETS.map(p => (
+              <button
+                key={p.id}
+                disabled={status === 'processing'}
+                onClick={() => {
+                  if (videoPreset === p.id) {
+                    setVideoPreset(null);
+                  } else {
+                    setVideoPreset(p.id);
+                    setAspectRatio(p.aspect_ratio);
+                    setDuration(p.defaultDuration);
+                    setShowPreset(false);
+                  }
+                }}
+                className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors disabled:opacity-50 ${
+                  videoPreset === p.id
+                    ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                    : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:text-white'
+                }`}
+              >
+                <span>{p.icon} {p.label}</span>
+                <span className="block text-[10px] text-gray-500">{p.subtitle}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Duration */}

@@ -17,6 +17,7 @@ import {
   SKILL_VIDEO,
   SKILL_TIMELINE,
   SKILL_CREDITS,
+  SKILL_COST_GATE,
   PAGE_CAPABILITIES,
 } from '@/lib/studio/chat-skills';
 import { NextRequest } from 'next/server';
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
   const pageToolSet = new Set(pageToolNames);
 
   // ── Dynamic system prompt from composable skill blocks ──────────────────────
-  const skills: string[] = [SKILL_CORE, SKILL_CREDITS];
+  const skills: string[] = [SKILL_CORE, SKILL_CREDITS, SKILL_COST_GATE];
 
   if (pageToolNames.some(t => ['generate_image', 'remove_background', 'upscale'].includes(t))) {
     skills.push(SKILL_GENERATION);
@@ -191,7 +192,7 @@ export async function POST(req: NextRequest) {
     }),
 
     getUserCredits: tool({
-      description: "Get the current user's credit balance, plan type, and usage. Use when the user asks about their credits, balance, or plan.",
+      description: "Get the current user's credit balance, plan type, and usage. Use BEFORE any expensive operation (≥4 credits) to verify the user can afford it.",
       inputSchema: z.object({}),
       execute: async () => ({
         plan: credits.planType,
@@ -204,6 +205,20 @@ export async function POST(req: NextRequest) {
         totalGeneratedVideos: credits.totalGeneratedVideos,
         lastReset: credits.lastReset.toISOString(),
         isSuperuser: superuser,
+        costReference: {
+          image_quick: 1,
+          image_best: 2,
+          image_hd: 3,
+          video_quick_5s: 4,
+          video_quick_10s: 8,
+          video_quick_15s: 12,
+          video_best_5s: 10,
+          video_best_10s: 18,
+          video_best_15s: 28,
+          remove_bg: 1,
+          upscale: 1,
+          auto_caption: 1,
+        },
       }),
     }),
 
@@ -411,7 +426,7 @@ export async function POST(req: NextRequest) {
     }),
 
     generate_video: tool({
-      description: 'Generate a video from an image. Requires a source image URL.',
+      description: 'Generate a video from an image. Requires a source image URL. Cost: Quick tier 4-12 credits (5s/10s/15s), Best tier 10-28 credits. ALWAYS call getUserCredits first, tell the user the cost, and WAIT for their confirmation before calling this tool.',
       inputSchema: z.object({
         prompt: z.string().describe('Motion description, e.g. "slow zoom in, cinematic"'),
         imageUrl: z.string().optional().describe('Source image URL. Required if no image was previously generated.'),
@@ -550,7 +565,7 @@ export async function POST(req: NextRequest) {
     }),
 
     auto_caption: tool({
-      description: 'Automatically transcribe audio on the timeline and add synced text captions. Use when the user says "add captions", "subtitle this", "transcribe the audio", "add subtitles", etc.',
+      description: 'Automatically transcribe audio on the timeline and add synced text captions. Cost: 1 credit. Use when the user says "add captions", "subtitle this", "transcribe the audio", "add subtitles", etc.',
       inputSchema: z.object({
         style: z.enum(['subtitle', 'karaoke', 'word-by-word', 'sentence']).default('subtitle')
           .describe('Caption style: subtitle (classic), karaoke (typewriter), word-by-word (Instagram Reels pop), sentence (full sentences)'),

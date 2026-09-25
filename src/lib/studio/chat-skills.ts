@@ -37,6 +37,17 @@ export const SKILL_CREDITS = `Credit System:
 - Pro (€29/mo): 500 image + 200 video credits.
 - BYOK users with own API keys: unlimited generation, 0 credits charged.`;
 
+export const SKILL_COST_GATE = `Cost Confirmation Rule:
+- Before ANY operation costing 4 or more credits, you MUST:
+  1. Call getUserCredits to check the user's current balance
+  2. Tell the user the exact cost and their remaining balance
+  3. Ask "Should I proceed?" and WAIT for their confirmation
+  4. Only execute the tool after the user says yes/да/ok/sure/go ahead
+- For operations costing 1-3 credits, execute immediately without asking.
+- If the user doesn't have enough credits, suggest upgrading their plan instead of attempting.
+- Video costs: Quick 5s=4cr, 10s=8cr, 15s=12cr; Best 5s=10cr, 10s=18cr, 15s=28cr.
+- Never say "I'll generate that for you" and then ask — state the cost FIRST.`;
+
 // ── Page-specific capability context ─────────────────────────────────────────
 
 export const PAGE_CAPABILITIES: Record<string, string> = {

@@ -64,7 +64,7 @@ export function BeforeAfterSlider({
     >
       {/* Skeleton */}
       {!bothLoaded && (
-        <div className="aspect-video w-full animate-pulse rounded-lg bg-white/5" />
+        <div className="aspect-video w-full animate-pulse rounded-lg bg-white/10" />
       )}
 
       <div style={{ visibility: bothLoaded ? 'visible' : 'hidden' }}>
@@ -74,9 +74,9 @@ export function BeforeAfterSlider({
           src={afterUrl}
           alt={alt}
           draggable={false}
-          crossOrigin="anonymous"
           className="block w-full"
           onLoad={() => setLoaded(l => ({ ...l, after: true }))}
+          onError={() => setLoaded(l => ({ ...l, after: true }))}
         />
 
         {/* Before image — clipped to left portion */}
@@ -89,9 +89,9 @@ export function BeforeAfterSlider({
             src={beforeUrl}
             alt={alt}
             draggable={false}
-            crossOrigin="anonymous"
             className="block w-full"
             onLoad={() => setLoaded(l => ({ ...l, before: true }))}
+            onError={() => setLoaded(l => ({ ...l, before: true }))}
           />
         </div>
 

@@ -87,7 +87,6 @@ export function UpscaleEditor({ imageUrl, imageFile, onAccept, onClose }: Upscal
 
   useEffect(() => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => setOriginalDimensions({ w: img.naturalWidth, h: img.naturalHeight });
     img.src = imageUrl;
   }, [imageUrl]);
@@ -109,9 +108,11 @@ export function UpscaleEditor({ imageUrl, imageFile, onAccept, onClose }: Upscal
       const data = await res.json() as { url: string };
 
       const resultImg = new Image();
-      resultImg.crossOrigin = 'anonymous';
       resultImg.onload = () =>
         setResultDimensions({ w: resultImg.naturalWidth, h: resultImg.naturalHeight });
+      resultImg.onerror = () => {
+        console.error('[UpscaleEditor] Failed to load result image:', data.url);
+      };
       resultImg.src = data.url;
 
       setResultUrl(data.url);
@@ -174,7 +175,6 @@ export function UpscaleEditor({ imageUrl, imageFile, onAccept, onClose }: Upscal
               src={imageUrl}
               alt="Original"
               className="max-h-[70vh] rounded-xl border border-white/10 object-contain"
-              crossOrigin="anonymous"
               draggable={false}
             />
             <ProcessingOverlay

@@ -554,11 +554,11 @@ export function StudioHome({ userId: _userId }: Props) {
 
   // ── Download helper ─────────────────────────────────────────────────────────
 
-  function handleDownload(img: MediaItem) {
+  async function handleDownload(img: MediaItem) {
     const ext = img.type === 'video' ? 'mp4' : (img.format ?? 'webp');
     const filename = `studio-${img.type}-${Date.now()}.${ext}`;
 
-    // External video URLs need proxy to bypass CORS
+    // External video URLs — use server-side proxy to bypass CORS
     if (img.type === 'video' && img.url && !img.url.startsWith('blob:') && !img.url.startsWith('/')) {
       if (img.jobId) {
         window.location.assign(`/api/studio/download-video?jobId=${encodeURIComponent(img.jobId)}`);
@@ -568,10 +568,43 @@ export function StudioHome({ userId: _userId }: Props) {
       return;
     }
 
-    const a = document.createElement('a');
-    a.href = img.url;
-    a.download = filename;
-    a.click();
+    try {
+      let blob: Blob;
+
+      if (img.url.startsWith('blob:')) {
+        const res = await fetch(img.url);
+        blob = await res.blob();
+      } else {
+        try {
+          const directRes = await fetch(img.url);
+          if (directRes.ok) {
+            blob = await directRes.blob();
+          } else {
+            throw new Error(`Direct fetch failed: ${directRes.status}`);
+          }
+        } catch {
+          // Fallback to server-side proxy for CORS-restricted URLs
+          const proxyUrl = `/api/studio/proxy-image?url=${encodeURIComponent(img.url)}&download=${encodeURIComponent(filename)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
+          blob = await proxyRes.blob();
+        }
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), {
+        href: objectUrl,
+        download: filename,
+      });
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch (err) {
+      console.error('[download]', err instanceof Error ? err.message : err, 'url:', img.url);
+      // Last resort: open in new tab
+      window.open(img.url, '_blank');
+    }
   }
 
   // ── Open editor from result card ────────────────────────────────────────────

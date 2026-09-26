@@ -64,12 +64,38 @@ function ImproveSettingsPanel({
   );
 }
 
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+async function blendImages(originalUrl: string, aiUrl: string, strength: number): Promise<string> {
+  const alpha = strength / 100;
+  const [origImg, aiImg] = await Promise.all([loadImage(originalUrl), loadImage(aiUrl)]);
+  const canvas = document.createElement('canvas');
+  canvas.width = origImg.width;
+  canvas.height = origImg.height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.globalAlpha = 1;
+  ctx.drawImage(origImg, 0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(aiImg, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png');
+}
+
 export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: ImproveEditorProps) {
   const [status, setStatus] = useState<EditorStatus>('configuring');
   const [selectedPreset, setSelectedPreset] = useState<EnhancementPresetId | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [strength, setStrength] = useState(75);
+  const [blendedUrl, setBlendedUrl] = useState<string | null>(null);
 
   const handleImprove = async () => {
     const preset = selectedPreset
@@ -111,7 +137,8 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
   };
 
   const handleAccept = () => {
-    if (resultUrl) onAccept(resultUrl);
+    const finalUrl = blendedUrl ?? resultUrl;
+    if (finalUrl) onAccept(finalUrl);
   };
 
   const isConfiguring = status === 'configuring' || status === 'processing';
@@ -148,13 +175,39 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
       }
     >
       {status === 'result-ready' && resultUrl ? (
-        <div className="flex h-full items-center justify-center p-4">
+        <div className="flex h-full flex-col items-center justify-center gap-4 p-4">
           <BeforeAfterSlider
             beforeUrl={imageUrl}
-            afterUrl={resultUrl}
+            afterUrl={blendedUrl ?? resultUrl}
             beforeLabel="Original"
-            afterLabel="Improved"
+            afterLabel="Enhanced"
           />
+          <div className="w-full max-w-md space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-400">
+              <span>Subtle</span>
+              <span className="font-medium text-white">Intensity: {strength}%</span>
+              <span>Full</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={strength}
+              onChange={async (e) => {
+                const val = Number(e.target.value);
+                setStrength(val);
+                if (val === 100) {
+                  setBlendedUrl(null);
+                } else if (val === 0) {
+                  setBlendedUrl(imageUrl);
+                } else {
+                  const blended = await blendImages(imageUrl, resultUrl, val);
+                  setBlendedUrl(blended);
+                }
+              }}
+              className="w-full cursor-pointer accent-green-500"
+            />
+          </div>
         </div>
       ) : (
         <div className="flex h-full items-center justify-center p-4">

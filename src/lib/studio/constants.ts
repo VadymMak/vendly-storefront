@@ -67,38 +67,67 @@ export const STYLE_CHIPS = [
 
 export type StyleChipId = typeof STYLE_CHIPS[number]['id'];
 
-// ── Enhancement presets (for /api/ai-edit) ──────────────────────────────────
+// ── Enhancement presets (for /api/studio/edit — ImproveEditor) ──────────────
+
+/**
+ * Preservation-first prefix for ALL enhancement presets.
+ * Anchors the generative model to the input image and prevents
+ * subject hallucination (e.g. food → portrait).
+ */
+const IMPROVE_PREFIX = `Edit the uploaded image.
+
+Keep ALL subjects, objects, people, food items, products, text, logos, background, layout, camera angle, framing, crop, perspective, pose, identity, and composition exactly as they are. Do not add, remove, replace, invent, redesign, restyle, or transform anything. Do not change the image category or subject matter.
+
+Only improve image quality through photographic adjustments: lighting, exposure, white balance, color balance, contrast, highlight and shadow detail, noise reduction, and sharpness. The result must look like the same photograph captured with a better camera and better lighting.`;
 
 export const ENHANCEMENT_PRESETS = [
   {
     id: 'professional',
     label: 'Professional',
     icon: 'sparkle',
-    prompt: 'Transform this into a high-end professional photograph. Improve lighting, exposure, white balance, sharpness, and depth of field. Create a polished commercial look while preserving the exact subject and composition.',
+    prompt: `${IMPROVE_PREFIX}
+
+Apply balanced professional photo correction: improve exposure, neutral white balance, natural contrast, subtle clarity, and restrained sharpening. Maintain realism.`,
   },
   {
-    id: 'food',
-    label: 'Food Photography',
-    icon: 'food',
-    prompt: 'Transform this into professional food photography. Warm lighting, rich saturated colors, shallow depth of field with creamy bokeh, sharp focus on the food, appetizing texture enhancement. Preserve the exact food, plate, and composition.',
+    id: 'bright_clean',
+    label: 'Bright & Clean',
+    icon: 'bright',
+    prompt: `${IMPROVE_PREFIX}
+
+Create a bright, clean finish: gently lift shadows, recover highlights, correct color cast, reduce distracting noise, and retain realistic colors and textures.`,
   },
   {
-    id: 'product',
-    label: 'Product Shot',
-    icon: 'product',
-    prompt: 'Transform this into a professional product photograph. Clean studio lighting, sharp details, subtle shadows, commercial e-commerce quality. Preserve the exact product and composition.',
+    id: 'warm_rich',
+    label: 'Warm & Rich',
+    icon: 'warm',
+    prompt: `${IMPROVE_PREFIX}
+
+Apply a subtle warm color grade: slightly warm the white balance, gently enrich existing colors, preserve accurate material and skin tones, and maintain natural contrast. Do not make colors neon, oversaturated, or artificial.`,
   },
   {
-    id: 'portrait',
-    label: 'Portrait',
-    icon: 'portrait',
-    prompt: 'Transform this into a professional portrait photograph. Soft flattering lighting, gentle skin retouching, beautiful bokeh background, editorial quality. Preserve the person identity and expression exactly.',
+    id: 'crisp_detail',
+    label: 'Sharp & Detailed',
+    icon: 'sharp',
+    prompt: `${IMPROVE_PREFIX}
+
+Improve perceived clarity: apply mild denoising, edge-aware sharpening, and subtle local contrast. Do not fabricate details, alter texture, or make the image look HDR.`,
   },
   {
-    id: 'realestate',
-    label: 'Real Estate',
-    icon: 'realestate',
-    prompt: 'Transform this into a professional real estate photograph. Bright, well-lit interior, correct white balance, wide dynamic range, inviting atmosphere. Preserve the exact room layout and architecture.',
+    id: 'soft_natural',
+    label: 'Soft & Natural',
+    icon: 'soft',
+    prompt: `${IMPROVE_PREFIX}
+
+Apply a soft, natural finish: slightly soften harsh contrast, preserve all real detail, maintain natural colors. Avoid blur, beauty retouching, or any change to people, objects, or scene content.`,
+  },
+  {
+    id: 'studio_light',
+    label: 'Studio Lighting',
+    icon: 'light',
+    prompt: `${IMPROVE_PREFIX}
+
+Improve lighting consistency: fill in harsh shadows, improve rim lighting separation, correct color temperature, and enhance specular highlights on reflective surfaces. Keep the scene identical.`,
   },
 ] as const;
 

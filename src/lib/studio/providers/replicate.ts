@@ -96,11 +96,12 @@ export class ReplicateProvider implements ImageProvider {
       modelId as `${string}/${string}`,
       {
         input: {
-          prompt:           req.prompt,
-          input_image:      req.imageUrl,
-          aspect_ratio:     'match_input_image',
-          safety_tolerance: 2,
-          output_format:    'png',
+          prompt:             req.prompt,
+          input_image:        req.imageUrl,
+          aspect_ratio:       'match_input_image',
+          safety_tolerance:   2,
+          output_format:      'png',
+          prompt_upsampling:  false,
         },
       },
     );

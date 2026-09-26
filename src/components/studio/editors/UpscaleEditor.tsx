@@ -107,11 +107,15 @@ export function UpscaleEditor({ imageUrl, imageFile, onAccept, onClose }: Upscal
       }
       const data = await res.json() as { url: string };
 
+      console.log('[UpscaleEditor] API returned URL:', data.url?.slice(0, 100));
+
       const resultImg = new Image();
-      resultImg.onload = () =>
+      resultImg.onload = () => {
+        console.log('[UpscaleEditor] Result image loaded, dimensions:', resultImg.naturalWidth, '×', resultImg.naturalHeight);
         setResultDimensions({ w: resultImg.naturalWidth, h: resultImg.naturalHeight });
-      resultImg.onerror = () => {
-        console.error('[UpscaleEditor] Failed to load result image:', data.url);
+      };
+      resultImg.onerror = (e) => {
+        console.error('[UpscaleEditor] Failed to load result image:', data.url?.slice(0, 100), e);
       };
       resultImg.src = data.url;
 

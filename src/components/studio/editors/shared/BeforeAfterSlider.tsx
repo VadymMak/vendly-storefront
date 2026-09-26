@@ -62,46 +62,65 @@ export function BeforeAfterSlider({
       className="relative w-full select-none overflow-hidden rounded-lg"
       style={{ cursor: 'col-resize' }}
     >
-      {/* Skeleton */}
-      {!bothLoaded && (
-        <div className="aspect-video w-full animate-pulse rounded-lg bg-white/10" />
-      )}
+      {/* After image — full width, always visible, provides container height */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={afterUrl}
+        alt={alt}
+        draggable={false}
+        className="block w-full"
+        onLoad={() => {
+          console.log('[BeforeAfterSlider] after image loaded:', afterUrl?.slice(0, 80));
+          setLoaded(l => ({ ...l, after: true }));
+        }}
+        onError={() => {
+          console.error('[BeforeAfterSlider] after image FAILED:', afterUrl?.slice(0, 80));
+          setLoaded(l => ({ ...l, after: true }));
+        }}
+      />
 
-      <div style={{ visibility: bothLoaded ? 'visible' : 'hidden' }}>
-        {/* After image — full width, always visible */}
+      {/* Before image — clipped to left portion */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={afterUrl}
+          src={beforeUrl}
           alt={alt}
           draggable={false}
           className="block w-full"
-          onLoad={() => setLoaded(l => ({ ...l, after: true }))}
-          onError={() => setLoaded(l => ({ ...l, after: true }))}
+          onLoad={() => {
+            console.log('[BeforeAfterSlider] before image loaded:', beforeUrl?.slice(0, 80));
+            setLoaded(l => ({ ...l, before: true }));
+          }}
+          onError={() => {
+            console.error('[BeforeAfterSlider] before image FAILED:', beforeUrl?.slice(0, 80));
+            setLoaded(l => ({ ...l, before: true }));
+          }}
         />
+      </div>
 
-        {/* Before image — clipped to left portion */}
-        <div
-          className="absolute inset-0 overflow-hidden"
-          style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={beforeUrl}
-            alt={alt}
-            draggable={false}
-            className="block w-full"
-            onLoad={() => setLoaded(l => ({ ...l, before: true }))}
-            onError={() => setLoaded(l => ({ ...l, before: true }))}
-          />
+      {/* Loading overlay — shown OVER images until both load */}
+      {!bothLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-[#0f172a]/80">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+            <span className="text-xs text-gray-400">Loading comparison…</span>
+          </div>
         </div>
+      )}
 
-        {/* Divider line */}
+      {/* Divider line */}
+      {bothLoaded && (
         <div
           className="absolute bottom-0 top-0 w-0.5 bg-white"
           style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
         />
+      )}
 
-        {/* Handle */}
+      {/* Handle */}
+      {bothLoaded && (
         <div
           role="slider"
           aria-label="Comparison slider"
@@ -119,19 +138,19 @@ export function BeforeAfterSlider({
             <path d="M8 4l-4 8 4 8M16 4l4 8-4 8" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
+      )}
 
-        {/* Labels */}
-        {bothLoaded && (
-          <>
-            <span className="absolute left-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
-              {beforeLabel}
-            </span>
-            <span className="absolute right-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
-              {afterLabel}
-            </span>
-          </>
-        )}
-      </div>
+      {/* Labels */}
+      {bothLoaded && (
+        <>
+          <span className="absolute left-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
+            {beforeLabel}
+          </span>
+          <span className="absolute right-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
+            {afterLabel}
+          </span>
+        </>
+      )}
     </div>
   );
 }

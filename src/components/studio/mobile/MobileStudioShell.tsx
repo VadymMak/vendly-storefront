@@ -64,7 +64,7 @@ export function MobileStudioShell({ userId, userEmail, children }: Props) {
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className="flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
 

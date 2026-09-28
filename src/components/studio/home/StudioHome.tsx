@@ -663,7 +663,8 @@ export function StudioHome({ userId: _userId }: Props) {
       .then(r => r.blob())
       .then(blob => {
         const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
-        setActiveEditor({ tool, imageUrl: img.url, imageFile: file });
+        const blobUrl = URL.createObjectURL(blob);
+        setActiveEditor({ tool, imageUrl: blobUrl, imageFile: file });
       })
       .catch(() => {});
   }
@@ -679,7 +680,8 @@ export function StudioHome({ userId: _userId }: Props) {
       .then(r => r.blob())
       .then(blob => {
         const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
-        setActiveEditor({ tool, imageUrl: latestResult.url, imageFile: file });
+        const blobUrl = URL.createObjectURL(blob);
+        setActiveEditor({ tool, imageUrl: blobUrl, imageFile: file });
       })
       .catch(() => {});
   }

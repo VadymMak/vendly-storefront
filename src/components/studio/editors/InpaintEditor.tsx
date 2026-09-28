@@ -375,16 +375,18 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     setError(null);
     try {
       const imageCanvas = imageCanvasRef.current!;
-      const imageDataUrl = imageCanvas.toDataURL('image/png');
-      const imageBinary = atob(imageDataUrl.split(',')[1]);
-      const imageArray = new Uint8Array(imageBinary.length);
-      for (let i = 0; i < imageBinary.length; i++) imageArray[i] = imageBinary.charCodeAt(i);
-      const imageBlob = new Blob([imageArray], { type: 'image/png' });
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        imageCanvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Failed to export image')),
+          'image/jpeg',
+          0.85,
+        );
+      });
 
       const maskBlob = exportMask();
 
       const fd = new FormData();
-      fd.append('image', imageBlob, 'image.png');
+      fd.append('image', imageBlob, 'image.jpg');
       fd.append('mask', maskBlob, 'mask.png');
       fd.append('prompt', removeOnly ? '' : prompt);
       fd.append('guidance', guidance.toString());
@@ -408,14 +410,16 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     setError(null);
     try {
       const imageCanvas = imageCanvasRef.current!;
-      const imageDataUrl = imageCanvas.toDataURL('image/png');
-      const imageBinary = atob(imageDataUrl.split(',')[1]);
-      const imageArray = new Uint8Array(imageBinary.length);
-      for (let i = 0; i < imageBinary.length; i++) imageArray[i] = imageBinary.charCodeAt(i);
-      const imageBlob = new Blob([imageArray], { type: 'image/png' });
+      const imageBlob = await new Promise<Blob>((resolve, reject) => {
+        imageCanvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Failed to export image')),
+          'image/jpeg',
+          0.85,
+        );
+      });
 
       const fd = new FormData();
-      fd.append('image', imageBlob, 'image.png');
+      fd.append('image', imageBlob, 'image.jpg');
 
       const res = await fetch('/api/studio/remove-bg', { method: 'POST', body: fd });
       if (!res.ok) {

@@ -641,6 +641,12 @@ export interface SharpEnhanceParams {
   warmth: number;
 }
 
+export interface EnhanceOutput {
+  buffer: Buffer;
+  contentType: 'image/jpeg' | 'image/png';
+  ext: 'jpg' | 'png';
+}
+
 export interface EnhancementPreset {
   id: string;
   label: string;

@@ -1,16 +1,20 @@
 import sharp from 'sharp';
-import type { SharpEnhanceParams } from '@/lib/types';
+import type { EnhanceOutput, SharpEnhanceParams } from '@/lib/types';
 
 /**
  * Deterministic photo enhancement pipeline using Sharp.
  * No AI — just professional-grade photo correction.
  * Runs server-side, ~100-300ms for a typical photo.
+ * Outputs JPEG, or PNG when the input has transparency (e.g. cutouts).
  */
 export async function enhanceDeterministic(
   inputBuffer: Buffer,
   params: SharpEnhanceParams,
-): Promise<Buffer> {
-  let pipeline = sharp(inputBuffer);
+): Promise<EnhanceOutput> {
+  const { hasAlpha } = await sharp(inputBuffer).metadata();
+
+  // 0. Apply EXIF orientation — re-encoding strips it, so phone photos would come out sideways
+  let pipeline = sharp(inputBuffer).rotate();
 
   // 1. Auto-normalize (stretch histogram for better dynamic range)
   if (params.normalize) {
@@ -64,5 +68,11 @@ export async function enhanceDeterministic(
     });
   }
 
-  return pipeline.png({ quality: 95 }).toBuffer();
+  if (hasAlpha) {
+    const buffer = await pipeline.png({ compressionLevel: 9 }).toBuffer();
+    return { buffer, contentType: 'image/png', ext: 'png' };
+  }
+
+  const buffer = await pipeline.jpeg({ quality: 92, mozjpeg: true }).toBuffer();
+  return { buffer, contentType: 'image/jpeg', ext: 'jpg' };
 }

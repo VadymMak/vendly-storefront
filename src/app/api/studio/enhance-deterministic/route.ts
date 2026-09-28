@@ -12,6 +12,11 @@ export const maxDuration = 30;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const contentLength = parseInt(req.headers.get('content-length') ?? '0', 10);
   if (contentLength > MAX_UPLOAD_BYTES) {
     return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
@@ -26,11 +31,6 @@ export async function POST(req: Request) {
 
   // Honeypot
   if (formData.get('website')) return NextResponse.json({ success: true });
-
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
 
   const file      = formData.get('image') as File | null;
   const presetId  = (formData.get('preset') as string | null)?.trim() ?? '';
@@ -68,9 +68,9 @@ export async function POST(req: Request) {
     const enhanced = await enhanceDeterministic(inputBuffer, params);
 
     const blob = await put(
-      `studio/enhance/${session.user.id}/${Date.now()}.png`,
-      enhanced,
-      { access: 'public', contentType: 'image/png' },
+      `studio/enhance/${session.user.id}/${Date.now()}.${enhanced.ext}`,
+      enhanced.buffer,
+      { access: 'public', contentType: enhanced.contentType },
     );
 
     return NextResponse.json({ url: blob.url });

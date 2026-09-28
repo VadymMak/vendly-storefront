@@ -199,7 +199,12 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
     try {
       const enhancedRes = await fetch(enhancedUrl);
       const enhancedBlob = await enhancedRes.blob();
-      const enhancedFile = new File([enhancedBlob], 'enhanced.png', { type: 'image/png' });
+      const enhancedType = enhancedBlob.type || 'image/jpeg';
+      const enhancedFile = new File(
+        [enhancedBlob],
+        enhancedType === 'image/png' ? 'enhanced.png' : 'enhanced.jpg',
+        { type: enhancedType },
+      );
 
       const fd = new FormData();
       fd.append('image', enhancedFile);

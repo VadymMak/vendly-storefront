@@ -144,7 +144,7 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
 
         if (layer.shadowColor) {
           ctx.shadowColor = layer.shadowColor;
-          ctx.shadowBlur = (layer.shadowBlur ?? 4) * scale;
+          ctx.shadowBlur = (layer.shadowBlur ?? 4) * scale * (layer.scale ?? 1);
         }
 
         ctx.fillStyle = layer.color;

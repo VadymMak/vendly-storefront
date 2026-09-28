@@ -36,6 +36,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const [sharing, setSharing] = useState(false);
   const [editingText, setEditingText] = useState(false);
   const [compositedImage, setCompositedImage] = useState<string | null>(null);
+  const [improvingUpload, setImprovingUpload] = useState(false);
 
   const imageUrl = inlineResult?.imageUrl ?? job?.outputUrl ?? null;
   const prompt = inlineResult?.prompt ?? job?.prompt ?? undefined;
@@ -86,6 +87,19 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     }
     await downloadImage(displayUrl);
     setSharing(false);
+  }
+
+  async function getPersistentUrl(url: string): Promise<string> {
+    if (!url.startsWith('blob:')) return url;
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const file = new File([blob], 'composited.jpg', { type: blob.type || 'image/jpeg' });
+    const fd = new FormData();
+    fd.append('image', file);
+    const uploadRes = await fetch('/api/studio/upload', { method: 'POST', body: fd });
+    if (!uploadRes.ok) throw new Error('Upload failed');
+    const data = await uploadRes.json() as { url: string };
+    return data.url;
   }
 
   async function handleSave() {
@@ -185,8 +199,19 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         />
         <QuickAction
           icon="✨"
-          label={t('improve')}
-          onClick={() => router.push(`/studio/m/improve?image=${encodeURIComponent(displayUrl!)}`)}
+          label={improvingUpload ? '…' : t('improve')}
+          onClick={async () => {
+            if (improvingUpload || !displayUrl) return;
+            try {
+              setImprovingUpload(true);
+              const persistentUrl = await getPersistentUrl(displayUrl);
+              router.push(`/studio/m/improve?image=${encodeURIComponent(persistentUrl)}`);
+            } catch {
+              router.push('/studio/m/improve');
+            } finally {
+              setImprovingUpload(false);
+            }
+          }}
           last
         />
       </div>

@@ -35,9 +35,18 @@ export function MobileImproveEditor() {
   const blobRef = useRef<Blob | null>(null);
   const fromSearchParams = useRef(false);
 
+  function isAllowedImageUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return parsed.protocol === 'https:' || parsed.protocol === 'blob:';
+    } catch {
+      return false;
+    }
+  }
+
   useEffect(() => {
     const img = searchParams.get('image');
-    if (img) {
+    if (img && isAllowedImageUrl(img)) {
       setImageUrl(decodeURIComponent(img));
       setStep('configure');
       fromSearchParams.current = true;

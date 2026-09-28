@@ -32,7 +32,7 @@ export function MobileLanguageSwitcher() {
             onClick={() => handleChange(code)}
             role="radio"
             aria-checked={active}
-            className={`rounded-full px-2.5 py-2 text-[11px] font-semibold leading-none transition-colors ${
+            className={`relative rounded-full px-2.5 py-2 text-[11px] font-semibold leading-none transition-colors after:absolute after:-inset-x-[3px] after:-inset-y-2 after:content-[""] ${
               active
                 ? 'bg-green-600 text-white'
                 : 'bg-white/[0.06] text-gray-400 active:bg-white/[0.12]'

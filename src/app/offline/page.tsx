@@ -1,5 +1,6 @@
-'use client';
-
+// Server component on purpose: the service worker caches only this page's HTML, not the
+// Next.js JS chunks, so offline nothing hydrates. A plain link works without JS; when the
+// network is back, the SW (network-first for navigations) serves the real page.
 export default function OfflinePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 text-center text-white">
@@ -8,12 +9,12 @@ export default function OfflinePage() {
       <p className="mt-2 text-sm text-gray-400">
         Check your connection and try again.
       </p>
-      <button
-        onClick={() => window.location.reload()}
+      <a
+        href="/studio/m"
         className="mt-6 rounded-full bg-green-600 px-6 py-2.5 text-sm font-medium text-white"
       >
         Retry
-      </button>
+      </a>
     </div>
   );
 }

@@ -35,9 +35,11 @@ export function MobileImproveEditor() {
   const blobRef = useRef<Blob | null>(null);
   const fromSearchParams = useRef(false);
 
+  // Absolute https:/blob: only. No base URL: relative paths ("/api/...", "//host") must fail to
+  // parse — otherwise they resolve to https://<our-origin>/... and get fetched same-origin with cookies.
   function isAllowedImageUrl(url: string): boolean {
     try {
-      const parsed = new URL(url, window.location.origin);
+      const parsed = new URL(url);
       return parsed.protocol === 'https:' || parsed.protocol === 'blob:';
     } catch {
       return false;
@@ -45,9 +47,10 @@ export function MobileImproveEditor() {
   }
 
   useEffect(() => {
+    // searchParams.get() already decodes — validate and use the same string
     const img = searchParams.get('image');
     if (img && isAllowedImageUrl(img)) {
-      setImageUrl(decodeURIComponent(img));
+      setImageUrl(img);
       setStep('configure');
       fromSearchParams.current = true;
     }

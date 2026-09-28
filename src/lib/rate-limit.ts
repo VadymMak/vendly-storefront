@@ -70,6 +70,13 @@ export const RATE_LIMITS = {
     pro:          { maxRequests: 80,  windowMs: 60 * 60 * 1000 },
     byok_creator: { maxRequests: 200, windowMs: 60 * 60 * 1000 },
   },
+  // Cheap local Sharp ops (format convert, resize) — limit protects CPU/RAM, not credits
+  imageTools: {
+    free:         { maxRequests: 60,   windowMs: 60 * 60 * 1000 },
+    starter:      { maxRequests: 200,  windowMs: 60 * 60 * 1000 },
+    pro:          { maxRequests: 400,  windowMs: 60 * 60 * 1000 },
+    byok_creator: { maxRequests: 1000, windowMs: 60 * 60 * 1000 },
+  },
   register:   { maxRequests: 2, windowMs: 24 * 60 * 60 * 1000 },
   buyCredits: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
 } as const;

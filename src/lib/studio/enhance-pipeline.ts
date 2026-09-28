@@ -45,11 +45,14 @@ export async function enhanceDeterministic(
     pipeline = pipeline.linear(params.contrast, offset);
   }
 
-  // 5. Warmth via tint (shift red/blue balance)
+  // 5. Warmth via recomb matrix (shifts red/blue balance, preserves all colors)
   if (params.warmth !== 0) {
-    const r = Math.max(0, Math.min(255, 128 + params.warmth));
-    const b = Math.max(0, Math.min(255, 128 - params.warmth));
-    pipeline = pipeline.tint({ r, g: 128, b });
+    const w = params.warmth / 100;
+    pipeline = pipeline.recomb([
+      [1 + w * 0.5, w * 0.1, 0],
+      [0, 1, 0],
+      [0, w * 0.1, 1 - w * 0.5],
+    ]);
   }
 
   // 6. CLAHE — local contrast enhancement (makes textures pop)

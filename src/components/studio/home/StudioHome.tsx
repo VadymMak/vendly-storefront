@@ -243,6 +243,24 @@ export function StudioHome({ userId: _userId }: Props) {
     if (isFreePlan && selectedTier !== 'fast') setSelectedTier('fast');
   }, [isFreePlan, selectedTier]);
 
+  // Release sourceUrl blob when latestResult is replaced
+  useEffect(() => {
+    const cur = latestResult?.sourceUrl;
+    if (!cur) return;
+    return () => {
+      if (editorBlobUrlsRef.current.has(cur)) {
+        editorBlobUrlsRef.current.delete(cur);
+        URL.revokeObjectURL(cur);
+      }
+    };
+  }, [latestResult?.sourceUrl]); // editorBlobUrlsRef is a ref — stable, no dep needed
+
+  // Release all editor blobs on unmount
+  useEffect(() => {
+    const ref = editorBlobUrlsRef;
+    return () => { ref.current.forEach(u => URL.revokeObjectURL(u)); ref.current.clear(); };
+  }, []);
+
   const TIERS: { id: ModelTier; label: string; desc: string; credits: number; eta: string }[] = [
     { id: 'fast',    label: 'Quick', desc: 'Fast draft',      credits: 1, eta: '~3s'  },
     { id: 'quality', label: 'Best',  desc: 'Recommended',     credits: 2, eta: '~8s'  },
@@ -303,7 +321,8 @@ export function StudioHome({ userId: _userId }: Props) {
 
   // ── Hero Upload (Start with a photo) ────────────────────────────────────────
 
-  const heroUploadRef = useRef<HTMLInputElement>(null);
+  const heroUploadRef      = useRef<HTMLInputElement>(null);
+  const editorBlobUrlsRef  = useRef<Set<string>>(new Set());
 
   function handleHeroUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -315,6 +334,7 @@ export function StudioHome({ userId: _userId }: Props) {
         setPlaceProductsBgUrl(url);
         setShowPlaceProducts(true);
       } else {
+        editorBlobUrlsRef.current.add(url);
         setActiveEditor({
           tool: pendingIntent as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
           imageUrl: url,
@@ -341,6 +361,7 @@ export function StudioHome({ userId: _userId }: Props) {
         setPlaceProductsBgUrl(url);
         setShowPlaceProducts(true);
       } else {
+        editorBlobUrlsRef.current.add(url);
         setActiveEditor({
           tool: pendingIntent as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
           imageUrl: url,
@@ -664,6 +685,7 @@ export function StudioHome({ userId: _userId }: Props) {
       .then(blob => {
         const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
         const blobUrl = URL.createObjectURL(blob);
+        editorBlobUrlsRef.current.add(blobUrl);
         setActiveEditor({ tool, imageUrl: blobUrl, imageFile: file });
       })
       .catch(() => {});
@@ -681,9 +703,23 @@ export function StudioHome({ userId: _userId }: Props) {
       .then(blob => {
         const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
         const blobUrl = URL.createObjectURL(blob);
+        editorBlobUrlsRef.current.add(blobUrl);
         setActiveEditor({ tool, imageUrl: blobUrl, imageFile: file });
       })
       .catch(() => {});
+  }
+
+  // ── Blob URL lifecycle helpers ───────────────────────────────────────────────
+
+  function releaseEditorBlobUrl(url: string | undefined) {
+    if (!url || !editorBlobUrlsRef.current.has(url)) return;
+    editorBlobUrlsRef.current.delete(url);
+    URL.revokeObjectURL(url);
+  }
+
+  function closeEditor() {
+    releaseEditorBlobUrl(activeEditor?.imageUrl);
+    setActiveEditor(null);
   }
 
   // ── Recent work (last 8) ────────────────────────────────────────────────────
@@ -1655,14 +1691,14 @@ export function StudioHome({ userId: _userId }: Props) {
             setActiveEditor(null);
             handleEditorResult(resultUrl, '[Enhanced] Improve', 'grok-edit', 'improve', activeEditor.imageUrl);
           }}
-          onClose={() => setActiveEditor(null)}
+          onClose={() => closeEditor()}
         />
       )}
 
       {activeEditor?.tool === 'inpaint' && (
         <InpaintEditor
           imageUrl={activeEditor.imageUrl}
-          onClose={() => setActiveEditor(null)}
+          onClose={() => closeEditor()}
           onResult={(url) => {
             setActiveEditor(null);
             handleEditorResult(url, '[Inpainted]', 'flux-fill-pro', 'inpaint', activeEditor.imageUrl);
@@ -1678,7 +1714,7 @@ export function StudioHome({ userId: _userId }: Props) {
             setActiveEditor(null);
             handleEditorResult(resultUrl, '[No Background]', 'remove-bg', 'remove-bg', activeEditor.imageUrl);
           }}
-          onClose={() => setActiveEditor(null)}
+          onClose={() => closeEditor()}
         />
       )}
 
@@ -1690,7 +1726,7 @@ export function StudioHome({ userId: _userId }: Props) {
             setActiveEditor(null);
             handleEditorResult(resultUrl, '[Upscaled]', 'upscale', 'upscale', activeEditor.imageUrl);
           }}
-          onClose={() => setActiveEditor(null)}
+          onClose={() => closeEditor()}
         />
       )}
 
@@ -1709,6 +1745,7 @@ export function StudioHome({ userId: _userId }: Props) {
             setShowCreditPack(true);
           }}
           onAccept={(resultVideoUrl, videoPrompt) => {
+            releaseEditorBlobUrl(activeEditor.imageUrl);
             setActiveEditor(null);
             const newVideo: MediaItem = {
               id: `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -1729,7 +1766,7 @@ export function StudioHome({ userId: _userId }: Props) {
             setCreateView('result');
             (window as unknown as Record<string, () => void>).__refreshCredits?.();
           }}
-          onClose={() => setActiveEditor(null)}
+          onClose={() => closeEditor()}
         />
       )}
 

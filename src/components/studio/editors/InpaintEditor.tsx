@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type MouseEvent } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, type MouseEvent } from 'react';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
@@ -175,27 +175,34 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
   const [error, setError] = useState<string | null>(null);
   const [showSceneCreator, setShowSceneCreator] = useState(false);
 
+  // Loaded source image; drawn onto the canvases once they are mounted (see layout effect below)
+  const loadedImgRef = useRef<HTMLImageElement | null>(null);
+  // Canvas element the image was last drawn to — redraw only for a freshly mounted canvas,
+  // so re-renders never clear the painted mask
+  const drawnCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   useEffect(() => {
+    let cancelled = false;
+    loadedImgRef.current = null;
+    drawnCanvasRef.current = null;
+    setImageDimensions({ w: 0, h: 0 });
+
     const img = new Image();
     if (!imageUrl.startsWith('blob:')) img.crossOrigin = 'anonymous';
 
+    // Only measures and stores the image. The canvases are not mounted while
+    // imageDimensions.w === 0 (loading spinner), so drawing here would hit null refs.
+    function applyDimensions(container: HTMLDivElement) {
+      const maxW = container.clientWidth - 32;
+      // Parent may not constrain height — fall back to width-only fit instead of a 0/negative scale
+      const maxH = container.clientHeight > 32 ? container.clientHeight - 32 : Number.POSITIVE_INFINITY;
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      loadedImgRef.current = img;
+      setImageDimensions({ w: Math.round(img.width * scale), h: Math.round(img.height * scale) });
+    }
+
     img.onload = () => {
-      function applyDimensions(container: HTMLDivElement) {
-        const maxW = container.clientWidth - 32;
-        const maxH = container.clientHeight - 32;
-        const scale = Math.min(maxW / img.width, maxH / img.height, 1);
-        setImageDimensions({ w: Math.round(img.width * scale), h: Math.round(img.height * scale) });
-
-        const imageCanvas = imageCanvasRef.current!;
-        imageCanvas.width = img.width;
-        imageCanvas.height = img.height;
-        imageCanvas.getContext('2d')!.drawImage(img, 0, 0);
-
-        const maskCanvas = maskCanvasRef.current!;
-        maskCanvas.width = img.width;
-        maskCanvas.height = img.height;
-      }
-
+      if (cancelled) return;
       const container = containerRef.current;
       if (!container) return;
 
@@ -204,6 +211,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
       } else {
         // Container not yet laid out — retry after a frame
         requestAnimationFrame(() => {
+          if (cancelled) return;
           const c = containerRef.current;
           if (!c) return;
           if (c.clientWidth > 32) {
@@ -216,12 +224,32 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     };
 
     img.onerror = () => {
+      if (cancelled) return;
       console.error('[InpaintEditor] Failed to load image:', imageUrl.substring(0, 100));
       setError('Failed to load image. Please try again.');
     };
 
     img.src = imageUrl;
+    return () => { cancelled = true; };
   }, [imageUrl]);
+
+  // Draw once the canvases exist (imageDimensions.w > 0 mounts them), before paint
+  useLayoutEffect(() => {
+    const img = loadedImgRef.current;
+    const imageCanvas = imageCanvasRef.current;
+    const maskCanvas = maskCanvasRef.current;
+    if (!img || imageDimensions.w === 0 || !imageCanvas || !maskCanvas) return;
+    if (drawnCanvasRef.current === imageCanvas) return;
+
+    imageCanvas.width = img.width;
+    imageCanvas.height = img.height;
+    imageCanvas.getContext('2d')?.drawImage(img, 0, 0);
+
+    maskCanvas.width = img.width;
+    maskCanvas.height = img.height;
+
+    drawnCanvasRef.current = imageCanvas;
+  });
 
   function getCanvasCoords(e: MouseEvent<HTMLCanvasElement>): { x: number; y: number } {
     const canvas = maskCanvasRef.current!;

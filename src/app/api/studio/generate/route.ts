@@ -10,6 +10,7 @@ import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
+import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
 
 export const maxDuration = 120;
 
@@ -84,6 +85,8 @@ export async function POST(request: Request) {
 
   const prompt = body.prompt?.trim();
   if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+
+  const translatedPrompt = await translatePromptToEnglish(prompt);
 
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
@@ -198,7 +201,7 @@ export async function POST(request: Request) {
 
     try {
       const result = await provider.generate(
-        { prompt, aspectRatio: aspect_ratio, megapixels, outputFormat, referenceImage: body.reference_image },
+        { prompt: translatedPrompt, aspectRatio: aspect_ratio, megapixels, outputFormat, referenceImage: body.reference_image },
         apiKey,
         model.modelId,
       );

@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const image = formData.get('image') as File | null;
     const mask = formData.get('mask') as File | null;
-    const prompt = (formData.get('prompt') as string) || '';
-    const guidance = parseFloat((formData.get('guidance') as string) || '3');
+    const userPrompt = (formData.get('prompt') as string) || '';
+    const userGuidance = parseFloat((formData.get('guidance') as string) || '0');
     const steps = parseInt((formData.get('steps') as string) || '50', 10);
 
     if (!image) {
@@ -65,7 +65,17 @@ export async function POST(req: NextRequest) {
     });
     console.log('[inpaint] Mask uploaded:', maskBlob.url);
 
-    console.log('[inpaint] Calling Flux Fill Pro with prompt:', prompt || '(empty - remove mode)');
+    const isRemoval = !userPrompt.trim();
+
+    const guidance = isRemoval
+      ? Math.max(10, Math.min(30, userGuidance || 20))
+      : Math.max(20, Math.min(60, userGuidance || 30));
+
+    const prompt = isRemoval
+      ? 'matching surrounding texture and background, continuous surface, natural lighting and shadows'
+      : userPrompt;
+
+    console.log('[inpaint] Mode:', isRemoval ? 'REMOVAL' : 'REPLACEMENT', '| guidance:', guidance, '| prompt:', prompt);
 
     const replicate = new Replicate({ auth: token });
 
@@ -73,10 +83,11 @@ export async function POST(req: NextRequest) {
       input: {
         image: imageBlob.url,
         mask: maskBlob.url,
-        prompt: prompt || 'high quality photo',
-        guidance: Math.max(5, Math.min(50, guidance)),
+        prompt,
+        guidance,
         steps: Math.max(1, Math.min(50, steps)),
         output_format: 'jpg',
+        prompt_upsampling: false,
       },
     });
 

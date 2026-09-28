@@ -100,7 +100,7 @@ function InpaintToolsPanel({
           <span className="font-mono text-xs text-gray-500">{guidance}</span>
         </div>
         <input
-          type="range" min="5" max="50" step="5" value={guidance}
+          type="range" min="10" max="50" step="5" value={guidance}
           onChange={e => onGuidanceChange(parseFloat(e.target.value))}
           className="mt-1 w-full accent-green-500"
         />
@@ -189,7 +189,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
   const [imageDimensions, setImageDimensions] = useState({ w: 0, h: 0 });
   const [brushSize, setBrushSize] = useState(30);
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
-  const [guidance, setGuidance] = useState(30);
+  const [guidance, setGuidance] = useState(20);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState<EditorStatus>('configuring');

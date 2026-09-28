@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
@@ -85,8 +86,6 @@ export async function POST(request: Request) {
 
   const prompt = body.prompt?.trim();
   if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
-
-  const translatedPrompt = await translatePromptToEnglish(prompt);
 
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
@@ -177,6 +176,11 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // Translate only after auth, credit, rate-limit and abuse checks passed — the OpenAI
+  // call is paid, so rejected requests must not trigger it. Done once for all candidates.
+  const uiLocale = (await cookies()).get('locale')?.value;
+  const translatedPrompt = await translatePromptToEnglish(prompt, uiLocale);
 
   // ── Try each candidate until one succeeds ──────────────────────────────────
 

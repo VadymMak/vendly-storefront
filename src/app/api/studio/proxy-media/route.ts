@@ -13,7 +13,6 @@ const ALLOWED_HOSTS = [
   'vercel-storage.com',
   'x.ai',
   'xai.com',
-  'storage.googleapis.com',
   'oaidalleapiprodscus.blob.core.windows.net',
 ];
 

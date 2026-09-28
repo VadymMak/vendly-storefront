@@ -197,6 +197,17 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
     setError(null);
 
     try {
+      // 1. Get original image dimensions for post-resize
+      const img = new Image();
+      img.src = imageUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load original image'));
+      });
+      const originalWidth = img.naturalWidth;
+      const originalHeight = img.naturalHeight;
+
+      // 2. Send enhanced image to Grok
       const enhancedRes = await fetch(enhancedUrl);
       const enhancedBlob = await enhancedRes.blob();
       const enhancedType = enhancedBlob.type || 'image/jpeg';
@@ -218,7 +229,21 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
       }
       const data = await res.json() as { url: string };
 
-      setAiFinishUrl(data.url);
+      // 3. Resize Grok result back to original dimensions
+      const resizeRes = await fetch('/api/studio/resize-to-original', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resultUrl: data.url, originalWidth, originalHeight }),
+      });
+
+      if (resizeRes.ok) {
+        const resizeData = await resizeRes.json() as { url: string };
+        setAiFinishUrl(resizeData.url);
+      } else {
+        console.warn('[ImproveEditor] Resize failed, using Grok output as-is');
+        setAiFinishUrl(data.url);
+      }
+
       setStep('ai-finished');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'AI Finish failed');

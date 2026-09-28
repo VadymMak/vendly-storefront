@@ -98,6 +98,8 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
   const [showSceneCreator, setShowSceneCreator] = useState(false);
   const [showPlaceProducts, setShowPlaceProducts] = useState(false);
   const [cutoutUrl, setCutoutUrl] = useState<string | null>(null);
+  const [downloadFormat, setDownloadFormat] = useState<'jpg' | 'png' | 'webp'>('jpg');
+  const [downloading, setDownloading] = useState(false);
 
   const preset = PRESET_MAP[img.preset as PresetKey] ?? Object.values(PRESET_MAP)[0];
   const cssFilter = QUICK_FILTERS.find(f => f.id === activeFilter)?.filter ?? 'none';
@@ -136,6 +138,29 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
       alert(err instanceof Error ? err.message : 'Remove background failed');
     } finally {
       setIsRemovingBg(false);
+    }
+  }
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const res = await fetch('/api/studio/convert-format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: img.url, format: downloadFormat }),
+      });
+      if (!res.ok) throw new Error('Conversion failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vendshop-studio.${downloadFormat}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[Download] Error:', err);
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -307,12 +332,30 @@ export function ImageDetailModal({ img, onClose, onAnimate, onAddToAssemble, onD
             >
               <IconLayers /> Add to Assemble
             </button>
-            <button
-              onClick={onDownload}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
-            >
-              <IconDownload /> Download
-            </button>
+            <div>
+              <div className="mb-2 flex gap-1.5">
+                {(['jpg', 'png', 'webp'] as const).map(fmt => (
+                  <button
+                    key={fmt}
+                    onClick={() => setDownloadFormat(fmt)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium uppercase transition-colors ${
+                      downloadFormat === fmt
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => void handleDownload()}
+                disabled={downloading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-60"
+              >
+                <IconDownload /> {downloading ? 'Converting...' : `Download .${downloadFormat}`}
+              </button>
+            </div>
             <button
               onClick={handleCopy}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300 transition-colors hover:border-white/20 hover:text-white"

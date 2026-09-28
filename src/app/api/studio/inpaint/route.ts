@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
       input: {
         image: imageBlob.url,
         mask: maskBlob.url,
-        prompt: prompt || 'clean natural background, seamless fill',
-        guidance: Math.max(2, Math.min(5, guidance)),
+        prompt: prompt || 'seamless fill matching the surrounding area, preserve original texture and lighting',
+        guidance: Math.max(5, Math.min(50, guidance)),
         steps: Math.max(1, Math.min(50, steps)),
         output_format: 'jpg',
       },

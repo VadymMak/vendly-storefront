@@ -96,17 +96,17 @@ function InpaintToolsPanel({
 
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">Prompt Strength</span>
+          <span className="text-xs text-gray-400">Fill strength</span>
           <span className="font-mono text-xs text-gray-500">{guidance}</span>
         </div>
         <input
-          type="range" min="2" max="5" step="0.5" value={guidance}
+          type="range" min="5" max="50" step="5" value={guidance}
           onChange={e => onGuidanceChange(parseFloat(e.target.value))}
           className="mt-1 w-full accent-green-500"
         />
         <div className="flex justify-between text-[10px] text-gray-600">
-          <span>Natural</span>
-          <span>Follow prompt</span>
+          <span>Subtle</span>
+          <span>Strong</span>
         </div>
       </div>
 
@@ -186,7 +186,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
   const [imageDimensions, setImageDimensions] = useState({ w: 0, h: 0 });
   const [brushSize, setBrushSize] = useState(30);
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
-  const [guidance, setGuidance] = useState(5);
+  const [guidance, setGuidance] = useState(30);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState<EditorStatus>('configuring');

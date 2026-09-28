@@ -1,4 +1,5 @@
 import { getVideoCreditCost } from '@/lib/studio/config';
+import type { EnhancementPreset, EnhancementIntensity, SharpEnhanceParams } from '@/lib/types';
 
 export const PRESET_MAP = {
   og:      { label: 'OG Image',     display: '1200 × 630',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1200, target_height: 630  },
@@ -67,71 +68,165 @@ export const STYLE_CHIPS = [
 
 export type StyleChipId = typeof STYLE_CHIPS[number]['id'];
 
-// ── Enhancement presets (for /api/studio/edit — ImproveEditor) ──────────────
+// ── Enhancement presets (deterministic Sharp pipeline + AI Finish prompts) ────
 
-/**
- * Preservation-first prefix for ALL enhancement presets.
- * Anchors the generative model to the input image and prevents
- * subject hallucination (e.g. food → portrait).
- */
-const IMPROVE_PREFIX = `Edit the uploaded image.
+function scaleParams(
+  base: SharpEnhanceParams,
+  intensityFactors: Record<EnhancementIntensity, number>,
+  intensity: EnhancementIntensity,
+): SharpEnhanceParams {
+  const f = intensityFactors[intensity];
+  return {
+    normalize: base.normalize,
+    brightness: 1.0 + (base.brightness - 1.0) * f,
+    saturation: 1.0 + (base.saturation - 1.0) * f,
+    lightness: base.lightness * f,
+    gamma: 2.2 + (base.gamma - 2.2) * f,
+    contrast: 1.0 + (base.contrast - 1.0) * f,
+    sharpen: base.sharpen * f,
+    claheWidth: f >= 0.5 ? base.claheWidth : 0,
+    claheMaxSlope: base.claheMaxSlope,
+    warmth: base.warmth * f,
+  };
+}
 
-Keep ALL subjects, objects, people, food items, products, text, logos, background, layout, camera angle, framing, crop, perspective, pose, identity, and composition exactly as they are. Do not add, remove, replace, invent, redesign, restyle, or transform anything. Do not change the image category or subject matter.
+const INTENSITY_FACTORS: Record<EnhancementIntensity, number> = {
+  natural: 0.35,
+  professional: 0.65,
+  bold: 1.0,
+};
 
-Only improve image quality through photographic adjustments: lighting, exposure, white balance, color balance, contrast, highlight and shadow detail, noise reduction, and sharpness. The result must look like the same photograph captured with a better camera and better lighting.`;
-
-export const ENHANCEMENT_PRESETS = [
-  {
-    id: 'professional',
-    label: 'Professional',
-    icon: 'sparkle',
-    prompt: `${IMPROVE_PREFIX}
-
-Apply balanced professional photo correction: improve exposure, neutral white balance, natural contrast, subtle clarity, and restrained sharpening. Maintain realism.`,
+const PRESET_BASES: Record<string, { params: SharpEnhanceParams; aiFinishPrompt: string; description: string }> = {
+  professional: {
+    description: 'Balanced commercial look',
+    params: {
+      normalize: true,
+      brightness: 1.05,
+      saturation: 1.2,
+      lightness: 3,
+      gamma: 2.0,
+      contrast: 1.15,
+      sharpen: 1.2,
+      claheWidth: 4,
+      claheMaxSlope: 3,
+      warmth: 8,
+    },
+    aiFinishPrompt: `Edit this photo to look like professional commercial photography. Rich color grading, perfect exposure, polished look. Keep the same subject and composition.`,
   },
-  {
-    id: 'bright_clean',
-    label: 'Bright & Clean',
-    icon: 'bright',
-    prompt: `${IMPROVE_PREFIX}
-
-Create a bright, clean finish: gently lift shadows, recover highlights, correct color cast, reduce distracting noise, and retain realistic colors and textures.`,
+  bright_clean: {
+    description: 'Light, airy, lifestyle',
+    params: {
+      normalize: true,
+      brightness: 1.15,
+      saturation: 1.1,
+      lightness: 8,
+      gamma: 1.8,
+      contrast: 1.05,
+      sharpen: 0.8,
+      claheWidth: 0,
+      claheMaxSlope: 3,
+      warmth: 0,
+    },
+    aiFinishPrompt: `Edit this photo with bright airy aesthetic: lifted shadows, clean whites, fresh vibrant colors, soft natural light. Lifestyle magazine quality. Keep the same subject and composition.`,
   },
-  {
-    id: 'warm_rich',
-    label: 'Warm & Rich',
-    icon: 'warm',
-    prompt: `${IMPROVE_PREFIX}
-
-Apply a subtle warm color grade: slightly warm the white balance, gently enrich existing colors, preserve accurate material and skin tones, and maintain natural contrast. Do not make colors neon, oversaturated, or artificial.`,
+  warm_rich: {
+    description: 'Golden, cozy, restaurant',
+    params: {
+      normalize: true,
+      brightness: 1.0,
+      saturation: 1.25,
+      lightness: -2,
+      gamma: 2.2,
+      contrast: 1.2,
+      sharpen: 1.0,
+      claheWidth: 4,
+      claheMaxSlope: 4,
+      warmth: 20,
+    },
+    aiFinishPrompt: `Edit this photo with warm cinematic color grading: golden hour warmth, rich tones, deep shadows, cozy inviting atmosphere. High-end restaurant photography feel. Keep the same subject and composition.`,
   },
-  {
-    id: 'crisp_detail',
-    label: 'Sharp & Detailed',
-    icon: 'sharp',
-    prompt: `${IMPROVE_PREFIX}
-
-Improve perceived clarity: apply mild denoising, edge-aware sharpening, and subtle local contrast. Do not fabricate details, alter texture, or make the image look HDR.`,
+  crisp_detail: {
+    description: 'Macro, textures, details',
+    params: {
+      normalize: true,
+      brightness: 1.02,
+      saturation: 1.15,
+      lightness: 0,
+      gamma: 2.2,
+      contrast: 1.25,
+      sharpen: 2.0,
+      claheWidth: 3,
+      claheMaxSlope: 5,
+      warmth: 5,
+    },
+    aiFinishPrompt: `Edit this photo to look like professional macro photography: every detail crisp and sharp, enhanced textures, vivid colors, perfect focus. Shot with a macro lens. Keep the same subject and composition.`,
   },
-  {
-    id: 'soft_natural',
-    label: 'Soft & Natural',
-    icon: 'soft',
-    prompt: `${IMPROVE_PREFIX}
-
-Apply a soft, natural finish: slightly soften harsh contrast, preserve all real detail, maintain natural colors. Avoid blur, beauty retouching, or any change to people, objects, or scene content.`,
+  soft_natural: {
+    description: 'Dreamy, pastel, fine art',
+    params: {
+      normalize: true,
+      brightness: 1.08,
+      saturation: 0.9,
+      lightness: 5,
+      gamma: 1.9,
+      contrast: 0.92,
+      sharpen: 0.3,
+      claheWidth: 0,
+      claheMaxSlope: 3,
+      warmth: 5,
+    },
+    aiFinishPrompt: `Edit this photo with soft natural aesthetic: gentle pastel tones, diffused lighting, subtle depth of field, dreamy peaceful atmosphere. Fine art photography feel. Keep the same subject and composition.`,
   },
-  {
-    id: 'studio_light',
-    label: 'Studio Lighting',
-    icon: 'light',
-    prompt: `${IMPROVE_PREFIX}
-
-Improve lighting consistency: fill in harsh shadows, improve rim lighting separation, correct color temperature, and enhance specular highlights on reflective surfaces. Keep the scene identical.`,
+  studio_light: {
+    description: 'Clean, commercial, controlled',
+    params: {
+      normalize: true,
+      brightness: 1.1,
+      saturation: 1.1,
+      lightness: 5,
+      gamma: 2.0,
+      contrast: 1.18,
+      sharpen: 1.5,
+      claheWidth: 5,
+      claheMaxSlope: 4,
+      warmth: 3,
+    },
+    aiFinishPrompt: `Edit this photo with professional studio lighting: clean key light, fill light, rim light separation, controlled shadows, perfect exposure. Commercial studio quality. Keep the same subject and composition.`,
   },
-] as const;
+};
 
-export type EnhancementPresetId = typeof ENHANCEMENT_PRESETS[number]['id'];
+const PRESET_LABELS: Record<string, string> = {
+  professional: 'Professional',
+  bright_clean:  'Bright & Clean',
+  warm_rich:     'Warm & Rich',
+  crisp_detail:  'Sharp & Detailed',
+  soft_natural:  'Soft & Natural',
+  studio_light:  'Studio Lighting',
+};
+
+const PRESET_ICONS: Record<string, string> = {
+  professional: 'sparkle',
+  bright_clean:  'bright',
+  warm_rich:     'warm',
+  crisp_detail:  'sharp',
+  soft_natural:  'soft',
+  studio_light:  'light',
+};
+
+export const ENHANCEMENT_PRESETS: EnhancementPreset[] = Object.entries(PRESET_BASES).map(([id, base]) => ({
+  id,
+  label: PRESET_LABELS[id] ?? id,
+  icon: PRESET_ICONS[id] ?? 'sparkle',
+  description: base.description,
+  params: {
+    natural:      scaleParams(base.params, INTENSITY_FACTORS, 'natural'),
+    professional: scaleParams(base.params, INTENSITY_FACTORS, 'professional'),
+    bold:         scaleParams(base.params, INTENSITY_FACTORS, 'bold'),
+  },
+  aiFinishPrompt: base.aiFinishPrompt,
+}));
+
+export type EnhancementPresetId = string;
 
 // ── Motion presets (for inline Animate panel) ────────────────────────────────
 

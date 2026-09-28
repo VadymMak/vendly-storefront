@@ -622,3 +622,30 @@ export interface ProcessingOverlayProps {
   message?: string;
   submessage?: string;
 }
+
+// ── Enhancement pipeline types ──────────────────────────────────────────────
+
+export type EnhancementCategory = 'food' | 'product' | 'portrait' | 'general';
+export type EnhancementIntensity = 'natural' | 'professional' | 'bold';
+
+export interface SharpEnhanceParams {
+  normalize: boolean;
+  brightness: number;
+  saturation: number;
+  lightness: number;
+  gamma: number;
+  contrast: number;
+  sharpen: number;
+  claheWidth: number;
+  claheMaxSlope: number;
+  warmth: number;
+}
+
+export interface EnhancementPreset {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  params: Record<EnhancementIntensity, SharpEnhanceParams>;
+  aiFinishPrompt: string;
+}

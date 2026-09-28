@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { EditorStatus } from '@/lib/types';
-import { ENHANCEMENT_PRESETS, type EnhancementPresetId } from '@/lib/studio/constants';
+import type { EditorStatus, EnhancementIntensity } from '@/lib/types';
+import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
 import { EditorShell } from './shared/EditorShell';
 import { BeforeAfterSlider } from './shared/BeforeAfterSlider';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
@@ -14,28 +14,52 @@ interface ImproveEditorProps {
   onClose: () => void;
 }
 
+type ImproveStep = 'configuring' | 'processing' | 'enhanced' | 'ai-processing' | 'ai-finished';
+
+const INTENSITY_OPTIONS: { id: EnhancementIntensity; label: string }[] = [
+  { id: 'natural',      label: 'Natural' },
+  { id: 'professional', label: 'Professional' },
+  { id: 'bold',         label: 'Bold' },
+];
+
 function ImproveSettingsPanel({
   selectedPreset,
   onPresetChange,
-  customPrompt,
-  onCustomPromptChange,
+  intensity,
+  onIntensityChange,
 }: {
-  selectedPreset: EnhancementPresetId | null;
-  onPresetChange: (id: EnhancementPresetId | null) => void;
-  customPrompt: string;
-  onCustomPromptChange: (value: string) => void;
+  selectedPreset: string | null;
+  onPresetChange: (id: string | null) => void;
+  intensity: EnhancementIntensity;
+  onIntensityChange: (val: EnhancementIntensity) => void;
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-sm font-medium text-gray-300">Choose a style</p>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-gray-300">Intensity</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {INTENSITY_OPTIONS.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => onIntensityChange(opt.id)}
+              className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+                intensity === opt.id
+                  ? 'border-green-500/50 bg-green-500/10 text-white'
+                  : 'border-white/10 text-gray-400 hover:border-green-500/30'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-sm font-medium text-gray-300">Style</p>
       <div className="grid grid-cols-1 gap-2">
         {ENHANCEMENT_PRESETS.map(preset => (
           <button
             key={preset.id}
-            onClick={() => {
-              onPresetChange(preset.id === selectedPreset ? null : preset.id);
-              onCustomPromptChange('');
-            }}
+            onClick={() => onPresetChange(preset.id === selectedPreset ? null : preset.id)}
             className={`rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
               selectedPreset === preset.id
                 ? 'border-green-500/50 bg-green-500/10 text-white'
@@ -43,122 +67,196 @@ function ImproveSettingsPanel({
             }`}
           >
             <div className="font-medium">{preset.label}</div>
+            <div className="text-xs text-gray-500">{preset.description}</div>
           </button>
         ))}
-      </div>
-
-      <div className="space-y-2 pt-2">
-        <p className="text-xs text-gray-500">Or describe the improvement:</p>
-        <textarea
-          value={customPrompt}
-          onChange={e => {
-            onCustomPromptChange(e.target.value);
-            if (e.target.value.trim()) onPresetChange(null);
-          }}
-          placeholder="e.g. warmer lighting, more contrast, sharper details..."
-          rows={3}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/30"
-        />
       </div>
     </div>
   );
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
+function EnhancedSidebar({
+  onAiFinish,
+  aiProcessing,
+}: {
+  onAiFinish: () => void;
+  aiProcessing: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+        <p className="text-sm font-medium text-green-400">✓ Photo enhanced</p>
+        <p className="mt-1 text-xs text-gray-400">
+          Deterministic color correction applied. No AI was used — your photo composition is 100% preserved.
+        </p>
+      </div>
+
+      <div className="border-t border-white/10 pt-4">
+        <p className="text-sm font-medium text-gray-300">Want more?</p>
+        <p className="mt-1 text-xs text-gray-400">
+          AI Finish uses Grok to add creative polish — professional lighting feel, richer atmosphere. It may slightly reinterpret small visual details.
+        </p>
+        <button
+          onClick={onAiFinish}
+          disabled={aiProcessing}
+          className="mt-3 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:opacity-50"
+        >
+          {aiProcessing ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+              AI processing...
+            </span>
+          ) : (
+            '✨ AI Finish · Free'
+          )}
+        </button>
+      </div>
+    </div>
+  );
 }
 
-async function blendImages(originalUrl: string, aiUrl: string, strength: number): Promise<string> {
-  const alpha = strength / 100;
-  const [origImg, aiImg] = await Promise.all([loadImage(originalUrl), loadImage(aiUrl)]);
-  const canvas = document.createElement('canvas');
-  canvas.width = origImg.width;
-  canvas.height = origImg.height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.globalAlpha = 1;
-  ctx.drawImage(origImg, 0, 0, canvas.width, canvas.height);
-  ctx.globalAlpha = alpha;
-  ctx.drawImage(aiImg, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/png');
+function AiFinishedSidebar({
+  onKeepAi,
+  onKeepOriginal,
+}: {
+  onKeepAi: () => void;
+  onKeepOriginal: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
+        <p className="text-sm font-medium text-purple-400">✨ AI Finish applied</p>
+        <p className="mt-1 text-xs text-gray-400">
+          Grok added creative photographic polish. Compare with the enhanced version.
+        </p>
+      </div>
+
+      <div className="space-y-2 pt-2">
+        <button
+          onClick={onKeepAi}
+          className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-500"
+        >
+          Keep AI Finish
+        </button>
+        <button
+          onClick={onKeepOriginal}
+          className="w-full rounded-lg border border-white/10 px-4 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/5"
+        >
+          Keep original enhancement
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: ImproveEditorProps) {
-  const [status, setStatus] = useState<EditorStatus>('configuring');
-  const [selectedPreset, setSelectedPreset] = useState<EnhancementPresetId | null>(null);
-  const [customPrompt, setCustomPrompt] = useState('');
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [step, setStep] = useState<ImproveStep>('configuring');
+  const [selectedPreset, setSelectedPreset] = useState<string | null>('professional');
+  const [intensity, setIntensity] = useState<EnhancementIntensity>('professional');
+  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
+  const [aiFinishUrl, setAiFinishUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [strength, setStrength] = useState(75);
-  const [blendedUrl, setBlendedUrl] = useState<string | null>(null);
 
-  const handleImprove = async () => {
-    const preset = selectedPreset
-      ? ENHANCEMENT_PRESETS.find(p => p.id === selectedPreset)
-      : null;
-    const enhancePrompt = preset?.prompt ?? customPrompt.trim();
-
-    if (!enhancePrompt) {
-      setError('Please select a style or describe the improvement');
+  const handleEnhance = async () => {
+    if (!selectedPreset) {
+      setError('Please select a style');
       return;
     }
 
-    setStatus('processing');
+    setStep('processing');
     setError(null);
 
     try {
       const fd = new FormData();
       fd.append('image', imageFile);
-      fd.append('prompt', enhancePrompt);
+      fd.append('preset', selectedPreset);
+      fd.append('intensity', intensity);
 
-      const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
+      const res = await fetch('/api/studio/enhance-deterministic', { method: 'POST', body: fd });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
         throw new Error(data.error ?? 'Enhancement failed');
       }
       const data = await res.json() as { url: string };
 
-      setResultUrl(data.url);
-      setStatus('result-ready');
+      setEnhancedUrl(data.url);
+      setStep('enhanced');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Enhancement failed');
-      setStatus('configuring');
+      setStep('configuring');
+    }
+  };
+
+  const handleAiFinish = async () => {
+    if (!enhancedUrl || !selectedPreset) return;
+
+    const preset = ENHANCEMENT_PRESETS.find(p => p.id === selectedPreset);
+    if (!preset) return;
+
+    setStep('ai-processing');
+    setError(null);
+
+    try {
+      const enhancedRes = await fetch(enhancedUrl);
+      const enhancedBlob = await enhancedRes.blob();
+      const enhancedFile = new File([enhancedBlob], 'enhanced.png', { type: 'image/png' });
+
+      const fd = new FormData();
+      fd.append('image', enhancedFile);
+      fd.append('prompt', preset.aiFinishPrompt);
+      fd.append('modelAlias', 'edit-grok');
+
+      const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        throw new Error(data.error ?? 'AI Finish failed');
+      }
+      const data = await res.json() as { url: string };
+
+      setAiFinishUrl(data.url);
+      setStep('ai-finished');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'AI Finish failed');
+      setStep('enhanced');
+    }
+  };
+
+  const handleAccept = () => {
+    if (step === 'ai-finished' && aiFinishUrl) {
+      onAccept(aiFinishUrl);
+    } else if (enhancedUrl) {
+      onAccept(enhancedUrl);
     }
   };
 
   const handleRetry = () => {
-    setResultUrl(null);
-    setStatus('configuring');
+    setEnhancedUrl(null);
+    setAiFinishUrl(null);
+    setStep('configuring');
   };
 
-  const handleAccept = () => {
-    const finalUrl = blendedUrl ?? resultUrl;
-    if (finalUrl) onAccept(finalUrl);
-  };
+  const isConfiguring = step === 'configuring' || step === 'processing';
+  const isEnhanced    = step === 'enhanced' || step === 'ai-processing';
+  const isAiFinished  = step === 'ai-finished';
 
-  const isConfiguring = status === 'configuring' || status === 'processing';
+  let shellStatus: EditorStatus = 'configuring';
+  if (step === 'processing') shellStatus = 'processing';
+  if (step === 'enhanced' || step === 'ai-processing' || step === 'ai-finished') shellStatus = 'result-ready';
 
   return (
     <EditorShell
       title="Improve image"
-      creditCost={2}
-      status={status}
+      creditCost={0}
+      status={shellStatus}
       onBack={onClose}
       primaryAction={{
-        label: status === 'result-ready' ? 'Keep result' : 'Improve · 2 credits',
-        onClick: status === 'result-ready' ? handleAccept : () => void handleImprove(),
-        disabled:
-          status === 'processing' ||
-          (status === 'configuring' && !selectedPreset && !customPrompt.trim()),
-        loading: status === 'processing',
+        label: isEnhanced || isAiFinished ? 'Keep result' : 'Improve · Free',
+        onClick: isEnhanced || isAiFinished ? handleAccept : () => void handleEnhance(),
+        disabled: step === 'processing' || step === 'ai-processing' || (step === 'configuring' && !selectedPreset),
+        loading: step === 'processing',
       }}
       secondaryAction={
-        status === 'result-ready'
+        isEnhanced || isAiFinished
           ? { label: 'Try another', onClick: handleRetry }
           : undefined
       }
@@ -168,46 +266,33 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
           <ImproveSettingsPanel
             selectedPreset={selectedPreset}
             onPresetChange={setSelectedPreset}
-            customPrompt={customPrompt}
-            onCustomPromptChange={setCustomPrompt}
+            intensity={intensity}
+            onIntensityChange={setIntensity}
+          />
+        ) : isEnhanced ? (
+          <EnhancedSidebar
+            onAiFinish={() => void handleAiFinish()}
+            aiProcessing={step === 'ai-processing'}
+          />
+        ) : isAiFinished ? (
+          <AiFinishedSidebar
+            onKeepAi={handleAccept}
+            onKeepOriginal={() => {
+              setAiFinishUrl(null);
+              setStep('enhanced');
+            }}
           />
         ) : undefined
       }
     >
-      {status === 'result-ready' && resultUrl ? (
-        <div className="flex h-full flex-col items-center justify-center gap-4 p-4">
+      {(isEnhanced || isAiFinished) && enhancedUrl ? (
+        <div className="flex h-full items-center justify-center p-4">
           <BeforeAfterSlider
             beforeUrl={imageUrl}
-            afterUrl={blendedUrl ?? resultUrl}
+            afterUrl={isAiFinished && aiFinishUrl ? aiFinishUrl : enhancedUrl}
             beforeLabel="Original"
-            afterLabel="Enhanced"
+            afterLabel={isAiFinished ? 'AI Finish' : 'Enhanced'}
           />
-          <div className="w-full max-w-md space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-400">
-              <span>Subtle</span>
-              <span className="font-medium text-white">Intensity: {strength}%</span>
-              <span>Full</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={strength}
-              onChange={async (e) => {
-                const val = Number(e.target.value);
-                setStrength(val);
-                if (val === 100) {
-                  setBlendedUrl(null);
-                } else if (val === 0) {
-                  setBlendedUrl(imageUrl);
-                } else {
-                  const blended = await blendImages(imageUrl, resultUrl, val);
-                  setBlendedUrl(blended);
-                }
-              }}
-              className="w-full cursor-pointer accent-green-500"
-            />
-          </div>
         </div>
       ) : (
         <div className="flex h-full items-center justify-center p-4">
@@ -217,13 +302,12 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
               src={imageUrl}
               alt="Original"
               className="max-h-[70vh] rounded-xl border border-white/10 object-contain"
-              crossOrigin="anonymous"
               draggable={false}
             />
             <ProcessingOverlay
-              visible={status === 'processing'}
-              message="Improving your image..."
-              submessage="This usually takes 10–15 seconds"
+              visible={step === 'processing'}
+              message="Enhancing your image..."
+              submessage="This usually takes 1–2 seconds"
             />
           </div>
         </div>

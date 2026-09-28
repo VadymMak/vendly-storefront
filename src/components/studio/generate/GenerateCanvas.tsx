@@ -517,7 +517,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
     try {
       const preset = presetId ? ENHANCEMENT_PRESETS.find(p => p.id === presetId) : null;
-      const enhancePrompt = preset?.prompt ?? prompt.trim();
+      const enhancePrompt = preset?.aiFinishPrompt ?? prompt.trim();
 
       if (!enhancePrompt) {
         setError('Please select a preset or describe the improvement');

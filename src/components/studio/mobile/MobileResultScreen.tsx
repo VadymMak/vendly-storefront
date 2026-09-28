@@ -43,9 +43,9 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     setSharing(false);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!imageUrl) return;
-    downloadImage(imageUrl);
+    await downloadImage(imageUrl);
   }
 
   if (!imageUrl) {

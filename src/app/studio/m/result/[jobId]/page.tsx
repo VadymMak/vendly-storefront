@@ -24,7 +24,7 @@ export default async function MobileResultPage({ params }: Props) {
         outputUrl: job.outputUrl ?? null,
         status: job.status,
         prompt: typeof meta.prompt === 'string' ? meta.prompt : null,
-        modelUsed: typeof meta.model === 'string' ? meta.model : null,
+        modelUsed: typeof meta.modelUsed === 'string' ? meta.modelUsed : null,
         createdAt: job.createdAt,
       }}
     />

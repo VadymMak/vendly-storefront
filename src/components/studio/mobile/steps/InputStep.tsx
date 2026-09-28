@@ -99,7 +99,7 @@ export function InputStep({ onContinue, onBack }: Props) {
       </div>
 
       {/* Fixed bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div className="fixed bottom-20 left-0 right-0 z-40 px-4">
         <div className="mx-auto max-w-lg">
           <button
             onClick={() => onContinue({ description: description.trim(), referenceImageUrl })}

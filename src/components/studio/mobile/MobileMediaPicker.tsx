@@ -49,7 +49,7 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
     try {
       const compressed = await compressImage(file, 2048, 0.85);
       const fd = new FormData();
-      fd.append('file', compressed);
+      fd.append('image', compressed);
       const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json() as { url: string };

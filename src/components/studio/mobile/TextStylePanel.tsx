@@ -121,6 +121,9 @@ export function TextStylePanel({ layer, onChange, onDelete }: Props) {
             −
           </button>
           <span className="w-8 text-center text-sm font-medium text-white">{layer.fontSize}</span>
+          {(layer.scale ?? 1) !== 1 && (
+            <span className="text-[10px] text-gray-500">×{(layer.scale ?? 1).toFixed(1)}</span>
+          )}
           <button
             onClick={() => onChange({ fontSize: Math.min(72, layer.fontSize + 2) })}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white active:bg-white/[0.12]"

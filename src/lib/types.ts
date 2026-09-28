@@ -675,4 +675,5 @@ export interface MobileTextLayer {
   letterSpacing: number;
   shadowColor?: string;
   shadowBlur?: number;
+  scale: number;
 }

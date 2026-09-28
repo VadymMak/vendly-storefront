@@ -32,6 +32,7 @@ function makeLayer(): MobileTextLayer {
     opacity: 1,
     textTransform: 'none',
     letterSpacing: 0,
+    scale: 1,
   };
 }
 
@@ -103,7 +104,7 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
       for (const layer of layers) {
         const x = (layer.x / 100) * canvas.width;
         const y = (layer.y / 100) * canvas.height;
-        const scaledFontSize = layer.fontSize * scale;
+        const scaledFontSize = layer.fontSize * scale * (layer.scale ?? 1);
 
         ctx.save();
         ctx.translate(x, y);
@@ -124,13 +125,13 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
         if (layer.letterSpacing) {
           const ctxWithSpacing = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
           if (ctxWithSpacing.letterSpacing !== undefined) {
-            ctxWithSpacing.letterSpacing = `${layer.letterSpacing * scale}px`;
+            ctxWithSpacing.letterSpacing = `${layer.letterSpacing * scale * (layer.scale ?? 1)}px`;
           }
         }
 
         if (layer.backgroundColor) {
           const metrics = ctx.measureText(displayText);
-          const pad = (layer.bgPadding ?? 8) * scale;
+          const pad = (layer.bgPadding ?? 8) * scale * (layer.scale ?? 1);
           const textW = metrics.width;
           const textH = scaledFontSize * 1.2;
           ctx.fillStyle = layer.backgroundColor;
@@ -220,6 +221,7 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
               isSelected={layer.id === selectedId}
               onSelect={() => { setSelectedId(layer.id); setIsPanelOpen(true); }}
               onMove={(x, y) => updateLayer(layer.id, { x, y })}
+              onScale={(scale) => updateLayer(layer.id, { scale })}
               containerRef={containerRef}
             />
           ))}

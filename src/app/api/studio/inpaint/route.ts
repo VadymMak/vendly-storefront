@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
-import { checkCredits, consumeCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
+import { isAbusivePrompt } from '@/lib/spam-check';
+import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
 
 export const maxDuration = 120;
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+// Must match the "Fill strength" slider in InpaintEditor — the value shown is the value sent
+const MIN_GUIDANCE = 10;
+const MAX_GUIDANCE = 50;
+
+const REMOVAL_PROMPT = 'matching surrounding texture and background, continuous surface, natural lighting and shadows';
 
 export async function POST(req: NextRequest) {
   const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
@@ -21,6 +31,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const ip       = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.aiEdit;
+  const rateLimit = RATE_LIMITS.aiEdit[planType] || RATE_LIMITS.aiEdit.free;
+  if (!(await checkRateLimitWithBypass(`inpaint:${ip}:${session.user.id}`, rateLimit, session.user.id))) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
   const creditCheck = await checkCredits(session.user.id, 'image', 1, 'replicate');
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
@@ -30,9 +48,10 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const image = formData.get('image') as File | null;
     const mask = formData.get('mask') as File | null;
-    const userPrompt = (formData.get('prompt') as string) || '';
-    const userGuidance = parseFloat((formData.get('guidance') as string) || '0');
-    const steps = parseInt((formData.get('steps') as string) || '50', 10);
+    const userPrompt = ((formData.get('prompt') as string) || '').trim();
+    const userGuidance = parseFloat((formData.get('guidance') as string) || '');
+    const parsedSteps = parseInt((formData.get('steps') as string) || '', 10);
+    const steps = Number.isFinite(parsedSteps) ? Math.max(1, Math.min(50, parsedSteps)) : 50;
 
     if (!image) {
       return NextResponse.json({ error: 'Missing image' }, { status: 400 });
@@ -42,6 +61,9 @@ export async function POST(req: NextRequest) {
     }
     if (!mask) {
       return NextResponse.json({ error: 'Missing mask' }, { status: 400 });
+    }
+    if (userPrompt && isAbusivePrompt(userPrompt)) {
+      return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
     }
 
     const token = process.env.REPLICATE_API_TOKEN;
@@ -65,17 +87,20 @@ export async function POST(req: NextRequest) {
     });
     console.log('[inpaint] Mask uploaded:', maskBlob.url);
 
-    const isRemoval = !userPrompt.trim();
+    const isRemoval = !userPrompt;
 
-    const guidance = isRemoval
-      ? Math.max(10, Math.min(30, userGuidance || 20))
-      : Math.max(20, Math.min(60, userGuidance || 30));
+    // Mode-specific default only when the client sends nothing; otherwise honour the slider
+    const guidance = Number.isFinite(userGuidance)
+      ? Math.max(MIN_GUIDANCE, Math.min(MAX_GUIDANCE, userGuidance))
+      : isRemoval ? 20 : 30;
 
+    // Flux Fill understands English only — translate after all checks so rejected requests don't pay for OpenAI
     const prompt = isRemoval
-      ? 'matching surrounding texture and background, continuous surface, natural lighting and shadows'
-      : userPrompt;
+      ? REMOVAL_PROMPT
+      : await translatePromptToEnglish(userPrompt, (await cookies()).get('locale')?.value);
 
-    console.log('[inpaint] Mode:', isRemoval ? 'REMOVAL' : 'REPLACEMENT', '| guidance:', guidance, '| prompt:', prompt);
+    // Log metadata only — user prompts are personal content (GDPR)
+    console.log('[inpaint] Mode:', isRemoval ? 'REMOVAL' : 'REPLACEMENT', '| guidance:', guidance, '| prompt chars:', userPrompt.length);
 
     const replicate = new Replicate({ auth: token });
 
@@ -85,7 +110,7 @@ export async function POST(req: NextRequest) {
         mask: maskBlob.url,
         prompt,
         guidance,
-        steps: Math.max(1, Math.min(50, steps)),
+        steps,
         output_format: 'jpg',
         prompt_upsampling: false,
       },
@@ -138,7 +163,7 @@ export async function POST(req: NextRequest) {
       type:         'ai-edit',
       creditType:   'image',
       creditAmount: 1,
-      metadata:     { prompt, modelUsed: 'flux-fill-pro', provider: 'replicate' },
+      metadata:     { prompt: userPrompt, modelUsed: 'flux-fill-pro', provider: 'replicate' },
     }).then(async (jobId) => {
       await db.studioJob.update({
         where: { id: jobId },

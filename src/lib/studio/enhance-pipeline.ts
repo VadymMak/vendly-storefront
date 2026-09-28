@@ -39,9 +39,9 @@ export async function enhanceDeterministic(
   if (params.warmth !== 0) {
     const w = params.warmth / 100;
     pipeline = pipeline.recomb([
-      [1 + w * 0.15, w * 0.05, 0],
-      [0, 1 + w * 0.05, 0],
-      [0, w * 0.02, 1 - w * 0.12],
+      [1 + w * 0.38, w * 0.12, 0],
+      [0, 1 + w * 0.12, 0],
+      [0, w * 0.05, 1 - w * 0.30],
     ]);
   }
 

@@ -162,6 +162,9 @@ function InpaintResultPanel({ onCreateScene }: { onCreateScene: () => void }) {
  * JPEG has no alpha, so transparent areas (e.g. remove-bg cutouts) would turn black —
  * flatten onto white first so the model sees a neutral background instead.
  */
+// iOS Safari refuses canvases above 16,777,216 px — stay safely below
+const MAX_CANVAS_PIXELS = 16_000_000;
+
 function exportCanvasAsJpeg(source: HTMLCanvasElement): Promise<Blob> {
   const flat = document.createElement('canvas');
   flat.width = source.width;
@@ -260,12 +263,19 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     if (!img || imageDimensions.w === 0 || !imageCanvas || !maskCanvas) return;
     if (drawnCanvasRef.current === imageCanvas) return;
 
-    imageCanvas.width = img.width;
-    imageCanvas.height = img.height;
-    imageCanvas.getContext('2d')?.drawImage(img, 0, 0);
+    // Work at most at MAX_CANVAS_PIXELS: iOS Safari can't allocate larger canvases (Upscale 4x
+    // outputs are 67 MP). Image and mask share the same size, and brush/coords already map via
+    // canvas.width / rect.width, so painting and the exported pair stay aligned.
+    const fit = Math.min(1, Math.sqrt(MAX_CANVAS_PIXELS / (img.width * img.height)));
+    const cw = Math.max(1, Math.floor(img.width * fit));
+    const ch = Math.max(1, Math.floor(img.height * fit));
 
-    maskCanvas.width = img.width;
-    maskCanvas.height = img.height;
+    imageCanvas.width = cw;
+    imageCanvas.height = ch;
+    imageCanvas.getContext('2d')?.drawImage(img, 0, 0, cw, ch);
+
+    maskCanvas.width = cw;
+    maskCanvas.height = ch;
 
     drawnCanvasRef.current = imageCanvas;
   });

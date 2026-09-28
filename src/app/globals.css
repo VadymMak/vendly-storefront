@@ -231,6 +231,11 @@ body {
   100% { transform: scale(0.8); opacity: 0; }
 }
 
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
 /* KB Chat markdown prose */
 .kb-chat-prose a {
   color: #4ade80;

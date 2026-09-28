@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
+import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
 
 interface JobData {
   id: string;
@@ -33,31 +34,37 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const router = useRouter();
   const t = useTranslations('mobile.result');
   const [sharing, setSharing] = useState(false);
+  const [editingText, setEditingText] = useState(false);
+  const [compositedImage, setCompositedImage] = useState<string | null>(null);
 
   const imageUrl = inlineResult?.imageUrl ?? job?.outputUrl ?? null;
   const prompt = inlineResult?.prompt ?? job?.prompt ?? undefined;
   const model = inlineResult?.model ?? job?.modelUsed ?? undefined;
 
+  const displayUrl = compositedImage ?? imageUrl;
+
   const blobRef = useRef<Blob | null>(null);
 
   // Prefetch blob on mount so Share fires instantly within user gesture (iPhone requirement)
   useEffect(() => {
-    if (!imageUrl) return;
-    fetch(proxyUrl(imageUrl))
+    if (!displayUrl) return;
+    blobRef.current = null; // invalidate on change
+    fetch(compositedImage ? displayUrl : proxyUrl(displayUrl))
       .then((res) => (res.ok ? res.blob() : null))
       .then((blob) => {
         if (blob) blobRef.current = blob;
       })
       .catch(() => {});
-  }, [imageUrl]);
+  }, [displayUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleShare() {
-    if (!imageUrl) return;
+    if (!displayUrl) return;
     setSharing(true);
     try {
       let blob = blobRef.current;
       if (!blob) {
-        const res = await fetch(proxyUrl(imageUrl));
+        const src = compositedImage ? displayUrl : proxyUrl(displayUrl);
+        const res = await fetch(src);
         if (res.ok) blob = await res.blob();
       }
       if (blob) {
@@ -71,20 +78,30 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     } catch (e) {
       if ((e as Error).name === 'AbortError') { setSharing(false); return; }
     }
-    await downloadImage(imageUrl);
+    await downloadImage(displayUrl);
     setSharing(false);
   }
 
   async function handleSave() {
-    if (!imageUrl) return;
+    if (!displayUrl) return;
     if (blobRef.current) {
       saveBlob(blobRef.current);
       return;
     }
-    await downloadImage(imageUrl);
+    await downloadImage(displayUrl);
   }
 
-  if (!imageUrl) {
+  if (editingText && displayUrl) {
+    return (
+      <MobileTextOverlayEditor
+        imageUrl={displayUrl}
+        onDone={(url) => { setCompositedImage(url); setEditingText(false); }}
+        onCancel={() => setEditingText(false)}
+      />
+    );
+  }
+
+  if (!displayUrl) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-gray-400">{t('notAvailable')}</p>
@@ -113,7 +130,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       {/* Image */}
       <div className="px-4">
         <img
-          src={imageUrl}
+          src={displayUrl}
           alt="Generated result"
           className="w-full rounded-2xl object-cover"
         />
@@ -154,6 +171,11 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           icon="📱"
           label={t('makeStory')}
           onClick={() => router.push(`/studio/m/create?remake=ig-story&prompt=${encodeURIComponent(prompt ?? '')}`)}
+        />
+        <QuickAction
+          icon="✏️"
+          label={t('addText')}
+          onClick={() => setEditingText(true)}
         />
         <QuickAction
           icon="✨"

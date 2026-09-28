@@ -1495,59 +1495,119 @@
     }
   },
   "mobile": {
-    "shell": { "title": "AI Студія", "credits": "кр" },
-    "nav": { "home": "Головна", "create": "Створити", "library": "Бібліотека", "chat": "Чат" },
-    "home": { "title": "Створюйте контент", "subtitle": "для вашого бізнесу", "recent": "Останні", "seeAll": "Показати все →", "desktopLink": "Десктоп-версія студії →" },
+    "shell": {
+      "title": "AI Студія",
+      "credits": "кр"
+    },
+    "nav": {
+      "home": "Головна",
+      "create": "Створити",
+      "library": "Бібліотека",
+      "chat": "Чат"
+    },
+    "home": {
+      "title": "Створюйте контент",
+      "subtitle": "для вашого бізнесу",
+      "recent": "Останні",
+      "seeAll": "Показати все →",
+      "desktopLink": "Десктоп-версія студії →"
+    },
     "tools": {
-      "instagramPost": "Instagram пост", "instagramPostDesc": "Створіть пост для соцмереж",
-      "improvePhoto": "Покращити фото", "improvePhotoDesc": "Покращте будь-яке фото",
-      "shortVideo": "Коротке відео", "shortVideoDesc": "Анімуйте ваші фото",
-      "productPhoto": "Фото товару", "productPhotoDesc": "Професійні знімки",
-      "removeBg": "Видалити фон", "removeBgDesc": "Одним натиском",
-      "upscale": "Збільшити", "upscaleDesc": "Чіткіше зображення",
-      "editReplace": "Редагувати / Замінити", "editReplaceDesc": "Змініть частини фото",
-      "generateVideo": "Згенерувати відео", "generateVideoDesc": "AI відео з тексту",
-      "placeInScene": "Розмістити в сцені", "placeInSceneDesc": "Товари в контексті",
+      "instagramPost": "Instagram пост",
+      "instagramPostDesc": "Створіть пост для соцмереж",
+      "improvePhoto": "Покращити фото",
+      "improvePhotoDesc": "Покращте будь-яке фото",
+      "shortVideo": "Коротке відео",
+      "shortVideoDesc": "Анімуйте ваші фото",
+      "productPhoto": "Фото товару",
+      "productPhotoDesc": "Професійні знімки",
+      "removeBg": "Видалити фон",
+      "removeBgDesc": "Одним натиском",
+      "upscale": "Збільшити",
+      "upscaleDesc": "Чіткіше зображення",
+      "editReplace": "Редагувати / Замінити",
+      "editReplaceDesc": "Змініть частини фото",
+      "generateVideo": "Згенерувати відео",
+      "generateVideoDesc": "AI відео з тексту",
+      "placeInScene": "Розмістити в сцені",
+      "placeInSceneDesc": "Товари в контексті",
       "moreTools": "Більше інструментів"
     },
-    "format": { "title": "Створити пост", "subtitle": "Де ви його опублікуєте?" },
+    "format": {
+      "title": "Створити пост",
+      "subtitle": "Де ви його опублікуєте?"
+    },
     "input": {
-      "title": "Що ви продаєте?", "step": "2/4",
+      "title": "Що ви продаєте?",
+      "step": "2/4",
       "referenceLabel": "Референс-фото (необов'язково)",
       "describeLabel": "Опишіть вашу пропозицію",
       "describePlaceholder": "Опишіть вашу пропозицію...",
-      "tapExample": "Натисніть для прикладу", "continue": "Продовжити",
+      "tapExample": "Натисніть для прикладу",
+      "continue": "Продовжити",
       "example1": "Свіжий хліб на заквасці, щодня, 3,50 €",
       "example2": "Стрижка + борода, запис сьогодні",
       "example3": "Свічки ручної роботи, лаванда, 3 за 12 €"
     },
     "style": {
-      "title": "Оберіть стиль", "step": "3/4",
+      "title": "Оберіть стиль",
+      "step": "3/4",
       "product": "Чисте, професійне, студійне освітлення",
       "social": "Яскраве, привабливе, трендовий вигляд",
       "custom": "Найкращий стиль для вашого контенту",
-      "reference": "Як моє фото", "referenceDesc": "Використати стиль з вашого фото",
+      "reference": "Як моє фото",
+      "referenceDesc": "Використати стиль з вашого фото",
       "generate": "Згенерувати"
     },
     "generating": {
-      "phase1": "Аналізую ваш контент...", "phase2": "Пишу ідеальний промпт...",
-      "phase3": "AI малює ваше зображення...", "phase4": "Додаю фінальні штрихи...",
-      "phase5": "Майже готово...", "creating": "Створюю ваш {preset}…",
-      "failed": "Генерація не вдалася", "tryAgain": "Спробувати знову",
+      "phase1": "Аналізую ваш контент...",
+      "phase2": "Пишу ідеальний промпт...",
+      "phase3": "AI малює ваше зображення...",
+      "phase4": "Додаю фінальні штрихи...",
+      "phase5": "Майже готово...",
+      "creating": "Створюю ваш {preset}…",
+      "failed": "Генерація не вдалася",
+      "tryAgain": "Спробувати знову",
       "noCredits": "Недостатньо кредитів. Оновіть ваш план."
     },
     "result": {
-      "title": "Ваш результат", "notAvailable": "Зображення недоступне", "back": "← Назад",
-      "share": "Поділитися", "sharing": "Ділюся…", "save": "Зберегти",
-      "regenerate": "Згенерувати знову", "tryStyle": "Спробувати інший стиль",
-      "makeStory": "Зробити Story (9:16)", "improve": "Покращити зображення",
-      "model": "Модель: {name}", "shareTitle": "Створено у VendShop Studio"
+      "title": "Ваш результат",
+      "notAvailable": "Зображення недоступне",
+      "back": "← Назад",
+      "share": "Поділитися",
+      "sharing": "Ділюся…",
+      "save": "Зберегти",
+      "regenerate": "Згенерувати знову",
+      "tryStyle": "Спробувати інший стиль",
+      "makeStory": "Зробити Story (9:16)",
+      "improve": "Покращити зображення",
+      "model": "Модель: {name}",
+      "shareTitle": "Створено у VendShop Studio",
+      "addText": "Додати текст"
     },
     "media": {
-      "takePhoto": "Зняти фото", "fromGallery": "З галереї",
-      "uploading": "Завантажую...", "uploadFailed": "Помилка завантаження. Спробуйте знову.",
+      "takePhoto": "Зняти фото",
+      "fromGallery": "З галереї",
+      "uploading": "Завантажую...",
+      "uploadFailed": "Помилка завантаження. Спробуйте знову.",
       "removePhoto": "Видалити фото"
     },
-    "lang": { "switchLabel": "Мова" }
+    "lang": {
+      "switchLabel": "Мова"
+    },
+    "textEditor": {
+      "cancel": "Скасувати",
+      "addText": "Додати текст",
+      "done": "Готово",
+      "placeholder": "Ваш текст",
+      "font": "Шрифт",
+      "size": "Розмір",
+      "bold": "Жирний",
+      "color": "Колір",
+      "align": "Вирівнювання",
+      "background": "Фон",
+      "delete": "Видалити",
+      "exporting": "Експортую..."
+    }
   }
 }

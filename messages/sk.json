@@ -1495,59 +1495,119 @@
     }
   },
   "mobile": {
-    "shell": { "title": "AI Štúdio", "credits": "kr" },
-    "nav": { "home": "Domov", "create": "Tvoriť", "library": "Knižnica", "chat": "Chat" },
-    "home": { "title": "Tvorte obsah", "subtitle": "pre váš biznis", "recent": "Nedávne", "seeAll": "Zobraziť všetko →", "desktopLink": "Použiť desktop štúdio →" },
+    "shell": {
+      "title": "AI Štúdio",
+      "credits": "kr"
+    },
+    "nav": {
+      "home": "Domov",
+      "create": "Tvoriť",
+      "library": "Knižnica",
+      "chat": "Chat"
+    },
+    "home": {
+      "title": "Tvorte obsah",
+      "subtitle": "pre váš biznis",
+      "recent": "Nedávne",
+      "seeAll": "Zobraziť všetko →",
+      "desktopLink": "Použiť desktop štúdio →"
+    },
     "tools": {
-      "instagramPost": "Instagram príspevok", "instagramPostDesc": "Vytvorte sociálny príspevok",
-      "improvePhoto": "Vylepšiť fotku", "improvePhotoDesc": "Vylepšite akúkoľvek fotku",
-      "shortVideo": "Krátke video", "shortVideoDesc": "Animujte vaše fotky",
-      "productPhoto": "Produktová fotka", "productPhotoDesc": "Profesionálne zábery",
-      "removeBg": "Odstrániť pozadie", "removeBgDesc": "Jedným ťuknutím",
-      "upscale": "Zväčšiť", "upscaleDesc": "Ostrejší obraz",
-      "editReplace": "Upraviť / Nahradiť", "editReplaceDesc": "Zmeňte časti fotky",
-      "generateVideo": "Generovať video", "generateVideoDesc": "AI video z textu",
-      "placeInScene": "Umiestniť do scény", "placeInSceneDesc": "Produkty v kontexte",
+      "instagramPost": "Instagram príspevok",
+      "instagramPostDesc": "Vytvorte sociálny príspevok",
+      "improvePhoto": "Vylepšiť fotku",
+      "improvePhotoDesc": "Vylepšite akúkoľvek fotku",
+      "shortVideo": "Krátke video",
+      "shortVideoDesc": "Animujte vaše fotky",
+      "productPhoto": "Produktová fotka",
+      "productPhotoDesc": "Profesionálne zábery",
+      "removeBg": "Odstrániť pozadie",
+      "removeBgDesc": "Jedným ťuknutím",
+      "upscale": "Zväčšiť",
+      "upscaleDesc": "Ostrejší obraz",
+      "editReplace": "Upraviť / Nahradiť",
+      "editReplaceDesc": "Zmeňte časti fotky",
+      "generateVideo": "Generovať video",
+      "generateVideoDesc": "AI video z textu",
+      "placeInScene": "Umiestniť do scény",
+      "placeInSceneDesc": "Produkty v kontexte",
       "moreTools": "Ďalšie nástroje"
     },
-    "format": { "title": "Vytvoriť príspevok", "subtitle": "Kde to zverejníte?" },
+    "format": {
+      "title": "Vytvoriť príspevok",
+      "subtitle": "Kde to zverejníte?"
+    },
     "input": {
-      "title": "Čo predávate?", "step": "2/4",
+      "title": "Čo predávate?",
+      "step": "2/4",
       "referenceLabel": "Referenčná fotka (voliteľné)",
       "describeLabel": "Popíšte vašu ponuku",
       "describePlaceholder": "Popíšte vašu ponuku...",
-      "tapExample": "Ťuknite pre príklad", "continue": "Pokračovať",
+      "tapExample": "Ťuknite pre príklad",
+      "continue": "Pokračovať",
       "example1": "Čerstvý kváskový chlieb, denne pečený, 3,50 €",
       "example2": "Strih + úprava brady, objednajte sa dnes",
       "example3": "Ručne robené sviečky, levanduľa, 3 za 12 €"
     },
     "style": {
-      "title": "Vyberte štýl", "step": "3/4",
+      "title": "Vyberte štýl",
+      "step": "3/4",
       "product": "Čisté, profesionálne, štúdiové osvetlenie",
       "social": "Živé, pútavé, trendový vzhľad",
       "custom": "Najlepší štýl pre váš obsah",
-      "reference": "Ako moja fotka", "referenceDesc": "Použiť štýl z vašej fotky",
+      "reference": "Ako moja fotka",
+      "referenceDesc": "Použiť štýl z vašej fotky",
       "generate": "Generovať"
     },
     "generating": {
-      "phase1": "Analyzujem váš obsah...", "phase2": "Píšem dokonalý prompt...",
-      "phase3": "AI maľuje váš obrázok...", "phase4": "Pridávam posledné úpravy...",
-      "phase5": "Takmer hotové...", "creating": "Vytváram váš {preset}…",
-      "failed": "Generovanie zlyhalo", "tryAgain": "Skúsiť znovu",
+      "phase1": "Analyzujem váš obsah...",
+      "phase2": "Píšem dokonalý prompt...",
+      "phase3": "AI maľuje váš obrázok...",
+      "phase4": "Pridávam posledné úpravy...",
+      "phase5": "Takmer hotové...",
+      "creating": "Vytváram váš {preset}…",
+      "failed": "Generovanie zlyhalo",
+      "tryAgain": "Skúsiť znovu",
       "noCredits": "Nedostatok kreditov. Vylepšite svoj plán."
     },
     "result": {
-      "title": "Vaša tvorba", "notAvailable": "Obrázok nie je dostupný", "back": "← Späť",
-      "share": "Zdieľať", "sharing": "Zdieľam…", "save": "Uložiť",
-      "regenerate": "Regenerovať", "tryStyle": "Skúsiť iný štýl",
-      "makeStory": "Vytvoriť Story (9:16)", "improve": "Vylepšiť obrázok",
-      "model": "Model: {name}", "shareTitle": "Vytvorené vo VendShop Studio"
+      "title": "Vaša tvorba",
+      "notAvailable": "Obrázok nie je dostupný",
+      "back": "← Späť",
+      "share": "Zdieľať",
+      "sharing": "Zdieľam…",
+      "save": "Uložiť",
+      "regenerate": "Regenerovať",
+      "tryStyle": "Skúsiť iný štýl",
+      "makeStory": "Vytvoriť Story (9:16)",
+      "improve": "Vylepšiť obrázok",
+      "model": "Model: {name}",
+      "shareTitle": "Vytvorené vo VendShop Studio",
+      "addText": "Pridať text"
     },
     "media": {
-      "takePhoto": "Odfotiť", "fromGallery": "Z galérie",
-      "uploading": "Nahrávam...", "uploadFailed": "Nahrávanie zlyhalo. Skúste znovu.",
+      "takePhoto": "Odfotiť",
+      "fromGallery": "Z galérie",
+      "uploading": "Nahrávam...",
+      "uploadFailed": "Nahrávanie zlyhalo. Skúste znovu.",
       "removePhoto": "Odstrániť fotku"
     },
-    "lang": { "switchLabel": "Jazyk" }
+    "lang": {
+      "switchLabel": "Jazyk"
+    },
+    "textEditor": {
+      "cancel": "Zrušiť",
+      "addText": "Pridať text",
+      "done": "Hotovo",
+      "placeholder": "Váš text",
+      "font": "Písmo",
+      "size": "Veľkosť",
+      "bold": "Tučné",
+      "color": "Farba",
+      "align": "Zarovnanie",
+      "background": "Pozadie",
+      "delete": "Odstrániť",
+      "exporting": "Exportujem..."
+    }
   }
 }

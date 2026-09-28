@@ -653,3 +653,26 @@ export interface EnhancementPreset {
   params: Record<EnhancementIntensity, SharpEnhanceParams>;
   aiFinishPrompt: string;
 }
+
+// ── Mobile text overlay ──────────────────────────────────────────────────────
+
+/** Simplified text overlay for the mobile editor (no timeline/scene coupling) */
+export interface MobileTextLayer {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold';
+  color: string;
+  textAlign: 'left' | 'center' | 'right';
+  backgroundColor?: string;
+  bgPadding?: number;
+  rotation: number;
+  opacity: number;
+  textTransform: 'none' | 'uppercase' | 'lowercase';
+  letterSpacing: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+}

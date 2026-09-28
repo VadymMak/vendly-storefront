@@ -177,26 +177,49 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
 
   useEffect(() => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (!imageUrl.startsWith('blob:')) img.crossOrigin = 'anonymous';
+
     img.onload = () => {
+      function applyDimensions(container: HTMLDivElement) {
+        const maxW = container.clientWidth - 32;
+        const maxH = container.clientHeight - 32;
+        const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+        setImageDimensions({ w: Math.round(img.width * scale), h: Math.round(img.height * scale) });
+
+        const imageCanvas = imageCanvasRef.current!;
+        imageCanvas.width = img.width;
+        imageCanvas.height = img.height;
+        imageCanvas.getContext('2d')!.drawImage(img, 0, 0);
+
+        const maskCanvas = maskCanvasRef.current!;
+        maskCanvas.width = img.width;
+        maskCanvas.height = img.height;
+      }
+
       const container = containerRef.current;
       if (!container) return;
-      const maxW = container.clientWidth - 32;
-      const maxH = container.clientHeight - 32;
-      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
-      setImageDimensions({ w, h });
 
-      const imageCanvas = imageCanvasRef.current!;
-      imageCanvas.width = img.width;
-      imageCanvas.height = img.height;
-      imageCanvas.getContext('2d')!.drawImage(img, 0, 0);
-
-      const maskCanvas = maskCanvasRef.current!;
-      maskCanvas.width = img.width;
-      maskCanvas.height = img.height;
+      if (container.clientWidth > 32) {
+        applyDimensions(container);
+      } else {
+        // Container not yet laid out — retry after a frame
+        requestAnimationFrame(() => {
+          const c = containerRef.current;
+          if (!c) return;
+          if (c.clientWidth > 32) {
+            applyDimensions(c);
+          } else {
+            setError('Could not determine canvas size. Please try reopening the editor.');
+          }
+        });
+      }
     };
+
+    img.onerror = () => {
+      console.error('[InpaintEditor] Failed to load image:', imageUrl.substring(0, 100));
+      setError('Failed to load image. Please try again.');
+    };
+
     img.src = imageUrl;
   }, [imageUrl]);
 
@@ -436,7 +459,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
             )
         }
       >
-        <div ref={containerRef} className="flex h-full items-center justify-center p-4">
+        <div ref={containerRef} className="flex h-full w-full items-center justify-center p-4">
           {isResultReady ? (
             <div className="flex gap-4">
               <div className="text-center">
@@ -450,12 +473,17 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
                 <img src={result} alt="Result" className="max-h-[70vh] rounded-lg border border-white/10" />
               </div>
             </div>
+          ) : imageDimensions.w === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 text-gray-400">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+              <p className="text-sm">Loading image...</p>
+            </div>
           ) : (
             <div
               className="relative"
               style={{
-                width: imageDimensions.w || undefined,
-                height: imageDimensions.h || undefined,
+                width: imageDimensions.w,
+                height: imageDimensions.h,
               }}
             >
               <canvas

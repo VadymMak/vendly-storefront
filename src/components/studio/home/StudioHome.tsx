@@ -1016,15 +1016,13 @@ export function StudioHome({ userId: _userId }: Props) {
                   )}
                 </div>
 
-                {/* Preview — videos open detail modal, images open simple preview */}
+                {/* Preview — click opens detail modal */}
                 <button
                   onClick={() => {
-                    if (latestResult.type === 'video') {
-                      const match = generatedImages.find(img => img.url === latestResult.url);
-                      if (match) setModalVideo(match);
-                    } else {
-                      setPreviewUrl(latestResult.url);
-                    }
+                    const match = generatedImages.find(img => img.url === latestResult.url);
+                    if (!match) return;
+                    if (latestResult.type === 'video') setModalVideo(match);
+                    else setModalImage(match);
                   }}
                   className="relative w-full rounded-xl overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
                 >
@@ -1043,14 +1041,10 @@ export function StudioHome({ userId: _userId }: Props) {
                       className="w-full max-h-[320px] object-contain"
                     />
                   )}
-                  {/* Preview hint overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                      </svg>
-                      Preview
-                    </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-70 transition-opacity" aria-hidden="true">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                    </svg>
                   </div>
                 </button>
 
@@ -1166,6 +1160,19 @@ export function StudioHome({ userId: _userId }: Props) {
                       </div>
                     );
 
+                    const viewBtn = (
+                      <button
+                        onClick={() => setPreviewUrl(latestResult.url)}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        View
+                      </button>
+                    );
+
                     const animateBtn = (
                       <button
                         onClick={() => editWith('animate')}
@@ -1258,28 +1265,28 @@ export function StudioHome({ userId: _userId }: Props) {
 
                     switch (op) {
                       case 'improve':
-                        primaryRow = <>{downloadBtn}{upscaleBtn}</>;
+                        primaryRow = <>{downloadBtn}{viewBtn}{upscaleBtn}</>;
                         secondaryRow = <>{animateBtn}{removeBgBtn}</>;
                         break;
                       case 'remove-bg':
                         primaryRow = <>{placeProductsBtn}{downloadBtn}</>;
-                        secondaryRow = <>{animateBtn}{improveBtn}</>;
+                        secondaryRow = <>{viewBtn}{animateBtn}{improveBtn}</>;
                         break;
                       case 'upscale':
-                        primaryRow = <>{downloadBtn}{animateBtn}</>;
+                        primaryRow = <>{downloadBtn}{viewBtn}{animateBtn}</>;
                         secondaryRow = <>{improveBtn}{removeBgBtn}</>;
                         break;
                       case 'inpaint':
                         primaryRow = <>{editAgainBtn}{downloadBtn}</>;
-                        secondaryRow = <>{animateBtn}{improveBtn}</>;
+                        secondaryRow = <>{viewBtn}{animateBtn}{improveBtn}</>;
                         break;
                       case 'place-products':
                         primaryRow = <>{animateBtn}{downloadBtn}</>;
-                        secondaryRow = <>{upscaleBtn}{improveBtn}</>;
+                        secondaryRow = <>{viewBtn}{upscaleBtn}{improveBtn}</>;
                         break;
                       default: // 'generate' or undefined
                         primaryRow = <>{improveBtn}{animateBtn}</>;
-                        secondaryRow = <>{downloadBtn}{upscaleBtn}{removeBgBtn}</>;
+                        secondaryRow = <>{downloadBtn}{viewBtn}{upscaleBtn}{removeBgBtn}</>;
                         break;
                     }
 

@@ -12,7 +12,7 @@ interface Props {
 export function StudioShellGuard({ userId, userEmail, children }: Props) {
   const pathname = usePathname();
 
-  if (pathname.startsWith('/studio/m')) {
+  if (pathname === '/studio/m' || pathname.startsWith('/studio/m/')) {
     return <>{children}</>;
   }
 

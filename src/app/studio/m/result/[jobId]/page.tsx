@@ -1,13 +1,32 @@
-import Link from 'next/link';
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { getJob } from '@/lib/studio-jobs';
+import { MobileResultScreen } from '@/components/studio/mobile/MobileResultScreen';
 
-export default function ResultPage() {
+interface Props {
+  params: Promise<{ jobId: string }>;
+}
+
+export default async function MobileResultPage({ params }: Props) {
+  const { jobId } = await params;
+  const session = await auth();
+  if (!session?.user?.id) redirect('/login?callbackUrl=/studio/m');
+
+  const job = await getJob(jobId, session.user.id);
+  if (!job) redirect('/studio/m');
+
+  const meta = (job.metadata as Record<string, unknown> | null) ?? {};
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-      <p className="text-lg font-semibold text-white">Coming soon</p>
-      <p className="text-sm text-gray-500">This feature is being built.</p>
-      <Link href="/studio/m" className="text-sm text-green-500 underline">
-        ← Back to Home
-      </Link>
-    </div>
+    <MobileResultScreen
+      job={{
+        id: job.id,
+        outputUrl: job.outputUrl ?? null,
+        status: job.status,
+        prompt: typeof meta.prompt === 'string' ? meta.prompt : null,
+        modelUsed: typeof meta.model === 'string' ? meta.model : null,
+        createdAt: job.createdAt,
+      }}
+    />
   );
 }

@@ -12,7 +12,8 @@ const ALLOWED_HOSTS = new Set([
   'v3.fal.media',
   'v3b.fal.media',
   'fal-cdn.com',
-  'storage.googleapis.com',
+  // Replicate-hosted video outputs (23 of 47 video jobs at time of writing) were 403'd
+  'replicate.delivery',
 ]);
 
 function isAllowedHost(hostname: string): boolean {
@@ -65,8 +66,13 @@ export async function GET(req: NextRequest) {
 
   // Server-side fetch — no CORS restrictions
   const upstream = await fetch(job.outputUrl, {
+    redirect: 'manual', // allowlist is checked on the stored URL only — don't follow elsewhere
     signal: AbortSignal.timeout(60_000),
   });
+
+  if (upstream.status >= 300 && upstream.status < 400) {
+    return NextResponse.json({ error: 'Redirects not followed' }, { status: 502 });
+  }
 
   if (!upstream.ok || !upstream.body) {
     return NextResponse.json({ error: 'Failed to fetch video' }, { status: 502 });

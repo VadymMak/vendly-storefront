@@ -3,6 +3,9 @@ import { createFalClient } from '@fal-ai/client';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import sharp from 'sharp';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
+import { getOrCreateCredits } from '@/lib/credits';
+import { fetchAllowedImage, isAllowedImageUrl, SafeFetchError, MAX_INPUT_PIXELS } from '@/lib/studio/safe-fetch';
 
 export const maxDuration = 120;
 
@@ -23,6 +26,21 @@ export async function POST(req: NextRequest) {
     const { imageUrl } = body;
     if (!imageUrl || typeof imageUrl !== 'string') {
       return NextResponse.json({ error: 'Missing imageUrl' }, { status: 400 });
+    }
+
+    // Validate before calling SAM2 — the paid Fal call must not run on arbitrary URLs
+    if (!isAllowedImageUrl(imageUrl)) {
+      return NextResponse.json({ error: 'Image URL not allowed' }, { status: 403 });
+    }
+
+    // Free feature, but each call hits paid Fal SAM2 — cap per plan like remove-bg
+    const ip       = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    const credits  = await getOrCreateCredits(session.user.id);
+    const planType = (credits.planType ?? 'free') as keyof typeof RATE_LIMITS.removeBg;
+    const rateLimit = RATE_LIMITS.removeBg[planType] ?? RATE_LIMITS.removeBg.free;
+
+    if (!(await checkRateLimitWithBypass(`auto-split:${ip}:${session.user.id}`, rateLimit, session.user.id))) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const falKey = process.env.FAL_KEY;
@@ -54,9 +72,8 @@ export async function POST(req: NextRequest) {
     console.log(`[auto-split] SAM2 returned ${masks.length} masks`);
 
     // 2) Download original image
-    const origRes = await fetch(imageUrl);
-    const origBuffer = Buffer.from(await origRes.arrayBuffer());
-    const origMeta = await sharp(origBuffer).metadata();
+    const origBuffer = await fetchAllowedImage(imageUrl);
+    const origMeta = await sharp(origBuffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
     const origW = origMeta.width!;
     const origH = origMeta.height!;
     const totalPixels = origW * origH;
@@ -69,8 +86,7 @@ export async function POST(req: NextRequest) {
 
     for (const mask of masks.filter((m: FalMask) => m.url).slice(0, 20)) {
       try {
-        const maskRes = await fetch(mask.url);
-        const maskBuffer = Buffer.from(await maskRes.arrayBuffer());
+        const maskBuffer = await fetchAllowedImage(mask.url);
 
         const maskMeta = await sharp(maskBuffer).metadata();
         const maskResized = (maskMeta.width !== origW || maskMeta.height !== origH)
@@ -153,8 +169,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ cutouts: cutoutUrls, count: cutoutUrls.length });
   } catch (error) {
+    if (error instanceof SafeFetchError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[auto-split] Error:', error);
-    const message = error instanceof Error ? error.message : 'Auto split failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Auto split failed' }, { status: 500 });
   }
 }

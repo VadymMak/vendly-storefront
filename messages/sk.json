@@ -1607,7 +1607,8 @@
       "align": "Zarovnanie",
       "background": "Pozadie",
       "delete": "Odstrániť",
-      "exporting": "Exportujem..."
+      "exporting": "Exportujem...",
+      "exportFailed": "Obrázok sa nepodarilo uložiť. Skúste to znova."
     }
   }
 }

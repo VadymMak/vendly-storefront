@@ -14,6 +14,9 @@ interface Props {
   onCancel: () => void;
 }
 
+// iOS Safari refuses canvases above 16,777,216 px (toBlob returns null) — stay safely below
+const MAX_CANVAS_PIXELS = 16_000_000;
+
 function makeLayer(): MobileTextLayer {
   return {
     id: `txt-${Date.now()}`,
@@ -38,8 +41,8 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const blobUrlRef = useRef<string | null>(null);
 
   function addLayer() {
     const layer = makeLayer();
@@ -67,6 +70,7 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
 
   async function exportComposite() {
     setExporting(true);
+    setExportError(false);
     try {
       // Ensure all fonts are loaded before drawing
       await Promise.all(
@@ -81,12 +85,17 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
         img.src = proxyUrl(imageUrl);
       });
 
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d')!;
+      // Downscale oversized sources (e.g. Upscale 4x) so the canvas stays within iOS limits
+      const srcPixels = img.naturalWidth * img.naturalHeight;
+      const fit = srcPixels > MAX_CANVAS_PIXELS ? Math.sqrt(MAX_CANVAS_PIXELS / srcPixels) : 1;
 
-      ctx.drawImage(img, 0, 0);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(img.naturalWidth * fit);
+      canvas.height = Math.floor(img.naturalHeight * fit);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas 2D context unavailable');
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       const containerW = containerRef.current?.clientWidth ?? 350;
       const scale = canvas.width / containerW;
@@ -143,20 +152,16 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
         ctx.restore();
       }
 
-      const blobUrl = await new Promise<string>((resolve) => {
-        canvas.toBlob((blob) => {
-          const url = URL.createObjectURL(blob!);
-          resolve(url);
-        }, 'image/png');
+      // toBlob returns null when the canvas is too large / out of memory — reject instead of hanging
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))), 'image/png');
       });
 
-      // Revoke previous export blob
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = blobUrl;
-
-      onDone(blobUrl);
+      // Parent (MobileResultScreen) owns this URL and revokes it when replaced / unmounted
+      onDone(URL.createObjectURL(blob));
     } catch (err) {
       console.error('[overlay export]', err);
+      setExportError(true);
       setExporting(false);
     }
   }
@@ -187,6 +192,12 @@ export function MobileTextOverlayEditor({ imageUrl, onDone, onCancel }: Props) {
           {exporting ? t('exporting') : t('done')}
         </button>
       </div>
+
+      {exportError && (
+        <p role="alert" className="mx-4 mb-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          {t('exportFailed')}
+        </p>
+      )}
 
       {/* Canvas area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">

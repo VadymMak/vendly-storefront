@@ -1607,7 +1607,8 @@
       "align": "Ausrichtung",
       "background": "Hintergrund",
       "delete": "Löschen",
-      "exporting": "Exportiere..."
+      "exporting": "Exportiere...",
+      "exportFailed": "Bild konnte nicht gespeichert werden. Bitte erneut versuchen."
     }
   }
 }

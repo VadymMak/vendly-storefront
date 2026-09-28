@@ -43,6 +43,12 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
 
   const displayUrl = compositedImage ?? imageUrl;
 
+  // compositedImage is a blob: URL from the text editor — release it when replaced or on unmount
+  useEffect(() => {
+    if (!compositedImage) return;
+    return () => URL.revokeObjectURL(compositedImage);
+  }, [compositedImage]);
+
   const blobRef = useRef<Blob | null>(null);
 
   // Prefetch blob on mount so Share fires instantly within user gesture (iPhone requirement)

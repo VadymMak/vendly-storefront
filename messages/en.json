@@ -1607,7 +1607,8 @@
       "align": "Align",
       "background": "BG",
       "delete": "Delete",
-      "exporting": "Exporting..."
+      "exporting": "Exporting...",
+      "exportFailed": "Couldn’t save the image. Please try again."
     }
   }
 }

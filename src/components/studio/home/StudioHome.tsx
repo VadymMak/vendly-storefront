@@ -1128,36 +1128,35 @@ export function StudioHome({ userId: _userId }: Props) {
                       openResultInEditor(tool);
                     };
 
-                    const downloadBtn = (
-                      <div className="flex flex-col gap-1.5">
-                        {/* Format selector chips */}
-                        <div className="flex gap-1">
-                          {(['jpg', 'png', 'webp'] as const).map(fmt => (
-                            <button
-                              key={fmt}
-                              onClick={() => setResultDownloadFormat(fmt)}
-                              className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase transition-colors ${
-                                resultDownloadFormat === fmt
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                              }`}
-                            >
-                              {fmt}
-                            </button>
-                          ))}
-                        </div>
-                        {/* Download button */}
-                        <button
-                          onClick={() => void handleResultDownload(latestResult.url)}
-                          disabled={resultDownloading}
-                          className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors disabled:opacity-50"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                          </svg>
-                          {resultDownloading ? 'Converting...' : `Download .${resultDownloadFormat}`}
-                        </button>
+                    const formatChips = (
+                      <div className="flex gap-1.5">
+                        {(['jpg', 'png', 'webp'] as const).map(fmt => (
+                          <button
+                            key={fmt}
+                            onClick={() => setResultDownloadFormat(fmt)}
+                            className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase transition-colors ${
+                              resultDownloadFormat === fmt
+                                ? 'bg-green-600 text-white'
+                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                            }`}
+                          >
+                            {fmt}
+                          </button>
+                        ))}
                       </div>
+                    );
+
+                    const downloadBtn = (
+                      <button
+                        onClick={() => void handleResultDownload(latestResult.url)}
+                        disabled={resultDownloading}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors disabled:opacity-50"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        {resultDownloading ? '...' : `Download .${resultDownloadFormat}`}
+                      </button>
                     );
 
                     const viewBtn = (
@@ -1262,27 +1261,33 @@ export function StudioHome({ userId: _userId }: Props) {
                     // Choose buttons based on operation
                     let primaryRow: ReactNode;
                     let secondaryRow: ReactNode;
+                    let primaryCols = 2;
 
                     switch (op) {
                       case 'improve':
+                        primaryCols = 3;
                         primaryRow = <>{downloadBtn}{viewBtn}{upscaleBtn}</>;
                         secondaryRow = <>{animateBtn}{removeBgBtn}</>;
                         break;
                       case 'remove-bg':
-                        primaryRow = <>{placeProductsBtn}{downloadBtn}</>;
-                        secondaryRow = <>{viewBtn}{animateBtn}{improveBtn}</>;
+                        primaryCols = 3;
+                        primaryRow = <>{placeProductsBtn}{downloadBtn}{viewBtn}</>;
+                        secondaryRow = <>{animateBtn}{improveBtn}</>;
                         break;
                       case 'upscale':
+                        primaryCols = 3;
                         primaryRow = <>{downloadBtn}{viewBtn}{animateBtn}</>;
                         secondaryRow = <>{improveBtn}{removeBgBtn}</>;
                         break;
                       case 'inpaint':
-                        primaryRow = <>{editAgainBtn}{downloadBtn}</>;
-                        secondaryRow = <>{viewBtn}{animateBtn}{improveBtn}</>;
+                        primaryCols = 3;
+                        primaryRow = <>{editAgainBtn}{downloadBtn}{viewBtn}</>;
+                        secondaryRow = <>{animateBtn}{improveBtn}</>;
                         break;
                       case 'place-products':
-                        primaryRow = <>{animateBtn}{downloadBtn}</>;
-                        secondaryRow = <>{viewBtn}{upscaleBtn}{improveBtn}</>;
+                        primaryCols = 3;
+                        primaryRow = <>{animateBtn}{downloadBtn}{viewBtn}</>;
+                        secondaryRow = <>{upscaleBtn}{improveBtn}</>;
                         break;
                       default: // 'generate' or undefined
                         primaryRow = <>{improveBtn}{animateBtn}</>;
@@ -1296,7 +1301,8 @@ export function StudioHome({ userId: _userId }: Props) {
 
                     return (
                       <>
-                        <div className="grid grid-cols-2 gap-2">{primaryRow}</div>
+                        {formatChips}
+                        <div className={primaryCols === 3 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2'}>{primaryRow}</div>
                         <div className="flex gap-2">{secondaryRow}</div>
                         <div className="flex gap-2 pt-1 border-t border-white/[0.06]">
                           <button

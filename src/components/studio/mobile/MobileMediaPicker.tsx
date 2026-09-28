@@ -64,7 +64,7 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
   if (currentImage) {
     return (
       <div className="relative overflow-hidden rounded-xl">
-        <img src={currentImage} alt="Reference" className="w-full rounded-xl object-cover" style={{ maxHeight: 200 }} />
+        <img src={currentImage} alt="Reference" className="w-full rounded-xl object-contain bg-white/[0.04]" style={{ maxHeight: 240 }} />
         <button
           onClick={onClear}
           className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"

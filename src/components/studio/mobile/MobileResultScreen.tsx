@@ -186,7 +186,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         <QuickAction
           icon="✨"
           label={t('improve')}
-          onClick={() => router.push('/studio/m/improve')}
+          onClick={() => router.push(`/studio/m/improve?image=${encodeURIComponent(displayUrl!)}`)}
           last
         />
       </div>

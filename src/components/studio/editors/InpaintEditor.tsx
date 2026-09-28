@@ -157,6 +157,25 @@ function InpaintResultPanel({ onCreateScene }: { onCreateScene: () => void }) {
   );
 }
 
+/**
+ * Export the source canvas as JPEG (PNG exceeded the 10 MB upload limit on large images).
+ * JPEG has no alpha, so transparent areas (e.g. remove-bg cutouts) would turn black —
+ * flatten onto white first so the model sees a neutral background instead.
+ */
+function exportCanvasAsJpeg(source: HTMLCanvasElement): Promise<Blob> {
+  const flat = document.createElement('canvas');
+  flat.width = source.width;
+  flat.height = source.height;
+  const ctx = flat.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('Failed to export image'));
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, flat.width, flat.height);
+  ctx.drawImage(source, 0, 0);
+  return new Promise<Blob>((resolve, reject) => {
+    flat.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Failed to export image'))), 'image/jpeg', 0.85);
+  });
+}
+
 export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -375,13 +394,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     setError(null);
     try {
       const imageCanvas = imageCanvasRef.current!;
-      const imageBlob = await new Promise<Blob>((resolve, reject) => {
-        imageCanvas.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error('Failed to export image')),
-          'image/jpeg',
-          0.85,
-        );
-      });
+      const imageBlob = await exportCanvasAsJpeg(imageCanvas);
 
       const maskBlob = exportMask();
 
@@ -410,13 +423,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     setError(null);
     try {
       const imageCanvas = imageCanvasRef.current!;
-      const imageBlob = await new Promise<Blob>((resolve, reject) => {
-        imageCanvas.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error('Failed to export image')),
-          'image/jpeg',
-          0.85,
-        );
-      });
+      const imageBlob = await exportCanvasAsJpeg(imageCanvas);
 
       const fd = new FormData();
       fd.append('image', imageBlob, 'image.jpg');

@@ -23,7 +23,7 @@ export function MobileLanguageSwitcher() {
   }
 
   return (
-    <div className="flex items-center gap-1" role="radiogroup" aria-label={t('language')}>
+    <div className="flex items-center gap-1.5" role="radiogroup" aria-label={t('language')}>
       {LOCALES.map(({ code, label }) => {
         const active = locale === code;
         return (
@@ -32,7 +32,7 @@ export function MobileLanguageSwitcher() {
             onClick={() => handleChange(code)}
             role="radio"
             aria-checked={active}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none transition-colors ${
+            className={`rounded-full px-2.5 py-2 text-[11px] font-semibold leading-none transition-colors ${
               active
                 ? 'bg-green-600 text-white'
                 : 'bg-white/[0.06] text-gray-400 active:bg-white/[0.12]'

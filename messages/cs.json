@@ -1493,5 +1493,61 @@
       "note": "5 free images + 1 video every month. No credit card required.",
       "button": "Get Started Free"
     }
+  },
+  "mobile": {
+    "shell": { "title": "AI Studio", "credits": "kr" },
+    "nav": { "home": "Domů", "create": "Tvořit", "library": "Knihovna", "chat": "Chat" },
+    "home": { "title": "Tvořte obsah", "subtitle": "pro váš byznys", "recent": "Nedávné", "seeAll": "Zobrazit vše →", "desktopLink": "Použít desktopové studio →" },
+    "tools": {
+      "instagramPost": "Instagram příspěvek", "instagramPostDesc": "Vytvořte příspěvek na sociální sítě",
+      "improvePhoto": "Vylepšit fotku", "improvePhotoDesc": "Vylepšete jakoukoli fotku",
+      "shortVideo": "Krátké video", "shortVideoDesc": "Animujte vaše fotky",
+      "productPhoto": "Produktová fotka", "productPhotoDesc": "Profesionální snímky",
+      "removeBg": "Odstranit pozadí", "removeBgDesc": "Jedním kliknutím",
+      "upscale": "Zvětšit", "upscaleDesc": "Ostřejší obraz",
+      "editReplace": "Upravit / Nahradit", "editReplaceDesc": "Změňte části fotky",
+      "generateVideo": "Generovat video", "generateVideoDesc": "AI video z textu",
+      "placeInScene": "Umístit do scény", "placeInSceneDesc": "Produkty v kontextu",
+      "moreTools": "Další nástroje"
+    },
+    "format": { "title": "Vytvořit příspěvek", "subtitle": "Kde to zveřejníte?" },
+    "input": {
+      "title": "Co prodáváte?", "step": "2/4",
+      "referenceLabel": "Referenční fotka (volitelné)",
+      "describeLabel": "Popište vaši nabídku",
+      "describePlaceholder": "Popište vaši nabídku...",
+      "tapExample": "Klikněte pro příklad", "continue": "Pokračovat",
+      "example1": "Čerstvý kváskový chleba, denně pečený, 3,50 €",
+      "example2": "Střih + úprava vousů, objednejte se dnes",
+      "example3": "Ručně vyráběné svíčky, levandule, 3 za 12 €"
+    },
+    "style": {
+      "title": "Vyberte styl", "step": "3/4",
+      "product": "Čistý, profesionální, studiové osvětlení",
+      "social": "Živé, poutavé, trendový vzhled",
+      "custom": "Nejlepší styl pro váš obsah",
+      "reference": "Jako moje fotka", "referenceDesc": "Použít styl z vaší fotky",
+      "generate": "Generovat"
+    },
+    "generating": {
+      "phase1": "Analyzuji váš obsah...", "phase2": "Píšu dokonalý prompt...",
+      "phase3": "AI maluje váš obrázek...", "phase4": "Přidávám poslední úpravy...",
+      "phase5": "Téměř hotovo...", "creating": "Vytvářím váš {preset}…",
+      "failed": "Generování selhalo", "tryAgain": "Zkusit znovu",
+      "noCredits": "Nedostatek kreditů. Upgradujte svůj plán."
+    },
+    "result": {
+      "title": "Vaše tvorba", "notAvailable": "Obrázek není dostupný", "back": "← Zpět",
+      "share": "Sdílet", "sharing": "Sdílím…", "save": "Uložit",
+      "regenerate": "Regenerovat", "tryStyle": "Zkusit jiný styl",
+      "makeStory": "Vytvořit Story (9:16)", "improve": "Vylepšit obrázek",
+      "model": "Model: {name}", "shareTitle": "Vytvořeno ve VendShop Studio"
+    },
+    "media": {
+      "takePhoto": "Vyfotit", "fromGallery": "Z galerie",
+      "uploading": "Nahrávám...", "uploadFailed": "Nahrávání selhalo. Zkuste znovu.",
+      "removePhoto": "Odstranit fotku"
+    },
+    "lang": { "switchLabel": "Jazyk" }
   }
 }

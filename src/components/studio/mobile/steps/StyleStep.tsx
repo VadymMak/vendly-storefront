@@ -1,16 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { STYLE_CHIPS } from '@/lib/studio/constants';
 
 const MOBILE_STYLE_IDS = ['product', 'social', 'custom'] as const;
 const STYLES = STYLE_CHIPS.filter((s) => (MOBILE_STYLE_IDS as readonly string[]).includes(s.id));
-
-const STYLE_DESC: Record<string, string> = {
-  product: 'Clean, professional, studio lighting',
-  social:  'Vibrant, eye-catching, trending aesthetic',
-  custom:  'Best style for your content',
-};
 
 interface Props {
   onGenerate: (styleId: string) => void;
@@ -19,11 +14,18 @@ interface Props {
 }
 
 export function StyleStep({ onGenerate, onBack, hasReferenceImage }: Props) {
+  const t = useTranslations('mobile.style');
   const [selected, setSelected] = useState<string>('product');
 
   const styles = hasReferenceImage
-    ? [...STYLES, { id: 'reference', label: 'Like my photo', icon: '🖼️' }]
+    ? [...STYLES, { id: 'reference', label: t('reference'), icon: '🖼️' }]
     : STYLES;
+
+  function getDesc(id: string): string {
+    if (id === 'reference') return t('referenceDesc');
+    if (id === 'product' || id === 'social' || id === 'custom') return t(id);
+    return '';
+  }
 
   return (
     <div className="flex flex-col" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
@@ -39,9 +41,9 @@ export function StyleStep({ onGenerate, onBack, hasReferenceImage }: Props) {
           </svg>
         </button>
         <div className="flex-1">
-          <span className="text-base font-semibold text-white">Choose a style</span>
+          <span className="text-base font-semibold text-white">{t('title')}</span>
         </div>
-        <span className="text-xs text-gray-500">3/4</span>
+        <span className="text-xs text-gray-500">{t('step')}</span>
       </div>
 
       <div className="flex flex-col gap-3 px-4 pb-32">
@@ -58,9 +60,7 @@ export function StyleStep({ onGenerate, onBack, hasReferenceImage }: Props) {
             <span className="text-2xl">{s.icon}</span>
             <div className="flex-1">
               <p className="text-sm font-medium text-white">{s.label}</p>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {s.id === 'reference' ? 'Match the style from your photo' : STYLE_DESC[s.id] ?? ''}
-              </p>
+              <p className="mt-0.5 text-xs text-gray-500">{getDesc(s.id)}</p>
             </div>
             {selected === s.id && (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -81,7 +81,7 @@ export function StyleStep({ onGenerate, onBack, hasReferenceImage }: Props) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            Generate
+            {t('generate')}
           </button>
         </div>
       </div>

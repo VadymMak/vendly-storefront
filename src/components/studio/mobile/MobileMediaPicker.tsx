@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Props {
   onImageSelected: (url: string) => void;
@@ -38,6 +39,7 @@ async function compressImage(file: File, maxSize: number, quality: number): Prom
 }
 
 export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Props) {
+  const t = useTranslations('mobile.media');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -55,7 +57,7 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
       const data = await res.json() as { url: string };
       onImageSelected(data.url);
     } catch {
-      setError('Upload failed. Try again.');
+      setError(t('uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -90,7 +92,7 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
             <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
             <circle cx="12" cy="13" r="4" />
           </svg>
-          Take Photo
+          {t('takePhoto')}
         </button>
         <button
           onClick={() => galleryRef.current?.click()}
@@ -101,10 +103,10 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
             <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          From Gallery
+          {t('fromGallery')}
         </button>
       </div>
-      {uploading && <p className="text-center text-xs text-gray-500">Uploading...</p>}
+      {uploading && <p className="text-center text-xs text-gray-500">{t('uploading')}</p>}
       {error && <p className="text-center text-xs text-red-400">{error}</p>}
       <input
         ref={cameraRef}

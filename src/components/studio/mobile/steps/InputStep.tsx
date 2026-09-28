@@ -1,14 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { MobileMediaPicker } from '../MobileMediaPicker';
 import { MobileVoiceInput } from '../MobileVoiceInput';
-
-const EXAMPLES = [
-  'Fresh sourdough bread baked daily, €3.50',
-  'Haircut + beard trim, appointment today',
-  'Handmade candles, lavender scent, 3 for €12',
-];
 
 interface Props {
   onContinue: (data: { description: string; referenceImageUrl?: string }) => void;
@@ -16,6 +11,8 @@ interface Props {
 }
 
 export function InputStep({ onContinue, onBack }: Props) {
+  const t = useTranslations('mobile.input');
+  const EXAMPLES = [t('example1'), t('example2'), t('example3')];
   const [description, setDescription] = useState('');
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>();
   const [exampleIndex, setExampleIndex] = useState(0);
@@ -49,7 +46,7 @@ export function InputStep({ onContinue, onBack }: Props) {
           </svg>
         </button>
         <div className="flex-1">
-          <span className="text-base font-semibold text-white">What are you selling?</span>
+          <span className="text-base font-semibold text-white">{t('title')}</span>
         </div>
         <span className="text-xs text-gray-500">2/4</span>
       </div>
@@ -57,7 +54,7 @@ export function InputStep({ onContinue, onBack }: Props) {
       <div className="flex flex-col gap-5 px-4 pb-32">
         {/* Photo picker */}
         <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Reference photo (optional)</p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{t('referenceLabel')}</p>
           <MobileMediaPicker
             onImageSelected={setReferenceImageUrl}
             currentImage={referenceImageUrl}
@@ -67,12 +64,12 @@ export function InputStep({ onContinue, onBack }: Props) {
 
         {/* Description */}
         <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Describe your offer</p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{t('describeLabel')}</p>
           <div className="relative">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your offer..."
+              placeholder={t('describePlaceholder')}
               rows={4}
               className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] p-4 pr-14 text-sm text-white placeholder-gray-600 focus:border-green-500/50 focus:outline-none"
             />
@@ -91,7 +88,7 @@ export function InputStep({ onContinue, onBack }: Props) {
           >
             <span className="mt-0.5 text-base">💡</span>
             <div>
-              <p className="text-xs font-medium text-gray-400">Tap for example</p>
+              <p className="text-xs font-medium text-gray-400">{t('tapExample')}</p>
               <p className="mt-0.5 text-sm text-gray-500 italic">&quot;{EXAMPLES[exampleIndex]}&quot;</p>
             </div>
           </button>
@@ -106,7 +103,7 @@ export function InputStep({ onContinue, onBack }: Props) {
             disabled={!canContinue}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-base font-semibold text-white active:bg-green-700 disabled:opacity-40"
           >
-            Continue
+            {t('continue')}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polyline points="9 18 15 12 9 6" />
             </svg>

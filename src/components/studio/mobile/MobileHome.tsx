@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useStudioStore } from '@/lib/studio/store';
 import { QuickActionGrid } from './QuickActionGrid';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function MobileHome({ userId: _userId }: Props) {
+  const t = useTranslations('mobile.home');
   const generatedImages = useStudioStore(s => s.generatedImages);
   const recent = generatedImages.slice(0, 10);
 
@@ -16,8 +18,8 @@ export function MobileHome({ userId: _userId }: Props) {
     <div className="flex flex-col gap-6 py-5">
       {/* Hero greeting */}
       <div className="px-4">
-        <h1 className="text-lg font-bold text-white">Create content</h1>
-        <p className="mt-0.5 text-sm text-gray-500">for your business</p>
+        <h1 className="text-lg font-bold text-white">{t('title')}</h1>
+        <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
       </div>
 
       {/* Quick actions grid */}
@@ -27,9 +29,9 @@ export function MobileHome({ userId: _userId }: Props) {
       {recent.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-4">
-            <h2 className="text-sm font-semibold text-white">Recent</h2>
+            <h2 className="text-sm font-semibold text-white">{t('recent')}</h2>
             <Link href="/studio/m/library" className="text-xs text-green-500">
-              See all →
+              {t('seeAll')}
             </Link>
           </div>
           <div className="flex gap-3 overflow-x-auto px-4 pb-1">
@@ -66,7 +68,7 @@ export function MobileHome({ userId: _userId }: Props) {
           href="/studio?force=desktop"
           className="text-xs text-gray-500 underline underline-offset-2"
         >
-          Use desktop studio →
+          {t('desktopLink')}
         </Link>
       </div>
     </div>

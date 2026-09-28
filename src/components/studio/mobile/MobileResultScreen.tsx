@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
 
 interface JobData {
@@ -30,6 +31,7 @@ interface Props {
 
 export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, onTryStyle }: Props) {
   const router = useRouter();
+  const t = useTranslations('mobile.result');
   const [sharing, setSharing] = useState(false);
 
   const imageUrl = inlineResult?.imageUrl ?? job?.outputUrl ?? null;
@@ -61,7 +63,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       if (blob) {
         const file = new File([blob], `vendshop-creation.${extFromMime(blob.type)}`, { type: blob.type });
         if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ title: 'Created with VendShop Studio', files: [file] });
+          await navigator.share({ title: t('shareTitle'), files: [file] });
           setSharing(false);
           return;
         }
@@ -85,8 +87,8 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   if (!imageUrl) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-        <p className="text-gray-400">Image not available</p>
-        <button onClick={() => onBack ? onBack() : router.back()} className="text-sm text-green-500">← Back</button>
+        <p className="text-gray-400">{t('notAvailable')}</p>
+        <button onClick={() => onBack ? onBack() : router.back()} className="text-sm text-green-500">{t('back')}</button>
       </div>
     );
   }
@@ -104,7 +106,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <span className="text-base font-semibold text-white">Your creation</span>
+        <span className="text-base font-semibold text-white">{t('title')}</span>
         <div className="w-9" />
       </div>
 
@@ -127,7 +129,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
           </svg>
-          {sharing ? 'Sharing…' : 'Share'}
+          {sharing ? t('sharing') : t('share')}
         </button>
         <button
           onClick={handleSave}
@@ -136,26 +138,26 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Save
+          {t('save')}
         </button>
       </div>
 
       {/* Quick actions */}
       <div className="mt-5 mx-4 overflow-hidden rounded-2xl border border-white/10">
         {onRegenerate && (
-          <QuickAction icon="🔄" label="Regenerate" onClick={onRegenerate} />
+          <QuickAction icon="🔄" label={t('regenerate')} onClick={onRegenerate} />
         )}
         {onTryStyle && (
-          <QuickAction icon="🎨" label="Try another style" onClick={onTryStyle} />
+          <QuickAction icon="🎨" label={t('tryStyle')} onClick={onTryStyle} />
         )}
         <QuickAction
           icon="📱"
-          label="Make a Story (9:16)"
+          label={t('makeStory')}
           onClick={() => router.push(`/studio/m/create?remake=ig-story&prompt=${encodeURIComponent(prompt ?? '')}`)}
         />
         <QuickAction
           icon="✨"
-          label="Improve this image"
+          label={t('improve')}
           onClick={() => router.push('/studio/m/improve')}
           last
         />
@@ -164,7 +166,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       {/* Meta */}
       {(model || prompt) && (
         <div className="mt-4 px-4 space-y-1">
-          {model && <p className="text-xs text-gray-600">Model: {model}</p>}
+          {model && <p className="text-xs text-gray-600">{t('model', { name: model })}</p>}
           {prompt && (
             <p className="text-xs text-gray-700 line-clamp-2" title={prompt}>{prompt}</p>
           )}

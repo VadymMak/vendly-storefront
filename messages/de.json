@@ -1493,5 +1493,61 @@
       "note": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich.",
       "button": "Kostenlos starten"
     }
+  },
+  "mobile": {
+    "shell": { "title": "AI Studio", "credits": "Cr" },
+    "nav": { "home": "Start", "create": "Erstellen", "library": "Bibliothek", "chat": "Chat" },
+    "home": { "title": "Inhalte erstellen", "subtitle": "für Ihr Geschäft", "recent": "Kürzlich", "seeAll": "Alle anzeigen →", "desktopLink": "Desktop-Studio verwenden →" },
+    "tools": {
+      "instagramPost": "Instagram-Beitrag", "instagramPostDesc": "Social-Media-Beitrag erstellen",
+      "improvePhoto": "Foto verbessern", "improvePhotoDesc": "Jedes Foto verbessern",
+      "shortVideo": "Kurzes Video", "shortVideoDesc": "Fotos animieren",
+      "productPhoto": "Produktfoto", "productPhotoDesc": "Professionelle Aufnahmen",
+      "removeBg": "Hintergrund entfernen", "removeBgDesc": "Mit einem Tippen",
+      "upscale": "Vergrößern", "upscaleDesc": "Schärferes Bild",
+      "editReplace": "Bearbeiten / Ersetzen", "editReplaceDesc": "Teile eines Fotos ändern",
+      "generateVideo": "Video generieren", "generateVideoDesc": "AI-Video aus Text",
+      "placeInScene": "In Szene setzen", "placeInSceneDesc": "Produkte im Kontext",
+      "moreTools": "Mehr Werkzeuge"
+    },
+    "format": { "title": "Beitrag erstellen", "subtitle": "Wo möchten Sie posten?" },
+    "input": {
+      "title": "Was verkaufen Sie?", "step": "2/4",
+      "referenceLabel": "Referenzfoto (optional)",
+      "describeLabel": "Beschreiben Sie Ihr Angebot",
+      "describePlaceholder": "Beschreiben Sie Ihr Angebot...",
+      "tapExample": "Für Beispiel tippen", "continue": "Weiter",
+      "example1": "Frisches Sauerteigbrot, täglich gebacken, 3,50 €",
+      "example2": "Haarschnitt + Bartpflege, Termin heute",
+      "example3": "Handgemachte Kerzen, Lavendel, 3 für 12 €"
+    },
+    "style": {
+      "title": "Stil wählen", "step": "3/4",
+      "product": "Sauber, professionell, Studiobeleuchtung",
+      "social": "Lebendig, auffällig, trendiger Look",
+      "custom": "Bester Stil für Ihre Inhalte",
+      "reference": "Wie mein Foto", "referenceDesc": "Stil aus Ihrem Foto übernehmen",
+      "generate": "Generieren"
+    },
+    "generating": {
+      "phase1": "Verstehe Ihren Inhalt...", "phase2": "Schreibe den perfekten Prompt...",
+      "phase3": "AI malt Ihr Bild...", "phase4": "Letzte Feinheiten...",
+      "phase5": "Fast fertig...", "creating": "Erstelle Ihr {preset}…",
+      "failed": "Generierung fehlgeschlagen", "tryAgain": "Erneut versuchen",
+      "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan."
+    },
+    "result": {
+      "title": "Ihre Kreation", "notAvailable": "Bild nicht verfügbar", "back": "← Zurück",
+      "share": "Teilen", "sharing": "Teile…", "save": "Speichern",
+      "regenerate": "Neu generieren", "tryStyle": "Anderen Stil probieren",
+      "makeStory": "Story erstellen (9:16)", "improve": "Bild verbessern",
+      "model": "Modell: {name}", "shareTitle": "Erstellt mit VendShop Studio"
+    },
+    "media": {
+      "takePhoto": "Foto aufnehmen", "fromGallery": "Aus Galerie",
+      "uploading": "Lade hoch...", "uploadFailed": "Upload fehlgeschlagen. Erneut versuchen.",
+      "removePhoto": "Foto entfernen"
+    },
+    "lang": { "switchLabel": "Sprache" }
   }
 }

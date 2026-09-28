@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
-const TABS = [
+type TabKey = 'home' | 'create' | 'library' | 'chat';
+
+const TAB_DEFS: { key: TabKey; href: string; icon: React.ReactNode }[] = [
   {
-    label: 'Home',
+    key: 'home',
     href: '/studio/m',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -15,7 +18,7 @@ const TABS = [
     ),
   },
   {
-    label: 'Create',
+    key: 'create',
     href: '/studio/m/create',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -24,7 +27,7 @@ const TABS = [
     ),
   },
   {
-    label: 'Library',
+    key: 'library',
     href: '/studio/m/library',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -36,7 +39,7 @@ const TABS = [
     ),
   },
   {
-    label: 'Chat',
+    key: 'chat',
     href: '/studio/m/chat',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -44,15 +47,16 @@ const TABS = [
       </svg>
     ),
   },
-] as const;
+];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const t = useTranslations('mobile.nav');
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#0d0d14]/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-16 items-center justify-around">
-        {TABS.map((tab) => {
+        {TAB_DEFS.map((tab) => {
           const isActive = tab.href === '/studio/m'
             ? pathname === '/studio/m'
             : pathname.startsWith(tab.href);
@@ -66,7 +70,7 @@ export function MobileBottomNav() {
               }`}
             >
               {tab.icon}
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-[10px] font-medium">{t(tab.key)}</span>
             </Link>
           );
         })}

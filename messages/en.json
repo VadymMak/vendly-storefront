@@ -1493,5 +1493,61 @@
       "note": "5 free images + 1 video every month. No credit card required.",
       "button": "Get Started Free"
     }
+  },
+  "mobile": {
+    "shell": { "title": "AI Studio", "credits": "cr" },
+    "nav": { "home": "Home", "create": "Create", "library": "Library", "chat": "Chat" },
+    "home": { "title": "Create content", "subtitle": "for your business", "recent": "Recent", "seeAll": "See all →", "desktopLink": "Use desktop studio →" },
+    "tools": {
+      "instagramPost": "Instagram Post", "instagramPostDesc": "Create a social post",
+      "improvePhoto": "Improve Photo", "improvePhotoDesc": "Enhance any photo",
+      "shortVideo": "Short Video", "shortVideoDesc": "Animate your photos",
+      "productPhoto": "Product Photo", "productPhotoDesc": "Professional shots",
+      "removeBg": "Remove Background", "removeBgDesc": "One-tap removal",
+      "upscale": "Upscale", "upscaleDesc": "Make it sharper",
+      "editReplace": "Edit / Replace", "editReplaceDesc": "Change parts of a photo",
+      "generateVideo": "Generate Video", "generateVideoDesc": "AI video from text",
+      "placeInScene": "Place in Scene", "placeInSceneDesc": "Products in context",
+      "moreTools": "More tools"
+    },
+    "format": { "title": "Create Post", "subtitle": "Where will you post it?" },
+    "input": {
+      "title": "What are you selling?", "step": "2/4",
+      "referenceLabel": "Reference photo (optional)",
+      "describeLabel": "Describe your offer",
+      "describePlaceholder": "Describe your offer...",
+      "tapExample": "Tap for example", "continue": "Continue",
+      "example1": "Fresh sourdough bread baked daily, €3.50",
+      "example2": "Haircut + beard trim, appointment today",
+      "example3": "Handmade candles, lavender scent, 3 for €12"
+    },
+    "style": {
+      "title": "Choose a style", "step": "3/4",
+      "product": "Clean, professional, studio lighting",
+      "social": "Vibrant, eye-catching, trending aesthetic",
+      "custom": "Best style for your content",
+      "reference": "Like my photo", "referenceDesc": "Match the style from your photo",
+      "generate": "Generate"
+    },
+    "generating": {
+      "phase1": "Understanding your content...", "phase2": "Writing the perfect prompt...",
+      "phase3": "AI is painting your image...", "phase4": "Adding finishing touches...",
+      "phase5": "Almost ready...", "creating": "Creating your {preset}…",
+      "failed": "Generation failed", "tryAgain": "Try again",
+      "noCredits": "Not enough credits. Upgrade your plan."
+    },
+    "result": {
+      "title": "Your creation", "notAvailable": "Image not available", "back": "← Back",
+      "share": "Share", "sharing": "Sharing…", "save": "Save",
+      "regenerate": "Regenerate", "tryStyle": "Try another style",
+      "makeStory": "Make a Story (9:16)", "improve": "Improve this image",
+      "model": "Model: {name}", "shareTitle": "Created with VendShop Studio"
+    },
+    "media": {
+      "takePhoto": "Take Photo", "fromGallery": "From Gallery",
+      "uploading": "Uploading...", "uploadFailed": "Upload failed. Try again.",
+      "removePhoto": "Remove photo"
+    },
+    "lang": { "switchLabel": "Language" }
   }
 }

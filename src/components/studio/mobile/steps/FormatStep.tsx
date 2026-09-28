@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { PLATFORM_IMAGE_PRESETS } from '@/lib/studio/constants';
 
 const MOBILE_FORMAT_IDS = ['ig-feed', 'ig-story', 'fb-post', 'tiktok', 'product', 'square'] as const;
@@ -28,6 +29,7 @@ function AspectPreview({ ratio }: { ratio: string }) {
 }
 
 export function FormatStep({ onSelect }: Props) {
+  const t = useTranslations('mobile.format');
   const [selected, setSelected] = useState<string | null>(null);
 
   function handleTap(id: string) {
@@ -44,11 +46,11 @@ export function FormatStep({ onSelect }: Props) {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </Link>
-        <span className="text-base font-semibold text-white">Create Post</span>
+        <span className="text-base font-semibold text-white">{t('title')}</span>
       </div>
 
       <div className="px-4 pb-3">
-        <p className="text-sm text-gray-400">Where will you post it?</p>
+        <p className="text-sm text-gray-400">{t('subtitle')}</p>
       </div>
 
       {/* Grid */}

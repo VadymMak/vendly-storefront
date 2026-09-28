@@ -2,19 +2,18 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface QuickAction {
-  title: string;
-  subtitle?: string;
+  titleKey: string;
+  subtitleKey: string;
   href: string;
   icon: React.ReactNode;
   primary?: boolean;
 }
 
-const PRIMARY_ACTIONS: QuickAction[] = [
+const PRIMARY_ACTION_DEFS: Omit<QuickAction, 'titleKey' | 'subtitleKey'>[] = [
   {
-    title: 'Instagram Post',
-    subtitle: 'Create a social post',
     href: '/studio/m/create',
     primary: true,
     icon: (
@@ -25,8 +24,6 @@ const PRIMARY_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Improve Photo',
-    subtitle: 'Enhance any photo',
     href: '/studio/m/improve',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -35,8 +32,6 @@ const PRIMARY_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Short Video',
-    subtitle: 'Animate your photos',
     href: '/studio/m/video',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -46,8 +41,6 @@ const PRIMARY_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Product Photo',
-    subtitle: 'Professional shots',
     href: '/studio/m/product-photo',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -58,8 +51,6 @@ const PRIMARY_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Remove Background',
-    subtitle: 'One-tap removal',
     href: '/studio/m/remove-bg',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -72,8 +63,6 @@ const PRIMARY_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Upscale',
-    subtitle: 'Make it sharper',
     href: '/studio/m/upscale',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -86,10 +75,11 @@ const PRIMARY_ACTIONS: QuickAction[] = [
   },
 ];
 
-const MORE_ACTIONS: QuickAction[] = [
+const PRIMARY_TITLE_KEYS = ['instagramPost', 'improvePhoto', 'shortVideo', 'productPhoto', 'removeBg', 'upscale'] as const;
+const PRIMARY_SUBTITLE_KEYS = ['instagramPostDesc', 'improvePhotoDesc', 'shortVideoDesc', 'productPhotoDesc', 'removeBgDesc', 'upscaleDesc'] as const;
+
+const MORE_ACTION_DEFS: Omit<QuickAction, 'titleKey' | 'subtitleKey'>[] = [
   {
-    title: 'Edit / Replace',
-    subtitle: 'Change parts of a photo',
     href: '/studio/m/inpaint',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -99,8 +89,6 @@ const MORE_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Generate Video',
-    subtitle: 'AI video from text',
     href: '/studio/m/generate-video',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -110,8 +98,6 @@ const MORE_ACTIONS: QuickAction[] = [
     ),
   },
   {
-    title: 'Place in Scene',
-    subtitle: 'Products in context',
     href: '/studio/m/product-photo?scene=1',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -123,32 +109,41 @@ const MORE_ACTIONS: QuickAction[] = [
   },
 ];
 
-function ActionCard({ action }: { action: QuickAction }) {
+const MORE_TITLE_KEYS = ['editReplace', 'generateVideo', 'placeInScene'] as const;
+const MORE_SUBTITLE_KEYS = ['editReplaceDesc', 'generateVideoDesc', 'placeInSceneDesc'] as const;
+
+function ActionCard({ title, subtitle, href, icon, primary }: { title: string; subtitle: string; href: string; icon: React.ReactNode; primary?: boolean }) {
   return (
     <Link
-      href={action.href}
-      className="flex h-[120px] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-all active:scale-[0.97] hover:bg-white/[0.08]"
+      href={href}
+      className={`flex h-[120px] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-all active:scale-[0.97] hover:bg-white/[0.08] ${primary ? 'col-span-2' : ''}`}
     >
-      <span className="text-green-500">{action.icon}</span>
+      <span className="text-green-500">{icon}</span>
       <div>
-        <p className="text-sm font-semibold text-white leading-tight">{action.title}</p>
-        {action.subtitle && (
-          <p className="mt-0.5 text-[11px] text-gray-500 leading-tight">{action.subtitle}</p>
-        )}
+        <p className="text-sm font-semibold text-white leading-tight">{title}</p>
+        <p className="mt-0.5 text-[11px] text-gray-500 leading-tight">{subtitle}</p>
       </div>
     </Link>
   );
 }
 
 export function QuickActionGrid() {
+  const t = useTranslations('mobile.tools');
   const [showMore, setShowMore] = useState(false);
 
   return (
     <div className="space-y-4">
       {/* Primary 2×3 grid */}
       <div className="grid grid-cols-2 gap-3 px-4">
-        {PRIMARY_ACTIONS.map((action) => (
-          <ActionCard key={action.href} action={action} />
+        {PRIMARY_ACTION_DEFS.map((def, i) => (
+          <ActionCard
+            key={def.href}
+            title={t(PRIMARY_TITLE_KEYS[i])}
+            subtitle={t(PRIMARY_SUBTITLE_KEYS[i])}
+            href={def.href}
+            icon={def.icon}
+            primary={def.primary}
+          />
         ))}
       </div>
 
@@ -158,7 +153,7 @@ export function QuickActionGrid() {
           onClick={() => setShowMore(v => !v)}
           className="flex w-full items-center justify-between py-2 text-sm font-medium text-gray-400 transition-colors hover:text-white"
         >
-          <span>More tools</span>
+          <span>{t('moreTools')}</span>
           <svg
             width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -171,8 +166,14 @@ export function QuickActionGrid() {
 
         {showMore && (
           <div className="grid grid-cols-2 gap-3 pt-2">
-            {MORE_ACTIONS.map((action) => (
-              <ActionCard key={action.href} action={action} />
+            {MORE_ACTION_DEFS.map((def, i) => (
+              <ActionCard
+                key={def.href}
+                title={t(MORE_TITLE_KEYS[i])}
+                subtitle={t(MORE_SUBTITLE_KEYS[i])}
+                href={def.href}
+                icon={def.icon}
+              />
             ))}
           </div>
         )}

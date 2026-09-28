@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
 
 interface GenerateParams {
@@ -23,15 +24,17 @@ interface Props {
   onError: (error: string) => void;
 }
 
-const PHASES = [
-  { ms: 0,     label: 'Understanding your content...' },
-  { ms: 2000,  label: 'Writing the perfect prompt...' },
-  { ms: 5000,  label: 'AI is painting your image...' },
-  { ms: 10000, label: 'Adding finishing touches...' },
-  { ms: 20000, label: 'Almost ready...' },
-];
-
 export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
+  const t = useTranslations('mobile.generating');
+
+  const PHASES = [
+    { ms: 0,     label: t('phase1') },
+    { ms: 2000,  label: t('phase2') },
+    { ms: 5000,  label: t('phase3') },
+    { ms: 10000, label: t('phase4') },
+    { ms: 20000, label: t('phase5') },
+  ];
+
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -84,10 +87,10 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
         });
 
         if (!res.ok) {
-          let errText = 'Generation failed';
+          let errText = t('failed');
           try {
             const j = await res.json() as { error?: string; needsUpgrade?: boolean };
-            if (j.needsUpgrade) errText = 'Not enough credits. Upgrade your plan.';
+            if (j.needsUpgrade) errText = t('noCredits');
             else if (j.error) errText = j.error;
           } catch {}
           setErrorMsg(errText);
@@ -103,7 +106,7 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
           onComplete({ imageUrl, prompt: styledPrompt, model: 'fast' });
         }, 300);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Generation failed';
+        const msg = e instanceof Error ? e.message : t('failed');
         setErrorMsg(msg);
         onError(msg);
       }
@@ -120,13 +123,13 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
     return (
       <div className="flex flex-col items-center justify-center gap-5 px-8 py-20 text-center">
         <div className="text-4xl">⚠️</div>
-        <p className="text-base font-semibold text-white">Generation failed</p>
+        <p className="text-base font-semibold text-white">{t('failed')}</p>
         <p className="text-sm text-gray-400">{errorMsg}</p>
         <button
           onClick={() => onError(errorMsg)}
           className="mt-4 rounded-full border border-white/10 px-6 py-2.5 text-sm text-gray-300"
         >
-          Try again
+          {t('tryAgain')}
         </button>
       </div>
     );
@@ -159,7 +162,7 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
       {/* Labels */}
       <div className="text-center">
         <p className="text-sm font-semibold text-white">
-          Creating your {preset?.label ?? 'image'}…
+          {t('creating', { preset: preset?.label ?? '' })}
         </p>
         <p className="mt-1.5 text-xs text-gray-500">{PHASES[phaseIndex].label}</p>
       </div>

@@ -7,9 +7,14 @@ const ALLOWED_HOSTS = [
   'pbxt.replicate.delivery',
   'fal.media',
   'fal.ai',
+  'fal-cdn.com',
   'klingai.com',
   'bfl.ai',
   'vercel-storage.com',
+  'x.ai',
+  'xai.com',
+  'storage.googleapis.com',
+  'oaidalleapiprodscus.blob.core.windows.net',
 ];
 
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB

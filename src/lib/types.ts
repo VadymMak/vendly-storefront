@@ -629,16 +629,13 @@ export type EnhancementCategory = 'food' | 'product' | 'portrait' | 'general';
 export type EnhancementIntensity = 'natural' | 'professional' | 'bold';
 
 export interface SharpEnhanceParams {
-  normalize: boolean;
   brightness: number;
   saturation: number;
   lightness: number;
-  gamma: number;
   contrast: number;
-  sharpen: number;
-  claheWidth: number;
-  claheMaxSlope: number;
-  warmth: number;
+  sharpenSigma: number;
+  sharpenFlat: number;
+  sharpenJagged: number;
 }
 
 export interface EnhanceOutput {

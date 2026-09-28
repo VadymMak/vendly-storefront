@@ -2,10 +2,9 @@ import sharp from 'sharp';
 import type { EnhanceOutput, SharpEnhanceParams } from '@/lib/types';
 
 /**
- * Deterministic photo enhancement pipeline using Sharp.
- * No AI — just professional-grade photo correction.
- * Runs server-side, ~100-300ms for a typical photo.
- * Outputs JPEG, or PNG when the input has transparency (e.g. cutouts).
+ * Deterministic photo enhancement — 3 safe Sharp operations.
+ * No CLAHE, no normalize, no gamma, no color matrix.
+ * ~50-200ms, deterministic, no AI.
  */
 export async function enhanceDeterministic(
   inputBuffer: Buffer,
@@ -13,20 +12,11 @@ export async function enhanceDeterministic(
 ): Promise<EnhanceOutput> {
   const { hasAlpha } = await sharp(inputBuffer).metadata();
 
-  // 0. Apply EXIF orientation — re-encoding strips it, so phone photos would come out sideways
-  let pipeline = sharp(inputBuffer).rotate();
+  let pipeline = sharp(inputBuffer, { failOn: 'none' })
+    .rotate()
+    .toColourspace('srgb');
 
-  // 1. Auto-normalize (stretch histogram for better dynamic range)
-  if (params.normalize) {
-    pipeline = pipeline.normalize();
-  }
-
-  // 2. Gamma correction (lift shadows, control midtones)
-  if (params.gamma !== 2.2) {
-    pipeline = pipeline.gamma(params.gamma);
-  }
-
-  // 3. Brightness, saturation, lightness (HSL adjustments)
+  // 1. Brightness, saturation, lightness
   if (
     params.brightness !== 1.0 ||
     params.saturation !== 1.0 ||
@@ -39,43 +29,31 @@ export async function enhanceDeterministic(
     });
   }
 
-  // 4. Contrast via linear transform: output = input * contrast + offset
+  // 2. Global contrast via linear transform, pivoted around mid-gray (128)
   if (params.contrast !== 1.0) {
     const offset = 128 * (1 - params.contrast);
     pipeline = pipeline.linear(params.contrast, offset);
   }
 
-  // 5. Warmth via recomb matrix (shifts red/blue balance, preserves all colors)
-  if (params.warmth !== 0) {
-    const w = params.warmth / 100;
-    pipeline = pipeline.recomb([
-      [1 + w * 0.5, w * 0.1, 0],
-      [0, 1, 0],
-      [0, w * 0.1, 1 - w * 0.5],
-    ]);
-  }
-
-  // 6. CLAHE — local contrast enhancement (makes textures pop)
-  if (params.claheWidth > 0) {
-    pipeline = pipeline.clahe({
-      width: params.claheWidth,
-      height: params.claheWidth,
-      maxSlope: params.claheMaxSlope,
-    });
-  }
-
-  // 7. Sharpening (unsharp mask)
-  if (params.sharpen > 0) {
+  // 3. Sharpening (unsharp mask with controlled flat/edge params)
+  if (params.sharpenSigma > 0) {
     pipeline = pipeline.sharpen({
-      sigma: params.sharpen,
+      sigma: params.sharpenSigma,
+      m1: params.sharpenFlat,
+      m2: params.sharpenJagged,
+      x1: 2.5,
+      y2: 8,
+      y3: 8,
     });
   }
 
   if (hasAlpha) {
-    const buffer = await pipeline.png({ compressionLevel: 9 }).toBuffer();
+    const buffer = await pipeline.png({ compressionLevel: 8 }).toBuffer();
     return { buffer, contentType: 'image/png', ext: 'png' };
   }
 
-  const buffer = await pipeline.jpeg({ quality: 92, mozjpeg: true }).toBuffer();
+  const buffer = await pipeline
+    .jpeg({ quality: 92, mozjpeg: true, chromaSubsampling: '4:4:4' })
+    .toBuffer();
   return { buffer, contentType: 'image/jpeg', ext: 'jpg' };
 }

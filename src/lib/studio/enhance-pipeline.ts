@@ -35,6 +35,16 @@ export async function enhanceDeterministic(
     pipeline = pipeline.linear(params.contrast, offset);
   }
 
+  // 2.5. Warmth: shift color balance via RGB matrix
+  if (params.warmth !== 0) {
+    const w = params.warmth / 100;
+    pipeline = pipeline.recomb([
+      [1 + w * 0.15, w * 0.05, 0],
+      [0, 1 + w * 0.05, 0],
+      [0, w * 0.02, 1 - w * 0.12],
+    ]);
+  }
+
   // 3. Sharpening (unsharp mask with controlled flat/edge params)
   if (params.sharpenSigma > 0) {
     pipeline = pipeline.sharpen({

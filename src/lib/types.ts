@@ -636,6 +636,7 @@ export interface SharpEnhanceParams {
   sharpenSigma: number;
   sharpenFlat: number;
   sharpenJagged: number;
+  warmth: number;
 }
 
 export interface EnhanceOutput {

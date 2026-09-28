@@ -94,7 +94,7 @@ function EnhancedSidebar({
       <div className="border-t border-white/10 pt-4">
         <p className="text-sm font-medium text-gray-300">Want more?</p>
         <p className="mt-1 text-xs text-gray-400">
-          AI Finish uses Grok to add creative polish — professional lighting feel, richer atmosphere. It may slightly reinterpret small visual details.
+          AI Style uses Grok to add creative polish — professional lighting feel, richer atmosphere. It may slightly reinterpret small visual details.
         </p>
         <button
           onClick={onAiFinish}
@@ -107,7 +107,7 @@ function EnhancedSidebar({
               AI processing...
             </span>
           ) : (
-            '✨ AI Finish · Free'
+            '✨ AI Style · Free'
           )}
         </button>
       </div>
@@ -125,7 +125,7 @@ function AiFinishedSidebar({
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
-        <p className="text-sm font-medium text-purple-400">✨ AI Finish applied</p>
+        <p className="text-sm font-medium text-purple-400">✨ AI Style applied</p>
         <p className="mt-1 text-xs text-gray-400">
           Grok added creative photographic polish. Compare with the enhanced version.
         </p>
@@ -136,7 +136,7 @@ function AiFinishedSidebar({
           onClick={onKeepAi}
           className="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-500"
         >
-          Keep AI Finish
+          Keep AI Style
         </button>
         <button
           onClick={onKeepOriginal}
@@ -225,7 +225,7 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
       const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
-        throw new Error(data.error ?? 'AI Finish failed');
+        throw new Error(data.error ?? 'AI Style failed');
       }
       const data = await res.json() as { url: string };
 
@@ -246,7 +246,7 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
 
       setStep('ai-finished');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI Finish failed');
+      setError(e instanceof Error ? e.message : 'AI Style failed');
       setStep('enhanced');
     }
   };
@@ -321,7 +321,7 @@ export function ImproveEditor({ imageUrl, imageFile, onAccept, onClose }: Improv
             beforeUrl={imageUrl}
             afterUrl={isAiFinished && aiFinishUrl ? aiFinishUrl : enhancedUrl}
             beforeLabel="Original"
-            afterLabel={isAiFinished ? 'AI Finish' : 'Enhanced'}
+            afterLabel={isAiFinished ? 'AI Style' : 'Enhanced'}
           />
         </div>
       ) : (

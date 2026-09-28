@@ -2,40 +2,12 @@
 
 import { useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { compressImage } from '@/lib/studio/compress-image';
 
 interface Props {
   onImageSelected: (url: string) => void;
   currentImage?: string;
   onClear: () => void;
-}
-
-async function compressImage(file: File, maxSize: number, quality: number): Promise<File> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      if (width > maxSize || height > maxSize) {
-        if (width > height) {
-          height = Math.round((height / width) * maxSize);
-          width = maxSize;
-        } else {
-          width = Math.round((width / height) * maxSize);
-          height = maxSize;
-        }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => resolve(new File([blob!], file.name, { type: 'image/jpeg' })),
-        'image/jpeg',
-        quality,
-      );
-    };
-    img.src = URL.createObjectURL(file);
-  });
 }
 
 export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Props) {
@@ -49,7 +21,7 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
     setUploading(true);
     setError(null);
     try {
-      const compressed = await compressImage(file, 2048, 0.85);
+      const compressed = await compressImage(file);
       const fd = new FormData();
       fd.append('image', compressed);
       const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });

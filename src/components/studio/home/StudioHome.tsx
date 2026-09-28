@@ -18,6 +18,7 @@ import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
 import { AnimateEditor } from '@/components/studio/editors/AnimateEditor';
 import { GenerateVideoEditor } from '@/components/studio/editors/GenerateVideoEditor';
+import { compressImage } from '@/lib/studio/compress-image';
 import { ImageDetailModal } from '@/components/studio/generate/ImageDetailModal';
 import { VideoDetailModal } from '@/components/studio/generate/VideoDetailModal';
 
@@ -324,9 +325,10 @@ export function StudioHome({ userId: _userId }: Props) {
   const heroUploadRef      = useRef<HTMLInputElement>(null);
   const editorBlobUrlsRef  = useRef<Set<string>>(new Set());
 
-  function handleHeroUpload(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
+  async function handleHeroUpload(e: ChangeEvent<HTMLInputElement>) {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile || !rawFile.type.startsWith('image/')) return;
+    const file = await compressImage(rawFile);
     const url = URL.createObjectURL(file);
 
     if (pendingIntent && pendingIntent !== 'generate-image' && pendingIntent !== 'generate-video') {
@@ -348,12 +350,13 @@ export function StudioHome({ userId: _userId }: Props) {
     e.target.value = '';
   }
 
-  function handleHeroDrop(e: DragEvent<HTMLDivElement>) {
+  async function handleHeroDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    const rawFile = e.dataTransfer.files[0];
+    if (!rawFile || !rawFile.type.startsWith('image/')) return;
+    const file = await compressImage(rawFile);
     const url = URL.createObjectURL(file);
 
     if (pendingIntent && pendingIntent !== 'generate-image' && pendingIntent !== 'generate-video') {
@@ -682,9 +685,10 @@ export function StudioHome({ userId: _userId }: Props) {
       : `/api/studio/proxy-media?url=${encodeURIComponent(img.url)}`;
     fetch(fetchUrl)
       .then(r => r.blob())
-      .then(blob => {
-        const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
-        const blobUrl = URL.createObjectURL(blob);
+      .then(async (blob) => {
+        const rawFile = new File([blob], `studio-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+        const file = await compressImage(rawFile);
+        const blobUrl = URL.createObjectURL(file);
         editorBlobUrlsRef.current.add(blobUrl);
         setActiveEditor({ tool, imageUrl: blobUrl, imageFile: file });
       })
@@ -700,9 +704,10 @@ export function StudioHome({ userId: _userId }: Props) {
       : `/api/studio/proxy-media?url=${encodeURIComponent(latestResult.url)}`;
     fetch(fetchUrl)
       .then(r => r.blob())
-      .then(blob => {
-        const file = new File([blob], `studio-${Date.now()}.png`, { type: blob.type || 'image/png' });
-        const blobUrl = URL.createObjectURL(blob);
+      .then(async (blob) => {
+        const rawFile = new File([blob], `studio-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+        const file = await compressImage(rawFile);
+        const blobUrl = URL.createObjectURL(file);
         editorBlobUrlsRef.current.add(blobUrl);
         setActiveEditor({ tool, imageUrl: blobUrl, imageFile: file });
       })

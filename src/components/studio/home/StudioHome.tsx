@@ -255,6 +255,13 @@ export function StudioHome({ userId: _userId }: Props) {
   const [modalImage, setModalImage] = useState<MediaItem | null>(null);
   const [modalVideo, setModalVideo] = useState<MediaItem | null>(null);
 
+  // ── Result card download ─────────────────────────────────────────────────────
+  const [resultDownloadFormat, setResultDownloadFormat] = useState<'jpg' | 'png' | 'webp'>('jpg');
+  const [resultDownloading,    setResultDownloading]    = useState(false);
+
+  // ── Simple fullscreen preview ────────────────────────────────────────────────
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   // ── Mobile tab ──────────────────────────────────────────────────────────────
   const [mobileTab, setMobileTab] = useState<'create' | 'edit'>('create');
 
@@ -606,6 +613,45 @@ export function StudioHome({ userId: _userId }: Props) {
       window.open(img.url, '_blank');
     }
   }
+
+  // ── Result card download (format-aware) ────────────────────────────────────
+
+  async function handleResultDownload(url: string) {
+    setResultDownloading(true);
+    try {
+      const res = await fetch('/api/studio/convert-format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: url, format: resultDownloadFormat }),
+      });
+      if (!res.ok) throw new Error('Conversion failed');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `vendshop-studio.${resultDownloadFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch (err) {
+      console.error('[result-download]', err);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `studio-image-${Date.now()}.png`;
+      a.click();
+    } finally {
+      setResultDownloading(false);
+    }
+  }
+
+  // ── Close preview on Escape ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!previewUrl) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setPreviewUrl(null); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [previewUrl]);
 
   // ── Open editor from result card ────────────────────────────────────────────
 
@@ -970,13 +1016,15 @@ export function StudioHome({ userId: _userId }: Props) {
                   )}
                 </div>
 
-                {/* Preview — click opens detail modal */}
+                {/* Preview — videos open detail modal, images open simple preview */}
                 <button
                   onClick={() => {
-                    const match = generatedImages.find(img => img.url === latestResult.url);
-                    if (!match) return;
-                    if (latestResult.type === 'video') setModalVideo(match);
-                    else setModalImage(match);
+                    if (latestResult.type === 'video') {
+                      const match = generatedImages.find(img => img.url === latestResult.url);
+                      if (match) setModalVideo(match);
+                    } else {
+                      setPreviewUrl(latestResult.url);
+                    }
                   }}
                   className="relative w-full rounded-xl overflow-hidden bg-black/40 border border-white/10 group cursor-pointer"
                 >
@@ -995,10 +1043,14 @@ export function StudioHome({ userId: _userId }: Props) {
                       className="w-full max-h-[320px] object-contain"
                     />
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-70 transition-opacity" aria-hidden="true">
-                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                    </svg>
+                  {/* Preview hint overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                      </svg>
+                      Preview
+                    </div>
                   </div>
                 </button>
 
@@ -1083,20 +1135,35 @@ export function StudioHome({ userId: _userId }: Props) {
                     };
 
                     const downloadBtn = (
-                      <button
-                        onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = latestResult.url;
-                          a.download = `studio-${op || 'image'}-${Date.now()}.${outputFormat}`;
-                          a.click();
-                        }}
-                        className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download
-                      </button>
+                      <div className="flex flex-col gap-1.5">
+                        {/* Format selector chips */}
+                        <div className="flex gap-1">
+                          {(['jpg', 'png', 'webp'] as const).map(fmt => (
+                            <button
+                              key={fmt}
+                              onClick={() => setResultDownloadFormat(fmt)}
+                              className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase transition-colors ${
+                                resultDownloadFormat === fmt
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                              }`}
+                            >
+                              {fmt}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Download button */}
+                        <button
+                          onClick={() => void handleResultDownload(latestResult.url)}
+                          disabled={resultDownloading}
+                          className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/[0.03] transition-colors disabled:opacity-50"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          {resultDownloading ? 'Converting...' : `Download .${resultDownloadFormat}`}
+                        </button>
+                      </div>
                     );
 
                     const animateBtn = (
@@ -1709,6 +1776,49 @@ export function StudioHome({ userId: _userId }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
           Saved to My Work
+        </div>
+      )}
+
+      {/* ── Simple fullscreen preview overlay ───────────────────────────── */}
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90"
+          onClick={() => setPreviewUrl(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Back button top-left */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); }}
+            className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm hover:bg-white/20 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back
+          </button>
+
+          {/* Close X button top-right */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); }}
+            className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm hover:bg-white/20 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+
+          {/* Full-size image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+            draggable={false}
+          />
         </div>
       )}
     </div>

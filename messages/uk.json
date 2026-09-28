@@ -1497,7 +1497,8 @@
   "mobile": {
     "shell": {
       "title": "AI Студія",
-      "credits": "кр"
+      "credits": "кр",
+      "language": "Мова"
     },
     "nav": {
       "home": "Головна",

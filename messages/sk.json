@@ -1497,7 +1497,8 @@
   "mobile": {
     "shell": {
       "title": "AI Štúdio",
-      "credits": "kr"
+      "credits": "kr",
+      "language": "Jazyk"
     },
     "nav": {
       "home": "Domov",

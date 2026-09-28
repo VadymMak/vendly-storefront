@@ -1497,7 +1497,8 @@
   "mobile": {
     "shell": {
       "title": "AI Studio",
-      "credits": "kr"
+      "credits": "kr",
+      "language": "Jazyk"
     },
     "nav": {
       "home": "Domů",

@@ -1497,7 +1497,8 @@
   "mobile": {
     "shell": {
       "title": "AI Studio",
-      "credits": "Cr"
+      "credits": "Cr",
+      "language": "Sprache"
     },
     "nav": {
       "home": "Start",

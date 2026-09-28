@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { downloadImage } from '@/lib/studio/mobile/share';
+import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
 
 interface JobData {
   id: string;
@@ -37,28 +37,17 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const model = inlineResult?.model ?? job?.modelUsed ?? undefined;
 
   const blobRef = useRef<Blob | null>(null);
-  const [blobReady, setBlobReady] = useState(false);
 
   // Prefetch blob on mount so Share fires instantly within user gesture (iPhone requirement)
   useEffect(() => {
     if (!imageUrl) return;
-    const proxied =
-      imageUrl.startsWith('blob:') || imageUrl.startsWith('/') || imageUrl.startsWith('data:')
-        ? imageUrl
-        : `/api/studio/proxy-media?url=${encodeURIComponent(imageUrl)}`;
-    fetch(proxied)
+    fetch(proxyUrl(imageUrl))
       .then((res) => (res.ok ? res.blob() : null))
       .then((blob) => {
-        if (blob) { blobRef.current = blob; setBlobReady(true); }
+        if (blob) blobRef.current = blob;
       })
       .catch(() => {});
   }, [imageUrl]);
-
-  function extFromBlob(blob: Blob): string {
-    if (blob.type.includes('png')) return 'png';
-    if (blob.type.includes('jpeg') || blob.type.includes('jpg')) return 'jpg';
-    return 'webp';
-  }
 
   async function handleShare() {
     if (!imageUrl) return;
@@ -66,16 +55,11 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     try {
       let blob = blobRef.current;
       if (!blob) {
-        const proxied =
-          imageUrl.startsWith('blob:') || imageUrl.startsWith('/') || imageUrl.startsWith('data:')
-            ? imageUrl
-            : `/api/studio/proxy-media?url=${encodeURIComponent(imageUrl)}`;
-        const res = await fetch(proxied);
+        const res = await fetch(proxyUrl(imageUrl));
         if (res.ok) blob = await res.blob();
       }
       if (blob) {
-        const ext = extFromBlob(blob);
-        const file = new File([blob], `vendshop-creation.${ext}`, { type: blob.type });
+        const file = new File([blob], `vendshop-creation.${extFromMime(blob.type)}`, { type: blob.type });
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({ title: 'Created with VendShop Studio', files: [file] });
           setSharing(false);
@@ -92,14 +76,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   async function handleSave() {
     if (!imageUrl) return;
     if (blobRef.current) {
-      const blob = blobRef.current;
-      const ext = extFromBlob(blob);
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `vendshop-${Date.now()}.${ext}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      saveBlob(blobRef.current);
       return;
     }
     await downloadImage(imageUrl);

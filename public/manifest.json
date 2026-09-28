@@ -1,0 +1,42 @@
+{
+  "name": "VendShop AI Studio",
+  "short_name": "VendShop",
+  "description": "Create content for your business with AI",
+  "start_url": "/studio/m",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Post",
+      "short_name": "Create",
+      "url": "/studio/m/create",
+      "icons": [{ "src": "/icons/shortcut-create.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Improve Photo",
+      "short_name": "Improve",
+      "url": "/studio/m/improve",
+      "icons": [{ "src": "/icons/shortcut-improve.png", "sizes": "96x96" }]
+    }
+  ]
+}

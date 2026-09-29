@@ -161,6 +161,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   uk: 'Ukrainian (українська)',
   cs: 'Czech (čeština)',
   de: 'German (Deutsch)',
+  ru: 'Russian (русский)',
 };
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
@@ -168,9 +169,9 @@ function buildPrompt(lead: LeadConstantsInput, templateConstants: string): strin
   const isMenuType = lead.templateType === 'menu';
   const hasPhotos  = !!lead.heroImagePath;
 
-  // Resolve language: empty/null → 'sk' (primary market). Lookup full name for prompt.
-  const langCode = (lead.language || 'sk').trim().toLowerCase();
-  const langName = LANGUAGE_NAMES[langCode] ?? LANGUAGE_NAMES.sk;
+  // Resolve language: empty/null → 'en' (default locale). Lookup full name for prompt.
+  const langCode = (lead.language || 'en').trim().toLowerCase();
+  const langName = LANGUAGE_NAMES[langCode] ?? LANGUAGE_NAMES.en;
 
   // Hero subtitle: prefer customer's own description; otherwise let Sonnet write one.
   const trimmedDesc = lead.description?.trim() ?? '';

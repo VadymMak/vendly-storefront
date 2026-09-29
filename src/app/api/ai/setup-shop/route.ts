@@ -13,7 +13,7 @@ const schema = z.object({
 });
 
 const LANG_NAMES: Record<string, string> = {
-  sk: 'Slovak', cs: 'Czech', uk: 'Ukrainian', de: 'German', en: 'English',
+  sk: 'Slovak', cs: 'Czech', uk: 'Ukrainian', de: 'German', en: 'English', ru: 'Russian',
 };
 
 // Smart color scheme defaults based on business type
@@ -44,6 +44,7 @@ const CURRENCY_MAP: Record<string, string> = {
   sk: 'EUR',
   de: 'EUR',
   en: 'EUR',
+  ru: 'EUR',
 };
 
 export async function POST(request: Request) {
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = schema.parse(body);
 
-    const langName = LANG_NAMES[data.shopLanguage] || 'Slovak';
+    const langName = LANG_NAMES[data.shopLanguage] || 'English';
     const defaultColor = COLOR_DEFAULTS[data.templateId] || 'light';
     const itemType = ITEM_TYPE_MAP[data.templateId] || 'PRODUCT';
     const currency = CURRENCY_MAP[data.shopLanguage] || 'EUR';

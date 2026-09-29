@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
 import type { EnhancementIntensity } from '@/lib/types';
 import { MobileMediaPicker } from './MobileMediaPicker';
+import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
 import { BeforeAfterSlider } from '@/components/studio/editors/shared/BeforeAfterSlider';
 import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
 
@@ -32,6 +33,8 @@ export function MobileImproveEditor() {
   const [aiFinishUrl, setAiFinishUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [editingText, setEditingText] = useState(false);
+  const [compositedImage, setCompositedImage] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const fromSearchParams = useRef(false);
 
@@ -56,8 +59,23 @@ export function MobileImproveEditor() {
     }
   }, [searchParams]);
 
+  // compositedImage is a blob: URL from the text editor — release it when replaced or on unmount
+  useEffect(() => {
+    if (!compositedImage) return;
+    return () => URL.revokeObjectURL(compositedImage);
+  }, [compositedImage]);
+
+  // The text overlay belongs to the step it was added on and replaces that result for Share/Save
+  const displayEnhancedUrl = compositedImage && step === 'result' ? compositedImage : enhancedUrl;
+  const displayAiUrl = compositedImage && step === 'ai-result' ? compositedImage : aiFinishUrl;
+
+  function clearText() {
+    setCompositedImage(null);
+    blobRef.current = null;
+  }
+
   // Prefetch final result blob for instant share
-  const finalUrl = step === 'ai-result' ? aiFinishUrl : enhancedUrl;
+  const finalUrl = step === 'ai-result' ? displayAiUrl : displayEnhancedUrl;
   useEffect(() => {
     if (!finalUrl) return;
     blobRef.current = null;
@@ -97,6 +115,8 @@ export function MobileImproveEditor() {
 
   async function handleAiStyle() {
     if (!imageUrl || !enhancedUrl) return;
+    // AI would redraw overlaid text badly — style the clean enhanced image
+    clearText();
     setStep('ai-processing');
     setError(null);
     try {
@@ -186,6 +206,7 @@ export function MobileImproveEditor() {
   }
 
   function handleBack() {
+    clearText();
     if (step === 'configure' && fromSearchParams.current) {
       router.back();
     } else if (step === 'configure') {
@@ -194,6 +215,20 @@ export function MobileImproveEditor() {
       setStep('configure');
     } else if (step === 'ai-result') {
       setStep('result');
+    }
+  }
+
+  // ── Text overlay editor ───────────────────────────────────────────────────
+  if (editingText) {
+    const sourceUrl = step === 'ai-result' ? displayAiUrl : displayEnhancedUrl;
+    if (sourceUrl) {
+      return (
+        <MobileTextOverlayEditor
+          imageUrl={sourceUrl}
+          onDone={(url) => { setCompositedImage(url); blobRef.current = null; setEditingText(false); }}
+          onCancel={() => setEditingText(false)}
+        />
+      );
     }
   }
 
@@ -350,7 +385,7 @@ export function MobileImproveEditor() {
         <div className="px-4">
           <BeforeAfterSlider
             beforeUrl={imageUrl}
-            afterUrl={enhancedUrl}
+            afterUrl={displayEnhancedUrl!}
             beforeLabel={t('original')}
             afterLabel={t('enhanced')}
           />
@@ -362,16 +397,34 @@ export function MobileImproveEditor() {
           <p className="mt-0.5 text-xs text-gray-500">{t('photoEnhancedDesc')}</p>
         </div>
 
+        {/* Add / Edit text — above Save/Share */}
+        <div className="mt-4 space-y-2 px-4">
+          <button
+            onClick={() => setEditingText(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
+          >
+            ✏️ {compositedImage ? t('editText') : t('addText')}
+          </button>
+          {compositedImage && (
+            <button
+              onClick={clearText}
+              className="mx-auto block text-xs text-gray-500 active:text-gray-300"
+            >
+              ✕ {t('removeText')}
+            </button>
+          )}
+        </div>
+
         {/* Save + Share */}
         <div className="mt-4 grid grid-cols-2 gap-3 px-4">
           <button
-            onClick={() => handleSave(enhancedUrl)}
+            onClick={() => handleSave(displayEnhancedUrl!)}
             className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
           >
             💾 {t('save')}
           </button>
           <button
-            onClick={() => handleShare(enhancedUrl)}
+            onClick={() => handleShare(displayEnhancedUrl!)}
             disabled={sharing}
             className="flex items-center justify-center gap-2 rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700 disabled:opacity-60"
           >
@@ -394,10 +447,10 @@ export function MobileImproveEditor() {
         {/* Bottom actions */}
         {error && <p className="mt-3 px-4 text-sm text-red-400">{error}</p>}
         <div className="mt-4 flex items-center justify-center gap-6 px-4 pb-2">
-          <button onClick={() => setStep('configure')} className="text-sm text-gray-400 active:text-white">
+          <button onClick={() => { clearText(); setStep('configure'); }} className="text-sm text-gray-400 active:text-white">
             🔄 {t('tryAnother')}
           </button>
-          <button onClick={() => { setStep('upload'); fromSearchParams.current = false; }} className="text-sm text-gray-400 active:text-white">
+          <button onClick={() => { clearText(); setStep('upload'); fromSearchParams.current = false; }} className="text-sm text-gray-400 active:text-white">
             ↩ {t('newPhoto')}
           </button>
         </div>
@@ -426,7 +479,7 @@ export function MobileImproveEditor() {
         <div className="px-4">
           <BeforeAfterSlider
             beforeUrl={enhancedUrl}
-            afterUrl={aiFinishUrl}
+            afterUrl={displayAiUrl!}
             beforeLabel={t('enhanced')}
             afterLabel={t('aiStyle')}
           />
@@ -441,28 +494,46 @@ export function MobileImproveEditor() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 px-4">
           <button
-            onClick={() => { blobRef.current = null; setStep('result'); }}
+            onClick={() => { clearText(); setStep('result'); }}
             className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
           >
             {t('keepEnhanced')}
           </button>
           <button
-            onClick={() => handleSave(aiFinishUrl)}
+            onClick={() => handleSave(displayAiUrl!)}
             className="flex items-center justify-center rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700"
           >
             {t('keepAi')}
           </button>
         </div>
 
+        {/* Add / Edit text — above Save/Share */}
+        <div className="mt-4 space-y-2 px-4">
+          <button
+            onClick={() => setEditingText(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
+          >
+            ✏️ {compositedImage ? t('editText') : t('addText')}
+          </button>
+          {compositedImage && (
+            <button
+              onClick={clearText}
+              className="mx-auto block text-xs text-gray-500 active:text-gray-300"
+            >
+              ✕ {t('removeText')}
+            </button>
+          )}
+        </div>
+
         <div className="mt-4 grid grid-cols-2 gap-3 px-4">
           <button
-            onClick={() => handleSave(aiFinishUrl)}
+            onClick={() => handleSave(displayAiUrl!)}
             className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
           >
             💾 {t('save')}
           </button>
           <button
-            onClick={() => handleShare(aiFinishUrl)}
+            onClick={() => handleShare(displayAiUrl!)}
             disabled={sharing}
             className="flex items-center justify-center gap-2 rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700 disabled:opacity-60"
           >

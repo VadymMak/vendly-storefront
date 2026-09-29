@@ -1642,7 +1642,10 @@
       "share": "Поділитися",
       "back": "Назад",
       "error": "Щось пішло не так. Спробуйте ще раз.",
-      "shareTitle": "Моє покращене фото — VendShop Studio"
+      "shareTitle": "Моє покращене фото — VendShop Studio",
+      "addText": "Додати текст",
+      "editText": "Змінити текст",
+      "removeText": "Прибрати текст"
     }
   }
 }

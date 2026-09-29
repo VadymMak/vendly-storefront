@@ -1654,7 +1654,10 @@
       "share": "Teilen",
       "back": "Zurück",
       "error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
-      "shareTitle": "Mein verbessertes Foto — VendShop Studio"
+      "shareTitle": "Mein verbessertes Foto — VendShop Studio",
+      "addText": "Text hinzufügen",
+      "editText": "Text bearbeiten",
+      "removeText": "Text entfernen"
     }
   }
 }

@@ -1642,7 +1642,10 @@
       "share": "Zdieľať",
       "back": "Späť",
       "error": "Niečo sa nepodarilo. Skúste to znova.",
-      "shareTitle": "Moja vylepšená fotka — VendShop Studio"
+      "shareTitle": "Moja vylepšená fotka — VendShop Studio",
+      "addText": "Pridať text",
+      "editText": "Upraviť text",
+      "removeText": "Odstrániť text"
     }
   }
 }

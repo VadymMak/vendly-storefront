@@ -1654,7 +1654,10 @@
       "share": "Поделиться",
       "back": "Назад",
       "error": "Что-то пошло не так. Попробуйте снова.",
-      "shareTitle": "Моё улучшенное фото — VendShop Studio"
+      "shareTitle": "Моё улучшенное фото — VendShop Studio",
+      "addText": "Добавить текст",
+      "editText": "Изменить текст",
+      "removeText": "Убрать текст"
     }
   }
 }

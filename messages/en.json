@@ -1654,7 +1654,10 @@
       "share": "Share",
       "back": "Back",
       "error": "Something went wrong. Please try again.",
-      "shareTitle": "My enhanced photo — VendShop Studio"
+      "shareTitle": "My enhanced photo — VendShop Studio",
+      "addText": "Add text",
+      "editText": "Edit text",
+      "removeText": "Remove text"
     }
   }
 }

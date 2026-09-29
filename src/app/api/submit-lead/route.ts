@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       '',
       `Фото: hero=${data.heroPhotoUrl ? '✅' : '—'} · logo=${data.logoUrl ? '✅' : '—'} · gallery=${galleryCount}`,
       `ID: ${lead?.id    || '-'}`,
-      `Время: ${new Date().toLocaleString('sk-SK')}`,
+      `Время: ${new Date().toLocaleString('en-GB')}`,
       '',
       `Бриф: ${lead?.id ? `vendshop.shop/brief/${lead.id}` : '-'}`,
     ].join('\n');

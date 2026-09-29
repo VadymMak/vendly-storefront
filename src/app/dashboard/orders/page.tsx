@@ -54,7 +54,7 @@ export default async function OrdersPage() {
                     <OrderStatusBadge orderId={order.id} status={order.status} />
                   </td>
                   <td className="hidden px-4 py-3 text-neutral md:table-cell">
-                    {new Date(order.createdAt).toLocaleDateString('sk-SK')}
+                    {new Date(order.createdAt).toLocaleDateString('en-GB')}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="text-xs text-gray-400">#{order.id.slice(-6).toUpperCase()}</span>

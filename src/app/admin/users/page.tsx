@@ -43,7 +43,7 @@ export default async function AdminUsersPage() {
                 </td>
                 <td className="px-4 py-3 text-center text-secondary">{user.storeCount}</td>
                 <td className="px-4 py-3 text-neutral">
-                  {new Date(user.createdAt).toLocaleDateString('sk')}
+                  {new Date(user.createdAt).toLocaleDateString('en-GB')}
                 </td>
               </tr>
             ))}

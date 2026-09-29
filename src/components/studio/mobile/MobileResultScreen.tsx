@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
+import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
 import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
+import { BeforeAfterSlider } from './BeforeAfterSlider';
 
 interface JobData {
   id: string;
@@ -20,6 +22,8 @@ interface InlineResult {
   prompt?: string;
   model?: string;
   presetId?: string;
+  styleId?: string;
+  referenceImageUrl?: string;
 }
 
 interface Props {
@@ -43,6 +47,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const model = inlineResult?.model ?? job?.modelUsed ?? undefined;
 
   const displayUrl = compositedImage ?? imageUrl;
+  const contextLabel = getContextLabel(inlineResult?.styleId, inlineResult?.presetId, t('styleReference'));
 
   // compositedImage is a blob: URL from the text editor — release it when replaced or on unmount
   useEffect(() => {
@@ -147,14 +152,25 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         <div className="w-9" />
       </div>
 
-      {/* Image */}
+      {/* Image — before/after when the user started from their own photo */}
       <div className="px-4">
-        <img
-          src={displayUrl}
-          alt="Generated result"
-          className="w-full rounded-2xl object-cover"
-        />
+        {inlineResult?.referenceImageUrl ? (
+          <BeforeAfterSlider
+            beforeUrl={inlineResult.referenceImageUrl}
+            afterUrl={displayUrl}
+          />
+        ) : (
+          <img
+            src={displayUrl}
+            alt="Generated result"
+            className="w-full rounded-2xl object-cover"
+          />
+        )}
       </div>
+
+      {contextLabel && (
+        <p className="mt-2 px-4 text-xs text-gray-500">{contextLabel}</p>
+      )}
 
       {/* Share + Save */}
       <div className="mt-4 grid grid-cols-2 gap-3 px-4">
@@ -182,7 +198,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       {/* Quick actions */}
       <div className="mt-5 mx-4 overflow-hidden rounded-2xl border border-white/10">
         {onRegenerate && (
-          <QuickAction icon="🔄" label={t('regenerate')} onClick={onRegenerate} />
+          <QuickAction icon="🔄" label={t('newVariation')} onClick={onRegenerate} />
         )}
         {onTryStyle && (
           <QuickAction icon="🎨" label={t('tryStyle')} onClick={onTryStyle} />
@@ -227,6 +243,16 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       )}
     </div>
   );
+}
+
+// "Food & Café · IG Feed Post 4:5" — either half is dropped when unknown
+function getContextLabel(styleId: string | undefined, presetId: string | undefined, referenceLabel: string): string {
+  const style = styleId === 'reference'
+    ? referenceLabel
+    : STYLE_CHIPS.find((s) => s.id === styleId)?.label;
+  const preset = PLATFORM_IMAGE_PRESETS.find((p) => p.id === presetId);
+  const format = preset ? `${preset.label} ${preset.aspect_ratio}` : undefined;
+  return [style, format].filter(Boolean).join(' · ');
 }
 
 function QuickAction({ icon, label, onClick, last }: { icon: string; label: string; onClick: () => void; last?: boolean }) {

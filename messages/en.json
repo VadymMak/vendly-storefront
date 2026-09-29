@@ -1558,7 +1558,12 @@
       "custom": "Best style for your content",
       "reference": "Like my photo",
       "referenceDesc": "Match the style from your photo",
-      "generate": "Generate"
+      "generate": "Generate",
+      "food": "Perfect for cafés, restaurants & food businesses",
+      "beauty": "Soft lighting, elegant composition for salons",
+      "interior": "Bright, spacious feel for your location",
+      "moreStyles": "More styles",
+      "lessStyles": "Less styles"
     },
     "generating": {
       "phase1": "Understanding your content...",
@@ -1584,7 +1589,11 @@
       "improve": "Improve this image",
       "model": "Model: {name}",
       "shareTitle": "Created with VendShop Studio",
-      "addText": "Add text overlay"
+      "addText": "Add text overlay",
+      "newVariation": "New variation",
+      "compareLabel": "Your photo",
+      "resultLabel": "AI result",
+      "styleReference": "Like my photo"
     },
     "media": {
       "takePhoto": "Take Photo",

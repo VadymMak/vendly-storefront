@@ -24,7 +24,7 @@ export function MobileCreateWizard() {
   const [presetId, setPresetId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>();
-  const [styleId, setStyleId] = useState('product');
+  const [styleId, setStyleId] = useState('social');
   const [result, setResult] = useState<GenerateResult | null>(null);
 
   const handleFormatSelect = useCallback((id: string) => {
@@ -73,7 +73,7 @@ export function MobileCreateWizard() {
     setPresetId(null);
     setDescription('');
     setReferenceImageUrl(undefined);
-    setStyleId('product');
+    setStyleId('social');
     setResult(null);
   }, []);
 
@@ -107,6 +107,8 @@ export function MobileCreateWizard() {
             prompt: result.prompt,
             model: result.model,
             presetId: presetId ?? undefined,
+            styleId,
+            referenceImageUrl,
           }}
           onBack={resetWizard}
           onRegenerate={() => setStep(4)}

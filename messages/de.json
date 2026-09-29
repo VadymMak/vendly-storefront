@@ -1558,7 +1558,12 @@
       "custom": "Bester Stil für Ihre Inhalte",
       "reference": "Wie mein Foto",
       "referenceDesc": "Stil aus Ihrem Foto übernehmen",
-      "generate": "Generieren"
+      "generate": "Generieren",
+      "food": "Ideal für Cafés, Restaurants & Gastronomie",
+      "beauty": "Weiches Licht, elegante Komposition für Salons",
+      "interior": "Hell und großzügig für Ihre Räume",
+      "moreStyles": "Weitere Stile",
+      "lessStyles": "Weniger Stile"
     },
     "generating": {
       "phase1": "Verstehe Ihren Inhalt...",
@@ -1584,7 +1589,11 @@
       "improve": "Bild verbessern",
       "model": "Modell: {name}",
       "shareTitle": "Erstellt mit VendShop Studio",
-      "addText": "Text hinzufügen"
+      "addText": "Text hinzufügen",
+      "newVariation": "Neue Variante",
+      "compareLabel": "Ihr Foto",
+      "resultLabel": "KI-Ergebnis",
+      "styleReference": "Wie mein Foto"
     },
     "media": {
       "takePhoto": "Foto aufnehmen",

@@ -59,9 +59,9 @@ export const EXAMPLE_PROMPTS = [
 
 export const STYLE_CHIPS = [
   { id: 'product',  label: 'Product photo', icon: '📦', promptPrefix: 'Professional product photography, clean studio lighting, sharp details, commercial e-commerce quality,' },
-  { id: 'food',     label: 'Food',          icon: '🍽️', promptPrefix: 'Professional food photography, warm lighting, rich saturated colors, shallow depth of field, appetizing,' },
+  { id: 'food',     label: 'Food & Café',   icon: '🍽️', promptPrefix: 'Professional food photography, warm lighting, rich saturated colors, shallow depth of field, appetizing,' },
   { id: 'social',   label: 'Social post',   icon: '📱', promptPrefix: 'Modern social media content, vibrant colors, eye-catching composition, trending aesthetic,' },
-  { id: 'beauty',   label: 'Beauty',        icon: '💅', promptPrefix: 'Beauty and wellness photography, soft flattering lighting, elegant composition, spa atmosphere,' },
+  { id: 'beauty',   label: 'Beauty & Salon', icon: '💅', promptPrefix: 'Beauty and wellness photography, soft flattering lighting, elegant composition, spa atmosphere,' },
   { id: 'interior', label: 'Interior',      icon: '🏠', promptPrefix: 'Professional interior photography, bright well-lit space, wide angle, inviting atmosphere, architectural detail,' },
   { id: 'custom',   label: 'Custom',        icon: '✨', promptPrefix: '' },
 ] as const;

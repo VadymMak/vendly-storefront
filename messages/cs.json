@@ -1558,7 +1558,12 @@
       "custom": "Nejlepší styl pro váš obsah",
       "reference": "Jako moje fotka",
       "referenceDesc": "Použít styl z vaší fotky",
-      "generate": "Generovat"
+      "generate": "Generovat",
+      "food": "Pro kavárny, restaurace a gastro podniky",
+      "beauty": "Měkké světlo, elegantní kompozice pro salony",
+      "interior": "Světlá, prostorná fotka vašeho podniku",
+      "moreStyles": "Další styly",
+      "lessStyles": "Méně stylů"
     },
     "generating": {
       "phase1": "Analyzuji váš obsah...",
@@ -1584,7 +1589,11 @@
       "improve": "Vylepšit obrázek",
       "model": "Model: {name}",
       "shareTitle": "Vytvořeno ve VendShop Studio",
-      "addText": "Přidat text"
+      "addText": "Přidat text",
+      "newVariation": "Nová varianta",
+      "compareLabel": "Vaše fotka",
+      "resultLabel": "Výsledek AI",
+      "styleReference": "Jako moje fotka"
     },
     "media": {
       "takePhoto": "Vyfotit",

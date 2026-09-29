@@ -7,6 +7,7 @@ import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mob
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
 import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import type { GenerationMode } from '@/lib/types';
 
 interface JobData {
   id: string;
@@ -24,6 +25,7 @@ interface InlineResult {
   presetId?: string;
   styleId?: string;
   referenceImageUrl?: string;
+  generationMode?: GenerationMode;
 }
 
 interface Props {
@@ -47,7 +49,14 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const model = inlineResult?.model ?? job?.modelUsed ?? undefined;
 
   const displayUrl = compositedImage ?? imageUrl;
-  const contextLabel = getContextLabel(inlineResult?.styleId, inlineResult?.presetId, t('styleReference'));
+  const generationMode = inlineResult?.generationMode;
+  const modeLabel = generationMode === 'photo_transform'
+    ? t('photoEnhanced')
+    : generationMode === 'text_create' ? t('createdFromPrompt') : '';
+  const contextLabel = [
+    modeLabel && `✨ ${modeLabel}`,
+    getContextLabel(inlineResult?.styleId, inlineResult?.presetId, t('styleReference')),
+  ].filter(Boolean).join(' · ');
 
   // compositedImage is a blob: URL from the text editor — release it when replaced or on unmount
   useEffect(() => {
@@ -152,9 +161,9 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         <div className="w-9" />
       </div>
 
-      {/* Image — before/after when the user started from their own photo */}
+      {/* Image — before/after only when the result really is the user's photo transformed */}
       <div className="px-4">
-        {inlineResult?.referenceImageUrl ? (
+        {inlineResult?.referenceImageUrl && generationMode === 'photo_transform' ? (
           <BeforeAfterSlider
             beforeUrl={inlineResult.referenceImageUrl}
             afterUrl={displayUrl}

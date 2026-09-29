@@ -12,6 +12,7 @@ import { logUsage } from '@/lib/studio/usage-logger';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
+import { STYLE_CHIPS } from '@/lib/studio/constants';
 
 export const maxDuration = 120;
 
@@ -27,7 +28,36 @@ interface GenerateBody {
   target_height?:   number;
   output_format?:   'webp' | 'png' | 'jpeg';
   reference_image?: string;
+  // Sent only by the mobile Create wizard. Together with reference_image it switches
+  // generation to img2img (Kontext). Chat tools send reference_image alone (Flux Redux
+  // style reference) and stay on text-to-image.
+  style_id?:        string;
   website?:         string;
+}
+
+/**
+ * When the user uploads a photo and we route to img2img (Kontext), the style prompt must
+ * be an EDIT INSTRUCTION, not a scene description. Text-to-image prompts say "create X";
+ * img2img prompts say "preserve X, improve Y".
+ */
+const IMG2IMG_STYLE_PREFIX: Record<string, string> = {
+  social:   'Transform this photo into a polished social media post. Preserve the original subject, composition, objects and identity. Enhance lighting, color balance, contrast and professional quality. Do not replace the subject or generate a different scene.',
+  product:  'Transform this photo into professional product photography. Preserve the exact product, its shape, color, texture and proportions. Enhance lighting, background cleanliness, sharpness and commercial quality. Do not replace the product or add new objects.',
+  food:     'Transform this photo into professional food and café marketing photography. Preserve the original food, dishes, drinks, café environment, furniture, layout, composition and identity. Enhance warm lighting, color balance, depth, contrast and appetizing quality. Do not replace the food, add different dishes, or generate a different restaurant.',
+  beauty:   'Transform this photo into professional beauty and salon photography. Preserve the original subject, setting, hairstyle, makeup and salon environment. Enhance soft lighting, skin tone, color harmony and elegant composition. Do not replace the person or generate a different salon.',
+  interior: 'Transform this photo into professional interior photography. Preserve the original room, furniture, layout, architecture and objects. Enhance lighting, spaciousness, color warmth and photographic quality. Do not replace the interior or generate a different space.',
+  custom:   'Preserve the original subject, composition, objects and identity from this photo. Enhance lighting, color, contrast and professional photographic quality. Do not replace the subject or generate a different scene.',
+};
+
+/** Closest ratio the model accepts, e.g. 4:5 → 3:4 for Kontext (which has no 4:5). */
+function closestRatio(requested: string, supported: string[]): string {
+  if (supported.includes(requested)) return requested;
+  const value = (r: string) => { const [w, h] = r.split(':').map(Number); return w / h; };
+  const target = value(requested);
+  if (!Number.isFinite(target)) return '1:1';
+  return supported.reduce((best, r) =>
+    Math.abs(Math.log(value(r) / target)) < Math.abs(Math.log(value(best) / target)) ? r : best,
+  );
 }
 
 async function processBuffer(
@@ -119,8 +149,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  // ── Resolve model alias ────────────────────────────────────────────────────
-
   const requestedRatio = body.aspect_ratio ?? '1:1';
   const megapixels     = body.megapixels   ?? '1';
   const targetW        = body.target_width;
@@ -128,6 +156,36 @@ export async function POST(request: Request) {
   const outputFormat   = (['webp', 'png', 'jpeg'].includes(body.output_format ?? ''))
     ? (body.output_format as 'webp' | 'png' | 'jpeg')
     : 'webp';
+  const uiLocale = (await cookies()).get('locale')?.value;
+
+  // ── img2img: user uploaded a photo in the mobile wizard → transform it with Kontext ──
+  if (body.reference_image && body.style_id) {
+    if (!body.reference_image.startsWith('https://')) {
+      return NextResponse.json({ error: 'Invalid reference image' }, { status: 400 });
+    }
+    const kontextModel = MODEL_CATALOG['fal-kontext'];
+    const kontextKey   = kontextModel?.enabled ? await resolveApiKey(session.user.id, kontextModel) : null;
+    if (kontextModel && kontextKey) {
+      return generatePhotoTransform({
+        userId:         session.user.id,
+        model:          kontextModel,
+        apiKey:         kontextKey,
+        prompt,
+        styleId:        body.style_id,
+        referenceImage: body.reference_image,
+        requestedRatio,
+        targetW,
+        targetH,
+        outputFormat,
+        uiLocale,
+      });
+    }
+    // Kontext unavailable (no key / disabled) — fall through to text-to-image. The client
+    // sees X-Generation-Mode: text_create and does not show a before/after comparison.
+    console.warn('[studio/generate] reference_image present but Kontext unavailable, falling back to text-to-image');
+  }
+
+  // ── Resolve model alias ────────────────────────────────────────────────────
 
   // Build ordered list of models to try
   type Candidate = { alias: string; model: ModelEntry; apiKey: string };
@@ -179,7 +237,6 @@ export async function POST(request: Request) {
 
   // Translate only after auth, credit, rate-limit and abuse checks passed — the OpenAI
   // call is paid, so rejected requests must not trigger it. Done once for all candidates.
-  const uiLocale = (await cookies()).get('locale')?.value;
   const translatedPrompt = await translatePromptToEnglish(prompt, uiLocale);
 
   // ── Try each candidate until one succeeds ──────────────────────────────────
@@ -241,7 +298,8 @@ export async function POST(request: Request) {
       response.headers.set('X-Model-Provider', model.provider);
       response.headers.set('X-Model-Name', model.displayName);
       response.headers.set('X-Output-Url', result.url);
-      response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name, X-Output-Url');
+      response.headers.set('X-Generation-Mode', 'text_create');
+      response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name, X-Output-Url, X-Generation-Mode');
 
       // Fire-and-forget: persist to StudioJob so it appears in My Work
       const capturedUrl = result.url;
@@ -290,4 +348,145 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ error: lastError }, { status: 500 });
+}
+
+interface PhotoTransformParams {
+  userId:         string;
+  model:          ModelEntry;
+  apiKey:         string;
+  prompt:         string;
+  styleId:        string;
+  referenceImage: string;
+  requestedRatio: string;
+  targetW?:       number;
+  targetH?:       number;
+  outputFormat:   'webp' | 'png' | 'jpeg';
+  uiLocale?:      string;
+}
+
+/**
+ * img2img via Kontext. Never falls back to text-to-image: the user uploaded a photo and
+ * expects it transformed, so a failure returns an error rather than an unrelated image.
+ */
+async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response> {
+  const { userId, model, apiKey, prompt, styleId, referenceImage, outputFormat } = p;
+  const alias = 'fal-kontext';
+
+  const creditCost = model.creditCost ?? 2;
+  let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
+  if (!model.byokOnly) {
+    creditCheck = await checkCredits(userId, model.creditType, creditCost, model.apiKeyProvider);
+    if (!creditCheck.allowed) {
+      return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
+    }
+  }
+
+  // The wizard sends "<text-to-image style prefix> <user text>". That prefix describes a
+  // scene to create ("Professional food photography, warm lighting…") — sent to Kontext it
+  // would invite a new scene, so strip it and keep only the user's own instruction.
+  const t2iPrefix   = STYLE_CHIPS.find((s) => s.id === styleId)?.promptPrefix ?? '';
+  const userText    = t2iPrefix && prompt.startsWith(t2iPrefix) ? prompt.slice(t2iPrefix.length).trim() : prompt;
+  const instruction = userText ? await translatePromptToEnglish(userText, p.uiLocale) : '';
+  const preservation = IMG2IMG_STYLE_PREFIX[styleId] ?? IMG2IMG_STYLE_PREFIX.custom;
+  const img2imgPrompt = instruction
+    ? `${preservation} User's additional instruction: ${instruction}`
+    : preservation;
+
+  const aspect_ratio = model.supportedRatios ? closestRatio(p.requestedRatio, model.supportedRatios) : p.requestedRatio;
+  const provider  = getProvider(model.provider);
+  const startTime = Date.now();
+
+  try {
+    if (!provider.edit) throw new Error(`${model.displayName} does not support edit`);
+    const result = await provider.edit(
+      { prompt: img2imgPrompt, imageUrl: referenceImage, aspectRatio: aspect_ratio },
+      apiKey,
+      model.modelId,
+    );
+    const durationMs = Date.now() - startTime;
+
+    if (!result.url || !result.url.startsWith('http')) {
+      throw new Error(`${model.displayName} returned invalid image URL`);
+    }
+
+    if (!model.byokOnly && !creditCheck.byok) {
+      const consume = await consumeCredits(userId, model.creditType, creditCost, model.apiKeyProvider);
+      if (!consume.success) {
+        return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 402 });
+      }
+    }
+
+    await logUsage({
+      userId,
+      modelAlias: alias,
+      provider:   model.provider,
+      modelId:    model.modelId,
+      operation:  'edit',
+      status:     'success',
+      durationMs,
+      costUsd:    model.costPerCall,
+      creditCost: model.byokOnly ? 0 : model.creditCost,
+      byok:       model.byokOnly ?? (creditCheck.byok ?? false),
+      metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length, generationMode: 'photo_transform' },
+    });
+
+    const response = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias);
+    response.headers.set('X-Model-Alias', alias);
+    response.headers.set('X-Model-Provider', model.provider);
+    response.headers.set('X-Model-Name', model.displayName);
+    response.headers.set('X-Output-Url', result.url);
+    response.headers.set('X-Generation-Mode', 'photo_transform');
+    response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name, X-Output-Url, X-Generation-Mode');
+
+    // Fire-and-forget: persist to StudioJob so it appears in My Work
+    const capturedUrl = result.url;
+    createJob({
+      userId,
+      predictionId: `img:${alias}:${Date.now()}`,
+      type:         'image',
+      creditType:   model.byokOnly ? undefined : 'image',
+      creditAmount: model.byokOnly ? 0 : model.creditCost,
+      metadata: {
+        prompt,
+        modelUsed:      alias,
+        provider:       model.provider,
+        aspect_ratio,
+        outputFormat,
+        generationMode: 'photo_transform',
+        referenceImage,
+      },
+    }).then(async (jobId) => {
+      await db.studioJob.update({
+        where: { id: jobId },
+        data:  { status: 'succeeded', outputUrl: capturedUrl },
+      });
+    }).catch((err) => {
+      console.error('[studio/generate] Failed to save img2img StudioJob:', err);
+    });
+
+    return response;
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const errMsg = err instanceof Error ? err.message : 'img2img failed';
+    console.error(`[studio/generate][${alias}] img2img failed:`, errMsg);
+
+    await logUsage({
+      userId,
+      modelAlias:   alias,
+      provider:     model.provider,
+      modelId:      model.modelId,
+      operation:    'edit',
+      status:       'error',
+      durationMs,
+      costUsd:      0,
+      creditCost:   0,
+      byok:         model.byokOnly ?? false,
+      errorMessage: errMsg,
+    });
+
+    return NextResponse.json(
+      { error: 'Photo transformation failed. Please try again.', code: 'transform_failed' },
+      { status: 500 },
+    );
+  }
 }

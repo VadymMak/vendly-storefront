@@ -7,6 +7,7 @@ import { InputStep } from './steps/InputStep';
 import { StyleStep } from './steps/StyleStep';
 import { GeneratingStep } from './steps/GeneratingStep';
 import { MobileResultScreen } from './MobileResultScreen';
+import type { GenerationMode } from '@/lib/types';
 
 type Step = 1 | 2 | 3 | 4 | 'result';
 
@@ -15,6 +16,7 @@ interface GenerateResult {
   jobId?: string;
   model?: string;
   prompt?: string;
+  generationMode?: GenerationMode;
 }
 
 export function MobileCreateWizard() {
@@ -109,6 +111,7 @@ export function MobileCreateWizard() {
             presetId: presetId ?? undefined,
             styleId,
             referenceImageUrl,
+            generationMode: result.generationMode,
           }}
           onBack={resetWizard}
           onRegenerate={() => setStep(4)}

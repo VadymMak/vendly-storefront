@@ -1574,7 +1574,8 @@
       "creating": "Vytvářím váš {preset}…",
       "failed": "Generování selhalo",
       "tryAgain": "Zkusit znovu",
-      "noCredits": "Nedostatek kreditů. Upgradujte svůj plán."
+      "noCredits": "Nedostatek kreditů. Upgradujte svůj plán.",
+      "transformFailed": "Úprava fotky se nezdařila. Zkuste to znovu."
     },
     "result": {
       "title": "Vaše tvorba",
@@ -1593,7 +1594,9 @@
       "newVariation": "Nová varianta",
       "compareLabel": "Vaše fotka",
       "resultLabel": "Výsledek AI",
-      "styleReference": "Jako moje fotka"
+      "styleReference": "Jako moje fotka",
+      "photoEnhanced": "Vaše fotka, vylepšená",
+      "createdFromPrompt": "Vytvořeno podle vašeho popisu"
     },
     "media": {
       "takePhoto": "Vyfotit",

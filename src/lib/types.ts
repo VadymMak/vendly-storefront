@@ -677,3 +677,6 @@ export interface MobileTextLayer {
   shadowBlur?: number;
   scale: number;
 }
+
+/** How /api/studio/generate produced an image — sent back in the X-Generation-Mode header. */
+export type GenerationMode = 'photo_transform' | 'text_create';

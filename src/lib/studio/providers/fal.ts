@@ -46,7 +46,8 @@ export class FalProvider implements ImageProvider {
       input: {
         prompt:        req.prompt,
         image_url:     req.imageUrl,
-        output_format: 'png',
+        output_format: 'jpeg',
+        ...(req.aspectRatio ? { aspect_ratio: req.aspectRatio } : {}),
       },
     });
 

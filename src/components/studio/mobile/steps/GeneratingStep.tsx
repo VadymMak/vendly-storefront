@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
+import type { GenerationMode } from '@/lib/types';
 
 interface GenerateParams {
   prompt: string;
@@ -16,6 +17,7 @@ interface GenerateResult {
   jobId?: string;
   model?: string;
   prompt?: string;
+  generationMode?: GenerationMode;
 }
 
 interface Props {
@@ -82,6 +84,7 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
             output_format: 'webp',
             ...(generateParams.referenceImageUrl && {
               reference_image: generateParams.referenceImageUrl,
+              style_id: generateParams.styleId, // routes to img2img so the photo is kept
             }),
           }),
         });
@@ -89,8 +92,9 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
         if (!res.ok) {
           let errText = t('failed');
           try {
-            const j = await res.json() as { error?: string; needsUpgrade?: boolean };
+            const j = await res.json() as { error?: string; needsUpgrade?: boolean; code?: string };
             if (j.needsUpgrade) errText = t('noCredits');
+            else if (j.code === 'transform_failed') errText = t('transformFailed');
             else if (j.error) errText = j.error;
           } catch {}
           setErrorMsg(errText);
@@ -100,10 +104,12 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
 
         const blob = await res.blob();
         const imageUrl = URL.createObjectURL(blob);
+        const generationMode: GenerationMode =
+          res.headers.get('X-Generation-Mode') === 'photo_transform' ? 'photo_transform' : 'text_create';
         setProgress(100);
 
         setTimeout(() => {
-          onComplete({ imageUrl, prompt: styledPrompt, model: 'fast' });
+          onComplete({ imageUrl, prompt: styledPrompt, model: 'fast', generationMode });
         }, 300);
       } catch (e) {
         const msg = e instanceof Error ? e.message : t('failed');

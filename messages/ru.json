@@ -1574,7 +1574,8 @@
       "creating": "Создаю ваш {preset}…",
       "failed": "Генерация не удалась",
       "tryAgain": "Попробовать снова",
-      "noCredits": "Недостаточно кредитов. Обновите план."
+      "noCredits": "Недостаточно кредитов. Обновите план.",
+      "transformFailed": "Обработка фото не удалась. Попробуйте снова."
     },
     "result": {
       "title": "Ваше творение",
@@ -1593,7 +1594,9 @@
       "newVariation": "Новый вариант",
       "compareLabel": "Ваше фото",
       "resultLabel": "Результат AI",
-      "styleReference": "Как моё фото"
+      "styleReference": "Как моё фото",
+      "photoEnhanced": "Ваше фото, улучшенное",
+      "createdFromPrompt": "Создано по вашему описанию"
     },
     "media": {
       "takePhoto": "Сделать фото",

@@ -1574,7 +1574,8 @@
       "creating": "Erstelle Ihr {preset}…",
       "failed": "Generierung fehlgeschlagen",
       "tryAgain": "Erneut versuchen",
-      "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan."
+      "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan.",
+      "transformFailed": "Fotobearbeitung fehlgeschlagen. Bitte erneut versuchen."
     },
     "result": {
       "title": "Ihre Kreation",
@@ -1593,7 +1594,9 @@
       "newVariation": "Neue Variante",
       "compareLabel": "Ihr Foto",
       "resultLabel": "KI-Ergebnis",
-      "styleReference": "Wie mein Foto"
+      "styleReference": "Wie mein Foto",
+      "photoEnhanced": "Ihr Foto, verbessert",
+      "createdFromPrompt": "Aus Ihrer Beschreibung erstellt"
     },
     "media": {
       "takePhoto": "Foto aufnehmen",

@@ -1574,7 +1574,8 @@
       "creating": "Creating your {preset}…",
       "failed": "Generation failed",
       "tryAgain": "Try again",
-      "noCredits": "Not enough credits. Upgrade your plan."
+      "noCredits": "Not enough credits. Upgrade your plan.",
+      "transformFailed": "Photo transformation failed. Please try again."
     },
     "result": {
       "title": "Your creation",
@@ -1593,7 +1594,9 @@
       "newVariation": "New variation",
       "compareLabel": "Your photo",
       "resultLabel": "AI result",
-      "styleReference": "Like my photo"
+      "styleReference": "Like my photo",
+      "photoEnhanced": "Your photo, enhanced",
+      "createdFromPrompt": "Created from your prompt"
     },
     "media": {
       "takePhoto": "Take Photo",

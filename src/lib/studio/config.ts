@@ -11,6 +11,7 @@ export interface ImageGenerateRequest {
 export interface ImageEditRequest {
   prompt: string;
   imageUrl: string; // public URL already uploaded to blob storage
+  aspectRatio?: string; // fal Kontext only; Replicate keeps 'match_input_image'
 }
 
 export interface MediaResult {
@@ -159,15 +160,17 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
   'fal-kontext': {
     displayName:    'Flux Kontext Pro (fal)',
     provider:       'fal',
-    modelId:        'fal-ai/flux-kontext/pro',
+    modelId:        'fal-ai/flux-pro/kontext',
     operation:      'edit',
     tier:           'quality',
-    costPerCall:    0.025,
+    costPerCall:    0.04,
     creditCost:     2,
     creditType:     'image',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
     maxInputSize:   1024,
+    // fal's enum — no 4:5, callers must map to the closest ratio
+    supportedRatios: ['21:9', '16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16', '9:21'],
     enabled: true,
   },
 

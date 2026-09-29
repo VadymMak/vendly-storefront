@@ -23,8 +23,8 @@ for (let h = 7; h <= 22; h++) {
   if (h < 22) TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
 }
 
-const SITE_LANGS: ReadonlyArray<CreateSiteLanguage> = ['sk', 'en', 'uk', 'cs', 'de'];
-const SITE_LANG_FLAGS: Record<CreateSiteLanguage, string> = { sk: '🇸🇰', en: '🇬🇧', uk: '🇺🇦', cs: '🇨🇿', de: '🇩🇪' };
+const SITE_LANGS: ReadonlyArray<CreateSiteLanguage> = ['en', 'ru', 'cs', 'de'];
+const SITE_LANG_FLAGS: Record<CreateSiteLanguage, string> = { en: '🇬🇧', ru: '🇷🇺', cs: '🇨🇿', de: '🇩🇪' };
 
 const INITIAL_STATE: CreateState = {
   step: 1,
@@ -41,7 +41,7 @@ const INITIAL_STATE: CreateState = {
   gallery: [],
   plan: 'starter',
   heroLayout: 'auto',
-  language: 'sk',
+  language: 'en',
   ownerFullName:        '',
   companyLegalForm:     'Einzelunternehmer',
   vatId:                '',

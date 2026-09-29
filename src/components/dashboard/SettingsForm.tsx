@@ -14,11 +14,10 @@ import BulkTranslateButton from '@/components/ui/BulkTranslateButton';
 import WeekScheduleEditor from '@/components/ui/WeekScheduleEditor';
 
 const LANGUAGES = [
-  { value: 'sk', label: 'Slovenčina' },
-  { value: 'cs', label: 'Čeština' },
-  { value: 'uk', label: 'Українська' },
-  { value: 'de', label: 'Deutsch' },
   { value: 'en', label: 'English' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'cs', label: 'Čeština' },
+  { value: 'de', label: 'Deutsch' },
 ];
 
 const COLOR_SCHEMES = [
@@ -143,7 +142,7 @@ export default function SettingsForm({ userId, store, initialTab = 'general', us
   const [form, setForm] = useState<StoreSettingsFormData>({
     name:         store?.name || '',
     description:  store?.description || '',
-    shopLanguage: store?.shopLanguage || 'sk',
+    shopLanguage: store?.shopLanguage || 'en',
     colorScheme:  store?.settings.colorScheme || 'light',
     currency:     store?.settings.currency || 'EUR',
     whatsapp:     store?.settings.whatsapp || '',

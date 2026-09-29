@@ -19,7 +19,7 @@ const TEMPLATE_OPTIONS = [
 
 type TemplateValue = typeof TEMPLATE_OPTIONS[number]['value'];
 
-const LANG_OPTIONS = ['sk', 'cs', 'uk', 'de', 'en'] as const;
+const LANG_OPTIONS = ['en', 'ru', 'cs', 'de'] as const;
 
 const COLOR_SCHEMES = [
   { value: 'light'   as const, preview: 'bg-white border-gray-300' },
@@ -76,7 +76,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
   const [businessName, setBusinessName] = useState('');
   const [businessDesc, setBusinessDesc] = useState('');
   const [templateId,   setTemplateId]   = useState<TemplateValue>('physical');
-  const [shopLanguage, setShopLanguage] = useState('sk');
+  const [shopLanguage, setShopLanguage] = useState('en');
   const [slug,         setSlug]         = useState('');
 
   // Step 2 — animated loading steps
@@ -149,7 +149,7 @@ export default function AiSetupWizard({ userId }: AiSetupWizardProps) {
     setStep('creating');
     setError(null);
 
-    const currency = shopLanguage === 'cs' ? 'CZK' : shopLanguage === 'uk' ? 'UAH' : 'EUR';
+    const currency = shopLanguage === 'cs' ? 'CZK' : 'EUR';
 
     try {
       // 1. Create store

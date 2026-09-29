@@ -7,7 +7,7 @@ import { resolveUserPlan } from '@/lib/shop-queries';
 
 const schema = z.object({
   title: z.string().min(1),
-  language: z.string().default('sk'),
+  language: z.string().default('en'),
 });
 
 const LANG_PROMPTS: Record<string, { system: string; user: (title: string) => string }> = {

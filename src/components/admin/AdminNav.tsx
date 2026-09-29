@@ -7,9 +7,8 @@ import { signOut } from 'next-auth/react';
 import { useLocale, useTranslations } from 'next-intl';
 
 const LOCALE_OPTIONS = [
-  { code: 'sk', label: 'SK' },
   { code: 'en', label: 'EN' },
-  { code: 'uk', label: 'UK' },
+  { code: 'ru', label: 'RU' },
   { code: 'cs', label: 'CS' },
   { code: 'de', label: 'DE' },
 ] as const;

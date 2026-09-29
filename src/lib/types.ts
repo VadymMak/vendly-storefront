@@ -543,7 +543,7 @@ export interface CreateHoursSchedule {
  */
 export type CreateHeroLayout = 'auto' | 'split' | 'full';
 
-export type CreateSiteLanguage = 'sk' | 'en' | 'uk' | 'cs' | 'de';
+export type CreateSiteLanguage = 'en' | 'ru' | 'cs' | 'de';
 
 export interface CreateState {
   step: 1 | 2 | 3;

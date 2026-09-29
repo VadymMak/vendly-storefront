@@ -111,12 +111,12 @@ export interface ShopFrontMessages {
   browseProducts: string;
 }
 
-const VALID_LOCALES = new Set(['en', 'sk', 'uk', 'cs', 'de']);
+const VALID_LOCALES = new Set(['en', 'ru', 'cs', 'de']);
 
 export async function getShopTranslations(shopLanguage: string): Promise<ShopFrontMessages> {
   const locale: Locale = VALID_LOCALES.has(shopLanguage)
     ? (shopLanguage as Locale)
-    : 'sk';
+    : 'en';
 
   const messages = (await import(`../../messages/${locale}.json`)).default;
   return messages.shopFront as ShopFrontMessages;

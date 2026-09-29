@@ -9,7 +9,7 @@ const schema = z.object({
   businessName:        z.string().min(1),
   businessDescription: z.string().default(''),
   templateId:          z.string().default('physical'),
-  shopLanguage:        z.string().default('sk'),
+  shopLanguage:        z.string().default('en'),
 });
 
 const LANG_NAMES: Record<string, string> = {

@@ -27,7 +27,7 @@ const storeSchema = z.object({
   slug:         z.string().min(2).regex(/^[a-z0-9-]+$/, 'Len malé písmená, číslice a pomlčky'),
   description:  z.string().optional().default(''),
   templateId:   z.string().default('physical'),
-  shopLanguage: z.string().default('sk'),
+  shopLanguage: z.string().default('en'),
   colorScheme:  z.enum(['light', 'dark', 'warm', 'bold', 'festive', 'elegant']).default('light'),
   currency:     z.string().default('EUR'),
   whatsapp:     z.string().optional().default(''),

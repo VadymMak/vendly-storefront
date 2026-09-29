@@ -32,7 +32,7 @@ export default function BulkTranslateButton({
   const [result, setResult] = useState<{ translated: number; items: number } | null>(null);
 
   const LANG_FLAGS: Record<string, string> = {
-    sk: '🇸🇰', cs: '🇨🇿', uk: '🇺🇦', de: '🇩🇪', en: '🇬🇧',
+    en: '🇬🇧', ru: '🇷🇺', cs: '🇨🇿', de: '🇩🇪',
   };
 
   const isFreeAndUsed = plan === 'FREE' && translationUsed;

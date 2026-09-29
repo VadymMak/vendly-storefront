@@ -40,26 +40,13 @@ const BRIEF_BTN: Record<string, string> = {
   ru: '📋 Заполнить бриф для сайта →',
 };
 
-// Locales supported in the site header. 'ru' is NOT a site locale —
-// Russian speakers use one of the five supported locales, so we detect
-// their preference separately via navigator.language.
-const SITE_LANGS = new Set(['sk', 'en', 'de', 'cs', 'uk']);
+// Locales supported in the site header.
+const SITE_LANGS = new Set(['en', 'ru', 'de', 'cs']);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Maps the next-intl site locale to a chatbot translation key.
- * - Site locale found in translations → use it directly.
- * - Site locale NOT found (shouldn't happen with current LOCALE_OPTIONS) →
- *   fall back to 'ru' if the browser language is Russian, else 'en'.
- */
 function resolveLang(siteLocale: string): string {
   if (SITE_LANGS.has(siteLocale)) return siteLocale;
-  // 'ru' is not a header locale; detect it from the browser as a bonus path.
-  if (typeof navigator !== 'undefined' &&
-      navigator.language.toLowerCase().startsWith('ru')) {
-    return 'ru';
-  }
   return 'en';
 }
 

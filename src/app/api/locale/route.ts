@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const VALID_LOCALES = ['en', 'sk', 'uk', 'cs', 'de'];
+const VALID_LOCALES = ['en', 'ru', 'cs', 'de'];
 
 export async function POST(request: Request) {
   const { locale } = await request.json();

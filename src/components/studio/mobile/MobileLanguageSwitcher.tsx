@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 
 const LOCALES = [
   { code: 'en', label: 'EN' },
-  { code: 'sk', label: 'SK' },
-  { code: 'uk', label: 'UA' },
+  { code: 'ru', label: 'RU' },
   { code: 'cs', label: 'CZ' },
   { code: 'de', label: 'DE' },
 ] as const;

@@ -14,7 +14,7 @@ export { getTemplateRepo } from './business-types';
 type PalettePreset = 'dark-premium' | 'clean-light' | 'warm-cozy' | 'professional' | 'natural' | 'medical';
 type TemplateType  = 'services' | 'schedule' | 'menu' | 'portfolio';
 type HeadingFont   = 'oswald' | 'playfair' | 'cormorant' | 'inter';
-type SiteLanguage  = 'sk' | 'en' | 'de' | 'cs' | 'uk' | 'ru';
+type SiteLanguage  = 'en' | 'de' | 'cs' | 'ru';
 
 // ─── Input type ───────────────────────────────────────────────────────────────
 export interface LeadConfigInput {
@@ -60,7 +60,7 @@ const PALETTE_MAP: Record<string, PalettePreset> = {
 };
 
 // ─── Valid language values ────────────────────────────────────────────────────
-const VALID_LANGS: SiteLanguage[] = ['sk', 'en', 'de', 'cs', 'uk', 'ru'];
+const VALID_LANGS: SiteLanguage[] = ['en', 'de', 'cs', 'ru'];
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function generateConfigTs(lead: LeadConfigInput): string {
@@ -78,7 +78,7 @@ export function generateConfigTs(lead: LeadConfigInput): string {
 
   const language: SiteLanguage = VALID_LANGS.includes(lead.language as SiteLanguage)
     ? (lead.language as SiteLanguage)
-    : 'sk';
+    : 'en';
 
   // Escape backslashes first, then single quotes
   const safeName  = (lead.businessName ?? 'Your Business')

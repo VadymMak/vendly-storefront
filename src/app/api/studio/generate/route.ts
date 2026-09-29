@@ -41,13 +41,19 @@ interface GenerateBody {
  * img2img prompts say "preserve X, improve Y".
  */
 const IMG2IMG_STYLE_PREFIX: Record<string, string> = {
-  social:   'Transform this photo into a polished social media post. Preserve the original subject, composition, objects and identity. Enhance lighting, color balance, contrast and professional quality. Do not replace the subject or generate a different scene.',
-  product:  'Transform this photo into professional product photography. Preserve the exact product, its shape, color, texture and proportions. Enhance lighting, background cleanliness, sharpness and commercial quality. Do not replace the product or add new objects.',
-  food:     'Transform this photo into professional food and café marketing photography. Preserve the original food, dishes, drinks, café environment, furniture, layout, composition and identity. Enhance warm lighting, color balance, depth, contrast and appetizing quality. Do not replace the food, add different dishes, or generate a different restaurant.',
-  beauty:   'Transform this photo into professional beauty and salon photography. Preserve the original subject, setting, hairstyle, makeup and salon environment. Enhance soft lighting, skin tone, color harmony and elegant composition. Do not replace the person or generate a different salon.',
-  interior: 'Transform this photo into professional interior photography. Preserve the original room, furniture, layout, architecture and objects. Enhance lighting, spaciousness, color warmth and photographic quality. Do not replace the interior or generate a different space.',
-  custom:   'Preserve the original subject, composition, objects and identity from this photo. Enhance lighting, color, contrast and professional photographic quality. Do not replace the subject or generate a different scene.',
+  social:   'Transform this photo into polished professional social media photography. Keep the same subject, scene, objects and composition. Make the lighting noticeably brighter and more natural. Lift dark shadows, improve exposure and color balance, add depth and contrast. Create a premium editorial look while keeping the scene authentic.',
+  product:  'Transform this photo into polished professional product photography. Preserve the exact product, shape, proportions, branding and colors. Improve studio lighting, exposure, contrast and material definition. Create a clean premium presentation with a realistic soft shadow. Keep the product itself unchanged.',
+  food:     'Transform this photo into polished professional café marketing photography. Keep the same café, food, furniture, architecture and overall composition. Make the lighting noticeably brighter, warmer and more natural. Lift dark shadows, improve exposure and color balance, add rich but realistic depth and contrast. Make existing food look fresh and appetizing. Create a premium editorial photography look while keeping the scene authentic to the original business.',
+  beauty:   'Transform this photo into polished professional beauty editorial photography. Preserve the same person, hairstyle, face and salon environment. Improve soft natural lighting, skin tone, color balance and depth. Create a clean premium beauty look. Keep facial identity and physical appearance unchanged.',
+  interior: 'Transform this photo into polished professional interior photography. Preserve the same room, architecture, furniture and layout. Make the space noticeably brighter with natural balanced light. Lift shadows, improve white balance, depth and contrast. Make surfaces look clean and refined. Create a polished architectural-editorial photography look.',
+  custom:   'Transform this photo into polished professional photography. Keep the same subject, scene and composition. Make the lighting brighter and more natural. Lift shadows, improve color balance, depth and contrast. Create a premium editorial look while keeping the scene authentic.',
 };
+
+// Edit verbs that make user text worth appending to an img2img prompt. Scene descriptions
+// ("cozy café, warm atmosphere") restate what the photo already shows, so they are dropped.
+// Bare "warm"/"cool" are left out because they are usually adjectives in scene descriptions.
+// Lookarounds instead of \b: JS \b is ASCII-only, so it never matches around Cyrillic.
+const IMG2IMG_ACTION_WORDS = /(?<!\p{L})(make|add|remove|change|replace|clean|brighten|darken|sharpen|blur|soften|crop|lighter|brighter|darker|warmer|cooler|fix|improve|increase|decrease|reduce|lift|boost|сделай|убери|добавь|измени|замени|почисти|ярче|темнее|теплее|холоднее|убрать|очистить|удалить|улучшить|усилить|зроби|прибери|додай|зміни|заміни|почисть|яскравіше|темніше|тепліше|холодніше|прибрати|видалити|покращити|посилити)(?!\p{L})/iu;
 
 /** Closest ratio the model accepts, e.g. 4:5 → 3:4 for Kontext (which has no 4:5). */
 function closestRatio(requested: string, supported: string[]): string {
@@ -66,11 +72,12 @@ async function processBuffer(
   targetH:    number | undefined,
   format:     'webp' | 'png' | 'jpeg',
   prefix:     string,
+  fit:        'fill' | 'cover' = 'fill',
 ): Promise<Response> {
   const arrBuf: ArrayBuffer = await fetch(imageUrl).then(r => r.arrayBuffer());
   const buf  = Buffer.from(arrBuf);
   const pipe = sharp(buf);
-  if (targetW && targetH) pipe.resize(targetW, targetH, { fit: 'fill' });
+  if (targetW && targetH) pipe.resize(targetW, targetH, { fit });
 
   let out: Buffer;
   let ct: string;
@@ -386,12 +393,18 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
   // would invite a new scene, so strip it and keep only the user's own instruction.
   const t2iPrefix   = STYLE_CHIPS.find((s) => s.id === styleId)?.promptPrefix ?? '';
   const userText    = t2iPrefix && prompt.startsWith(t2iPrefix) ? prompt.slice(t2iPrefix.length).trim() : prompt;
-  const instruction = userText ? await translatePromptToEnglish(userText, p.uiLocale) : '';
+  const hasAction   = IMG2IMG_ACTION_WORDS.test(userText);
+  const instruction = hasAction ? await translatePromptToEnglish(userText, p.uiLocale) : '';
   const preservation = IMG2IMG_STYLE_PREFIX[styleId] ?? IMG2IMG_STYLE_PREFIX.custom;
   const img2imgPrompt = instruction
-    ? `${preservation} User's additional instruction: ${instruction}`
+    ? `${preservation} Additional edit: ${instruction}`
     : preservation;
 
+  // Don't send aspect_ratio to Kontext — it keeps the source photo's native framing.
+  // Forcing e.g. landscape→portrait makes the model invent walls/furniture that don't exist.
+  // The result is centre-cropped to the target size afterwards (processBuffer 'cover'), and
+  // the Before/After slider object-covers the original to the same aspect, so they line up.
+  // aspect_ratio is still computed for usage metadata.
   const aspect_ratio = model.supportedRatios ? closestRatio(p.requestedRatio, model.supportedRatios) : p.requestedRatio;
   const provider  = getProvider(model.provider);
   const startTime = Date.now();
@@ -399,7 +412,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
   try {
     if (!provider.edit) throw new Error(`${model.displayName} does not support edit`);
     const result = await provider.edit(
-      { prompt: img2imgPrompt, imageUrl: referenceImage, aspectRatio: aspect_ratio },
+      { prompt: img2imgPrompt, imageUrl: referenceImage },
       apiKey,
       model.modelId,
     );
@@ -430,7 +443,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
       metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length, generationMode: 'photo_transform' },
     });
 
-    const response = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias);
+    const response = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias, 'cover');
     response.headers.set('X-Model-Alias', alias);
     response.headers.set('X-Model-Provider', model.provider);
     response.headers.set('X-Model-Name', model.displayName);

@@ -44,9 +44,10 @@ export class FalProvider implements ImageProvider {
 
     const result = await fal.subscribe(modelId, {
       input: {
-        prompt:        req.prompt,
-        image_url:     req.imageUrl,
-        output_format: 'jpeg',
+        prompt:         req.prompt,
+        image_url:      req.imageUrl,
+        output_format:  'jpeg',
+        guidance_scale: 4.2,
         ...(req.aspectRatio ? { aspect_ratio: req.aspectRatio } : {}),
       },
     });

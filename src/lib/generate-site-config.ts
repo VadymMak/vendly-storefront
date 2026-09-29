@@ -142,7 +142,7 @@ Generate EXACTLY these fields (all required, TypeScript will fail if any is wron
   palette: MUST be one of: 'dark-premium' | 'clean-light' | 'warm-cozy' | 'professional' | 'natural' | 'medical'
     → use exactly: ${resolvedPalette}
     ⚠️ DO NOT invent palette names like 'light', 'dark', 'warm' — they are NOT valid
-  language: MUST be one of: 'sk' | 'en' | 'de' | 'cs' | 'uk' | 'ru'
+  language: MUST be one of: 'en' | 'ru' | 'de' | 'cs'
     → use exactly: ${lead.language}
   headingFont: MUST be one of: 'oswald' | 'playfair' | 'cormorant' | 'inter'
     → use 'playfair' for beauty/medical, 'cormorant' for restaurant/bar, 'oswald' for auto/repair, 'inter' for others

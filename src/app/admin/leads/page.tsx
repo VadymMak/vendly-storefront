@@ -305,15 +305,13 @@ function stripEmojis(str: string): string {
   return str.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').trim();
 }
 
-// Currency label per language — based on our target markets (SK/CZ/UA/DE).
+// Currency label per language — based on our target markets (EN/RU/CS/DE).
 function getCurrency(language: string): string {
   switch (language) {
-    case 'uk': return 'грн (UAH)';
-    case 'sk': return '€ (EUR)';
     case 'cs': return 'Kč (CZK)';
-    case 'de': return '€ (EUR)';
-    case 'ru': return 'грн (UAH) если клиент из Украины, иначе € (EUR)';
     case 'en':
+    case 'ru':
+    case 'de':
     default:   return '€ (EUR)';
   }
 }
@@ -437,8 +435,8 @@ function buildPrompt(lead: Lead, repoName: string): string {
   // ── Name/tagline language check ────────────────────────────────────────────
   // Detect obvious language mismatch (Cyrillic name on Latin-only language etc.)
   const nameIsCyrillic    = /[А-ЯЁІЇЄҐа-яёіїєґ]/.test(businessName);
-  const langUsesCyrillic  = ['uk', 'ru'].includes(lead.language);
-  const langUsesLatin     = ['sk', 'cs', 'en', 'de'].includes(lead.language);
+  const langUsesCyrillic  = ['ru'].includes(lead.language);
+  const langUsesLatin     = ['cs', 'en', 'de'].includes(lead.language);
   const nameMismatchWarn  =
     (nameIsCyrillic && langUsesLatin) || (!nameIsCyrillic && langUsesCyrillic && businessName !== 'Business Name')
       ? `\n⚠️ ВНИМАНИЕ: businessName "${businessName}" написано в алфавите, отличном от language="${lead.language}". Если клиент не уточнил — оставь как есть (это официальное название бренда). НЕ переводи без уверенности.`
@@ -956,7 +954,7 @@ function LeadCard({
             <span className="text-gray-300">€{lead.priceOneTime}</span>
           )}
           <span className="hidden sm:block">
-            {new Date(lead.createdAt).toLocaleDateString('sk')}
+            {new Date(lead.createdAt).toLocaleDateString('en-GB')}
           </span>
           <span className="text-gray-500">{open ? '▲' : '▼'}</span>
         </div>
@@ -1229,7 +1227,7 @@ function LeadCard({
                   <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Бриф</p>
                   {lead.briefSubmitted ? (
                     <span className="rounded-full bg-green-900/50 px-2.5 py-0.5 text-xs font-medium text-green-400">
-                      ✅ Заполнен {lead.briefSubmittedAt ? new Date(lead.briefSubmittedAt).toLocaleDateString('sk') : ''}
+                      ✅ Заполнен {lead.briefSubmittedAt ? new Date(lead.briefSubmittedAt).toLocaleDateString('en-GB') : ''}
                     </span>
                   ) : (
                     <span className="rounded-full bg-yellow-900/40 px-2.5 py-0.5 text-xs font-medium text-yellow-400">

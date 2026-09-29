@@ -2605,11 +2605,9 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                     >
                       <option value="">Auto-detect</option>
                       <option value="en">English</option>
-                      <option value="sk">Slovenčina</option>
-                      <option value="cs">Čeština</option>
-                      <option value="uk">Українська</option>
-                      <option value="de">Deutsch</option>
                       <option value="ru">Русский</option>
+                      <option value="cs">Čeština</option>
+                      <option value="de">Deutsch</option>
                       <option value="es">Español</option>
                       <option value="fr">Français</option>
                     </select>

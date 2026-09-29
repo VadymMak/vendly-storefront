@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     for (let page = 0; page < pagesNeeded; page++) {
       const requestBody: Record<string, unknown> = {
         textQuery:    `${query} ${city}`,
-        languageCode: 'sk',
+        languageCode: 'en',
         regionCode:   'SK',
         pageSize:     20,
       };

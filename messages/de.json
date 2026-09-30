@@ -1603,6 +1603,8 @@
       "fromGallery": "Aus Galerie",
       "uploading": "Lade hoch...",
       "uploadFailed": "Upload fehlgeschlagen. Erneut versuchen.",
+      "sessionExpired": "Sitzung abgelaufen. Bitte Seite neu laden.",
+      "fileTooLarge": "Foto ist zu groß. Versuche ein kleineres Foto oder mach ein neues.",
       "removePhoto": "Foto entfernen"
     },
     "lang": {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { put } from '@vercel/blob';
 import sharp from 'sharp';
+import { heicToJpegIfNeeded } from '@/lib/studio/heic';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -31,13 +32,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `File must be under ${limit}` }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    let buffer: Buffer = Buffer.from(await file.arrayBuffer());
 
     let finalBuffer = buffer;
     let contentType = file.type;
     let ext: string;
 
     if (file.type.startsWith('image/')) {
+      buffer = await heicToJpegIfNeeded(buffer);
       const metadata = await sharp(buffer).metadata();
       const isPngWithAlpha = metadata.hasAlpha && (file.type === 'image/png' || file.name?.endsWith('.png'));
 
@@ -75,6 +77,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('[studio/upload]', error);
     const message = error instanceof Error ? error.message : String(error);
+    if (/unsupported image format|Input buffer|heif/i.test(message)) {
+      return NextResponse.json(
+        { error: 'Unsupported image format. Please use JPEG, PNG, or WebP.' },
+        { status: 400 },
+      );
+    }
     return NextResponse.json({ error: `Upload failed: ${message}` }, { status: 500 });
   }
 }

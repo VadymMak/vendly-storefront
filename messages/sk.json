@@ -1591,6 +1591,8 @@
       "fromGallery": "Z galérie",
       "uploading": "Nahrávam...",
       "uploadFailed": "Nahrávanie zlyhalo. Skúste znovu.",
+      "sessionExpired": "Relácia vypršala. Obnovte stránku.",
+      "fileTooLarge": "Fotka je príliš veľká. Skúste menšiu fotku alebo ofoťte novú.",
       "removePhoto": "Odstrániť fotku"
     },
     "lang": {

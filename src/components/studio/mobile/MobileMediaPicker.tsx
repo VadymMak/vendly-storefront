@@ -20,15 +20,30 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
   async function handleFile(file: File) {
     setUploading(true);
     setError(null);
+    console.log('[MediaPicker] file:', file.name, file.type, file.size, 'bytes');
     try {
       const compressed = await compressImage(file);
+      console.log('[MediaPicker] compressed:', compressed.name, compressed.type, compressed.size, 'bytes');
       const fd = new FormData();
       fd.append('image', compressed);
       const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Unknown' })) as { error?: string };
+        console.error('[MediaPicker] upload failed:', res.status, body);
+        if (res.status === 401) {
+          setError(t('sessionExpired'));
+          return;
+        }
+        if (res.status === 400 && body.error?.includes('under')) {
+          setError(t('fileTooLarge'));
+          return;
+        }
+        throw new Error(body.error || 'Upload failed');
+      }
       const data = await res.json() as { url: string };
       onImageSelected(data.url);
-    } catch {
+    } catch (err) {
+      console.error('[MediaPicker] error:', err);
       setError(t('uploadFailed'));
     } finally {
       setUploading(false);

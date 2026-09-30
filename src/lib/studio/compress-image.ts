@@ -69,7 +69,8 @@ export async function compressImage(
     if (!best || best.size >= file.size) return file;
     const type = best.type || targetType;
     return new File([best], file.name.replace(/\.\w+$/, '') + '.' + extFor(type), { type });
-  } catch {
+  } catch (err) {
+    console.error('[compressImage] failed:', err);
     return file;
   }
 }

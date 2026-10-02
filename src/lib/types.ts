@@ -678,5 +678,13 @@ export interface MobileTextLayer {
   scale: number;
 }
 
+/** Crop rectangle in source-image pixels (mobile resize/crop tool) */
+export interface CropRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** How /api/studio/generate produced an image — sent back in the X-Generation-Mode header. */
 export type GenerationMode = 'photo_transform' | 'text_create';

@@ -48,7 +48,7 @@ export function InputStep({ onContinue, onBack }: Props) {
         <div className="flex-1">
           <span className="text-base font-semibold text-white">{t('title')}</span>
         </div>
-        <span className="text-xs text-gray-500">2/4</span>
+        <span className="text-xs text-gray-500">1/3</span>
       </div>
 
       <div className="flex flex-col gap-5 px-4 pb-32">

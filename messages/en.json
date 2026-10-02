@@ -1596,7 +1596,8 @@
       "resultLabel": "AI result",
       "styleReference": "Like my photo",
       "photoEnhanced": "Your photo, enhanced",
-      "createdFromPrompt": "Created from your prompt"
+      "createdFromPrompt": "Created from your prompt",
+      "resize": "Resize for platform"
     },
     "media": {
       "takePhoto": "Take Photo",
@@ -1660,6 +1661,16 @@
       "addText": "Add text",
       "editText": "Edit text",
       "removeText": "Remove text"
+    },
+    "resize": {
+      "title": "Resize",
+      "apply": "Apply",
+      "applying": "Applying…",
+      "cancel": "Cancel",
+      "currentFormat": "Current format",
+      "dragHint": "Drag the image to adjust the crop",
+      "loadFailed": "Could not load the image.",
+      "applyFailed": "Could not resize the image. Please try again."
     }
   }
 }

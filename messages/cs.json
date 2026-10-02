@@ -1596,7 +1596,8 @@
       "resultLabel": "Výsledek AI",
       "styleReference": "Jako moje fotka",
       "photoEnhanced": "Vaše fotka, vylepšená",
-      "createdFromPrompt": "Vytvořeno podle vašeho popisu"
+      "createdFromPrompt": "Vytvořeno podle vašeho popisu",
+      "resize": "Velikost pro platformu"
     },
     "media": {
       "takePhoto": "Vyfotit",
@@ -1660,6 +1661,16 @@
       "addText": "Přidat text",
       "editText": "Upravit text",
       "removeText": "Odebrat text"
+    },
+    "resize": {
+      "title": "Změnit velikost",
+      "apply": "Použít",
+      "applying": "Používám…",
+      "cancel": "Zrušit",
+      "currentFormat": "Aktuální formát",
+      "dragHint": "Přetažením upravte ořez",
+      "loadFailed": "Obrázek se nepodařilo načíst.",
+      "applyFailed": "Velikost se nepodařilo změnit. Zkuste to znovu."
     }
   }
 }

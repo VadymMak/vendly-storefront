@@ -1584,7 +1584,8 @@
       "improve": "Vylepšiť obrázok",
       "model": "Model: {name}",
       "shareTitle": "Vytvorené vo VendShop Studio",
-      "addText": "Pridať text"
+      "addText": "Pridať text",
+      "resize": "Veľkosť pre platformu"
     },
     "media": {
       "takePhoto": "Odfotiť",
@@ -1648,6 +1649,16 @@
       "addText": "Pridať text",
       "editText": "Upraviť text",
       "removeText": "Odstrániť text"
+    },
+    "resize": {
+      "title": "Zmeniť veľkosť",
+      "apply": "Použiť",
+      "applying": "Používam…",
+      "cancel": "Zrušiť",
+      "currentFormat": "Aktuálny formát",
+      "dragHint": "Potiahnutím upravte orezanie",
+      "loadFailed": "Obrázok sa nepodarilo načítať.",
+      "applyFailed": "Veľkosť sa nepodarilo zmeniť. Skúste to znova."
     }
   }
 }

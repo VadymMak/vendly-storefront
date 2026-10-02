@@ -1596,7 +1596,8 @@
       "resultLabel": "KI-Ergebnis",
       "styleReference": "Wie mein Foto",
       "photoEnhanced": "Ihr Foto, verbessert",
-      "createdFromPrompt": "Aus Ihrer Beschreibung erstellt"
+      "createdFromPrompt": "Aus Ihrer Beschreibung erstellt",
+      "resize": "Größe für Plattform"
     },
     "media": {
       "takePhoto": "Foto aufnehmen",
@@ -1660,6 +1661,16 @@
       "addText": "Text hinzufügen",
       "editText": "Text bearbeiten",
       "removeText": "Text entfernen"
+    },
+    "resize": {
+      "title": "Größe ändern",
+      "apply": "Anwenden",
+      "applying": "Wird angewendet…",
+      "cancel": "Abbrechen",
+      "currentFormat": "Aktuelles Format",
+      "dragHint": "Bild ziehen, um den Ausschnitt anzupassen",
+      "loadFailed": "Bild konnte nicht geladen werden.",
+      "applyFailed": "Größe konnte nicht geändert werden. Bitte erneut versuchen."
     }
   }
 }

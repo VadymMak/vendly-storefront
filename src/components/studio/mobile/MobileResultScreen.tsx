@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
 import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
+import { MobileResizeCropper } from './MobileResizeCropper';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
 import type { GenerationMode } from '@/lib/types';
 
@@ -43,6 +44,11 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const [editingText, setEditingText] = useState(false);
   const [compositedImage, setCompositedImage] = useState<string | null>(null);
   const [improvingUpload, setImprovingUpload] = useState(false);
+  const [resizing, setResizing] = useState(false);
+  const [currentPresetId, setCurrentPresetId] = useState(
+    inlineResult?.presetId ?? 'ig-feed'
+  );
+  const [wasResized, setWasResized] = useState(false);
 
   const imageUrl = inlineResult?.imageUrl ?? job?.outputUrl ?? null;
   const prompt = inlineResult?.prompt ?? job?.prompt ?? undefined;
@@ -55,7 +61,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     : generationMode === 'text_create' ? t('createdFromPrompt') : '';
   const contextLabel = [
     modeLabel && `✨ ${modeLabel}`,
-    getContextLabel(inlineResult?.styleId, inlineResult?.presetId, t('styleReference')),
+    getContextLabel(inlineResult?.styleId, currentPresetId, t('styleReference')),
   ].filter(Boolean).join(' · ');
 
   // compositedImage is a blob: URL from the text editor — release it when replaced or on unmount
@@ -125,6 +131,22 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     await downloadImage(displayUrl);
   }
 
+  if (resizing && displayUrl) {
+    return (
+      <MobileResizeCropper
+        imageUrl={displayUrl}
+        currentPresetId={currentPresetId}
+        onDone={(croppedUrl, newPresetId) => {
+          setCompositedImage(croppedUrl);
+          setCurrentPresetId(newPresetId);
+          setWasResized(true);
+          setResizing(false);
+        }}
+        onCancel={() => setResizing(false)}
+      />
+    );
+  }
+
   if (editingText && displayUrl) {
     return (
       <MobileTextOverlayEditor
@@ -161,9 +183,10 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         <div className="w-9" />
       </div>
 
-      {/* Image — before/after only when the result really is the user's photo transformed */}
+      {/* Image — before/after only when the result really is the user's photo transformed
+          (and not re-cropped, which would make the two frames incomparable) */}
       <div className="px-4">
-        {inlineResult?.referenceImageUrl && generationMode === 'photo_transform' ? (
+        {inlineResult?.referenceImageUrl && generationMode === 'photo_transform' && !wasResized ? (
           <BeforeAfterSlider
             beforeUrl={inlineResult.referenceImageUrl}
             afterUrl={displayUrl}
@@ -221,6 +244,11 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           icon="✏️"
           label={t('addText')}
           onClick={() => setEditingText(true)}
+        />
+        <QuickAction
+          icon="📐"
+          label={t('resize')}
+          onClick={() => setResizing(true)}
         />
         <QuickAction
           icon="✨"

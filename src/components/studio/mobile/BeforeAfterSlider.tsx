@@ -21,7 +21,8 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl, beforeLabel, afterLabel
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(START_POSITION);
   const [dragging, setDragging] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<string | undefined>();
+  // width / height of the result image; 4:5 until it loads
+  const [ratio, setRatio] = useState(4 / 5);
   const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touched = useRef(false);
 
@@ -71,8 +72,10 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl, beforeLabel, afterLabel
   return (
     <div
       ref={containerRef}
-      className="relative w-full select-none overflow-hidden rounded-2xl bg-white/[0.04]"
-      style={{ aspectRatio: aspectRatio ?? '4 / 5' }}
+      className="relative mx-auto select-none overflow-hidden rounded-2xl bg-white/[0.04]"
+      // Capped at 55vh tall so the actions below stay on screen: tall images shrink in width
+      // instead of being letterboxed, keeping both images object-cover and aligned
+      style={{ aspectRatio: String(ratio), width: `min(100%, calc(55vh * ${ratio}))` }}
     >
       {/* After — full image behind */}
       <img
@@ -82,7 +85,7 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl, beforeLabel, afterLabel
         onLoad={(e) => {
           const img = e.currentTarget;
           if (img.naturalWidth && img.naturalHeight) {
-            setAspectRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+            setRatio(img.naturalWidth / img.naturalHeight);
           }
           scheduleReveal(150);
         }}

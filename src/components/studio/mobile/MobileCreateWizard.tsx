@@ -120,6 +120,7 @@ export function MobileCreateWizard() {
           inlineResult={{
             imageUrl: result.imageUrl,
             prompt: result.prompt,
+            description,
             model: result.model,
             presetId,
             styleId,

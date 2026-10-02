@@ -23,6 +23,8 @@ interface JobData {
 interface InlineResult {
   imageUrl: string;
   prompt?: string;
+  /** What the user typed — `prompt` also carries the style prefix */
+  description?: string;
   model?: string;
   presetId?: string;
   styleId?: string;
@@ -246,7 +248,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           <MoreOption
             icon="📱"
             label={t('makeStory')}
-            onClick={() => router.push(`/studio/m/create?remake=ig-story&prompt=${encodeURIComponent(prompt ?? '')}`)}
+            onClick={() => router.push(`/studio/m/create?remake=ig-story&prompt=${encodeURIComponent(inlineResult?.description ?? prompt ?? '')}`)}
           />
         </div>
       </div>

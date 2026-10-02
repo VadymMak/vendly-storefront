@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MobileMediaPicker } from '../MobileMediaPicker';
 import { MobileVoiceInput } from '../MobileVoiceInput';
@@ -13,7 +14,9 @@ interface Props {
 export function InputStep({ onContinue, onBack }: Props) {
   const t = useTranslations('mobile.input');
   const EXAMPLES = [t('example1'), t('example2'), t('example3')];
-  const [description, setDescription] = useState('');
+  const searchParams = useSearchParams();
+  // ?prompt= comes from "Make a Story" on the result screen — start from the original description
+  const [description, setDescription] = useState(() => searchParams.get('prompt') ?? '');
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>();
   const [exampleIndex, setExampleIndex] = useState(0);
 

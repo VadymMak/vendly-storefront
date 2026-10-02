@@ -58,12 +58,42 @@ export const EXAMPLE_PROMPTS = [
 // ── Style chips — inject optimized prompt prefixes ───────────────────────────
 
 export const STYLE_CHIPS = [
-  { id: 'product',  label: 'Product photo', icon: '📦', promptPrefix: 'Professional product photography, clean studio lighting, sharp details, commercial e-commerce quality,' },
-  { id: 'food',     label: 'Food & Café',   icon: '🍽️', promptPrefix: 'Professional food photography, warm lighting, rich saturated colors, shallow depth of field, appetizing,' },
-  { id: 'social',   label: 'Social post',   icon: '📱', promptPrefix: 'Modern social media content, vibrant colors, eye-catching composition, trending aesthetic,' },
-  { id: 'beauty',   label: 'Beauty & Salon', icon: '💅', promptPrefix: 'Beauty and wellness photography, soft flattering lighting, elegant composition, spa atmosphere,' },
-  { id: 'interior', label: 'Interior',      icon: '🏠', promptPrefix: 'Professional interior photography, bright well-lit space, wide angle, inviting atmosphere, architectural detail,' },
-  { id: 'custom',   label: 'Custom',        icon: '✨', promptPrefix: '' },
+  {
+    id: 'social',
+    label: 'Social promo',
+    icon: '📱',
+    promptPrefix: 'Create a scroll-stopping social media advertisement. Make the subject immediately recognizable and visually dominant, use a strong focal point, dynamic composition, clear foreground and background separation, attractive lighting, and intentional negative space suitable for promotional text overlay.',
+  },
+  {
+    id: 'food',
+    label: 'Food showcase',
+    icon: '🍽️',
+    promptPrefix: 'Create a commercial food photograph. Use a close three-quarter camera angle, make the food the dominant subject in the foreground, use controlled shallow depth of field, warm natural window light, a clean supporting background, and composition suitable for a social media food advertisement.',
+  },
+  {
+    id: 'product',
+    label: 'Product listing',
+    icon: '📦',
+    promptPrefix: 'Create a clean product listing photograph. Show the product centered and fully visible with accurate shape, material, label and color. Use simple controlled studio lighting, a neutral uncluttered background, crisp edges, and professional commercial composition.',
+  },
+  {
+    id: 'beauty',
+    label: 'Beauty offer',
+    icon: '💅',
+    promptPrefix: 'Create a beauty and wellness promotional photograph. Use soft flattering diffused lighting, close-up detail of the product or treatment, elegant minimal composition, clean spa-like atmosphere, and intentional space for promotional text.',
+  },
+  {
+    id: 'interior',
+    label: 'Space showcase',
+    icon: '🏠',
+    promptPrefix: 'Create a professional interior photograph. Use a wide eye-level composition, straight architectural lines, bright balanced natural-looking light, realistic colors, and an inviting tidy atmosphere that showcases the space.',
+  },
+  {
+    id: 'none',
+    label: 'No direction',
+    icon: '✨',
+    promptPrefix: '',
+  },
 ] as const;
 
 export type StyleChipId = typeof STYLE_CHIPS[number]['id'];

@@ -5,12 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useStudioStore } from '@/lib/studio/store';
 import { PLATFORM_IMAGE_PRESETS } from '@/lib/studio/constants';
 import { InputStep } from './steps/InputStep';
-import { StyleStep } from './steps/StyleStep';
 import { GeneratingStep } from './steps/GeneratingStep';
 import { MobileResultScreen } from './MobileResultScreen';
 import type { GenerationMode } from '@/lib/types';
 
-type Step = 1 | 2 | 3 | 'result';
+type Step = 1 | 2 | 'result';
 
 const DEFAULT_PRESET_ID = 'ig-feed';
 
@@ -49,18 +48,14 @@ export function MobileCreateWizard() {
   }
 
   const handleInputContinue = useCallback(
-    (data: { description: string; referenceImageUrl?: string }) => {
+    (data: { description: string; referenceImageUrl?: string; styleId: string }) => {
       setDescription(data.description);
       setReferenceImageUrl(data.referenceImageUrl);
+      setStyleId(data.styleId);
       setStep(2);
     },
     [],
   );
-
-  const handleStyleGenerate = useCallback((style: string) => {
-    setStyleId(style);
-    setStep(3);
-  }, []);
 
   const handleComplete = useCallback(
     (res: GenerateResult) => {
@@ -81,7 +76,7 @@ export function MobileCreateWizard() {
   );
 
   const handleError = useCallback(() => {
-    setStep(2);
+    setStep(1);
   }, []);
 
   const resetWizard = useCallback(() => {
@@ -99,16 +94,12 @@ export function MobileCreateWizard() {
         <InputStep
           onContinue={handleInputContinue}
           onBack={() => router.push('/studio/m')}
+          initialDescription={description}
+          initialReferenceImageUrl={referenceImageUrl}
+          initialStyleId={styleId}
         />
       )}
       {step === 2 && (
-        <StyleStep
-          onGenerate={handleStyleGenerate}
-          onBack={() => setStep(1)}
-          hasReferenceImage={!!referenceImageUrl}
-        />
-      )}
-      {step === 3 && (
         <GeneratingStep
           generateParams={{ prompt: description, presetId, styleId, referenceImageUrl }}
           onComplete={handleComplete}
@@ -128,8 +119,8 @@ export function MobileCreateWizard() {
             generationMode: result.generationMode,
           }}
           onBack={resetWizard}
-          onRegenerate={() => setStep(3)}
-          onTryStyle={() => setStep(2)}
+          onRegenerate={() => setStep(2)}
+          onTryStyle={() => setStep(1)}
         />
       )}
     </div>

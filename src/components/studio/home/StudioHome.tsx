@@ -158,7 +158,7 @@ export function StudioHome({ userId: _userId }: Props) {
   // ── Create (text-to-image) state ────────────────────────────────────────────
   const [prompt,          setPrompt]          = useState('');
   const [isGenerating,    setIsGenerating]    = useState(false);
-  const [selectedStyle,   setSelectedStyle]   = useState<StyleChipId>('custom');
+  const [selectedStyle,   setSelectedStyle]   = useState<StyleChipId>('none');
   const [selectedTier,    setSelectedTier]    = useState<ModelTier>('quality');
   const [selectedPreset,  setSelectedPreset]  = useState<PlatformImagePresetId>('ig-feed');
   const [platformFilter,  setPlatformFilter]  = useState<string>('all');

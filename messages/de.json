@@ -1540,7 +1540,7 @@
     },
     "input": {
       "title": "Was möchten Sie erstellen?",
-      "step": "2/4",
+      "step": "1/2",
       "referenceLabel": "Referenzfoto (optional)",
       "describeLabel": "Beschreiben Sie Ihr Bild",
       "describePlaceholder": "Beschreiben Sie was Sie erstellen möchten...",
@@ -1553,17 +1553,28 @@
     "style": {
       "title": "Stil wählen",
       "step": "3/4",
-      "product": "Sauber, professionell, Studiobeleuchtung",
-      "social": "Lebendig, auffällig, trendiger Look",
+      "product": "Saubere kommerzielle Produktaufnahme",
+      "social": "Auffällige Komposition für Social Media",
       "custom": "Bester Stil für Ihre Inhalte",
       "reference": "Wie mein Foto",
       "referenceDesc": "Stil aus Ihrem Foto übernehmen",
       "generate": "Generieren",
-      "food": "Ideal für Cafés, Restaurants & Gastronomie",
-      "beauty": "Weiches Licht, elegante Komposition für Salons",
-      "interior": "Hell und großzügig für Ihre Räume",
+      "food": "Nahaufnahme, appetitliches Food-Foto",
+      "beauty": "Sanftes Licht, elegantes Beauty-Foto",
+      "interior": "Weitwinkel, einladendes Raumfoto",
       "moreStyles": "Weitere Stile",
-      "lessStyles": "Weniger Stile"
+      "lessStyles": "Weniger Stile",
+      "directionLabel": "Richtung",
+      "none": "Nur meine Beschreibung",
+      "chips": {
+        "social": "Social-Promo",
+        "food": "Food-Foto",
+        "product": "Produktfoto",
+        "beauty": "Beauty-Angebot",
+        "interior": "Raum",
+        "none": "Keine Vorgabe",
+        "reference": "Wie mein Foto"
+      }
     },
     "generating": {
       "phase1": "Verstehe Ihren Inhalt...",
@@ -1585,7 +1596,7 @@
       "sharing": "Teile…",
       "save": "Speichern",
       "regenerate": "Neu generieren",
-      "tryStyle": "Anderen Stil probieren",
+      "tryStyle": "Richtung ändern",
       "makeStory": "Story erstellen (9:16)",
       "improve": "Bild verbessern",
       "model": "Modell: {name}",

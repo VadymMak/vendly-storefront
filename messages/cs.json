@@ -1540,7 +1540,7 @@
     },
     "input": {
       "title": "Co chcete vytvořit?",
-      "step": "2/4",
+      "step": "1/2",
       "referenceLabel": "Referenční fotka (volitelné)",
       "describeLabel": "Popište svůj obrázek",
       "describePlaceholder": "Popište co chcete vytvořit...",
@@ -1553,17 +1553,28 @@
     "style": {
       "title": "Vyberte styl",
       "step": "3/4",
-      "product": "Čistý, profesionální, studiové osvětlení",
-      "social": "Živé, poutavé, trendový vzhled",
+      "product": "Čistý komerční záběr produktu",
+      "social": "Výrazná kompozice pro sociální sítě",
       "custom": "Nejlepší styl pro váš obsah",
       "reference": "Jako moje fotka",
       "referenceDesc": "Použít styl z vaší fotky",
       "generate": "Generovat",
-      "food": "Pro kavárny, restaurace a gastro podniky",
-      "beauty": "Měkké světlo, elegantní kompozice pro salony",
-      "interior": "Světlá, prostorná fotka vašeho podniku",
+      "food": "Detail, lákavé foto jídla",
+      "beauty": "Měkké světlo, elegantní beauty záběr",
+      "interior": "Široký záběr, útulné foto prostoru",
       "moreStyles": "Další styly",
-      "lessStyles": "Méně stylů"
+      "lessStyles": "Méně stylů",
+      "directionLabel": "Směr",
+      "none": "Pouze můj popis",
+      "chips": {
+        "social": "Promo pro sítě",
+        "food": "Foto jídla",
+        "product": "Produktová fotka",
+        "beauty": "Beauty nabídka",
+        "interior": "Prostor",
+        "none": "Bez směru",
+        "reference": "Jako moje fotka"
+      }
     },
     "generating": {
       "phase1": "Analyzuji váš obsah...",
@@ -1585,7 +1596,7 @@
       "sharing": "Sdílím…",
       "save": "Uložit",
       "regenerate": "Regenerovat",
-      "tryStyle": "Zkusit jiný styl",
+      "tryStyle": "Změnit směr",
       "makeStory": "Vytvořit Story (9:16)",
       "improve": "Vylepšit obrázek",
       "model": "Model: {name}",

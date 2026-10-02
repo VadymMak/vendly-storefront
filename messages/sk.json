@@ -1540,7 +1540,7 @@
     },
     "input": {
       "title": "Čo chcete vytvoriť?",
-      "step": "2/4",
+      "step": "1/2",
       "referenceLabel": "Referenčná fotka (voliteľné)",
       "describeLabel": "Popíšte svoj obrázok",
       "describePlaceholder": "Popíšte čo chcete vytvoriť...",
@@ -1553,12 +1553,26 @@
     "style": {
       "title": "Vyberte štýl",
       "step": "3/4",
-      "product": "Čisté, profesionálne, štúdiové osvetlenie",
-      "social": "Živé, pútavé, trendový vzhľad",
+      "product": "Čistý komerčný záber produktu",
+      "social": "Výrazná kompozícia pre sociálne siete",
       "custom": "Najlepší štýl pre váš obsah",
       "reference": "Ako moja fotka",
       "referenceDesc": "Použiť štýl z vašej fotky",
-      "generate": "Generovať"
+      "generate": "Generovať",
+      "directionLabel": "Smer",
+      "food": "Detail, lákavé foto jedla",
+      "beauty": "Mäkké svetlo, elegantný beauty záber",
+      "interior": "Široký záber, útulné foto priestoru",
+      "none": "Len môj popis",
+      "chips": {
+        "social": "Promo pre siete",
+        "food": "Foto jedla",
+        "product": "Produktová fotka",
+        "beauty": "Beauty ponuka",
+        "interior": "Priestor",
+        "none": "Bez smeru",
+        "reference": "Ako moja fotka"
+      }
     },
     "generating": {
       "phase1": "Analyzujem váš obsah...",
@@ -1579,7 +1593,7 @@
       "sharing": "Zdieľam…",
       "save": "Uložiť",
       "regenerate": "Regenerovať",
-      "tryStyle": "Skúsiť iný štýl",
+      "tryStyle": "Zmeniť smer",
       "makeStory": "Vytvoriť Story (9:16)",
       "improve": "Vylepšiť obrázok",
       "model": "Model: {name}",

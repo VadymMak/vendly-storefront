@@ -3,21 +3,47 @@
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { STYLE_CHIPS } from '@/lib/studio/constants';
 import { MobileMediaPicker } from '../MobileMediaPicker';
 import { MobileVoiceInput } from '../MobileVoiceInput';
 
 interface Props {
-  onContinue: (data: { description: string; referenceImageUrl?: string }) => void;
+  onContinue: (data: { description: string; referenceImageUrl?: string; styleId: string }) => void;
   onBack: () => void;
+  /** Wizard state to restore when returning here ("Change direction", or after a failed generation) */
+  initialDescription?: string;
+  initialReferenceImageUrl?: string;
+  initialStyleId?: string;
 }
 
-export function InputStep({ onContinue, onBack }: Props) {
+type StyleOptionId = typeof STYLE_CHIPS[number]['id'] | 'reference';
+
+const DEFAULT_STYLE_ID = 'social';
+
+export function InputStep({ onContinue, onBack, initialDescription, initialReferenceImageUrl, initialStyleId }: Props) {
   const t = useTranslations('mobile.input');
+  const tStyle = useTranslations('mobile.style');
   const EXAMPLES = [t('example1'), t('example2'), t('example3')];
   const searchParams = useSearchParams();
   // ?prompt= comes from "Make a Story" on the result screen — start from the original description
-  const [description, setDescription] = useState(() => searchParams.get('prompt') ?? '');
-  const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>();
+  const [description, setDescription] = useState(() => initialDescription || (searchParams.get('prompt') ?? ''));
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>(initialReferenceImageUrl);
+  const [styleId, setStyleId] = useState<string>(() =>
+    initialStyleId && (initialStyleId !== 'reference' || initialReferenceImageUrl) ? initialStyleId : DEFAULT_STYLE_ID,
+  );
+
+  // "Like my photo" only makes sense with a photo
+  const styleOptions: StyleOptionId[] = [
+    ...STYLE_CHIPS.map((s) => s.id),
+    ...(referenceImageUrl ? ['reference' as const] : []),
+  ];
+  const styleIcon = (id: StyleOptionId) => (id === 'reference' ? '🖼️' : STYLE_CHIPS.find((s) => s.id === id)?.icon);
+  const styleDesc = (id: string) => (id === 'reference' ? tStyle('referenceDesc') : tStyle(id as typeof STYLE_CHIPS[number]['id']));
+
+  function clearReference() {
+    setReferenceImageUrl(undefined);
+    if (styleId === 'reference') setStyleId(DEFAULT_STYLE_ID);
+  }
   const [exampleIndex, setExampleIndex] = useState(0);
 
   const handleTranscript = useCallback((text: string) => {
@@ -51,7 +77,7 @@ export function InputStep({ onContinue, onBack }: Props) {
         <div className="flex-1">
           <span className="text-base font-semibold text-white">{t('title')}</span>
         </div>
-        <span className="text-xs text-gray-500">1/3</span>
+        <span className="text-xs text-gray-500">{t('step')}</span>
       </div>
 
       <div className="flex flex-col gap-5 px-4 pb-40">
@@ -61,7 +87,7 @@ export function InputStep({ onContinue, onBack }: Props) {
           <MobileMediaPicker
             onImageSelected={setReferenceImageUrl}
             currentImage={referenceImageUrl}
-            onClear={() => setReferenceImageUrl(undefined)}
+            onClear={clearReference}
           />
         </div>
 
@@ -96,20 +122,45 @@ export function InputStep({ onContinue, onBack }: Props) {
             </div>
           </button>
         </div>
+
+        {/* Creative direction */}
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{tStyle('directionLabel')}</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={tStyle('directionLabel')}>
+            {styleOptions.map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={styleId === id}
+                onClick={() => setStyleId(id)}
+                className={`flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors active:scale-[0.97] ${
+                  styleId === id
+                    ? 'border-green-500 bg-green-500/15 text-white'
+                    : 'border-white/10 bg-white/[0.04] text-gray-400'
+                }`}
+              >
+                <span className="text-base" aria-hidden="true">{styleIcon(id)}</span>
+                <span>{tStyle(`chips.${id}`)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">{styleDesc(styleId)}</p>
+        </div>
       </div>
 
       {/* Fixed bottom CTA */}
       <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
         <div className="mx-auto max-w-lg">
           <button
-            onClick={() => onContinue({ description: description.trim(), referenceImageUrl })}
+            onClick={() => onContinue({ description: description.trim(), referenceImageUrl, styleId })}
             disabled={!canContinue}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-base font-semibold text-white active:bg-green-700 disabled:bg-green-900 disabled:text-white/40"
           >
-            {t('continue')}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6" />
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
+            {tStyle('generate')}
           </button>
         </div>
       </div>

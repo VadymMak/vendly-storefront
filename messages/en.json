@@ -1540,7 +1540,7 @@
     },
     "input": {
       "title": "What do you want to create?",
-      "step": "2/4",
+      "step": "1/2",
       "referenceLabel": "Reference photo (optional)",
       "describeLabel": "Describe your image",
       "describePlaceholder": "Describe what you want to create...",
@@ -1553,17 +1553,28 @@
     "style": {
       "title": "Choose a style",
       "step": "3/4",
-      "product": "Clean, professional, studio lighting",
-      "social": "Vibrant, eye-catching, trending aesthetic",
+      "product": "Clean, commercial product shot",
+      "social": "Bold composition to stop the scroll",
       "custom": "Best style for your content",
       "reference": "Like my photo",
       "referenceDesc": "Match the style from your photo",
       "generate": "Generate",
-      "food": "Perfect for cafés, restaurants & food businesses",
-      "beauty": "Soft lighting, elegant composition for salons",
-      "interior": "Bright, spacious feel for your location",
+      "food": "Close-up, appetizing food photo",
+      "beauty": "Soft lighting, elegant beauty shot",
+      "interior": "Wide-angle, inviting space photo",
       "moreStyles": "More styles",
-      "lessStyles": "Less styles"
+      "lessStyles": "Less styles",
+      "directionLabel": "Creative direction",
+      "none": "Use my description only",
+      "chips": {
+        "social": "Social promo",
+        "food": "Food showcase",
+        "product": "Product listing",
+        "beauty": "Beauty offer",
+        "interior": "Space showcase",
+        "none": "No direction",
+        "reference": "Like my photo"
+      }
     },
     "generating": {
       "phase1": "Understanding your content...",
@@ -1585,7 +1596,7 @@
       "sharing": "Sharing…",
       "save": "Save",
       "regenerate": "Regenerate",
-      "tryStyle": "Try another style",
+      "tryStyle": "Change direction",
       "makeStory": "Make a Story (9:16)",
       "improve": "Improve this image",
       "model": "Model: {name}",

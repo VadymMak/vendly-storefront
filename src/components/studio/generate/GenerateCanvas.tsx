@@ -407,7 +407,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   const [selectionMode,   setSelectionMode] = useState<SelectionMode>('simple');
   const [selectedTier,    setSelectedTier]  = useState<ModelTier>('fast');
   const [selectedModel,   setSelectedModel] = useState<string>('');
-  const [selectedStyle,   setSelectedStyle] = useState<StyleChipId>('custom');
+  const [selectedStyle,   setSelectedStyle] = useState<StyleChipId>('none');
   const [showAdvanced,    setShowAdvanced]  = useState(false);
   const [selectedPreset,  setSelectedPreset]  = useState<PlatformImagePresetId>('ig-feed');
   const [platformFilter,  setPlatformFilter]  = useState<string>('all');

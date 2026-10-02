@@ -1578,7 +1578,7 @@
       "transformFailed": "Úprava fotky se nezdařila. Zkuste to znovu."
     },
     "result": {
-      "title": "Vaše tvorba",
+      "title": "Váš příspěvek",
       "notAvailable": "Obrázek není dostupný",
       "back": "← Zpět",
       "share": "Sdílet",
@@ -1602,8 +1602,7 @@
       "improveDesc": "Jasnější a profesionálnější",
       "textTool": "Text",
       "resizeTool": "Oříznout",
-      "moreOptions": "Další možnosti",
-      "useThisImage": "Použít tento obrázek"
+      "moreOptions": "Další možnosti"
     },
     "media": {
       "takePhoto": "Vyfotit",

@@ -1572,7 +1572,7 @@
       "noCredits": "Nedostatok kreditov. Vylepšite svoj plán."
     },
     "result": {
-      "title": "Vaša tvorba",
+      "title": "Váš príspevok",
       "notAvailable": "Obrázok nie je dostupný",
       "back": "← Späť",
       "share": "Zdieľať",
@@ -1590,8 +1590,7 @@
       "improveDesc": "Jasnejšia a profesionálnejšia",
       "textTool": "Text",
       "resizeTool": "Orezať",
-      "moreOptions": "Ďalšie možnosti",
-      "useThisImage": "Použiť tento obrázok"
+      "moreOptions": "Ďalšie možnosti"
     },
     "media": {
       "takePhoto": "Odfotiť",

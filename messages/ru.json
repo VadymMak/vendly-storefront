@@ -1578,7 +1578,7 @@
       "transformFailed": "Обработка фото не удалась. Попробуйте снова."
     },
     "result": {
-      "title": "Ваше творение",
+      "title": "Ваш пост",
       "notAvailable": "Изображение недоступно",
       "back": "← Назад",
       "share": "Поделиться",
@@ -1602,8 +1602,7 @@
       "improveDesc": "Ярче и профессиональнее",
       "textTool": "Текст",
       "resizeTool": "Обрезка",
-      "moreOptions": "Ещё",
-      "useThisImage": "Использовать это фото"
+      "moreOptions": "Ещё"
     },
     "media": {
       "takePhoto": "Сделать фото",

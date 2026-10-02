@@ -1578,7 +1578,7 @@
       "transformFailed": "Photo transformation failed. Please try again."
     },
     "result": {
-      "title": "Your creation",
+      "title": "Your Post",
       "notAvailable": "Image not available",
       "back": "← Back",
       "share": "Share",
@@ -1602,8 +1602,7 @@
       "improveDesc": "Make it brighter & more professional",
       "textTool": "Text",
       "resizeTool": "Crop",
-      "moreOptions": "More options",
-      "useThisImage": "Use this image"
+      "moreOptions": "More options"
     },
     "media": {
       "takePhoto": "Take Photo",

@@ -1578,7 +1578,7 @@
       "transformFailed": "Fotobearbeitung fehlgeschlagen. Bitte erneut versuchen."
     },
     "result": {
-      "title": "Ihre Kreation",
+      "title": "Dein Beitrag",
       "notAvailable": "Bild nicht verfügbar",
       "back": "← Zurück",
       "share": "Teilen",
@@ -1602,8 +1602,7 @@
       "improveDesc": "Heller und professioneller",
       "textTool": "Text",
       "resizeTool": "Zuschneiden",
-      "moreOptions": "Weitere Optionen",
-      "useThisImage": "Dieses Bild verwenden"
+      "moreOptions": "Weitere Optionen"
     },
     "media": {
       "takePhoto": "Foto aufnehmen",

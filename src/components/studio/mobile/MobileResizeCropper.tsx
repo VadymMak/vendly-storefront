@@ -152,7 +152,7 @@ export function MobileResizeCropper({ imageUrl, currentPresetId, onDone, onCance
   const fit = img ? Math.min(1, PREVIEW_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight)) : 1;
 
   return (
-    <div className="flex h-full flex-col bg-[#0a0a0f]" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
+    <div className="flex h-full flex-col bg-[#0a0a0f] pb-40" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
       {/* Header */}
       <div className="flex shrink-0 items-center gap-3 px-4 pt-4 pb-3">
         <button
@@ -164,11 +164,19 @@ export function MobileResizeCropper({ imageUrl, currentPresetId, onDone, onCance
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <span className="text-base font-semibold text-white">{t('title')}</span>
+        <span className="flex-1 text-base font-semibold text-white">{t('title')}</span>
+        {/* Always-visible Apply — the bottom one can sit low on short screens */}
+        <button
+          onClick={handleApply}
+          disabled={!crop || applying}
+          className="min-h-11 rounded-full bg-green-600 px-5 text-sm font-semibold text-white active:bg-green-700 disabled:bg-green-900 disabled:text-white/40"
+        >
+          {applying ? t('applying') : t('apply')}
+        </button>
       </div>
 
       {/* Preview */}
-      <div className="flex min-h-[40vh] items-center justify-center px-4">
+      <div className="flex min-h-[30vh] items-center justify-center px-4">
         {loadError ? (
           <p role="alert" className="text-sm text-red-400">{t('loadFailed')}</p>
         ) : img ? (
@@ -180,7 +188,7 @@ export function MobileResizeCropper({ imageUrl, currentPresetId, onDone, onCance
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="max-h-[55vh] max-w-full touch-none cursor-move select-none rounded-xl"
+            className="max-h-[50vh] max-w-full touch-none cursor-move select-none rounded-xl"
           />
         ) : (
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
@@ -222,15 +230,17 @@ export function MobileResizeCropper({ imageUrl, currentPresetId, onDone, onCance
         </p>
       )}
 
-      {/* Apply */}
-      <div className="mt-auto shrink-0 px-4 pt-4 pb-6">
-        <button
-          onClick={handleApply}
-          disabled={!crop || applying}
-          className="min-h-11 w-full rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700 disabled:opacity-60"
-        >
-          {applying ? t('applying') : t('apply')}
-        </button>
+      {/* Apply — fixed above the bottom nav, like the other mobile CTAs */}
+      <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
+        <div className="mx-auto max-w-lg">
+          <button
+            onClick={handleApply}
+            disabled={!crop || applying}
+            className="flex min-h-11 w-full items-center justify-center rounded-2xl bg-green-600 py-4 text-base font-semibold text-white active:bg-green-700 disabled:bg-green-900 disabled:text-white/40"
+          >
+            {applying ? t('applying') : t('apply')}
+          </button>
+        </div>
       </div>
     </div>
   );

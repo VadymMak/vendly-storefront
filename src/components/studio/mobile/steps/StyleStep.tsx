@@ -81,7 +81,7 @@ export function StyleStep({ onGenerate, onBack, hasReferenceImage }: Props) {
         <span className="text-xs text-gray-500">{t('step')}</span>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 pb-32">
+      <div className="flex flex-col gap-3 px-4 pb-40">
         {styles.map(renderCard)}
 
         {/* More styles toggle */}
@@ -101,7 +101,7 @@ export function StyleStep({ onGenerate, onBack, hasReferenceImage }: Props) {
       </div>
 
       {/* Fixed bottom CTA */}
-      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] left-0 right-0 z-40 px-4">
+      <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
         <div className="mx-auto max-w-lg">
           <button
             onClick={() => onGenerate(selected)}

@@ -54,7 +54,7 @@ export function InputStep({ onContinue, onBack }: Props) {
         <span className="text-xs text-gray-500">1/3</span>
       </div>
 
-      <div className="flex flex-col gap-5 px-4 pb-32">
+      <div className="flex flex-col gap-5 px-4 pb-40">
         {/* Photo picker */}
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{t('referenceLabel')}</p>
@@ -99,12 +99,12 @@ export function InputStep({ onContinue, onBack }: Props) {
       </div>
 
       {/* Fixed bottom CTA */}
-      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] left-0 right-0 z-40 px-4">
+      <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
         <div className="mx-auto max-w-lg">
           <button
             onClick={() => onContinue({ description: description.trim(), referenceImageUrl })}
             disabled={!canContinue}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-base font-semibold text-white active:bg-green-700 disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-base font-semibold text-white active:bg-green-700 disabled:bg-green-900 disabled:text-white/40"
           >
             {t('continue')}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

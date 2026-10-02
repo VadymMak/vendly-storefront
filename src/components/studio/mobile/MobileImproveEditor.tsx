@@ -272,7 +272,7 @@ export function MobileImproveEditor() {
   // ── Step: configure ─────────────────────────────────────────────────────────
   if (step === 'configure') {
     return (
-      <div className="flex flex-col pb-28" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
+      <div className="flex flex-col pb-40" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         {/* Header */}
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
           <button
@@ -349,7 +349,7 @@ export function MobileImproveEditor() {
         </div>
 
         {/* Fixed CTA */}
-        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] left-0 right-0 z-40 px-4">
+        <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
           <div className="mx-auto max-w-lg">
             <button
               onClick={handleEnhance}

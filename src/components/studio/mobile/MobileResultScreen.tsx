@@ -187,10 +187,10 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         <div className="w-11" />
       </div>
 
-      {/* Image — before/after only when the result really is the user's photo transformed
-          (and not re-cropped, which would make the two frames incomparable) */}
+      {/* Image — before/after only for the untouched photo-transform result; once Improve / Text /
+          Crop has produced a new image, show just that */}
       <div className="px-4">
-        {inlineResult?.referenceImageUrl && generationMode === 'photo_transform' && !wasResized ? (
+        {inlineResult?.referenceImageUrl && generationMode === 'photo_transform' && !wasResized && !compositedImage ? (
           <BeforeAfterSlider
             beforeUrl={inlineResult.referenceImageUrl}
             afterUrl={displayUrl}

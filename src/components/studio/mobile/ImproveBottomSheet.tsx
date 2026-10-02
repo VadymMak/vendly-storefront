@@ -241,13 +241,24 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
       <div className="flex flex-col pb-8" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         <BackHeader title={t('aiStyle')} label={t('back')} onBack={() => setPhase('result')} />
 
-        <div className="px-4">
-          <BeforeAfterSlider
-            beforeUrl={enhancedUrl}
-            afterUrl={aiUrl}
-            beforeLabel={t('enhanced')}
-            afterLabel={t('aiStyle')}
-          />
+        <div className="relative px-4">
+          {/* Blur preloader — enhanced image blurred (already cached) while the slider loads */}
+          <div className="absolute inset-0 mx-4 overflow-hidden rounded-2xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={enhancedUrl}
+              alt=""
+              className="h-full w-full scale-110 object-cover opacity-60 blur-xl"
+            />
+          </div>
+          <div className="relative">
+            <BeforeAfterSlider
+              beforeUrl={enhancedUrl}
+              afterUrl={aiUrl}
+              beforeLabel={t('enhanced')}
+              afterLabel={t('aiStyle')}
+            />
+          </div>
         </div>
 
         <div className="mx-4 mt-4 rounded-xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
@@ -278,13 +289,24 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
       <div className="flex flex-col pb-8" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         <BackHeader title={t('enhanced')} label={t('back')} onBack={() => setPhase('configure')} />
 
-        <div className="px-4">
-          <BeforeAfterSlider
-            beforeUrl={imageUrl}
-            afterUrl={enhancedUrl}
-            beforeLabel={t('original')}
-            afterLabel={t('enhanced')}
-          />
+        <div className="relative px-4">
+          {/* Blur preloader — original image blurred (already cached) while the slider loads */}
+          <div className="absolute inset-0 mx-4 overflow-hidden rounded-2xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt=""
+              className="h-full w-full scale-110 object-cover opacity-60 blur-xl"
+            />
+          </div>
+          <div className="relative">
+            <BeforeAfterSlider
+              beforeUrl={imageUrl}
+              afterUrl={enhancedUrl}
+              beforeLabel={t('original')}
+              afterLabel={t('enhanced')}
+            />
+          </div>
         </div>
 
         <div className="mx-4 mt-4 rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3">

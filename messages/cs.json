@@ -1612,8 +1612,7 @@
       "uploadFailed": "Nahrávání selhalo. Zkuste znovu.",
       "sessionExpired": "Relace vypršela. Obnovte stránku.",
       "fileTooLarge": "Fotka je příliš velká. Zkuste menší fotku nebo vyfoťte novou.",
-      "removePhoto": "Odstranit fotku",
-      "loading": "Načítám fotku..."
+      "removePhoto": "Odstranit fotku"
     },
     "lang": {
       "switchLabel": "Jazyk"

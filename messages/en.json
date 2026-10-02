@@ -1612,8 +1612,7 @@
       "uploadFailed": "Upload failed. Try again.",
       "sessionExpired": "Session expired. Please refresh the page.",
       "fileTooLarge": "Photo is too large. Try a smaller photo or take one with the camera.",
-      "removePhoto": "Remove photo",
-      "loading": "Loading photo..."
+      "removePhoto": "Remove photo"
     },
     "lang": {
       "switchLabel": "Language"

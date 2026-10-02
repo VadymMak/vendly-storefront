@@ -4,6 +4,19 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { compressImage } from '@/lib/studio/compress-image';
 
+// Resolve once the browser has the image cached (or gave up), so the uploading view can hand over
+// straight to a ready photo instead of a second "loading" state.
+function preloadImage(url: string, timeoutMs = 15000): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const done = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(done, timeoutMs);
+    img.onload = done;
+    img.onerror = done;
+    img.src = url;
+  });
+}
+
 interface Props {
   onImageSelected: (url: string) => void;
   currentImage?: string;
@@ -16,8 +29,6 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
   const [error, setError] = useState<string | null>(null);
   // Local preview of the picked file while it uploads (null if the browser can't render it, e.g. HEIC)
   const [localPreview, setLocalPreview] = useState<string | null>(null);
-  // currentImage is shown only once it has actually loaded — spinner until then
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +62,7 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
         throw new Error(body.error || 'Upload failed');
       }
       const data = await res.json() as { url: string };
+      await preloadImage(data.url);
       onImageSelected(data.url);
     } catch (err) {
       console.error('[MediaPicker] error:', err);
@@ -63,21 +75,14 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
 
   if (currentImage) {
     return (
-      <div className="relative min-h-[120px] overflow-hidden rounded-xl bg-white/[0.04]">
+      <div className="relative h-[240px] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+        {/* Same frame as the uploading view; photo is already cached by preloadImage */}
         <img
           src={currentImage}
           alt="Reference"
-          onLoad={() => setLoadedSrc(currentImage)}
-          onError={() => setLoadedSrc(currentImage)}
-          className={`w-full rounded-xl object-contain transition-opacity duration-300 ${loadedSrc === currentImage ? 'opacity-100' : 'opacity-0'}`}
-          style={{ maxHeight: 240 }}
+          className="h-full w-full object-contain"
+          style={{ animation: 'fade-in 0.4s ease-out' }}
         />
-        {loadedSrc !== currentImage && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <div className="h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
-            <p className="text-xs text-gray-400">{t('loading')}</p>
-          </div>
-        )}
         <button
           onClick={onClear}
           className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"

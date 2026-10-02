@@ -4,6 +4,10 @@ import { put } from '@vercel/blob';
 import sharp from 'sharp';
 import { heicToJpegIfNeeded } from '@/lib/studio/heic';
 
+// Phone cameras/galleries sometimes hand over JPEGs with a truncated tail. Browsers render them fine,
+// but sharp's default failOn:'warning' rejects them ("premature end of JPEG image") — decode what's there.
+const SHARP_INPUT = { failOn: 'none' } as const;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -40,12 +44,12 @@ export async function POST(req: NextRequest) {
 
     if (file.type.startsWith('image/')) {
       buffer = await heicToJpegIfNeeded(buffer);
-      const metadata = await sharp(buffer).metadata();
+      const metadata = await sharp(buffer, SHARP_INPUT).metadata();
       const isPngWithAlpha = metadata.hasAlpha && (file.type === 'image/png' || file.name?.endsWith('.png'));
 
       if (isPngWithAlpha) {
         // Preserve alpha channel — keep as PNG (WebP lossy can degrade transparency edges)
-        finalBuffer = Buffer.from(await sharp(buffer)
+        finalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT)
           .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
           .png({ compressionLevel: 8 })
           .toBuffer());
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
         ext = 'png';
       } else {
         // Non-transparent images → WebP (smaller, faster)
-        finalBuffer = Buffer.from(await sharp(buffer)
+        finalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT)
           .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 88 })
           .toBuffer());

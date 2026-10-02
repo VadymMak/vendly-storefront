@@ -1727,6 +1727,19 @@
       "aiPhase4": "Enriching colors & atmosphere…",
       "aiPhase5": "Restoring original size…",
       "slow": "Taking a bit longer than usual — still working…"
+    },
+    "library": {
+      "title": "Gallery",
+      "back": "Back",
+      "filterAll": "All",
+      "filterImages": "Images",
+      "filterVideos": "Videos",
+      "empty": "No creations yet",
+      "emptyAction": "Create your first image",
+      "loadMore": "Load more",
+      "videoLabel": "Video",
+      "error": "Couldn't load your gallery",
+      "retry": "Try again"
     }
   }
 }

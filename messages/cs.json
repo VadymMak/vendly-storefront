@@ -1727,6 +1727,19 @@
       "aiPhase4": "Obohacuji barvy a atmosféru…",
       "aiPhase5": "Obnovuji původní velikost…",
       "slow": "Trvá to déle než obvykle — stále pracuji…"
+    },
+    "library": {
+      "title": "Galerie",
+      "back": "Zpět",
+      "filterAll": "Vše",
+      "filterImages": "Obrázky",
+      "filterVideos": "Videa",
+      "empty": "Zatím nic nevytvořeno",
+      "emptyAction": "Vytvořit první obrázek",
+      "loadMore": "Načíst další",
+      "videoLabel": "Video",
+      "error": "Galerii se nepodařilo načíst",
+      "retry": "Zkusit znovu"
     }
   }
 }

@@ -1,13 +1,10 @@
-import Link from 'next/link';
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { MobileLibrary } from '@/components/studio/mobile/MobileLibrary';
 
-export default function LibraryPage() {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-      <p className="text-lg font-semibold text-white">Coming soon</p>
-      <p className="text-sm text-gray-500">This feature is being built.</p>
-      <Link href="/studio/m" className="text-sm text-green-500 underline">
-        ← Back to Home
-      </Link>
-    </div>
-  );
+export default async function MobileLibraryPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect('/login?callbackUrl=/studio/m/library');
+
+  return <MobileLibrary />;
 }

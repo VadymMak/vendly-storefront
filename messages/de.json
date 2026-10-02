@@ -1727,6 +1727,19 @@
       "aiPhase4": "Farben & Atmosphäre werden verstärkt…",
       "aiPhase5": "Originalgröße wird wiederhergestellt…",
       "slow": "Dauert etwas länger als üblich — wir arbeiten noch…"
+    },
+    "library": {
+      "title": "Galerie",
+      "back": "Zurück",
+      "filterAll": "Alle",
+      "filterImages": "Bilder",
+      "filterVideos": "Videos",
+      "empty": "Noch keine Kreationen",
+      "emptyAction": "Erstes Bild erstellen",
+      "loadMore": "Mehr laden",
+      "videoLabel": "Video",
+      "error": "Galerie konnte nicht geladen werden",
+      "retry": "Erneut versuchen"
     }
   }
 }

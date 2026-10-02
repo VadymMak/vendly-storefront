@@ -1718,6 +1718,19 @@
       "aiPhase4": "Obohacujem farby a atmosféru…",
       "aiPhase5": "Obnovujem pôvodnú veľkosť…",
       "slow": "Trvá to dlhšie ako zvyčajne — stále pracujem…"
+    },
+    "library": {
+      "title": "Galéria",
+      "back": "Späť",
+      "filterAll": "Všetko",
+      "filterImages": "Obrázky",
+      "filterVideos": "Videá",
+      "empty": "Zatiaľ nič nevytvorené",
+      "emptyAction": "Vytvoriť prvý obrázok",
+      "loadMore": "Načítať ďalšie",
+      "videoLabel": "Video",
+      "error": "Galériu sa nepodarilo načítať",
+      "retry": "Skúsiť znova"
     }
   }
 }

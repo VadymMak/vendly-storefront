@@ -688,3 +688,21 @@ export interface CropRect {
 
 /** How /api/studio/generate produced an image — sent back in the X-Generation-Mode header. */
 export type GenerationMode = 'photo_transform' | 'text_create';
+
+/** One item from GET /api/studio/my-work */
+export interface StudioWorkItem {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  prompt: string;
+  model: string;
+  style: string;
+  operation: string;
+  createdAt: string;
+}
+
+/** GET /api/studio/my-work response */
+export interface StudioWorkPage {
+  items: StudioWorkItem[];
+  nextCursor: string | null;
+}

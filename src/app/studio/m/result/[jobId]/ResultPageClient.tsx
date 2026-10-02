@@ -31,7 +31,8 @@ export function ResultPageClient({ job, inlineResult }: Props) {
   return (
     <MobileResultScreen
       job={{ ...job, createdAt: new Date(job.createdAt) }}
-      inlineResult={inlineResult}
+      // Saved results are finished images — the before/after slider belongs to the live creation flow
+      inlineResult={{ ...inlineResult, referenceImageUrl: undefined }}
       onBack={() => router.push('/studio/m')}
       onTryStyle={() => router.push('/studio/m/create')}
       onRegenerate={() => router.push('/studio/m/create')}

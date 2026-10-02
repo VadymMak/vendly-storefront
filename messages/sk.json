@@ -1585,7 +1585,13 @@
       "model": "Model: {name}",
       "shareTitle": "Vytvorené vo VendShop Studio",
       "addText": "Pridať text",
-      "resize": "Veľkosť pre platformu"
+      "resize": "Veľkosť pre platformu",
+      "improveTitle": "Vylepšiť fotku",
+      "improveDesc": "Jasnejšia a profesionálnejšia",
+      "textTool": "Text",
+      "resizeTool": "Orezať",
+      "moreOptions": "Ďalšie možnosti",
+      "useThisImage": "Použiť tento obrázok"
     },
     "media": {
       "takePhoto": "Odfotiť",
@@ -1659,6 +1665,35 @@
       "dragHint": "Potiahnutím upravte orezanie",
       "loadFailed": "Obrázok sa nepodarilo načítať.",
       "applyFailed": "Veľkosť sa nepodarilo zmeniť. Skúste to znova."
+    },
+    "improveSheet": {
+      "title": "Vylepšiť fotku",
+      "back": "Späť",
+      "intensity": "Intenzita",
+      "natural": "Prirodzená",
+      "professional": "Profesionálna",
+      "bold": "Výrazná",
+      "style": "Štýl",
+      "improve": "Vylepšiť",
+      "enhancing": "Vylepšujem fotku...",
+      "enhancingHint": "Upravujem farby a svetlo",
+      "enhanced": "Vylepšené",
+      "original": "Originál",
+      "photoEnhanced": "Fotka vylepšená",
+      "photoEnhancedDesc": "Deterministická korekcia farieb. Bez AI — kompozícia zostáva 100% zachovaná.",
+      "wantMore": "Chcete viac?",
+      "wantMoreDesc": "AI štýl využíva Grok na kreatívne doladenie — profesionálne svetlo, bohatšia atmosféra.",
+      "applyAiStyle": "AI štýl · Zdarma",
+      "applyingAi": "Aplikujem AI štýl...",
+      "applyingAiHint": "Vytváram jedinečný vzhľad",
+      "aiStyle": "AI štýl",
+      "aiApplied": "AI štýl použitý",
+      "aiAppliedDesc": "Kreatívna úprava od Grok AI",
+      "keepEnhanced": "Ponechať vylepšené",
+      "keepAi": "Ponechať AI",
+      "tryAnother": "Skúsiť iný preset",
+      "useThis": "Použiť tento obrázok",
+      "error": "Niečo sa pokazilo"
     }
   }
 }

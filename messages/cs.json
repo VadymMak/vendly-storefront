@@ -1597,7 +1597,13 @@
       "styleReference": "Jako moje fotka",
       "photoEnhanced": "Vaše fotka, vylepšená",
       "createdFromPrompt": "Vytvořeno podle vašeho popisu",
-      "resize": "Velikost pro platformu"
+      "resize": "Velikost pro platformu",
+      "improveTitle": "Vylepšit fotku",
+      "improveDesc": "Jasnější a profesionálnější",
+      "textTool": "Text",
+      "resizeTool": "Oříznout",
+      "moreOptions": "Další možnosti",
+      "useThisImage": "Použít tento obrázek"
     },
     "media": {
       "takePhoto": "Vyfotit",
@@ -1671,6 +1677,35 @@
       "dragHint": "Přetažením upravte ořez",
       "loadFailed": "Obrázek se nepodařilo načíst.",
       "applyFailed": "Velikost se nepodařilo změnit. Zkuste to znovu."
+    },
+    "improveSheet": {
+      "title": "Vylepšit fotku",
+      "back": "Zpět",
+      "intensity": "Intenzita",
+      "natural": "Přirozená",
+      "professional": "Profesionální",
+      "bold": "Výrazná",
+      "style": "Styl",
+      "improve": "Vylepšit",
+      "enhancing": "Vylepšuji fotku...",
+      "enhancingHint": "Upravuji barvy a světlo",
+      "enhanced": "Vylepšeno",
+      "original": "Originál",
+      "photoEnhanced": "Fotka vylepšena",
+      "photoEnhancedDesc": "Deterministická korekce barev. Bez AI — kompozice zůstává 100% zachována.",
+      "wantMore": "Chcete víc?",
+      "wantMoreDesc": "AI styl využívá Grok pro kreativní doladění — profesionální světlo, bohatší atmosféra.",
+      "applyAiStyle": "AI styl · Zdarma",
+      "applyingAi": "Aplikuji AI styl...",
+      "applyingAiHint": "Vytvářím jedinečný vzhled",
+      "aiStyle": "AI styl",
+      "aiApplied": "AI styl použit",
+      "aiAppliedDesc": "Kreativní úprava od Grok AI",
+      "keepEnhanced": "Ponechat vylepšené",
+      "keepAi": "Ponechat AI",
+      "tryAnother": "Zkusit jiný preset",
+      "useThis": "Použít tento obrázek",
+      "error": "Něco se pokazilo"
     }
   }
 }

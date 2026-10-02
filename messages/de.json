@@ -1597,7 +1597,13 @@
       "styleReference": "Wie mein Foto",
       "photoEnhanced": "Ihr Foto, verbessert",
       "createdFromPrompt": "Aus Ihrer Beschreibung erstellt",
-      "resize": "Größe für Plattform"
+      "resize": "Größe für Plattform",
+      "improveTitle": "Foto verbessern",
+      "improveDesc": "Heller und professioneller",
+      "textTool": "Text",
+      "resizeTool": "Zuschneiden",
+      "moreOptions": "Weitere Optionen",
+      "useThisImage": "Dieses Bild verwenden"
     },
     "media": {
       "takePhoto": "Foto aufnehmen",
@@ -1671,6 +1677,35 @@
       "dragHint": "Bild ziehen, um den Ausschnitt anzupassen",
       "loadFailed": "Bild konnte nicht geladen werden.",
       "applyFailed": "Größe konnte nicht geändert werden. Bitte erneut versuchen."
+    },
+    "improveSheet": {
+      "title": "Foto verbessern",
+      "back": "Zurück",
+      "intensity": "Intensität",
+      "natural": "Natürlich",
+      "professional": "Professionell",
+      "bold": "Kräftig",
+      "style": "Stil",
+      "improve": "Verbessern",
+      "enhancing": "Foto wird verbessert...",
+      "enhancingHint": "Farben & Licht werden angepasst",
+      "enhanced": "Verbessert",
+      "original": "Original",
+      "photoEnhanced": "Foto verbessert",
+      "photoEnhancedDesc": "Deterministische Farbkorrektur. Keine KI — deine Komposition bleibt zu 100% erhalten.",
+      "wantMore": "Mehr gewünscht?",
+      "wantMoreDesc": "KI-Stil nutzt Grok für kreativen Feinschliff — professionelles Licht, reichere Atmosphäre.",
+      "applyAiStyle": "KI-Stil · Kostenlos",
+      "applyingAi": "KI-Stil wird angewendet...",
+      "applyingAiHint": "Einzigartiger Look entsteht",
+      "aiStyle": "KI-Stil",
+      "aiApplied": "KI-Stil angewendet",
+      "aiAppliedDesc": "Kreative Verbesserung durch Grok AI",
+      "keepEnhanced": "Verbessert behalten",
+      "keepAi": "KI behalten",
+      "tryAnother": "Anderes Preset",
+      "useThis": "Dieses Bild verwenden",
+      "error": "Etwas ist schiefgelaufen"
     }
   }
 }

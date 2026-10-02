@@ -1597,7 +1597,13 @@
       "styleReference": "Like my photo",
       "photoEnhanced": "Your photo, enhanced",
       "createdFromPrompt": "Created from your prompt",
-      "resize": "Resize for platform"
+      "resize": "Resize for platform",
+      "improveTitle": "Improve photo",
+      "improveDesc": "Make it brighter & more professional",
+      "textTool": "Text",
+      "resizeTool": "Crop",
+      "moreOptions": "More options",
+      "useThisImage": "Use this image"
     },
     "media": {
       "takePhoto": "Take Photo",
@@ -1671,6 +1677,35 @@
       "dragHint": "Drag the image to adjust the crop",
       "loadFailed": "Could not load the image.",
       "applyFailed": "Could not resize the image. Please try again."
+    },
+    "improveSheet": {
+      "title": "Improve photo",
+      "back": "Back",
+      "intensity": "Intensity",
+      "natural": "Natural",
+      "professional": "Professional",
+      "bold": "Bold",
+      "style": "Style",
+      "improve": "Improve",
+      "enhancing": "Enhancing your photo...",
+      "enhancingHint": "Adjusting colors & light",
+      "enhanced": "Enhanced",
+      "original": "Original",
+      "photoEnhanced": "Photo enhanced",
+      "photoEnhancedDesc": "Deterministic color correction. No AI — your composition is 100% preserved.",
+      "wantMore": "Want more?",
+      "wantMoreDesc": "AI Style uses Grok to add creative polish — professional lighting, richer atmosphere.",
+      "applyAiStyle": "AI Style · Free",
+      "applyingAi": "Applying AI Style...",
+      "applyingAiHint": "Creating unique look",
+      "aiStyle": "AI Style",
+      "aiApplied": "AI Style applied",
+      "aiAppliedDesc": "Creative enhancement by Grok AI",
+      "keepEnhanced": "Keep Enhanced",
+      "keepAi": "Keep AI",
+      "tryAnother": "Try another preset",
+      "useThis": "Use this image",
+      "error": "Something went wrong"
     }
   }
 }

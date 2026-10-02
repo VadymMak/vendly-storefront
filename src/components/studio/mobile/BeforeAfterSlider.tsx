@@ -6,13 +6,18 @@ import { useTranslations } from 'next-intl';
 interface Props {
   beforeUrl: string;
   afterUrl: string;
+  /** Override the default "before" / "after" captions */
+  beforeLabel?: string;
+  afterLabel?: string;
 }
 
 const START_POSITION = 50;
 const REST_POSITION = 30;
 
-export function BeforeAfterSlider({ beforeUrl, afterUrl }: Props) {
+export function BeforeAfterSlider({ beforeUrl, afterUrl, beforeLabel, afterLabel }: Props) {
   const t = useTranslations('mobile.result');
+  const beforeText = beforeLabel ?? t('compareLabel');
+  const afterText = afterLabel ?? t('resultLabel');
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(START_POSITION);
   const [dragging, setDragging] = useState(false);
@@ -72,7 +77,7 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl }: Props) {
       {/* After — full image behind */}
       <img
         src={afterUrl}
-        alt={t('resultLabel')}
+        alt={afterText}
         draggable={false}
         onLoad={(e) => {
           const img = e.currentTarget;
@@ -87,7 +92,7 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl }: Props) {
       {/* Before — clipped to the left of the divider */}
       <img
         src={beforeUrl}
-        alt={t('compareLabel')}
+        alt={beforeText}
         draggable={false}
         className="absolute inset-0 h-full w-full object-cover"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)`, transition }}
@@ -95,16 +100,16 @@ export function BeforeAfterSlider({ beforeUrl, afterUrl }: Props) {
 
       {/* Labels */}
       <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-medium text-gray-900">
-        {t('compareLabel')}
+        {beforeText}
       </span>
       <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-medium text-gray-900">
-        {t('resultLabel')}
+        {afterText}
       </span>
 
       {/* Divider + handle — 44px-wide drag strip centred on the line */}
       <div
         role="slider"
-        aria-label={`${t('compareLabel')} / ${t('resultLabel')}`}
+        aria-label={`${beforeText} / ${afterText}`}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(position)}

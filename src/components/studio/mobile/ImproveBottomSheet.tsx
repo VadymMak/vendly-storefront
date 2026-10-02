@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
 import { preloadImage, proxyUrl } from '@/lib/studio/mobile/share';
 import type { EnhancementIntensity } from '@/lib/types';
-import { BeforeAfterSlider } from '@/components/studio/editors/shared/BeforeAfterSlider';
+// Mobile slider reserves its frame up front — the shared one is 0px tall until its image loads
+import { BeforeAfterSlider } from './BeforeAfterSlider';
 
 interface Props {
   imageUrl: string;

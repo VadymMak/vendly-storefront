@@ -1706,7 +1706,18 @@
       "keepAi": "Keep AI",
       "tryAnother": "Try another preset",
       "useThis": "Use this image",
-      "error": "Something went wrong"
+      "error": "Something went wrong",
+      "enhanceEstimate": "Usually 1–2 seconds",
+      "aiEstimate": "Usually 5–15 seconds",
+      "enhancePhase1": "Analyzing colors & light…",
+      "enhancePhase2": "Balancing exposure…",
+      "enhancePhase3": "Sharpening details…",
+      "aiPhase1": "Preparing your photo…",
+      "aiPhase2": "Sending to Grok AI…",
+      "aiPhase3": "Adding professional lighting…",
+      "aiPhase4": "Enriching colors & atmosphere…",
+      "aiPhase5": "Restoring original size…",
+      "slow": "Taking a bit longer than usual — still working…"
     }
   }
 }

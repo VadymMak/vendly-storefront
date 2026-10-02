@@ -1706,7 +1706,18 @@
       "keepAi": "KI behalten",
       "tryAnother": "Anderes Preset",
       "useThis": "Dieses Bild verwenden",
-      "error": "Etwas ist schiefgelaufen"
+      "error": "Etwas ist schiefgelaufen",
+      "enhanceEstimate": "Meist 1–2 Sekunden",
+      "aiEstimate": "Meist 5–15 Sekunden",
+      "enhancePhase1": "Farben & Licht werden analysiert…",
+      "enhancePhase2": "Belichtung wird ausgeglichen…",
+      "enhancePhase3": "Details werden geschärft…",
+      "aiPhase1": "Foto wird vorbereitet…",
+      "aiPhase2": "Wird an Grok AI gesendet…",
+      "aiPhase3": "Professionelles Licht wird hinzugefügt…",
+      "aiPhase4": "Farben & Atmosphäre werden verstärkt…",
+      "aiPhase5": "Originalgröße wird wiederhergestellt…",
+      "slow": "Dauert etwas länger als üblich — wir arbeiten noch…"
     }
   }
 }

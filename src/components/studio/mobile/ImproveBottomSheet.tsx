@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
 import { proxyUrl } from '@/lib/studio/mobile/share';
@@ -17,9 +17,72 @@ type ImprovePhase = 'configure' | 'processing' | 'result' | 'ai-processing' | 'a
 
 const INTENSITIES: EnhancementIntensity[] = ['natural', 'professional', 'bold'];
 
-function Spinner() {
+interface ProcessingViewProps {
+  imageUrl: string;
+  title: string;
+  estimate: string;
+  /** Status lines shown in order, each from its start time (ms) */
+  phases: { ms: number; label: string }[];
+  /** Shown once elapsed passes slowAfterMs */
+  slowLabel: string;
+  slowAfterMs: number;
+  /** Typical duration — the bar reaches ~80% around this point, then creeps toward 95% */
+  expectedMs: number;
+  accent: 'green' | 'purple';
+}
+
+function ProcessingView({ imageUrl, title, estimate, phases, slowLabel, slowAfterMs, expectedMs, accent }: ProcessingViewProps) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Date.now() - start), 200);
+    return () => clearInterval(id);
+  }, []);
+
+  const progress = 95 * (1 - Math.exp((-1.6 * elapsed) / expectedMs));
+  const label = elapsed >= slowAfterMs
+    ? slowLabel
+    : [...phases].reverse().find((p) => elapsed >= p.ms)?.label ?? phases[0].label;
+  const bar = accent === 'purple' ? 'bg-purple-500' : 'bg-green-500';
+
   return (
-    <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+    <div className="flex flex-col items-center gap-6 px-6 py-10" role="status" aria-live="polite" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
+      <div className="relative w-48 overflow-hidden rounded-2xl bg-white/[0.06]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={imageUrl} alt="" className="block w-full opacity-60" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex gap-1 text-lg text-white/70">
+            <span style={{ animation: 'float 2s ease-in-out infinite', animationDelay: '0s' }}>✨</span>
+            <span style={{ animation: 'float 2s ease-in-out infinite', animationDelay: '0.4s' }}>✨</span>
+            <span style={{ animation: 'float 2s ease-in-out infinite', animationDelay: '0.8s' }}>✨</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center">
+        <p className="text-base font-semibold text-white">{title}</p>
+        <p key={label} className="mt-1.5 text-sm text-gray-400" style={{ animation: 'fadeSlideUp 0.3s ease-out' }}>{label}</p>
+      </div>
+
+      <div className="w-full max-w-xs">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className={`h-full rounded-full ${bar} transition-all duration-300`} style={{ width: `${progress}%` }} />
+        </div>
+        <div className="mt-1.5 flex justify-between text-xs text-gray-600">
+          <span>{estimate}</span>
+          <span>{Math.floor(elapsed / 1000)}s</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -132,14 +195,43 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
     }
   }
 
-  if (phase === 'processing' || phase === 'ai-processing') {
-    const ai = phase === 'ai-processing';
+  if (phase === 'processing') {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
-        <Spinner />
-        <p className="text-sm text-gray-300">{ai ? t('applyingAi') : t('enhancing')}</p>
-        <p className="text-xs text-gray-500">{ai ? t('applyingAiHint') : t('enhancingHint')}</p>
-      </div>
+      <ProcessingView
+        imageUrl={imageUrl}
+        title={t('enhancing')}
+        estimate={t('enhanceEstimate')}
+        phases={[
+          { ms: 0, label: t('enhancePhase1') },
+          { ms: 800, label: t('enhancePhase2') },
+          { ms: 1800, label: t('enhancePhase3') },
+        ]}
+        slowLabel={t('slow')}
+        slowAfterMs={8000}
+        expectedMs={2000}
+        accent="green"
+      />
+    );
+  }
+
+  if (phase === 'ai-processing') {
+    return (
+      <ProcessingView
+        imageUrl={enhancedUrl ?? imageUrl}
+        title={t('applyingAi')}
+        estimate={t('aiEstimate')}
+        phases={[
+          { ms: 0, label: t('aiPhase1') },
+          { ms: 2000, label: t('aiPhase2') },
+          { ms: 5000, label: t('aiPhase3') },
+          { ms: 9000, label: t('aiPhase4') },
+          { ms: 13000, label: t('aiPhase5') },
+        ]}
+        slowLabel={t('slow')}
+        slowAfterMs={20000}
+        expectedMs={10000}
+        accent="purple"
+      />
     );
   }
 

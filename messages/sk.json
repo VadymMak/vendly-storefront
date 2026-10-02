@@ -1694,7 +1694,18 @@
       "keepAi": "Ponechať AI",
       "tryAnother": "Skúsiť iný preset",
       "useThis": "Použiť tento obrázok",
-      "error": "Niečo sa pokazilo"
+      "error": "Niečo sa pokazilo",
+      "enhanceEstimate": "Zvyčajne 1–2 sekundy",
+      "aiEstimate": "Zvyčajne 5–15 sekúnd",
+      "enhancePhase1": "Analyzujem farby a svetlo…",
+      "enhancePhase2": "Vyvažujem expozíciu…",
+      "enhancePhase3": "Doostrujem detaily…",
+      "aiPhase1": "Pripravujem fotku…",
+      "aiPhase2": "Odosielam do Grok AI…",
+      "aiPhase3": "Pridávam profesionálne svetlo…",
+      "aiPhase4": "Obohacujem farby a atmosféru…",
+      "aiPhase5": "Obnovujem pôvodnú veľkosť…",
+      "slow": "Trvá to dlhšie ako zvyčajne — stále pracujem…"
     }
   }
 }

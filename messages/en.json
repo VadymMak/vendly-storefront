@@ -1539,16 +1539,16 @@
       "subtitle": "Where will you post it?"
     },
     "input": {
-      "title": "What are you selling?",
+      "title": "What do you want to create?",
       "step": "2/4",
       "referenceLabel": "Reference photo (optional)",
-      "describeLabel": "Describe your offer",
-      "describePlaceholder": "Describe your offer...",
+      "describeLabel": "Describe your image",
+      "describePlaceholder": "Describe what you want to create...",
       "tapExample": "Tap for example",
       "continue": "Continue",
-      "example1": "Fresh sourdough bread baked daily, €3.50",
-      "example2": "Haircut + beard trim, appointment today",
-      "example3": "Handmade candles, lavender scent, 3 for €12"
+      "example1": "Cozy café interior with warm morning light and fresh pastries on the table",
+      "example2": "Latte art in a ceramic cup on a wooden table, top-down shot",
+      "example3": "Handmade lavender candles on a linen cloth, soft natural light"
     },
     "style": {
       "title": "Choose a style",

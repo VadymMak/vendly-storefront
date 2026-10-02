@@ -1539,16 +1539,16 @@
       "subtitle": "Kde to zveřejníte?"
     },
     "input": {
-      "title": "Co prodáváte?",
+      "title": "Co chcete vytvořit?",
       "step": "2/4",
       "referenceLabel": "Referenční fotka (volitelné)",
-      "describeLabel": "Popište vaši nabídku",
-      "describePlaceholder": "Popište vaši nabídku...",
+      "describeLabel": "Popište svůj obrázek",
+      "describePlaceholder": "Popište co chcete vytvořit...",
       "tapExample": "Klikněte pro příklad",
       "continue": "Pokračovat",
-      "example1": "Čerstvý kváskový chleba, denně pečený, 3,50 €",
-      "example2": "Střih + úprava vousů, objednejte se dnes",
-      "example3": "Ručně vyráběné svíčky, levandule, 3 za 12 €"
+      "example1": "Útulná kavárna s teplým ranním světlem a čerstvým pečivem na stole",
+      "example2": "Latte art v keramickém šálku na dřevěném stole, pohled shora",
+      "example3": "Ručně vyráběné levandulové svíčky na lněné látce, měkké denní světlo"
     },
     "style": {
       "title": "Vyberte styl",

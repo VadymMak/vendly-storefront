@@ -1539,16 +1539,16 @@
       "subtitle": "Kde to zverejníte?"
     },
     "input": {
-      "title": "Čo predávate?",
+      "title": "Čo chcete vytvoriť?",
       "step": "2/4",
       "referenceLabel": "Referenčná fotka (voliteľné)",
-      "describeLabel": "Popíšte vašu ponuku",
-      "describePlaceholder": "Popíšte vašu ponuku...",
+      "describeLabel": "Popíšte svoj obrázok",
+      "describePlaceholder": "Popíšte čo chcete vytvoriť...",
       "tapExample": "Ťuknite pre príklad",
       "continue": "Pokračovať",
-      "example1": "Čerstvý kváskový chlieb, denne pečený, 3,50 €",
-      "example2": "Strih + úprava brady, objednajte sa dnes",
-      "example3": "Ručne robené sviečky, levanduľa, 3 za 12 €"
+      "example1": "Útulná kaviareň s teplým ranným svetlom a čerstvým pečivom na stole",
+      "example2": "Latte art v keramickej šálke na drevenom stole, pohľad zhora",
+      "example3": "Ručne robené levanduľové sviečky na ľanovej látke, mäkké denné svetlo"
     },
     "style": {
       "title": "Vyberte štýl",

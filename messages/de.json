@@ -1539,16 +1539,16 @@
       "subtitle": "Wo möchten Sie posten?"
     },
     "input": {
-      "title": "Was verkaufen Sie?",
+      "title": "Was möchten Sie erstellen?",
       "step": "2/4",
       "referenceLabel": "Referenzfoto (optional)",
-      "describeLabel": "Beschreiben Sie Ihr Angebot",
-      "describePlaceholder": "Beschreiben Sie Ihr Angebot...",
+      "describeLabel": "Beschreiben Sie Ihr Bild",
+      "describePlaceholder": "Beschreiben Sie was Sie erstellen möchten...",
       "tapExample": "Für Beispiel tippen",
       "continue": "Weiter",
-      "example1": "Frisches Sauerteigbrot, täglich gebacken, 3,50 €",
-      "example2": "Haarschnitt + Bartpflege, Termin heute",
-      "example3": "Handgemachte Kerzen, Lavendel, 3 für 12 €"
+      "example1": "Gemütliches Café mit warmem Morgenlicht und frischem Gebäck auf dem Tisch",
+      "example2": "Latte Art in einer Keramiktasse auf einem Holztisch, von oben fotografiert",
+      "example3": "Handgemachte Lavendelkerzen auf Leinenstoff, weiches Tageslicht"
     },
     "style": {
       "title": "Stil wählen",

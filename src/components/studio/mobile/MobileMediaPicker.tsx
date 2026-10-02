@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { compressImage } from '@/lib/studio/compress-image';
 
@@ -14,12 +14,22 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
   const t = useTranslations('mobile.media');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Local preview of the picked file while it uploads (null if the browser can't render it, e.g. HEIC)
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  // currentImage is shown only once it has actually loaded — spinner until then
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!localPreview) return;
+    return () => URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
 
   async function handleFile(file: File) {
     setUploading(true);
     setError(null);
+    setLocalPreview(URL.createObjectURL(file));
     console.log('[MediaPicker] file:', file.name, file.type, file.size, 'bytes');
     try {
       const compressed = await compressImage(file);
@@ -47,13 +57,27 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
       setError(t('uploadFailed'));
     } finally {
       setUploading(false);
+      setLocalPreview(null);
     }
   }
 
   if (currentImage) {
     return (
-      <div className="relative overflow-hidden rounded-xl">
-        <img src={currentImage} alt="Reference" className="w-full rounded-xl object-contain bg-white/[0.04]" style={{ maxHeight: 240 }} />
+      <div className="relative min-h-[120px] overflow-hidden rounded-xl bg-white/[0.04]">
+        <img
+          src={currentImage}
+          alt="Reference"
+          onLoad={() => setLoadedSrc(currentImage)}
+          onError={() => setLoadedSrc(currentImage)}
+          className={`w-full rounded-xl object-contain transition-opacity duration-300 ${loadedSrc === currentImage ? 'opacity-100' : 'opacity-0'}`}
+          style={{ maxHeight: 240 }}
+        />
+        {loadedSrc !== currentImage && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+            <p className="text-xs text-gray-400">{t('loading')}</p>
+          </div>
+        )}
         <button
           onClick={onClear}
           className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"
@@ -63,6 +87,25 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
+      </div>
+    );
+  }
+
+  if (uploading) {
+    return (
+      <div className="relative flex h-[240px] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]" role="status">
+        {localPreview && (
+          <img
+            src={localPreview}
+            alt=""
+            onError={() => setLocalPreview(null)}
+            className="absolute inset-0 h-full w-full object-contain opacity-30"
+          />
+        )}
+        <div className="relative flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+          <p className="text-sm text-gray-300">{t('uploading')}</p>
+        </div>
       </div>
     );
   }
@@ -93,7 +136,6 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
           {t('fromGallery')}
         </button>
       </div>
-      {uploading && <p className="text-center text-xs text-gray-500">{t('uploading')}</p>}
       {error && <p className="text-center text-xs text-red-400">{error}</p>}
       <input
         ref={cameraRef}
@@ -101,14 +143,14 @@ export function MobileMediaPicker({ onImageSelected, currentImage, onClear }: Pr
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleFile(f); }}
       />
       <input
         ref={galleryRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleFile(f); }}
       />
     </div>
   );

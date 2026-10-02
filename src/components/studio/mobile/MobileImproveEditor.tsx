@@ -290,8 +290,10 @@ export function MobileImproveEditor() {
         {/* Photo preview */}
         {imageUrl && (
           <div className="px-4 pb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt="Selected photo" className="w-full max-h-[200px] rounded-xl object-cover" />
+            <div className="flex justify-center rounded-xl bg-white/[0.04]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="Selected photo" className="max-h-[240px] max-w-full rounded-xl object-contain" />
+            </div>
           </div>
         )}
 

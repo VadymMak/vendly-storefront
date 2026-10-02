@@ -237,8 +237,10 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
       <BackHeader title={t('title')} label={t('back')} onBack={onCancel} />
 
       <div className="px-4 pb-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt="" className="max-h-[200px] w-full rounded-xl object-cover" />
+        <div className="flex justify-center rounded-xl bg-white/[0.04]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageUrl} alt="" className="max-h-[240px] max-w-full rounded-xl object-contain" />
+        </div>
       </div>
 
       {error && (

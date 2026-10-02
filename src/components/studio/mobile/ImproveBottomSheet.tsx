@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
-import { proxyUrl } from '@/lib/studio/mobile/share';
+import { preloadImage, proxyUrl } from '@/lib/studio/mobile/share';
 import type { EnhancementIntensity } from '@/lib/types';
 import { BeforeAfterSlider } from '@/components/studio/editors/shared/BeforeAfterSlider';
 
@@ -50,7 +50,7 @@ function ProcessingView({ imageUrl, title, estimate, phases, slowLabel, slowAfte
     <div className="flex flex-col items-center gap-6 px-6 py-10" role="status" aria-live="polite" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
       <div className="relative w-48 overflow-hidden rounded-2xl bg-white/[0.06]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt="" className="block w-full opacity-60" />
+        <img src={imageUrl} alt="" className="block w-full scale-105 opacity-70 blur-[3px]" />
         <div
           className="absolute inset-0"
           style={{
@@ -131,6 +131,9 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
         throw new Error(data.error ?? t('error'));
       }
       const data = await apiRes.json() as { url: string };
+      // Keep the progress screen until the result is cached — the comparison slider takes its
+      // height from this image and would render as an empty 0px box while it downloads
+      await preloadImage(data.url);
       setEnhancedUrl(data.url);
       setPhase('result');
     } catch (e) {
@@ -182,12 +185,9 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resultUrl: data.url, originalWidth, originalHeight }),
       });
-      if (resizeRes.ok) {
-        const resizeData = await resizeRes.json() as { url: string };
-        setAiUrl(resizeData.url);
-      } else {
-        setAiUrl(data.url);
-      }
+      const finalUrl = resizeRes.ok ? (await resizeRes.json() as { url: string }).url : data.url;
+      await preloadImage(finalUrl);
+      setAiUrl(finalUrl);
       setPhase('ai-result');
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error'));

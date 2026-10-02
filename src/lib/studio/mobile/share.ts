@@ -38,3 +38,18 @@ export async function downloadImage(imageUrl: string, filename?: string): Promis
     return false;
   }
 }
+
+/**
+ * Resolve once the browser has the image cached (or gave up), so a loading view can hand over
+ * straight to a ready image instead of a blank / second "loading" state.
+ */
+export function preloadImage(url: string, timeoutMs = 15000): Promise<void> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const done = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(done, timeoutMs);
+    img.onload = done;
+    img.onerror = done;
+    img.src = url;
+  });
+}

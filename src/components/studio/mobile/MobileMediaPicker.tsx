@@ -3,19 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { compressImage } from '@/lib/studio/compress-image';
-
-// Resolve once the browser has the image cached (or gave up), so the uploading view can hand over
-// straight to a ready photo instead of a second "loading" state.
-function preloadImage(url: string, timeoutMs = 15000): Promise<void> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const done = () => { clearTimeout(timer); resolve(); };
-    const timer = setTimeout(done, timeoutMs);
-    img.onload = done;
-    img.onerror = done;
-    img.src = url;
-  });
-}
+import { preloadImage } from '@/lib/studio/mobile/share';
 
 interface Props {
   onImageSelected: (url: string) => void;

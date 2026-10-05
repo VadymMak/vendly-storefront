@@ -1574,7 +1574,9 @@
         "interior": "Raum",
         "none": "Keine Vorgabe",
         "reference": "Wie mein Foto"
-      }
+      },
+      "sheetTitle": "Welche Richtung?",
+      "close": "Schließen"
     },
     "generating": {
       "phase1": "Verstehe Ihren Inhalt...",

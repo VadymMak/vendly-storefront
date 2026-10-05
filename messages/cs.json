@@ -1574,7 +1574,9 @@
         "interior": "Prostor",
         "none": "Bez směru",
         "reference": "Jako moje fotka"
-      }
+      },
+      "sheetTitle": "Jaký směr?",
+      "close": "Zavřít"
     },
     "generating": {
       "phase1": "Analyzuji váš obsah...",

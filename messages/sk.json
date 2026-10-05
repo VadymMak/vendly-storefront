@@ -1572,7 +1572,9 @@
         "interior": "Priestor",
         "none": "Bez smeru",
         "reference": "Ako moja fotka"
-      }
+      },
+      "sheetTitle": "Aký smer?",
+      "close": "Zavrieť"
     },
     "generating": {
       "phase1": "Analyzujem váš obsah...",

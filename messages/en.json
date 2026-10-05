@@ -1574,7 +1574,9 @@
         "interior": "Space showcase",
         "none": "No direction",
         "reference": "Like my photo"
-      }
+      },
+      "sheetTitle": "Which direction?",
+      "close": "Close"
     },
     "generating": {
       "phase1": "Understanding your content...",

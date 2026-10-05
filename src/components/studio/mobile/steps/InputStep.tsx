@@ -3,10 +3,10 @@
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { STYLE_CHIPS } from '@/lib/studio/constants';
 import { MobileMediaPicker } from '../MobileMediaPicker';
 import { MobileVoiceInput } from '../MobileVoiceInput';
 import { DestinationSelector } from '../DestinationSelector';
+import { StyleSelector } from '../StyleSelector';
 
 interface Props {
   onContinue: (data: { description: string; referenceImageUrl?: string; styleId: string }) => void;
@@ -19,8 +19,6 @@ interface Props {
   initialReferenceImageUrl?: string;
   initialStyleId?: string;
 }
-
-type StyleOptionId = typeof STYLE_CHIPS[number]['id'] | 'reference';
 
 const DEFAULT_STYLE_ID = 'social';
 
@@ -35,14 +33,6 @@ export function InputStep({ onContinue, onBack, presetId, onPresetChange, initia
   const [styleId, setStyleId] = useState<string>(() =>
     initialStyleId && (initialStyleId !== 'reference' || initialReferenceImageUrl) ? initialStyleId : DEFAULT_STYLE_ID,
   );
-
-  // "Like my photo" only makes sense with a photo
-  const styleOptions: StyleOptionId[] = [
-    ...STYLE_CHIPS.map((s) => s.id),
-    ...(referenceImageUrl ? ['reference' as const] : []),
-  ];
-  const styleIcon = (id: StyleOptionId) => (id === 'reference' ? '🖼️' : STYLE_CHIPS.find((s) => s.id === id)?.icon);
-  const styleDesc = (id: string) => (id === 'reference' ? tStyle('referenceDesc') : tStyle(id as typeof STYLE_CHIPS[number]['id']));
 
   function clearReference() {
     setReferenceImageUrl(undefined);
@@ -127,32 +117,9 @@ export function InputStep({ onContinue, onBack, presetId, onPresetChange, initia
           </button>
         </div>
 
-        {/* Creative direction */}
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{tStyle('directionLabel')}</p>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={tStyle('directionLabel')}>
-            {styleOptions.map((id) => (
-              <button
-                key={id}
-                type="button"
-                role="radio"
-                aria-checked={styleId === id}
-                onClick={() => setStyleId(id)}
-                className={`flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors active:scale-[0.97] ${
-                  styleId === id
-                    ? 'border-green-500 bg-green-500/15 text-white'
-                    : 'border-white/10 bg-white/[0.04] text-gray-400'
-                }`}
-              >
-                <span className="text-base" aria-hidden="true">{styleIcon(id)}</span>
-                <span>{tStyle(`chips.${id}`)}</span>
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-gray-500">{styleDesc(styleId)}</p>
-        </div>
-
+        {/* Where first, then how */}
         <DestinationSelector selectedPresetId={presetId} onSelect={onPresetChange} />
+        <StyleSelector selectedStyleId={styleId} hasReference={!!referenceImageUrl} onSelect={setStyleId} />
       </div>
 
       {/* Fixed bottom CTA */}

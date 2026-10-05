@@ -1740,6 +1740,17 @@
       "videoLabel": "Video",
       "error": "Galerie konnte nicht geladen werden",
       "retry": "Erneut versuchen"
+    },
+    "destination": {
+      "postFor": "Posten für",
+      "sheetTitle": "Wo wirst du es posten?",
+      "close": "Schließen",
+      "igFeed": "Instagram-Feed",
+      "igFeedSub": "Hochformat · 4:5",
+      "story": "Story / Reel",
+      "storySub": "Vollbild · 9:16",
+      "square": "Quadrat",
+      "squareSub": "Klassisch · 1:1"
     }
   }
 }

@@ -6,10 +6,14 @@ import { useTranslations } from 'next-intl';
 import { STYLE_CHIPS } from '@/lib/studio/constants';
 import { MobileMediaPicker } from '../MobileMediaPicker';
 import { MobileVoiceInput } from '../MobileVoiceInput';
+import { DestinationSelector } from '../DestinationSelector';
 
 interface Props {
   onContinue: (data: { description: string; referenceImageUrl?: string; styleId: string }) => void;
   onBack: () => void;
+  /** "Post for" — the PLATFORM_IMAGE_PRESETS id used for generation; owned by the wizard */
+  presetId: string;
+  onPresetChange: (presetId: string) => void;
   /** Wizard state to restore when returning here ("Change direction", or after a failed generation) */
   initialDescription?: string;
   initialReferenceImageUrl?: string;
@@ -20,7 +24,7 @@ type StyleOptionId = typeof STYLE_CHIPS[number]['id'] | 'reference';
 
 const DEFAULT_STYLE_ID = 'social';
 
-export function InputStep({ onContinue, onBack, initialDescription, initialReferenceImageUrl, initialStyleId }: Props) {
+export function InputStep({ onContinue, onBack, presetId, onPresetChange, initialDescription, initialReferenceImageUrl, initialStyleId }: Props) {
   const t = useTranslations('mobile.input');
   const tStyle = useTranslations('mobile.style');
   const EXAMPLES = [t('example1'), t('example2'), t('example3')];
@@ -147,6 +151,8 @@ export function InputStep({ onContinue, onBack, initialDescription, initialRefer
           </div>
           <p className="mt-2 text-xs text-gray-500">{styleDesc(styleId)}</p>
         </div>
+
+        <DestinationSelector selectedPresetId={presetId} onSelect={onPresetChange} />
       </div>
 
       {/* Fixed bottom CTA */}

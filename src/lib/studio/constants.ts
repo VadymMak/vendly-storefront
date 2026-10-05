@@ -386,6 +386,14 @@ export const PLATFORM_IMAGE_PRESETS = [
 
 export type PlatformImagePresetId = typeof PLATFORM_IMAGE_PRESETS[number]['id'];
 
+// Mobile "Post for" choices — where the user will post, not pixel sizes. Each maps to a
+// PLATFORM_IMAGE_PRESETS entry; labels live in messages under mobile.destination.<key>.
+export const DESTINATION_OPTIONS = [
+  { presetId: 'ig-feed',  key: 'igFeed', icon: '📷' },
+  { presetId: 'ig-story', key: 'story',  icon: '📱' },
+  { presetId: 'square',   key: 'square', icon: '🔲' },
+] as const satisfies readonly { presetId: PlatformImagePresetId; key: string; icon: string }[];
+
 // ── Platform video presets ────────────────────────────────────────────────────
 
 export const PLATFORM_VIDEO_PRESETS = [

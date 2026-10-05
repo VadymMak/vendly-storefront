@@ -1740,6 +1740,17 @@
       "videoLabel": "Video",
       "error": "Galerii se nepodařilo načíst",
       "retry": "Zkusit znovu"
+    },
+    "destination": {
+      "postFor": "Zveřejnit na",
+      "sheetTitle": "Kde to zveřejníte?",
+      "close": "Zavřít",
+      "igFeed": "Instagram feed",
+      "igFeedSub": "Na výšku · 4:5",
+      "story": "Story / Reel",
+      "storySub": "Celá obrazovka · 9:16",
+      "square": "Čtverec",
+      "squareSub": "Klasika · 1:1"
     }
   }
 }

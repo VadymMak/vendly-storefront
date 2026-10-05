@@ -94,6 +94,8 @@ export function MobileCreateWizard() {
         <InputStep
           onContinue={handleInputContinue}
           onBack={() => router.push('/studio/m')}
+          presetId={presetId}
+          onPresetChange={setPresetId}
           initialDescription={description}
           initialReferenceImageUrl={referenceImageUrl}
           initialStyleId={styleId}

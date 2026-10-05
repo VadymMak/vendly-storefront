@@ -1731,6 +1731,17 @@
       "videoLabel": "Відео",
       "error": "Не вдалося завантажити галерею",
       "retry": "Спробувати ще"
+    },
+    "destination": {
+      "postFor": "Для публікації",
+      "sheetTitle": "Де ви це опублікуєте?",
+      "close": "Закрити",
+      "igFeed": "Стрічка Instagram",
+      "igFeedSub": "Вертикально · 4:5",
+      "story": "Stories / Reels",
+      "storySub": "На весь екран · 9:16",
+      "square": "Квадрат",
+      "squareSub": "Класика · 1:1"
     }
   }
 }

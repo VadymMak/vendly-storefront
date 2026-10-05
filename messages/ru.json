@@ -1740,6 +1740,17 @@
       "videoLabel": "Видео",
       "error": "Не удалось загрузить галерею",
       "retry": "Повторить"
+    },
+    "destination": {
+      "postFor": "Для публикации",
+      "sheetTitle": "Где вы это опубликуете?",
+      "close": "Закрыть",
+      "igFeed": "Лента Instagram",
+      "igFeedSub": "Вертикально · 4:5",
+      "story": "Stories / Reels",
+      "storySub": "Во весь экран · 9:16",
+      "square": "Квадрат",
+      "squareSub": "Классика · 1:1"
     }
   }
 }

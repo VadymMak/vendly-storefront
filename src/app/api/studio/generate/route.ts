@@ -66,6 +66,26 @@ function closestRatio(requested: string, supported: string[]): string {
   );
 }
 
+/** True when the source photo's height/width ratio is off the target by more than 0.05. */
+async function sourceRatioDiffers(imageUrl: string, targetRatio: number): Promise<boolean> {
+  try {
+    const arrBuf: ArrayBuffer = await fetch(imageUrl).then(r => r.arrayBuffer());
+    const meta = await sharp(Buffer.from(arrBuf)).metadata();
+    if (!meta.width || !meta.height) return false;
+    // EXIF orientations 5–8 are rotated 90°, so the displayed width/height are swapped.
+    const [w, h] = (meta.orientation ?? 1) >= 5 ? [meta.height, meta.width] : [meta.width, meta.height];
+    return Math.abs(h / w - targetRatio) > 0.05;
+  } catch {
+    return false; // can't read the source — keep its framing, the final crop still applies
+  }
+}
+
+/** Tells Kontext to reframe for the target orientation while keeping the subject whole. */
+function compositionHint(targetRatio: number): string {
+  const frame = targetRatio > 1.05 ? 'vertical portrait' : targetRatio < 0.95 ? 'horizontal landscape' : 'square';
+  return `Reframe the result as a ${frame} image: keep the main subject fully visible and centred, and extend the surrounding scene naturally to fill the new frame.`;
+}
+
 async function processBuffer(
   imageUrl:   string,
   targetW:    number | undefined,
@@ -396,23 +416,29 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
   const hasAction   = IMG2IMG_ACTION_WORDS.test(userText);
   const instruction = hasAction ? await translatePromptToEnglish(userText, p.uiLocale) : '';
   const preservation = IMG2IMG_STYLE_PREFIX[styleId] ?? IMG2IMG_STYLE_PREFIX.custom;
-  const img2imgPrompt = instruction
+  const basePrompt = instruction
     ? `${preservation} Additional edit: ${instruction}`
     : preservation;
 
-  // Don't send aspect_ratio to Kontext — it keeps the source photo's native framing.
-  // Forcing e.g. landscape→portrait makes the model invent walls/furniture that don't exist.
-  // The result is centre-cropped to the target size afterwards (processBuffer 'cover'), and
-  // the Before/After slider object-covers the original to the same aspect, so they line up.
-  // aspect_ratio is still computed for usage metadata.
+  // Kontext has no image_size and no 4:5 — closestRatio gives e.g. 3:4, and the final
+  // processBuffer 'cover' trims the rest. When the source already has (roughly) the target
+  // ratio, aspect_ratio is omitted so Kontext keeps the photo's own framing. When it differs
+  // (landscape pizza → 4:5 feed), Kontext recomposes for the target orientation instead of
+  // the crop chopping the subject's sides off.
   const aspect_ratio = model.supportedRatios ? closestRatio(p.requestedRatio, model.supportedRatios) : p.requestedRatio;
+  const recompose    = p.targetW && p.targetH
+    ? await sourceRatioDiffers(referenceImage, p.targetH / p.targetW)
+    : false;
+  const img2imgPrompt = recompose
+    ? `${basePrompt} ${compositionHint(p.targetH! / p.targetW!)}`
+    : basePrompt;
   const provider  = getProvider(model.provider);
   const startTime = Date.now();
 
   try {
     if (!provider.edit) throw new Error(`${model.displayName} does not support edit`);
     const result = await provider.edit(
-      { prompt: img2imgPrompt, imageUrl: referenceImage },
+      { prompt: img2imgPrompt, imageUrl: referenceImage, ...(recompose && { aspectRatio: aspect_ratio }) },
       apiKey,
       model.modelId,
     );

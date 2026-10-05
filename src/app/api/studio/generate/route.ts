@@ -72,12 +72,12 @@ async function processBuffer(
   targetH:    number | undefined,
   format:     'webp' | 'png' | 'jpeg',
   prefix:     string,
-  fit:        'fill' | 'cover' = 'fill',
 ): Promise<Response> {
   const arrBuf: ArrayBuffer = await fetch(imageUrl).then(r => r.arrayBuffer());
   const buf  = Buffer.from(arrBuf);
   const pipe = sharp(buf);
-  if (targetW && targetH) pipe.resize(targetW, targetH, { fit });
+  // 'cover' crops to the target ratio; 'fill' would stretch when the model's ratio differs.
+  if (targetW && targetH) pipe.resize(targetW, targetH, { fit: 'cover', position: 'centre' });
 
   let out: Buffer;
   let ct: string;
@@ -443,7 +443,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
       metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length, generationMode: 'photo_transform' },
     });
 
-    const response = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias, 'cover');
+    const response = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias);
     response.headers.set('X-Model-Alias', alias);
     response.headers.set('X-Model-Provider', model.provider);
     response.headers.set('X-Model-Name', model.displayName);

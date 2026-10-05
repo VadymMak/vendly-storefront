@@ -81,6 +81,9 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
             prompt: styledPrompt,
             tier: 'fast',
             aspect_ratio: preset?.aspect_ratio ?? '1:1',
+            // Without target dims the server returns the model's raw size (and skips the
+            // cover-crop of Kontext output), so the preset ratio would not be enforced.
+            ...(preset && { target_width: preset.target_width, target_height: preset.target_height }),
             output_format: 'webp',
             ...(generateParams.referenceImageUrl && {
               reference_image: generateParams.referenceImageUrl,

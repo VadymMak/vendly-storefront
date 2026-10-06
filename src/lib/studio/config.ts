@@ -11,7 +11,7 @@ export interface ImageGenerateRequest {
 export interface ImageEditRequest {
   prompt: string;
   imageUrl: string; // public URL already uploaded to blob storage
-  aspectRatio?: string; // fal Kontext only; Replicate keeps 'match_input_image'
+  aspectRatio?: string; // fal Kontext / xAI; Replicate keeps 'match_input_image'
 }
 
 export interface MediaResult {
@@ -168,7 +168,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     creditType:     'image',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
-    maxInputSize:   1024,
+    maxInputSize:   2048,
     // fal's enum — no 4:5, callers must map to the closest ratio
     supportedRatios: ['21:9', '16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16', '9:21'],
     enabled: true,
@@ -240,7 +240,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     creditType:     'image',
     apiKeyProvider: 'replicate',
     envKeyName:     'REPLICATE_API_TOKEN',
-    maxInputSize:   1024,
+    maxInputSize:   2048,
     enabled: true,
   },
   'edit-grok': {
@@ -249,13 +249,13 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     modelId:        'grok-imagine-image-2.0',
     operation:      'edit',
     tier:           'quality',
-    costPerCall:    0.0,
+    costPerCall:    0.04, // xAI list price per image; still free to users (creditCost 0)
     creditCost:     0,
     creditType:     'image',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',
     byokOnly:       false,
-    maxInputSize:   1024,
+    maxInputSize:   2048,
     enabled: true,
   },
 };

@@ -54,7 +54,8 @@ export async function POST(req: Request) {
     const input = sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS });
     const { hasAlpha } = await input.metadata();
     const resizedPipeline = input.resize(originalWidth, originalHeight, {
-      fit: 'fill',
+      // cover, not fill — a result in a different ratio is centre-cropped instead of squished
+      fit: 'cover',
       kernel: 'lanczos3',
     });
 

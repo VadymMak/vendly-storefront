@@ -51,7 +51,33 @@ export async function grokGenerate(apiKey: string, prompt: string): Promise<stri
   return url;
 }
 
-export async function grokEdit(apiKey: string, imageUrl: string, prompt: string): Promise<string> {
+export type GrokResolution = '1k' | '1.5k' | '2k';
+
+// xAI /v1/images/edits aspect_ratio enum (no 4:5 — 'auto' covers unlisted ratios)
+const GROK_ASPECT_RATIOS: Record<string, number> = {
+  '1:1': 1, '3:4': 3 / 4, '4:3': 4 / 3, '9:16': 9 / 16, '16:9': 16 / 9, '2:3': 2 / 3, '3:2': 3 / 2,
+  '9:19.5': 9 / 19.5, '19.5:9': 19.5 / 9, '9:20': 9 / 20, '20:9': 20 / 9, '1:2': 1 / 2, '2:1': 2,
+  '21:9': 21 / 9, '5:2': 5 / 2,
+};
+
+/** Exact xAI aspect ratio for the given dimensions, or 'auto' when the enum has no match (e.g. 4:5). */
+export function grokAspectRatioFor(width: number, height: number): string {
+  const ratio = width / height;
+  const match = Object.entries(GROK_ASPECT_RATIOS).find(([, r]) => Math.abs(r - ratio) < 0.01);
+  return match ? match[0] : 'auto';
+}
+
+/** Pass through ratios xAI accepts; anything else (e.g. '4:5') becomes 'auto'. */
+export function toGrokAspectRatio(ratio: string): string {
+  return ratio in GROK_ASPECT_RATIOS ? ratio : 'auto';
+}
+
+export async function grokEdit(
+  apiKey: string,
+  imageUrl: string,
+  prompt: string,
+  opts: { resolution?: GrokResolution; aspectRatio?: string } = {},
+): Promise<string> {
   const res = await fetch('https://api.x.ai/v1/images/edits', {
     method: 'POST',
     headers: {
@@ -64,6 +90,8 @@ export async function grokEdit(apiKey: string, imageUrl: string, prompt: string)
       prompt,
       n: 1,
       response_format: 'url',
+      ...(opts.resolution ? { resolution: opts.resolution } : {}),
+      ...(opts.aspectRatio ? { aspect_ratio: opts.aspectRatio } : {}),
     }),
   });
 

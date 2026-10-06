@@ -1,4 +1,4 @@
-import { grokGenerate, grokEdit } from '@/lib/xai-client';
+import { grokGenerate, grokEdit, toGrokAspectRatio } from '@/lib/xai-client';
 import type { ImageProvider, ImageGenerateRequest, ImageEditRequest, MediaResult } from '../config';
 
 export class XaiProvider implements ImageProvider {
@@ -8,7 +8,10 @@ export class XaiProvider implements ImageProvider {
   }
 
   async edit(req: ImageEditRequest, apiKey: string, _modelId: string): Promise<MediaResult> {
-    const url = await grokEdit(apiKey, req.imageUrl, req.prompt);
+    const url = await grokEdit(apiKey, req.imageUrl, req.prompt, {
+      resolution:  '2k',
+      aspectRatio: req.aspectRatio ? toGrokAspectRatio(req.aspectRatio) : undefined,
+    });
     return { url };
   }
 }

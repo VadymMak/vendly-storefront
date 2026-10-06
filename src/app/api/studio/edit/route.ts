@@ -7,6 +7,7 @@ import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel } from '@/lib/studio/config';
 import { getProvider } from '@/lib/studio/providers';
+import { grokAspectRatioFor } from '@/lib/xai-client';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
 import { createJob } from '@/lib/studio-jobs';
@@ -90,10 +91,12 @@ export async function POST(req: Request) {
   // Resize + upload image to blob storage
   const bytes   = await file.arrayBuffer();
   const maxSize = model.maxInputSize ?? 1024;
-  const resized = await sharp(Buffer.from(bytes))
+  const { data: resized, info } = await sharp(Buffer.from(bytes))
     .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
     .png()
-    .toBuffer();
+    .toBuffer({ resolveWithObject: true });
+  // Tell Grok the input's shape so it doesn't fall back to its default ratio
+  const aspectRatio = model.provider === 'xai' ? grokAspectRatioFor(info.width, info.height) : undefined;
 
   const blob = await put(
     `studio/ai-edit/${session.user.id}/${Date.now()}.png`,
@@ -105,7 +108,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await provider.edit!(
-      { prompt, imageUrl: blob.url },
+      { prompt, imageUrl: blob.url, aspectRatio },
       apiKey,
       model.modelId,
     );

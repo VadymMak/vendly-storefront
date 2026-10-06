@@ -15,6 +15,8 @@ interface Props {
 
 // Preview canvas resolution cap — enough for a sharp phone preview, cheap to redraw while dragging
 const PREVIEW_MAX_SIDE = 1200;
+// Output width cap — keeps source detail above the preset size (2× of 1080) without huge canvases
+const OUTPUT_MAX_WIDTH = 2160;
 
 function calculateCrop(imgW: number, imgH: number, targetRatio: string): CropRect {
   const [tw, th] = targetRatio.split(':').map(Number);
@@ -128,9 +130,12 @@ export function MobileResizeCropper({ imageUrl, currentPresetId, onDone, onCance
     setApplying(true);
     setApplyError(false);
     try {
+      // Same format ratio, higher resolution when the source allows: native crop width capped at
+      // OUTPUT_MAX_WIDTH, never below the preset width; height follows the preset's exact ratio
+      const outW = Math.max(preset.target_width, Math.min(Math.round(crop.w), OUTPUT_MAX_WIDTH));
       const out = document.createElement('canvas');
-      out.width = preset.target_width;
-      out.height = preset.target_height;
+      out.width = outW;
+      out.height = Math.round(outW * preset.target_height / preset.target_width);
       const ctx = out.getContext('2d');
       if (!ctx) throw new Error('Canvas 2D context unavailable');
       ctx.imageSmoothingQuality = 'high';

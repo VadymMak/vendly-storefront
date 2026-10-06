@@ -60,8 +60,8 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const [showInfo, setShowInfo] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [exporting, setExporting] = useState(false);
-  // Same image already in the reel folder — user picks replace / save as new / cancel
-  const [reelDuplicate, setReelDuplicate] = useState<{ blob: Blob; existingName: string; nextName: string } | null>(null);
+  // Reel Test sheet: save as the next number, or overwrite an existing export with this image
+  const [reelPicker, setReelPicker] = useState<{ blob: Blob; nextName: string; files: ReelFile[] } | null>(null);
   // Measured from the image currently shown (changes after Improve / Text / Crop)
   const [dims, setDims] = useState<{ url: string; w: number; h: number } | null>(null);
   const [blobInfo, setBlobInfo] = useState<{ url: string; size: number } | null>(null);
@@ -167,23 +167,15 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   }
 
   // Sends the exact bytes on screen (incl. blob: results of Text / Crop) — server stores them untouched.
-  // mode 'replace' overwrites `target`, 'new' skips the duplicate check, default asks on a duplicate.
-  async function sendToReel(blob: Blob, mode?: 'replace' | 'new', target?: string) {
+  // With `name` the server overwrites that number; without it, it picks the next free one.
+  async function sendToReel(blob: Blob, name?: string) {
     setExporting(true);
     try {
       const fd = new FormData();
       fd.append('image', blob, fileName(blob.type));
-      if (mode) fd.append('mode', mode);
-      if (target) fd.append('target', target);
+      if (name) fd.append('name', name);
       const res = await fetch('/api/studio/export-reel', { method: 'POST', body: fd });
-      const data = await res.json() as {
-        success?: boolean; duplicate?: boolean; replaced?: boolean; filename?: string; size?: number;
-        existingName?: string; nextName?: string; error?: string;
-      };
-      if (data.duplicate && data.existingName && data.nextName) {
-        setReelDuplicate({ blob, existingName: data.existingName, nextName: data.nextName });
-        return;
-      }
+      const data = await res.json() as { success?: boolean; replaced?: boolean; filename?: string; size?: number; error?: string };
       if (!res.ok || !data.success || !data.filename) throw new Error(data.error ?? `export ${res.status}`);
       alert(`✅ ${t(data.replaced ? 'reelReplaced' : 'reelExported', { name: data.filename, size: formatBytes(data.size ?? blob.size) })}`);
     } catch (e) {
@@ -196,26 +188,30 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
 
   async function handleExportToReel() {
     if (!displayUrl || exporting) return;
-    let blob = blobRef.current;
-    if (!blob) {
-      try {
-        const res = await fetch(proxyUrl(displayUrl));
-        if (!res.ok) throw new Error(`export fetch ${res.status}`);
-        blob = await res.blob();
-      } catch (e) {
-        console.error('[export reel]', e);
-        alert(`❌ ${t('reelExportFailed')}`);
-        return;
-      }
+    setExporting(true);
+    try {
+      const [blob, list] = await Promise.all([
+        blobRef.current ?? fetch(proxyUrl(displayUrl)).then((res) => {
+          if (!res.ok) throw new Error(`export fetch ${res.status}`);
+          return res.blob();
+        }),
+        fetch('/api/studio/export-reel').then((res) => (res.ok ? res.json() as Promise<{ files: ReelFile[] }> : { files: [] })),
+      ]);
+      const numbers = list.files.map((f) => parseInt(f.name, 10));
+      const nextName = `${(numbers.length ? Math.max(...numbers) : 0) + 1}.${extFromMime(blob.type)}`;
+      setReelPicker({ blob, nextName, files: [...list.files].reverse() }); // newest first
+    } catch (e) {
+      console.error('[export reel]', e);
+      alert(`❌ ${t('reelExportFailed')}`);
+    } finally {
+      setExporting(false);
     }
-    await sendToReel(blob);
   }
 
-  function resolveReelDuplicate(choice: 'replace' | 'new' | 'cancel') {
-    const dup = reelDuplicate;
-    setReelDuplicate(null);
-    if (!dup || choice === 'cancel') return;
-    void sendToReel(dup.blob, choice, choice === 'replace' ? dup.existingName : undefined);
+  function pickReelTarget(name?: string) {
+    const picker = reelPicker;
+    setReelPicker(null);
+    if (picker) void sendToReel(picker.blob, name);
   }
 
   if (improving && displayUrl) {
@@ -414,32 +410,43 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         </div>
       )}
 
-      {reelDuplicate && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => resolveReelDuplicate('cancel')}>
+      {reelPicker && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setReelPicker(null)}>
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={t('reelDuplicateTitle', { name: reelDuplicate.existingName })}
+            aria-label={t('reelSheetTitle')}
             onClick={(e) => e.stopPropagation()}
-            className="w-full space-y-2 rounded-t-2xl border-t border-white/10 bg-gray-950/95 px-4 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md"
+            className="max-h-[80vh] w-full space-y-2 overflow-y-auto rounded-t-2xl border-t border-white/10 bg-gray-950/95 px-4 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md"
           >
-            <p className="pb-2 text-center text-sm font-semibold text-white">
-              {t('reelDuplicateTitle', { name: reelDuplicate.existingName })}
-            </p>
+            <p className="pb-2 text-center text-sm font-semibold text-white">{t('reelSheetTitle')}</p>
             <button
-              onClick={() => resolveReelDuplicate('replace')}
+              onClick={() => pickReelTarget()}
               className="flex min-h-11 w-full items-center justify-center rounded-xl bg-orange-500 text-sm font-semibold text-white active:bg-orange-600"
             >
-              {t('reelReplace', { name: reelDuplicate.existingName })}
+              {t('reelSaveAsNew', { name: reelPicker.nextName })}
             </button>
+            {reelPicker.files.length > 0 && (
+              <>
+                <p className="pt-3 text-xs uppercase tracking-wide text-gray-500">{t('reelReplaceExisting')}</p>
+                <div className="divide-y divide-white/5">
+                  {reelPicker.files.map((f) => (
+                    <button
+                      key={f.name}
+                      onClick={() => pickReelTarget(f.name)}
+                      className="flex min-h-11 w-full items-center justify-between gap-3 py-2.5 text-left text-sm text-gray-200 active:text-white"
+                    >
+                      <span>{t('reelReplace', { name: f.name })}</span>
+                      <span className="shrink-0 text-xs text-gray-500">
+                        {formatBytes(f.size)} · {new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(f.modified))}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             <button
-              onClick={() => resolveReelDuplicate('new')}
-              className="flex min-h-11 w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm font-semibold text-white active:bg-white/[0.08]"
-            >
-              {t('reelSaveAsNew', { name: reelDuplicate.nextName })}
-            </button>
-            <button
-              onClick={() => resolveReelDuplicate('cancel')}
+              onClick={() => setReelPicker(null)}
               className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm text-gray-400 active:text-white"
             >
               {t('cancel')}
@@ -468,6 +475,12 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       )}
     </div>
   );
+}
+
+interface ReelFile {
+  name: string;
+  size: number;
+  modified: string;
 }
 
 function formatBytes(bytes: number): string {

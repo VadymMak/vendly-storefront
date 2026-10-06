@@ -1606,7 +1606,24 @@
       "improveDesc": "Яскравіше та професійніше",
       "textTool": "Текст",
       "resizeTool": "Обрізка",
-      "moreOptions": "Більше"
+      "moreOptions": "Більше",
+      "info": "Інфо",
+      "infoTitle": "Інформація",
+      "infoResolution": "Роздільність",
+      "infoSize": "Розмір",
+      "infoDate": "Дата",
+      "infoModel": "Модель",
+      "infoStyle": "Стиль",
+      "infoFormat": "Формат",
+      "infoType": "Тип",
+      "close": "Закрити",
+      "saveFailed": "Не вдалося зберегти зображення. Спробуйте ще раз.",
+      "types": {
+        "image": "Згенеровано",
+        "ai-edit": "AI-редагування",
+        "upscale": "Збільшення",
+        "remove-bg": "Фон видалено"
+      }
     },
     "media": {
       "takePhoto": "Зняти фото",

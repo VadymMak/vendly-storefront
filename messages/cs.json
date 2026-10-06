@@ -1615,7 +1615,24 @@
       "improveDesc": "Jasnější a profesionálnější",
       "textTool": "Text",
       "resizeTool": "Oříznout",
-      "moreOptions": "Další možnosti"
+      "moreOptions": "Další možnosti",
+      "info": "Info",
+      "infoTitle": "Informace o obrázku",
+      "infoResolution": "Rozlišení",
+      "infoSize": "Velikost",
+      "infoDate": "Datum",
+      "infoModel": "Model",
+      "infoStyle": "Styl",
+      "infoFormat": "Formát",
+      "infoType": "Typ",
+      "close": "Zavřít",
+      "saveFailed": "Obrázek se nepodařilo uložit. Zkuste to znovu.",
+      "types": {
+        "image": "Vygenerováno",
+        "ai-edit": "Úprava AI",
+        "upscale": "Zvětšení",
+        "remove-bg": "Odstraněné pozadí"
+      }
     },
     "media": {
       "takePhoto": "Vyfotit",

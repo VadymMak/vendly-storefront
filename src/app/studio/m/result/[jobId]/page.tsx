@@ -41,6 +41,7 @@ export default async function MobileResultPage({ params }: Props) {
         id: job.id,
         outputUrl: job.outputUrl,
         status: job.status,
+        type: job.type,
         prompt,
         modelUsed: str(meta.modelUsed) ?? null,
         createdAt: job.createdAt.toISOString(),

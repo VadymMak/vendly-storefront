@@ -1615,7 +1615,24 @@
       "improveDesc": "Ярче и профессиональнее",
       "textTool": "Текст",
       "resizeTool": "Обрезка",
-      "moreOptions": "Ещё"
+      "moreOptions": "Ещё",
+      "info": "Инфо",
+      "infoTitle": "Информация",
+      "infoResolution": "Разрешение",
+      "infoSize": "Размер",
+      "infoDate": "Дата",
+      "infoModel": "Модель",
+      "infoStyle": "Стиль",
+      "infoFormat": "Формат",
+      "infoType": "Тип",
+      "close": "Закрыть",
+      "saveFailed": "Не удалось сохранить изображение. Попробуйте ещё раз.",
+      "types": {
+        "image": "Сгенерировано",
+        "ai-edit": "AI-редактирование",
+        "upscale": "Увеличение",
+        "remove-bg": "Фон удалён"
+      }
     },
     "media": {
       "takePhoto": "Сделать фото",

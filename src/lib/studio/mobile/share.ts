@@ -23,7 +23,10 @@ export function saveBlob(blob: Blob, filename?: string): void {
   const a = document.createElement('a');
   a.href = blobUrl;
   a.download = filename ?? `vendshop-${Date.now()}.${extFromMime(blob.type)}`;
+  // Attached to the DOM — some mobile browsers ignore clicks on detached anchors
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
 }
 

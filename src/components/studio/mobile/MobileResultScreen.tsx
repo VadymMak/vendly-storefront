@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
+import { useLocale, useTranslations } from 'next-intl';
+import { extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
+import { getModel } from '@/lib/studio/config';
 import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
 import { MobileResizeCropper } from './MobileResizeCropper';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
@@ -15,6 +16,7 @@ interface JobData {
   id: string;
   outputUrl: string | null;
   status: string;
+  type?: string;
   prompt?: string | null;
   modelUsed?: string | null;
   createdAt: Date;
@@ -43,6 +45,7 @@ interface Props {
 export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, onTryStyle }: Props) {
   const router = useRouter();
   const t = useTranslations('mobile.result');
+  const locale = useLocale();
   const [sharing, setSharing] = useState(false);
   const [editingText, setEditingText] = useState(false);
   const [improving, setImproving] = useState(false);
@@ -52,6 +55,11 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     inlineResult?.presetId ?? 'ig-feed'
   );
   const [wasResized, setWasResized] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  // Measured from the image currently shown (changes after Improve / Text / Crop)
+  const [dims, setDims] = useState<{ url: string; w: number; h: number } | null>(null);
+  const [blobInfo, setBlobInfo] = useState<{ url: string; size: number } | null>(null);
 
   const imageUrl = inlineResult?.imageUrl ?? job?.outputUrl ?? null;
   const prompt = inlineResult?.prompt ?? job?.prompt ?? undefined;
@@ -76,6 +84,22 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
 
   const blobRef = useRef<Blob | null>(null);
 
+  // "vendly-ai-edit-20261006-1534.jpg" — type + creation time, so saved files sort and stay findable
+  const createdAt = job?.createdAt ?? null;
+  function fileName(mime: string): string {
+    const d = createdAt ?? new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+    return `vendly-${job?.type ?? 'image'}-${stamp}.${extFromMime(mime)}`;
+  }
+
+  useEffect(() => {
+    if (!displayUrl) return;
+    const img = new Image();
+    img.onload = () => setDims({ url: displayUrl, w: img.naturalWidth, h: img.naturalHeight });
+    img.src = displayUrl;
+  }, [displayUrl]);
+
   // Prefetch blob on mount so Share fires instantly within user gesture (iPhone requirement).
   // proxyUrl leaves blob: as-is and routes remote URLs through our proxy (CORS).
   useEffect(() => {
@@ -84,7 +108,10 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     fetch(proxyUrl(displayUrl))
       .then((res) => (res.ok ? res.blob() : null))
       .then((blob) => {
-        if (blob) blobRef.current = blob;
+        if (blob) {
+          blobRef.current = blob;
+          setBlobInfo({ url: displayUrl, size: blob.size });
+        }
       })
       .catch(() => {});
   }, [displayUrl]);
@@ -99,7 +126,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         if (res.ok) blob = await res.blob();
       }
       if (blob) {
-        const file = new File([blob], `vendshop-creation.${extFromMime(blob.type)}`, { type: blob.type });
+        const file = new File([blob], fileName(blob.type), { type: blob.type });
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({ title: t('shareTitle'), files: [file] });
           setSharing(false);
@@ -109,17 +136,26 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     } catch (e) {
       if ((e as Error).name === 'AbortError') { setSharing(false); return; }
     }
-    await downloadImage(displayUrl);
+    await handleSave();
     setSharing(false);
   }
 
+  // No window.open fallback — a bare image in a new tab looks like a dead end on Android
   async function handleSave() {
     if (!displayUrl) return;
-    if (blobRef.current) {
-      saveBlob(blobRef.current);
-      return;
+    setSaveError(false);
+    try {
+      let blob = blobRef.current;
+      if (!blob) {
+        const res = await fetch(proxyUrl(displayUrl));
+        if (!res.ok) throw new Error(`save fetch ${res.status}`);
+        blob = await res.blob();
+      }
+      saveBlob(blob, fileName(blob.type));
+    } catch (e) {
+      console.error('[result save]', e);
+      setSaveError(true);
     }
-    await downloadImage(displayUrl);
   }
 
   if (improving && displayUrl) {
@@ -184,7 +220,15 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           </svg>
         </button>
         <span className="text-base font-semibold text-white">{t('title')}</span>
-        <div className="w-11" />
+        <button
+          onClick={() => setShowInfo(true)}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-gray-400"
+          aria-label={t('info')}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        </button>
       </div>
 
       {/* Image — before/after only for the untouched photo-transform result; once Improve / Text /
@@ -275,6 +319,9 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           {t('save')}
         </button>
       </div>
+      {saveError && (
+        <p className="mt-2 px-4 text-center text-xs text-red-400" role="alert">{t('saveFailed')}</p>
+      )}
 
       {/* Meta */}
       {(model || prompt) && (
@@ -285,18 +332,87 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           )}
         </div>
       )}
+
+      {showInfo && (
+        <InfoSheet
+          title={t('infoTitle')}
+          closeLabel={t('close')}
+          onClose={() => setShowInfo(false)}
+          rows={[
+            [t('infoResolution'), dims?.url === displayUrl ? `${dims.w} × ${dims.h} px` : '—'],
+            [t('infoSize'), blobInfo?.url === displayUrl ? formatBytes(blobInfo.size) : '—'],
+            [t('infoDate'), createdAt
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(createdAt)
+              : '—'],
+            [t('infoModel'), model ? (getModel(model) ? `${getModel(model)!.displayName} (${model})` : model) : '—'],
+            [t('infoStyle'), getStyleLabel(inlineResult?.styleId, t('styleReference')) ?? '—'],
+            [t('infoFormat'), getFormatLabel(currentPresetId) ?? '—'],
+            [t('infoType'), job?.type ? (t.has(`types.${job.type}`) ? t(`types.${job.type}`) : job.type) : '—'],
+          ]}
+        />
+      )}
+    </div>
+  );
+}
+
+function formatBytes(bytes: number): string {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function getStyleLabel(styleId: string | undefined, referenceLabel: string): string | undefined {
+  return styleId === 'reference' ? referenceLabel : STYLE_CHIPS.find((s) => s.id === styleId)?.label;
+}
+
+function getFormatLabel(presetId: string | undefined): string | undefined {
+  const preset = PLATFORM_IMAGE_PRESETS.find((p) => p.id === presetId);
+  return preset ? `${preset.label} ${preset.aspect_ratio}` : undefined;
+}
+
+function InfoSheet({ title, closeLabel, rows, onClose }: {
+  title: string;
+  closeLabel: string;
+  rows: [string, string][];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-2xl border-t border-white/10 bg-gray-950/95 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md"
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-gray-400"
+            aria-label={closeLabel}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <dl className="divide-y divide-white/5 text-sm">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex justify-between gap-4 py-2.5">
+              <dt className="shrink-0 text-gray-500">{label}</dt>
+              <dd className="truncate text-right text-gray-200">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </div>
   );
 }
 
 // "Food & Café · IG Feed Post 4:5" — either half is dropped when unknown
 function getContextLabel(styleId: string | undefined, presetId: string | undefined, referenceLabel: string): string {
-  const style = styleId === 'reference'
-    ? referenceLabel
-    : STYLE_CHIPS.find((s) => s.id === styleId)?.label;
-  const preset = PLATFORM_IMAGE_PRESETS.find((p) => p.id === presetId);
-  const format = preset ? `${preset.label} ${preset.aspect_ratio}` : undefined;
-  return [style, format].filter(Boolean).join(' · ');
+  return [getStyleLabel(styleId, referenceLabel), getFormatLabel(presetId)].filter(Boolean).join(' · ');
 }
 
 function ToolButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {

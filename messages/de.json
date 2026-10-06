@@ -1615,7 +1615,24 @@
       "improveDesc": "Heller und professioneller",
       "textTool": "Text",
       "resizeTool": "Zuschneiden",
-      "moreOptions": "Weitere Optionen"
+      "moreOptions": "Weitere Optionen",
+      "info": "Info",
+      "infoTitle": "Bildinfo",
+      "infoResolution": "Auflösung",
+      "infoSize": "Größe",
+      "infoDate": "Datum",
+      "infoModel": "Modell",
+      "infoStyle": "Stil",
+      "infoFormat": "Format",
+      "infoType": "Typ",
+      "close": "Schließen",
+      "saveFailed": "Bild konnte nicht gespeichert werden. Erneut versuchen.",
+      "types": {
+        "image": "Generiert",
+        "ai-edit": "KI-Bearbeitung",
+        "upscale": "Hochskaliert",
+        "remove-bg": "Hintergrund entfernt"
+      }
     },
     "media": {
       "takePhoto": "Foto aufnehmen",

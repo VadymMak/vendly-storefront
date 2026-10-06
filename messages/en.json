@@ -1615,7 +1615,24 @@
       "improveDesc": "Make it brighter & more professional",
       "textTool": "Text",
       "resizeTool": "Crop",
-      "moreOptions": "More options"
+      "moreOptions": "More options",
+      "info": "Info",
+      "infoTitle": "Image info",
+      "infoResolution": "Resolution",
+      "infoSize": "Size",
+      "infoDate": "Date",
+      "infoModel": "Model",
+      "infoStyle": "Style",
+      "infoFormat": "Format",
+      "infoType": "Type",
+      "close": "Close",
+      "saveFailed": "Couldn't save the image. Try again.",
+      "types": {
+        "image": "Generated",
+        "ai-edit": "AI edit",
+        "upscale": "Upscale",
+        "remove-bg": "Background removed"
+      }
     },
     "media": {
       "takePhoto": "Take Photo",

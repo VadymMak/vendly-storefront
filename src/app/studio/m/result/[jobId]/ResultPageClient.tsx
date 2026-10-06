@@ -9,6 +9,7 @@ interface Props {
     id: string;
     outputUrl: string;
     status: string;
+    type: string;
     prompt: string;
     modelUsed: string | null;
     createdAt: string;

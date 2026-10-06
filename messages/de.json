@@ -1630,6 +1630,7 @@
       "reelExport": "Reel-Test",
       "reelExported": "Exportiert als {name} ({size})",
       "reelExportFailed": "Export fehlgeschlagen",
+      "reelDuplicate": "Bereits exportiert als {name}",
       "types": {
         "image": "Generiert",
         "ai-edit": "KI-Bearbeitung",

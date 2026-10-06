@@ -1630,6 +1630,7 @@
       "reelExport": "Test reelu",
       "reelExported": "Exportováno jako {name} ({size})",
       "reelExportFailed": "Export se nezdařil",
+      "reelDuplicate": "Už exportováno jako {name}",
       "types": {
         "image": "Vygenerováno",
         "ai-edit": "Úprava AI",

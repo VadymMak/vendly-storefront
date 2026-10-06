@@ -108,15 +108,18 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   useEffect(() => {
     if (!displayUrl) return;
     blobRef.current = null; // invalidate on change
+    // A slow fetch for the previous image must not land after the switch — Save / Share / Export would send it
+    let cancelled = false;
     fetch(proxyUrl(displayUrl))
       .then((res) => (res.ok ? res.blob() : null))
       .then((blob) => {
-        if (blob) {
+        if (blob && !cancelled) {
           blobRef.current = blob;
           setBlobInfo({ url: displayUrl, size: blob.size });
         }
       })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, [displayUrl]);
 
   async function handleShare() {
@@ -175,9 +178,11 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
       const fd = new FormData();
       fd.append('image', blob, fileName(blob.type));
       const res = await fetch('/api/studio/export-reel', { method: 'POST', body: fd });
-      const data = await res.json() as { success?: boolean; filename?: string; size?: number; error?: string };
+      const data = await res.json() as { success?: boolean; duplicate?: boolean; filename?: string; size?: number; error?: string };
       if (!res.ok || !data.success || !data.filename) throw new Error(data.error ?? `export ${res.status}`);
-      alert(`✅ ${t('reelExported', { name: data.filename, size: formatBytes(data.size ?? blob.size) })}`);
+      alert(data.duplicate
+        ? `ℹ️ ${t('reelDuplicate', { name: data.filename })}`
+        : `✅ ${t('reelExported', { name: data.filename, size: formatBytes(data.size ?? blob.size) })}`);
     } catch (e) {
       console.error('[export reel]', e);
       alert(`❌ ${t('reelExportFailed')}`);

@@ -1621,6 +1621,7 @@
       "reelExport": "Test reelu",
       "reelExported": "Exportované ako {name} ({size})",
       "reelExportFailed": "Export zlyhal",
+      "reelDuplicate": "Už exportované ako {name}",
       "types": {
         "image": "Vygenerované",
         "ai-edit": "Úprava AI",

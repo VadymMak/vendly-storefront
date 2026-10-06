@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
@@ -45,6 +46,16 @@ export async function POST(req: Request) {
 
   try {
     await fs.mkdir(REEL_EXPORT_DIR, { recursive: true });
+
+    // Same bytes already exported (repeat tap / retry) → report the existing file instead of piling up copies
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    for (const name of (await fs.readdir(REEL_EXPORT_DIR)).filter((f) => NUMBERED_FILE.test(f))) {
+      const filePath = path.join(REEL_EXPORT_DIR, name);
+      if ((await fs.stat(filePath)).size !== buffer.length) continue;
+      if (crypto.createHash('sha256').update(await fs.readFile(filePath)).digest('hex') === hash) {
+        return NextResponse.json({ success: true, duplicate: true, filename: name, size: buffer.length });
+      }
+    }
 
     // Sequential 1.jpg, 2.png, … — 'wx' fails on a name taken by a concurrent export, so retry with the next number
     for (let attempt = 0; attempt < 5; attempt++) {

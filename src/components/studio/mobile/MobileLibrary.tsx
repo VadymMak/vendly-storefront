@@ -37,7 +37,13 @@ export function MobileLibrary() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // Items whose media failed to load (expired blob, deleted file) — rendered as a placeholder
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
   const loading = loaded?.filter !== filter;
+
+  function markBroken(id: string) {
+    setBrokenIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +131,19 @@ export function MobileLibrary() {
         <>
           <div className="grid grid-cols-3 gap-0.5">
             {loaded.items.map((item) =>
-              item.type === 'video' ? (
+              brokenIds.has(item.id) ? (
+                <div
+                  key={item.id}
+                  role="img"
+                  aria-label={t('unavailable')}
+                  className="flex aspect-square items-center justify-center bg-white/[0.04] text-gray-600"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="3" y1="3" x2="21" y2="21" />
+                  </svg>
+                </div>
+              ) : item.type === 'video' ? (
                 // Videos open the file itself — the Editor Hub is image-only
                 <a
                   key={item.id}
@@ -136,7 +154,7 @@ export function MobileLibrary() {
                   aria-label={t('videoLabel')}
                 >
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={`${item.url}#t=0.1`} preload="metadata" muted playsInline className="h-full w-full object-cover" />
+                  <video src={`${item.url}#t=0.1`} preload="metadata" muted playsInline onError={() => markBroken(item.id)} className="h-full w-full object-cover" />
                   <span className="absolute right-1.5 bottom-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <polygon points="6 3 20 12 6 21 6 3" />
@@ -149,8 +167,9 @@ export function MobileLibrary() {
                   href={`/studio/m/result/${item.id}`}
                   className="relative aspect-square overflow-hidden bg-white/[0.04] active:opacity-80"
                 >
+                  {/* Generic alt — the prompt must never leak into the page as fallback text */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.url} alt={item.prompt || ''} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={item.url} alt={t('imageLabel')} loading="lazy" onError={() => markBroken(item.id)} className="h-full w-full object-cover" />
                 </Link>
               ),
             )}

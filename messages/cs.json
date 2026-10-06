@@ -1740,6 +1740,8 @@
       "emptyAction": "Vytvořit první obrázek",
       "loadMore": "Načíst další",
       "videoLabel": "Video",
+      "imageLabel": "Obrázek",
+      "unavailable": "Nedostupné",
       "error": "Galerii se nepodařilo načíst",
       "retry": "Zkusit znovu"
     },

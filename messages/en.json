@@ -1740,6 +1740,8 @@
       "emptyAction": "Create your first image",
       "loadMore": "Load more",
       "videoLabel": "Video",
+      "imageLabel": "Image",
+      "unavailable": "Unavailable",
       "error": "Couldn't load your gallery",
       "retry": "Try again"
     },

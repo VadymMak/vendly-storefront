@@ -173,6 +173,8 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
       fd.append('image', enhancedFile);
       fd.append('prompt', preset.aiFinishPrompt);
       fd.append('modelAlias', 'edit-grok');
+      // Links the result to the image it improved, so the Gallery can hide that intermediate step
+      if (imageUrl.startsWith('https://')) fd.append('sourceUrl', imageUrl);
 
       const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
       if (!res.ok) {

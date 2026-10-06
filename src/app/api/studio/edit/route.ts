@@ -38,6 +38,11 @@ export async function POST(req: Request) {
 
   const file       = formData.get('image') as File | null;
   const prompt     = (formData.get('prompt') as string | null)?.trim() ?? '';
+  // URL of the gallery image being improved (Editor Hub) — stored so my-work can hide the superseded step
+  const rawSourceUrl = formData.get('sourceUrl');
+  const sourceUrl = typeof rawSourceUrl === 'string' && rawSourceUrl.startsWith('https://') && rawSourceUrl.length <= 2048
+    ? rawSourceUrl
+    : null;
   // Accept modelAlias (new) or provider (legacy); no modelAlias → edit-kontext (Flux)
   const modelAlias = (formData.get('modelAlias') as string | null)
     ?? (formData.get('provider') === 'grok' ? 'edit-grok' : 'edit-kontext');
@@ -146,6 +151,8 @@ export async function POST(req: Request) {
         prompt,
         modelUsed: modelAlias,
         provider:  model.provider,
+        // Always written (null when unknown) — key presence marks edits made after source tracking existed
+        sourceUrl,
       },
     }).then(async (jobId) => {
       await db.studioJob.update({

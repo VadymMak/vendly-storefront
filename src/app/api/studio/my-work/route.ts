@@ -54,9 +54,23 @@ export async function GET(req: NextRequest) {
     where.type = { in: ['image', 'upscale', 'remove-bg', 'ai-edit'] };
   }
 
-  if (cursor) {
-    where.id = { lt: cursor };
-  }
+  // Hide intermediate steps that were later improved — the Gallery shows only the final result.
+  // Linked by the Improve edit's metadata.sourceUrl; edits from before that field existed (key absent)
+  // fall back to "photo_transform followed by an ai-edit within 3 minutes".
+  const superseded = await db.$queryRaw<{ id: string }[]>`
+    SELECT src.id FROM "StudioJob" src
+    WHERE src."userId" = ${session.user.id} AND src.status = 'succeeded' AND EXISTS (
+      SELECT 1 FROM "StudioJob" e
+      WHERE e."userId" = src."userId" AND e.type = 'ai-edit' AND e.status = 'succeeded' AND e.id <> src.id AND (
+        e.metadata->>'sourceUrl' = src."outputUrl"
+        OR (e.metadata->'sourceUrl' IS NULL
+            AND src.type = 'image' AND src.metadata->>'generationMode' = 'photo_transform'
+            AND e."createdAt" > src."createdAt" AND e."createdAt" <= src."createdAt" + interval '3 minutes')))`;
+
+  where.id = {
+    ...(cursor ? { lt: cursor } : {}),
+    ...(superseded.length ? { notIn: superseded.map((r) => r.id) } : {}),
+  };
 
   const jobs = await db.studioJob.findMany({
     where,

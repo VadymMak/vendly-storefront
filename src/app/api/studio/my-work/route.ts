@@ -88,6 +88,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     items:      validItems,
-    nextCursor: validItems.length === limit ? (validItems[validItems.length - 1]?.id ?? null) : null,
+    // Page fullness comes from the DB rows, not the filtered list — dropping an item must not end pagination
+    nextCursor: jobs.length === limit ? jobs[jobs.length - 1].id : null,
   });
 }

@@ -37,9 +37,10 @@ export function MobileLibrary() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  // Items whose media failed to load (expired blob, deleted file) — rendered as a placeholder
+  // Items whose media failed to load (expired blob, deleted file) — dropped from the grid
   const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
   const loading = loaded?.filter !== filter;
+  const visibleItems = loaded ? loaded.items.filter((item) => !brokenIds.has(item.id)) : [];
 
   function markBroken(id: string) {
     setBrokenIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
@@ -117,7 +118,7 @@ export function MobileLibrary() {
             {t('retry')}
           </button>
         </div>
-      ) : loaded.items.length === 0 ? (
+      ) : visibleItems.length === 0 && !loaded.nextCursor ? (
         <div className="flex flex-col items-center gap-4 px-8 py-16 text-center">
           <p className="text-base font-semibold text-white">{t('empty')}</p>
           <Link
@@ -130,20 +131,8 @@ export function MobileLibrary() {
       ) : (
         <>
           <div className="grid grid-cols-3 gap-0.5">
-            {loaded.items.map((item) =>
-              brokenIds.has(item.id) ? (
-                <div
-                  key={item.id}
-                  role="img"
-                  aria-label={t('unavailable')}
-                  className="flex aspect-square items-center justify-center bg-white/[0.04] text-gray-600"
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="3" y1="3" x2="21" y2="21" />
-                  </svg>
-                </div>
-              ) : item.type === 'video' ? (
+            {visibleItems.map((item) =>
+              item.type === 'video' ? (
                 // Videos open the file itself — the Editor Hub is image-only
                 <a
                   key={item.id}

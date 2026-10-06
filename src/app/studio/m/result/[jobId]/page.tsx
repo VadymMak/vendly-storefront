@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getJob } from '@/lib/studio-jobs';
+import { isSuperuser } from '@/lib/credits';
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
 import type { GenerationMode } from '@/lib/types';
 import { ResultPageClient } from './ResultPageClient';
@@ -34,9 +35,11 @@ export default async function MobileResultPage({ params }: Props) {
   const presetId = str(meta.presetId) ?? PLATFORM_IMAGE_PRESETS.find((p) => p.aspect_ratio === aspect)?.id ?? 'ig-feed';
   const generationMode: GenerationMode = meta.generationMode === 'photo_transform' ? 'photo_transform' : 'text_create';
   const referenceImage = str(meta.referenceImage);
+  const canExportReel = await isSuperuser(session.user.id);
 
   return (
     <ResultPageClient
+      canExportReel={canExportReel}
       job={{
         id: job.id,
         outputUrl: job.outputUrl,

@@ -1618,6 +1618,9 @@
       "infoType": "Тип",
       "close": "Закрити",
       "saveFailed": "Не вдалося зберегти зображення. Спробуйте ще раз.",
+      "reelExport": "Reel Test",
+      "reelExported": "Експортовано як {name} ({size})",
+      "reelExportFailed": "Не вдалося експортувати",
       "types": {
         "image": "Згенеровано",
         "ai-edit": "AI-редагування",

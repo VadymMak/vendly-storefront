@@ -40,9 +40,11 @@ interface Props {
   onBack?: () => void;
   onRegenerate?: () => void;
   onTryStyle?: () => void;
+  /** Superusers only — "Reel Test" export to the server folder reel-lab reads */
+  canExportReel?: boolean;
 }
 
-export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, onTryStyle }: Props) {
+export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, onTryStyle, canExportReel = false }: Props) {
   const router = useRouter();
   const t = useTranslations('mobile.result');
   const locale = useLocale();
@@ -57,6 +59,7 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const [wasResized, setWasResized] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [exporting, setExporting] = useState(false);
   // Measured from the image currently shown (changes after Improve / Text / Crop)
   const [dims, setDims] = useState<{ url: string; w: number; h: number } | null>(null);
   const [blobInfo, setBlobInfo] = useState<{ url: string; size: number } | null>(null);
@@ -155,6 +158,31 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     } catch (e) {
       console.error('[result save]', e);
       setSaveError(true);
+    }
+  }
+
+  // Sends the exact bytes on screen (incl. blob: results of Text / Crop) — server stores them untouched
+  async function handleExportToReel() {
+    if (!displayUrl || exporting) return;
+    setExporting(true);
+    try {
+      let blob = blobRef.current;
+      if (!blob) {
+        const res = await fetch(proxyUrl(displayUrl));
+        if (!res.ok) throw new Error(`export fetch ${res.status}`);
+        blob = await res.blob();
+      }
+      const fd = new FormData();
+      fd.append('image', blob, fileName(blob.type));
+      const res = await fetch('/api/studio/export-reel', { method: 'POST', body: fd });
+      const data = await res.json() as { success?: boolean; filename?: string; size?: number; error?: string };
+      if (!res.ok || !data.success || !data.filename) throw new Error(data.error ?? `export ${res.status}`);
+      alert(`✅ ${t('reelExported', { name: data.filename, size: formatBytes(data.size ?? blob.size) })}`);
+    } catch (e) {
+      console.error('[export reel]', e);
+      alert(`❌ ${t('reelExportFailed')}`);
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -319,6 +347,27 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           {t('save')}
         </button>
       </div>
+      {canExportReel && (
+        <div className="mt-3 px-4">
+          <button
+            onClick={handleExportToReel}
+            disabled={exporting}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-sm font-semibold text-white active:bg-orange-600 disabled:opacity-60"
+          >
+            {exporting ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+                <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+              </svg>
+            )}
+            {t('reelExport')}
+          </button>
+        </div>
+      )}
       {saveError && (
         <p className="mt-2 px-4 text-center text-xs text-red-400" role="alert">{t('saveFailed')}</p>
       )}

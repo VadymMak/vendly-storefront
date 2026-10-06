@@ -1627,6 +1627,9 @@
       "infoType": "Type",
       "close": "Close",
       "saveFailed": "Couldn't save the image. Try again.",
+      "reelExport": "Reel Test",
+      "reelExported": "Exported as {name} ({size})",
+      "reelExportFailed": "Export failed",
       "types": {
         "image": "Generated",
         "ai-edit": "AI edit",

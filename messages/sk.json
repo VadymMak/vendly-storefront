@@ -1618,6 +1618,9 @@
       "infoType": "Typ",
       "close": "Zavrieť",
       "saveFailed": "Obrázok sa nepodarilo uložiť. Skúste to znova.",
+      "reelExport": "Test reelu",
+      "reelExported": "Exportované ako {name} ({size})",
+      "reelExportFailed": "Export zlyhal",
       "types": {
         "image": "Vygenerované",
         "ai-edit": "Úprava AI",

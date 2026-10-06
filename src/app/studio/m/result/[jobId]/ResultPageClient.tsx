@@ -5,6 +5,7 @@ import { MobileResultScreen } from '@/components/studio/mobile/MobileResultScree
 import type { GenerationMode } from '@/lib/types';
 
 interface Props {
+  canExportReel: boolean;
   job: {
     id: string;
     outputUrl: string;
@@ -26,11 +27,12 @@ interface Props {
   };
 }
 
-export function ResultPageClient({ job, inlineResult }: Props) {
+export function ResultPageClient({ canExportReel, job, inlineResult }: Props) {
   const router = useRouter();
 
   return (
     <MobileResultScreen
+      canExportReel={canExportReel}
       job={{ ...job, createdAt: new Date(job.createdAt) }}
       // Saved results are finished images — the before/after slider belongs to the live creation flow
       inlineResult={{ ...inlineResult, referenceImageUrl: undefined }}

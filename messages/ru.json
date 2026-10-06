@@ -1627,6 +1627,9 @@
       "infoType": "Тип",
       "close": "Закрыть",
       "saveFailed": "Не удалось сохранить изображение. Попробуйте ещё раз.",
+      "reelExport": "Reel Test",
+      "reelExported": "Экспортировано как {name} ({size})",
+      "reelExportFailed": "Не удалось экспортировать",
       "types": {
         "image": "Сгенерировано",
         "ai-edit": "AI-редактирование",

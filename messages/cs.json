@@ -1627,6 +1627,9 @@
       "infoType": "Typ",
       "close": "Zavřít",
       "saveFailed": "Obrázek se nepodařilo uložit. Zkuste to znovu.",
+      "reelExport": "Test reelu",
+      "reelExported": "Exportováno jako {name} ({size})",
+      "reelExportFailed": "Export se nezdařil",
       "types": {
         "image": "Vygenerováno",
         "ai-edit": "Úprava AI",

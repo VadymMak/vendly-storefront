@@ -1630,7 +1630,11 @@
       "reelExport": "Reel Test",
       "reelExported": "Экспортировано как {name} ({size})",
       "reelExportFailed": "Не удалось экспортировать",
-      "reelDuplicate": "Уже экспортировано как {name}",
+      "reelDuplicateTitle": "Уже экспортировано как {name}",
+      "reelReplace": "Заменить {name}",
+      "reelSaveAsNew": "Сохранить как {name}",
+      "reelReplaced": "Заменён {name} ({size})",
+      "cancel": "Отмена",
       "types": {
         "image": "Сгенерировано",
         "ai-edit": "AI-редактирование",

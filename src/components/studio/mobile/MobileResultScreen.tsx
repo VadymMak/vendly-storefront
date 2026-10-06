@@ -60,6 +60,8 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
   const [showInfo, setShowInfo] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Same image already in the reel folder — user picks replace / save as new / cancel
+  const [reelDuplicate, setReelDuplicate] = useState<{ blob: Blob; existingName: string; nextName: string } | null>(null);
   // Measured from the image currently shown (changes after Improve / Text / Crop)
   const [dims, setDims] = useState<{ url: string; w: number; h: number } | null>(null);
   const [blobInfo, setBlobInfo] = useState<{ url: string; size: number } | null>(null);
@@ -164,31 +166,56 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     }
   }
 
-  // Sends the exact bytes on screen (incl. blob: results of Text / Crop) — server stores them untouched
-  async function handleExportToReel() {
-    if (!displayUrl || exporting) return;
+  // Sends the exact bytes on screen (incl. blob: results of Text / Crop) — server stores them untouched.
+  // mode 'replace' overwrites `target`, 'new' skips the duplicate check, default asks on a duplicate.
+  async function sendToReel(blob: Blob, mode?: 'replace' | 'new', target?: string) {
     setExporting(true);
     try {
-      let blob = blobRef.current;
-      if (!blob) {
-        const res = await fetch(proxyUrl(displayUrl));
-        if (!res.ok) throw new Error(`export fetch ${res.status}`);
-        blob = await res.blob();
-      }
       const fd = new FormData();
       fd.append('image', blob, fileName(blob.type));
+      if (mode) fd.append('mode', mode);
+      if (target) fd.append('target', target);
       const res = await fetch('/api/studio/export-reel', { method: 'POST', body: fd });
-      const data = await res.json() as { success?: boolean; duplicate?: boolean; filename?: string; size?: number; error?: string };
+      const data = await res.json() as {
+        success?: boolean; duplicate?: boolean; replaced?: boolean; filename?: string; size?: number;
+        existingName?: string; nextName?: string; error?: string;
+      };
+      if (data.duplicate && data.existingName && data.nextName) {
+        setReelDuplicate({ blob, existingName: data.existingName, nextName: data.nextName });
+        return;
+      }
       if (!res.ok || !data.success || !data.filename) throw new Error(data.error ?? `export ${res.status}`);
-      alert(data.duplicate
-        ? `ℹ️ ${t('reelDuplicate', { name: data.filename })}`
-        : `✅ ${t('reelExported', { name: data.filename, size: formatBytes(data.size ?? blob.size) })}`);
+      alert(`✅ ${t(data.replaced ? 'reelReplaced' : 'reelExported', { name: data.filename, size: formatBytes(data.size ?? blob.size) })}`);
     } catch (e) {
       console.error('[export reel]', e);
       alert(`❌ ${t('reelExportFailed')}`);
     } finally {
       setExporting(false);
     }
+  }
+
+  async function handleExportToReel() {
+    if (!displayUrl || exporting) return;
+    let blob = blobRef.current;
+    if (!blob) {
+      try {
+        const res = await fetch(proxyUrl(displayUrl));
+        if (!res.ok) throw new Error(`export fetch ${res.status}`);
+        blob = await res.blob();
+      } catch (e) {
+        console.error('[export reel]', e);
+        alert(`❌ ${t('reelExportFailed')}`);
+        return;
+      }
+    }
+    await sendToReel(blob);
+  }
+
+  function resolveReelDuplicate(choice: 'replace' | 'new' | 'cancel') {
+    const dup = reelDuplicate;
+    setReelDuplicate(null);
+    if (!dup || choice === 'cancel') return;
+    void sendToReel(dup.blob, choice, choice === 'replace' ? dup.existingName : undefined);
   }
 
   if (improving && displayUrl) {
@@ -384,6 +411,40 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
           {prompt && (
             <p className="text-xs text-gray-700 line-clamp-2" title={prompt}>{prompt}</p>
           )}
+        </div>
+      )}
+
+      {reelDuplicate && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => resolveReelDuplicate('cancel')}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('reelDuplicateTitle', { name: reelDuplicate.existingName })}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full space-y-2 rounded-t-2xl border-t border-white/10 bg-gray-950/95 px-4 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md"
+          >
+            <p className="pb-2 text-center text-sm font-semibold text-white">
+              {t('reelDuplicateTitle', { name: reelDuplicate.existingName })}
+            </p>
+            <button
+              onClick={() => resolveReelDuplicate('replace')}
+              className="flex min-h-11 w-full items-center justify-center rounded-xl bg-orange-500 text-sm font-semibold text-white active:bg-orange-600"
+            >
+              {t('reelReplace', { name: reelDuplicate.existingName })}
+            </button>
+            <button
+              onClick={() => resolveReelDuplicate('new')}
+              className="flex min-h-11 w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm font-semibold text-white active:bg-white/[0.08]"
+            >
+              {t('reelSaveAsNew', { name: reelDuplicate.nextName })}
+            </button>
+            <button
+              onClick={() => resolveReelDuplicate('cancel')}
+              className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm text-gray-400 active:text-white"
+            >
+              {t('cancel')}
+            </button>
+          </div>
         </div>
       )}
 

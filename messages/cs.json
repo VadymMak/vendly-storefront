@@ -1630,7 +1630,11 @@
       "reelExport": "Test reelu",
       "reelExported": "Exportováno jako {name} ({size})",
       "reelExportFailed": "Export se nezdařil",
-      "reelDuplicate": "Už exportováno jako {name}",
+      "reelDuplicateTitle": "Už exportováno jako {name}",
+      "reelReplace": "Nahradit {name}",
+      "reelSaveAsNew": "Uložit jako {name}",
+      "reelReplaced": "{name} nahrazen ({size})",
+      "cancel": "Zrušit",
       "types": {
         "image": "Vygenerováno",
         "ai-edit": "Úprava AI",

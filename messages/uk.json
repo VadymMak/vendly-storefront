@@ -1621,7 +1621,11 @@
       "reelExport": "Reel Test",
       "reelExported": "Експортовано як {name} ({size})",
       "reelExportFailed": "Не вдалося експортувати",
-      "reelDuplicate": "Уже експортовано як {name}",
+      "reelDuplicateTitle": "Уже експортовано як {name}",
+      "reelReplace": "Замінити {name}",
+      "reelSaveAsNew": "Зберегти як {name}",
+      "reelReplaced": "Замінено {name} ({size})",
+      "cancel": "Скасувати",
       "types": {
         "image": "Згенеровано",
         "ai-edit": "AI-редагування",

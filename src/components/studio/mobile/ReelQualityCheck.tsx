@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -15,6 +15,9 @@ const STATUS_STYLE: Record<ReelPhotoStatus, { tile: string; dot: string; label: 
 };
 
 const noopSubscribe = () => () => {};
+
+// How long the first yellow photo stays highlighted before the Improve sheet opens
+const IMPROVE_HIGHLIGHT_MS = 700;
 
 // The photo list lives in sessionStorage — render the screen only once on the client
 export function ReelQualityCheck() {
@@ -36,6 +39,21 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const [activeId, setActiveId] = useState<string | null>(initialPhotos[0]?.id ?? null);
   // Ids still waiting for Improve, in order — the head one has the sheet open
   const [improveQueue, setImproveQueue] = useState<string[]>([]);
+  // Photo flashed after tapping Improve, so the user sees which one the sheet is about to open
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightTimer = useRef<number | null>(null);
+  const thumbRefs = useRef(new Map<string, HTMLButtonElement>());
+  const sheetOpen = improveQueue.length > 0;
+
+  // Keep the selected thumbnail in view — also when the strip remounts after the Improve sheet closes
+  useEffect(() => {
+    if (!activeId || sheetOpen) return;
+    thumbRefs.current.get(activeId)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [activeId, sheetOpen]);
+
+  useEffect(() => () => {
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+  }, []);
 
   function update(next: ReelPhoto[]) {
     setPhotos(next);
@@ -46,6 +64,18 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     const next = photos.filter((p) => p.id !== id);
     update(next);
     if (activeId === id) setActiveId(next[0]?.id ?? null);
+  }
+
+  // Select and flash the first yellow photo, then open the sheet for the yellow ones in order
+  function startImprove(ids: string[]) {
+    if (ids.length === 0 || highlightId) return;
+    setActiveId(ids[0]);
+    setHighlightId(ids[0]);
+    highlightTimer.current = window.setTimeout(() => {
+      highlightTimer.current = null;
+      setHighlightId(null);
+      setImproveQueue(ids);
+    }, IMPROVE_HIGHLIGHT_MS);
   }
 
   const improving = photos.find((p) => p.id === improveQueue[0]);
@@ -79,6 +109,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     );
   }
 
+  // A stale id (removed photo) falls back to the first one — status, preview and counter all follow `active`
   const activeIndex = Math.max(0, photos.findIndex((p) => p.id === activeId));
   const active = photos[activeIndex];
   const activeStatus = STATUS_STYLE[assessReelPhoto(active)];
@@ -108,10 +139,18 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           return (
             <div key={photo.id} className="relative shrink-0">
               <button
+                ref={(el) => {
+                  if (el) thumbRefs.current.set(photo.id, el);
+                  else thumbRefs.current.delete(photo.id);
+                }}
                 onClick={() => setActiveId(photo.id)}
                 aria-pressed={photo.id === active.id}
                 aria-label={t(style.label)}
-                className={`block h-20 w-16 overflow-hidden rounded-xl border-2 ${style.tile} ${photo.id === active.id ? 'ring-2 ring-white/60' : ''}`}
+                className={`block h-20 w-16 overflow-hidden rounded-xl border-2 ${style.tile} ${
+                  photo.id === highlightId
+                    ? 'animate-pulse ring-4 ring-yellow-400'
+                    : photo.id === active.id ? 'ring-2 ring-white/60' : ''
+                }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
@@ -163,8 +202,9 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
       <div className="mt-5 flex flex-col gap-3 px-4">
         {yellowIds.length > 0 && (
           <button
-            onClick={() => setImproveQueue(yellowIds)}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 py-3.5 text-sm font-semibold text-yellow-300 active:bg-yellow-500/20"
+            onClick={() => startImprove(yellowIds)}
+            disabled={highlightId !== null}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 py-3.5 text-sm font-semibold text-yellow-300 active:bg-yellow-500/20 disabled:opacity-60"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />

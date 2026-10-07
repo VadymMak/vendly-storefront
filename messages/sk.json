@@ -1771,6 +1771,34 @@
       "storySub": "Celá obrazovka · 9:16",
       "square": "Štvorec",
       "squareSub": "Klasika · 1:1"
+    },
+    "reel": {
+      "select": "Vybrať",
+      "cancel": "Zrušiť",
+      "selected": "Vybrané: {count}",
+      "maxPhotos": "max. {max} fotiek",
+      "createReel": "Vytvoriť Reel",
+      "sourceLibrary": "AI výsledky",
+      "sourceGallery": "Moje fotky",
+      "back": "Späť",
+      "qualityCheck": "Kontrola fotiek",
+      "statusGood": "Pripravené na reel",
+      "statusImprove": "Dá sa vylepšiť",
+      "statusWeak": "Radšej nahradiť",
+      "hintGood": "Fotka už prešla AI úpravou — do reelu sa skvele hodí.",
+      "hintImprove": "Čerstvá fotka — AI úprava ju rozjasní a dodá jej profesionálny vzhľad.",
+      "hintWeak": "Slabšia fotka — radšej vyberte inú.",
+      "improveN": "Vylepšiť ({count, plural, one {# fotku} few {# fotky} other {# fotiek}})",
+      "remove": "Odobrať fotku",
+      "addMore": "Pridať fotky",
+      "emptyCheck": "V reeli zatiaľ nie sú žiadne fotky",
+      "pickPhotos": "Vybrať fotky",
+      "generating": "Vytvárame váš Reel...",
+      "generatingHint": "Potrvá to 30-60 sekúnd",
+      "comingSoon": "Už čoskoro!",
+      "comingSoonDesc": "Tvorba Reelov bude dostupná v ďalšej aktualizácii. Vaše fotky sú uložené.",
+      "backToLibrary": "Späť do galérie",
+      "useInReel": "Použiť v Reeli"
     }
   }
 }

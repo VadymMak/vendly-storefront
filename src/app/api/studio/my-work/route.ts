@@ -41,6 +41,8 @@ export async function GET(req: NextRequest) {
   const limit  = Math.min(Math.max(parseInt(searchParams.get('limit') || '4', 10), 1), 50);
   const type   = searchParams.get('type'); // 'image' | 'video' | null (all)
   const cursor = searchParams.get('cursor');
+  // 'uploads' = the user's own photos as first processed (photo_transform), incl. ones Improve later replaced
+  const uploads = searchParams.get('source') === 'uploads';
 
   const where: Record<string, unknown> = {
     userId:    session.user.id,
@@ -48,7 +50,10 @@ export async function GET(req: NextRequest) {
     outputUrl: { not: null },
   };
 
-  if (type === 'video') {
+  if (uploads) {
+    where.type = 'image';
+    where.metadata = { path: ['generationMode'], equals: 'photo_transform' };
+  } else if (type === 'video') {
     where.type = 'video';
   } else if (type === 'image') {
     where.type = { in: ['image', 'upscale', 'remove-bg', 'ai-edit'] };
@@ -57,7 +62,7 @@ export async function GET(req: NextRequest) {
   // Hide intermediate steps that were later improved — the Gallery shows only the final result.
   // Linked by the Improve edit's metadata.sourceUrl; edits from before that field existed (key absent)
   // fall back to "photo_transform followed by an ai-edit within 3 minutes".
-  const superseded = await db.$queryRaw<{ id: string }[]>`
+  const superseded = uploads ? [] : await db.$queryRaw<{ id: string }[]>`
     SELECT src.id FROM "StudioJob" src
     WHERE src."userId" = ${session.user.id} AND src.status = 'succeeded' AND EXISTS (
       SELECT 1 FROM "StudioJob" e
@@ -91,6 +96,7 @@ export async function GET(req: NextRequest) {
       model:     (meta.modelUsed as string) ?? '',
       style:     (meta.style as string) ?? '',
       operation: job.type,
+      generationMode: (meta.generationMode as string) ?? null,
       createdAt: job.createdAt.toISOString(),
     };
   });

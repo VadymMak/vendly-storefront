@@ -1780,6 +1780,34 @@
       "storySub": "Во весь экран · 9:16",
       "square": "Квадрат",
       "squareSub": "Классика · 1:1"
+    },
+    "reel": {
+      "select": "Выбрать",
+      "cancel": "Отмена",
+      "selected": "Выбрано: {count}",
+      "maxPhotos": "макс. {max} фото",
+      "createReel": "Создать Reel",
+      "sourceLibrary": "AI-результаты",
+      "sourceGallery": "Мои фото",
+      "back": "Назад",
+      "qualityCheck": "Проверка фото",
+      "statusGood": "Готово к рилу",
+      "statusImprove": "Можно улучшить",
+      "statusWeak": "Лучше заменить",
+      "hintGood": "Фото уже обработано AI — отлично подойдёт для рила.",
+      "hintImprove": "Свежее фото — AI-обработка сделает его ярче и профессиональнее.",
+      "hintWeak": "Фото слабое — лучше выбрать другое.",
+      "improveN": "Улучшить ({count} фото)",
+      "remove": "Убрать фото",
+      "addMore": "Добавить фото",
+      "emptyCheck": "В рил пока не добавлено ни одного фото",
+      "pickPhotos": "Выбрать фото",
+      "generating": "Создаём ваш Reel...",
+      "generatingHint": "Это займёт 30-60 секунд",
+      "comingSoon": "Скоро!",
+      "comingSoonDesc": "Создание Reel будет доступно в ближайшем обновлении. Ваши фото сохранены.",
+      "backToLibrary": "Вернуться в галерею",
+      "useInReel": "Использовать в Reel"
     }
   }
 }

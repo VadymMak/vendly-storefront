@@ -10,6 +10,7 @@ import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
 import { MobileResizeCropper } from './MobileResizeCropper';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { writeReelPhotos } from '@/lib/studio/mobile/reel';
 import type { GenerationMode } from '@/lib/types';
 
 interface JobData {
@@ -47,6 +48,7 @@ interface Props {
 export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, onTryStyle, canExportReel = false }: Props) {
   const router = useRouter();
   const t = useTranslations('mobile.result');
+  const tReel = useTranslations('mobile.reel');
   const locale = useLocale();
   const [sharing, setSharing] = useState(false);
   const [editingText, setEditingText] = useState(false);
@@ -208,6 +210,21 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
     }
   }
 
+  // Text / Crop results are blob: URLs, revoked when this screen unmounts — the reel then takes the saved image
+  function handleUseInReel() {
+    const improved = compositedImage?.startsWith('https://') ? compositedImage : null;
+    const url = improved ?? imageUrl;
+    if (!url) return;
+    writeReelPhotos([{
+      id: improved ? `${job?.id ?? 'inline'}-improved` : (job?.id ?? 'inline'),
+      url,
+      operation: improved ? 'ai-edit' : (job?.type ?? 'ai-edit'),
+      generationMode: improved ? null : (generationMode ?? null),
+      source: 'result',
+    }]);
+    router.push('/studio/m/reel/check');
+  }
+
   function pickReelTarget(name?: string) {
     const picker = reelPicker;
     setReelPicker(null);
@@ -341,6 +358,9 @@ export function MobileResultScreen({ job, inlineResult, onBack, onRegenerate, on
         <div className="divide-y divide-white/5">
           {onRegenerate && (
             <MoreOption icon="🔄" label={t('newVariation')} onClick={onRegenerate} />
+          )}
+          {job?.type !== 'video' && (
+            <MoreOption icon="🎬" label={tReel('useInReel')} onClick={handleUseInReel} />
           )}
           {onTryStyle && (
             <MoreOption icon="🎨" label={t('tryStyle')} onClick={onTryStyle} />

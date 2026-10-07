@@ -698,8 +698,26 @@ export interface StudioWorkItem {
   model: string;
   style: string;
   operation: string;
+  /** metadata.generationMode — 'photo_transform' marks an uploaded photo restyled but not yet Improved */
+  generationMode: string | null;
   createdAt: string;
 }
+
+/** Where a Reel Creator photo was picked from */
+export type ReelPhotoSource = 'library' | 'gallery' | 'result';
+
+/** A photo queued for the Reel Creator — kept in sessionStorage between Library, Quality Check and Generate */
+export interface ReelPhoto {
+  id: string;
+  url: string;
+  /** StudioJob type ('image' | 'ai-edit' | 'upscale' | 'remove-bg') */
+  operation: string;
+  generationMode: string | null;
+  source: ReelPhotoSource;
+}
+
+/** Phase 1 heuristic: green = AI-finished, yellow = Improve would help, red = replace (unused until appeal scoring) */
+export type ReelPhotoStatus = 'green' | 'yellow' | 'red';
 
 /** GET /api/studio/my-work response */
 export interface StudioWorkPage {

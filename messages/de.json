@@ -1780,6 +1780,34 @@
       "storySub": "Vollbild · 9:16",
       "square": "Quadrat",
       "squareSub": "Klassisch · 1:1"
+    },
+    "reel": {
+      "select": "Auswählen",
+      "cancel": "Abbrechen",
+      "selected": "Ausgewählt: {count}",
+      "maxPhotos": "max. {max} Fotos",
+      "createReel": "Reel erstellen",
+      "sourceLibrary": "KI-Ergebnisse",
+      "sourceGallery": "Meine Fotos",
+      "back": "Zurück",
+      "qualityCheck": "Foto-Check",
+      "statusGood": "Bereit fürs Reel",
+      "statusImprove": "Kann verbessert werden",
+      "statusWeak": "Besser ersetzen",
+      "hintGood": "Bereits KI-bearbeitet — passt perfekt ins Reel.",
+      "hintImprove": "Frisches Foto — die KI-Bearbeitung macht es heller und professioneller.",
+      "hintWeak": "Schwaches Foto — besser ein anderes wählen.",
+      "improveN": "Verbessern ({count, plural, one {# Foto} other {# Fotos}})",
+      "remove": "Foto entfernen",
+      "addMore": "Fotos hinzufügen",
+      "emptyCheck": "Noch keine Fotos im Reel",
+      "pickPhotos": "Fotos auswählen",
+      "generating": "Dein Reel wird erstellt...",
+      "generatingHint": "Das dauert 30-60 Sekunden",
+      "comingSoon": "Bald verfügbar!",
+      "comingSoonDesc": "Reels kannst du mit dem nächsten Update erstellen. Deine Fotos sind gespeichert.",
+      "backToLibrary": "Zurück zur Galerie",
+      "useInReel": "Im Reel verwenden"
     }
   }
 }

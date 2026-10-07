@@ -56,3 +56,10 @@ prompt-*.md
 # Server / deploy artifacts
 cloudflared.deb
 ecosystem.config.js
+
+# Local research / decision drafts — not published (public repo)
+/RESEARCH-*.md
+/DECISION-*.md
+/SYNTHESIS-*.md
+/vendly-new/
+/docs/studio-server-review-*.md

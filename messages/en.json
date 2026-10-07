@@ -1827,7 +1827,12 @@
       "downloadReel": "Download",
       "timeEstImages": "~30–60 seconds",
       "timeEstVideo": "~2–3 minutes",
-      "reelCost": "Cost: {cost}"
+      "reelCost": "Cost: {cost}",
+      "ctaTitle": "Text on the last shot",
+      "ctaDefault1": "Fresh Daily",
+      "ctaDefault2": "Order Now →",
+      "ctaLine1": "Headline",
+      "ctaLine2": "Call to action"
     }
   }
 }

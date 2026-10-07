@@ -62,6 +62,9 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const [scores, setScores] = useState<ScoreMap>({});
   const scoringUrls = useRef(new Set<string>());
   const [reelMode, setReelMode] = useState<'images' | 'video'>('images');
+  // Text on the last (CTA) shot — prefilled in the user's language
+  const [cta1, setCta1] = useState(() => t('ctaDefault1'));
+  const [cta2, setCta2] = useState(() => t('ctaDefault2'));
 
   // Score every photo URL not scored yet (on mount, after "+", after Improve replaced a URL)
   useEffect(() => {
@@ -317,9 +320,34 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           </div>
         </div>
 
+        {/* CTA text for the last shot */}
+        <div className="space-y-2">
+          <p className="text-xs text-gray-400">{t('ctaTitle')}</p>
+          <input
+            value={cta1}
+            onChange={(e) => setCta1(e.target.value)}
+            placeholder={t('ctaDefault1')}
+            aria-label={t('ctaLine1')}
+            maxLength={30}
+            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/50"
+          />
+          <input
+            value={cta2}
+            onChange={(e) => setCta2(e.target.value)}
+            placeholder={t('ctaDefault2')}
+            aria-label={t('ctaLine2')}
+            maxLength={30}
+            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/50"
+          />
+        </div>
+
         <button
           onClick={() => {
-            try { sessionStorage.setItem('reel-mode', reelMode); } catch {}
+            try {
+              sessionStorage.setItem('reel-mode', reelMode);
+              sessionStorage.setItem('reel-cta1', cta1.trim());
+              sessionStorage.setItem('reel-cta2', cta2.trim());
+            } catch {}
             router.push('/studio/m/reel/generate');
           }}
           disabled={scoring}

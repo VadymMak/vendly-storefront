@@ -1818,7 +1818,12 @@
       "downloadReel": "Завантажити",
       "timeEstImages": "~30–60 секунд",
       "timeEstVideo": "~2–3 хвилини",
-      "reelCost": "Вартість: {cost}"
+      "reelCost": "Вартість: {cost}",
+      "ctaTitle": "Текст на останньому кадрі",
+      "ctaDefault1": "Свіже щодня",
+      "ctaDefault2": "Замовте зараз →",
+      "ctaLine1": "Заголовок",
+      "ctaLine2": "Заклик до дії"
     }
   }
 }

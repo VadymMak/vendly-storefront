@@ -1818,7 +1818,12 @@
       "downloadReel": "Stiahnuť",
       "timeEstImages": "~30–60 sekúnd",
       "timeEstVideo": "~2–3 minúty",
-      "reelCost": "Cena: {cost}"
+      "reelCost": "Cena: {cost}",
+      "ctaTitle": "Text na poslednom zábere",
+      "ctaDefault1": "Čerstvé každý deň",
+      "ctaDefault2": "Objednajte teraz →",
+      "ctaLine1": "Nadpis",
+      "ctaLine2": "Výzva na akciu"
     }
   }
 }

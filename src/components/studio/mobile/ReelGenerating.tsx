@@ -46,7 +46,14 @@ export function ReelGenerating() {
     try {
       const photos = readReelPhotos();
       let mode = 'images';
-      try { mode = sessionStorage.getItem('reel-mode') ?? 'images'; } catch {}
+      // Empty CTA lines are filled with defaults by reel-service
+      let cta1 = '';
+      let cta2 = '';
+      try {
+        mode = sessionStorage.getItem('reel-mode') ?? 'images';
+        cta1 = sessionStorage.getItem('reel-cta1') ?? '';
+        cta2 = sessionStorage.getItem('reel-cta2') ?? '';
+      } catch {}
 
       if (photos.length === 0) {
         setErrorMsg('No photos selected');
@@ -60,6 +67,8 @@ export function ReelGenerating() {
         body: JSON.stringify({
           photos: photos.map(p => ({ url: p.url, originalUrl: p.originalUrl })),
           mode,
+          cta1,
+          cta2,
         }),
       });
 

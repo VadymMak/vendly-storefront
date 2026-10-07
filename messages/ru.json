@@ -1827,7 +1827,12 @@
       "downloadReel": "Скачать",
       "timeEstImages": "~30–60 секунд",
       "timeEstVideo": "~2–3 минуты",
-      "reelCost": "Стоимость: {cost}"
+      "reelCost": "Стоимость: {cost}",
+      "ctaTitle": "Текст на последнем кадре",
+      "ctaDefault1": "Свежее каждый день",
+      "ctaDefault2": "Закажите сейчас →",
+      "ctaLine1": "Заголовок",
+      "ctaLine2": "Призыв к действию"
     }
   }
 }

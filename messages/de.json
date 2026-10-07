@@ -1827,7 +1827,12 @@
       "downloadReel": "Herunterladen",
       "timeEstImages": "~30–60 Sekunden",
       "timeEstVideo": "~2–3 Minuten",
-      "reelCost": "Kosten: {cost}"
+      "reelCost": "Kosten: {cost}",
+      "ctaTitle": "Text auf der letzten Szene",
+      "ctaDefault1": "Täglich frisch",
+      "ctaDefault2": "Jetzt bestellen →",
+      "ctaLine1": "Überschrift",
+      "ctaLine2": "Handlungsaufruf"
     }
   }
 }

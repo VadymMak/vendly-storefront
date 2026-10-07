@@ -1809,7 +1809,25 @@
       "backToLibrary": "Zurück zur Galerie",
       "useInReel": "Im Reel verwenden",
       "scoring": "Qualität wird geprüft…",
-      "scoreUnavailable": "Qualitätsprüfung nicht verfügbar — grobe Einschätzung angezeigt"
+      "scoreUnavailable": "Qualitätsprüfung nicht verfügbar — grobe Einschätzung angezeigt",
+      "modeLabel": "Ausgabetyp wählen",
+      "modeImages": "Fotos",
+      "modeVideo": "KI-Video",
+      "stepDownload": "Fotos laden...",
+      "stepAnalyze": "Qualität analysieren...",
+      "stepOutpaint": "Rahmen erweitern...",
+      "stepCrops": "Aufnahmen generieren...",
+      "stepScoring": "Qualität bewerten...",
+      "stepSelect": "Rezept auswählen...",
+      "stepVideo": "KI-Video (Kling)...",
+      "stepRender": "Clips rendern...",
+      "stepAssemble": "Reel zusammenstellen...",
+      "stepFinalize": "Abschließen...",
+      "reelReady": "Ihr Reel ist fertig!",
+      "downloadReel": "Herunterladen",
+      "timeEstImages": "~30–60 Sekunden",
+      "timeEstVideo": "~2–3 Minuten",
+      "reelCost": "Kosten: {cost}"
     }
   }
 }

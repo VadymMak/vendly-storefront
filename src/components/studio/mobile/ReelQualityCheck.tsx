@@ -61,6 +61,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const sheetOpen = improveQueue.length > 0;
   const [scores, setScores] = useState<ScoreMap>({});
   const scoringUrls = useRef(new Set<string>());
+  const [reelMode, setReelMode] = useState<'images' | 'video'>('images');
 
   // Score every photo URL not scored yet (on mount, after "+", after Improve replaced a URL)
   useEffect(() => {
@@ -126,18 +127,14 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const improving = photos.find((p) => p.id === improveQueue[0]);
   if (improving) {
     return (
-      // Keyed per photo: the sheet keeps its phase and result URLs in state, so without a remount the
-      // next queued photo would open on the previous photo's result and "Use" would copy it over
       <ImproveBottomSheet
         key={improving.id}
         imageUrl={improving.url}
         onDone={(improvedUrl) => {
-          // New URL → scored again by the effect above; operation only matters for the fallback estimate
           update(photos.map((p) => (p.id === improving.id ? { ...p, url: improvedUrl, operation: 'ai-edit' } : p)));
           setActiveId(improving.id);
           setImproveQueue((q) => q.slice(1));
         }}
-        // Cancel stops the whole queue — the user is back on the check screen to decide
         onCancel={() => setImproveQueue([])}
       />
     );
@@ -157,12 +154,10 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     );
   }
 
-  // A stale id (removed photo) falls back to the first one — status, preview and counter all follow `active`
   const activeIndex = Math.max(0, photos.findIndex((p) => p.id === activeId));
   const active = photos[activeIndex];
   const activeScore = scoreOf(active);
   const activeStatus = STATUS_STYLE[statusOf(active)];
-  // Red photos are offered Improve too — for an unimproved upload it is usually what lifts the score
   const improveIds = photos.filter((p) => statusOf(p) !== 'green').map((p) => p.id);
   const scoring = photos.some((p) => !(p.url in scores));
   const scoreUnavailable = photos.some((p) => p.url in scores && !scoreOf(p));
@@ -290,8 +285,43 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
             {t('improveN', { count: improveIds.length })}
           </button>
         )}
+
+        {/* Mode toggle */}
+        <div>
+          <p className="mb-2 text-center text-xs text-gray-400">{t('modeLabel')}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setReelMode('images')}
+              className={`flex flex-1 flex-col items-center rounded-xl border py-2.5 text-sm font-medium transition-all ${
+                reelMode === 'images'
+                  ? 'border-green-500 bg-green-500/20 text-green-400'
+                  : 'border-white/10 bg-white/5 text-gray-400'
+              }`}
+            >
+              <span className="mb-0.5 text-base" aria-hidden="true">🖼️</span>
+              {t('modeImages')}
+              <span className="mt-0.5 text-[10px] text-gray-500">~$0.08–0.12</span>
+            </button>
+            <button
+              onClick={() => setReelMode('video')}
+              className={`flex flex-1 flex-col items-center rounded-xl border py-2.5 text-sm font-medium transition-all ${
+                reelMode === 'video'
+                  ? 'border-green-500 bg-green-500/20 text-green-400'
+                  : 'border-white/10 bg-white/5 text-gray-400'
+              }`}
+            >
+              <span className="mb-0.5 text-base" aria-hidden="true">🎬</span>
+              {t('modeVideo')}
+              <span className="mt-0.5 text-[10px] text-gray-500">~$0.40–0.55</span>
+            </button>
+          </div>
+        </div>
+
         <button
-          onClick={() => router.push('/studio/m/reel/generate')}
+          onClick={() => {
+            try { sessionStorage.setItem('reel-mode', reelMode); } catch {}
+            router.push('/studio/m/reel/generate');
+          }}
           disabled={scoring}
           className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green-600 py-3.5 text-base font-semibold text-white active:bg-green-700 disabled:opacity-50"
         >

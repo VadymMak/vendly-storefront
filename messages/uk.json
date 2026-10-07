@@ -1800,7 +1800,25 @@
       "backToLibrary": "Повернутися до галереї",
       "useInReel": "Використати в Reel",
       "scoring": "Перевіряємо якість…",
-      "scoreUnavailable": "Перевірка якості недоступна — показано приблизну оцінку"
+      "scoreUnavailable": "Перевірка якості недоступна — показано приблизну оцінку",
+      "modeLabel": "Оберіть тип результату",
+      "modeImages": "Фото",
+      "modeVideo": "AI Відео",
+      "stepDownload": "Завантаження фото...",
+      "stepAnalyze": "Аналіз якості...",
+      "stepOutpaint": "Розширення кадру...",
+      "stepCrops": "Генерація ракурсів...",
+      "stepScoring": "Оцінка якості...",
+      "stepSelect": "Вибір рецепту...",
+      "stepVideo": "AI відео (Kling)...",
+      "stepRender": "Рендер кліпів...",
+      "stepAssemble": "Збірка ріла...",
+      "stepFinalize": "Фіналізація...",
+      "reelReady": "Ваш Reel готовий!",
+      "downloadReel": "Завантажити",
+      "timeEstImages": "~30–60 секунд",
+      "timeEstVideo": "~2–3 хвилини",
+      "reelCost": "Вартість: {cost}"
     }
   }
 }

@@ -710,6 +710,8 @@ export type ReelPhotoSource = 'library' | 'gallery' | 'result';
 export interface ReelPhoto {
   id: string;
   url: string;
+  /** Full-resolution original stored by PROMPT-212 upload; absent for older library items */
+  originalUrl?: string;
   /** StudioJob type ('image' | 'ai-edit' | 'upscale' | 'remove-bg') */
   operation: string;
   generationMode: string | null;

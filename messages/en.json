@@ -1809,7 +1809,25 @@
       "backToLibrary": "Back to gallery",
       "useInReel": "Use in Reel",
       "scoring": "Checking quality…",
-      "scoreUnavailable": "Quality check unavailable — showing a basic estimate"
+      "scoreUnavailable": "Quality check unavailable — showing a basic estimate",
+      "modeLabel": "Select output type",
+      "modeImages": "Photos",
+      "modeVideo": "AI Video",
+      "stepDownload": "Downloading photos...",
+      "stepAnalyze": "Analysing quality...",
+      "stepOutpaint": "Expanding frame...",
+      "stepCrops": "Generating shots...",
+      "stepScoring": "Scoring quality...",
+      "stepSelect": "Selecting recipe...",
+      "stepVideo": "AI video (Kling)...",
+      "stepRender": "Rendering clips...",
+      "stepAssemble": "Assembling reel...",
+      "stepFinalize": "Finalising...",
+      "reelReady": "Your Reel is ready!",
+      "downloadReel": "Download",
+      "timeEstImages": "~30–60 seconds",
+      "timeEstVideo": "~2–3 minutes",
+      "reelCost": "Cost: {cost}"
     }
   }
 }

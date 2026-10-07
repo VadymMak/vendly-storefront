@@ -1809,7 +1809,25 @@
       "backToLibrary": "Вернуться в галерею",
       "useInReel": "Использовать в Reel",
       "scoring": "Проверяем качество…",
-      "scoreUnavailable": "Проверка качества недоступна — показана примерная оценка"
+      "scoreUnavailable": "Проверка качества недоступна — показана примерная оценка",
+      "modeLabel": "Выберите тип результата",
+      "modeImages": "Фото",
+      "modeVideo": "AI Видео",
+      "stepDownload": "Загрузка фото...",
+      "stepAnalyze": "Анализ качества...",
+      "stepOutpaint": "Расширение кадра...",
+      "stepCrops": "Генерация ракурсов...",
+      "stepScoring": "Оценка качества...",
+      "stepSelect": "Выбор рецепта...",
+      "stepVideo": "AI видео (Kling)...",
+      "stepRender": "Рендер клипов...",
+      "stepAssemble": "Сборка рила...",
+      "stepFinalize": "Финализация...",
+      "reelReady": "Ваш Reel готов!",
+      "downloadReel": "Скачать",
+      "timeEstImages": "~30–60 секунд",
+      "timeEstVideo": "~2–3 минуты",
+      "reelCost": "Стоимость: {cost}"
     }
   }
 }

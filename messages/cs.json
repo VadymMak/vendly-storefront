@@ -1809,7 +1809,25 @@
       "backToLibrary": "Zpět do galerie",
       "useInReel": "Použít v Reelu",
       "scoring": "Kontrolujeme kvalitu…",
-      "scoreUnavailable": "Kontrola kvality není dostupná — zobrazen přibližný odhad"
+      "scoreUnavailable": "Kontrola kvality není dostupná — zobrazen přibližný odhad",
+      "modeLabel": "Vyberte typ výstupu",
+      "modeImages": "Fotky",
+      "modeVideo": "AI Video",
+      "stepDownload": "Stahování fotek...",
+      "stepAnalyze": "Analýza kvality...",
+      "stepOutpaint": "Rozšiřování rámce...",
+      "stepCrops": "Generování záběrů...",
+      "stepScoring": "Hodnocení kvality...",
+      "stepSelect": "Výběr receptu...",
+      "stepVideo": "AI video (Kling)...",
+      "stepRender": "Render klipů...",
+      "stepAssemble": "Skládání reelu...",
+      "stepFinalize": "Finalizace...",
+      "reelReady": "Váš Reel je hotový!",
+      "downloadReel": "Stáhnout",
+      "timeEstImages": "~30–60 sekund",
+      "timeEstVideo": "~2–3 minuty",
+      "reelCost": "Cena: {cost}"
     }
   }
 }

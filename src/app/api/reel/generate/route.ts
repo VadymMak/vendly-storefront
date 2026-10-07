@@ -41,11 +41,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(`${REEL_SERVICE_URL}/generate/status/${jobId}`);
+    // reel-service only returns jobs owned by this user
+    const response = await fetch(
+      `${REEL_SERVICE_URL}/generate/status/${encodeURIComponent(jobId)}?userId=${encodeURIComponent(session.user.id)}`,
+    );
     const data = await response.json();
 
+    // reel-service listens on 127.0.0.1 only — the browser gets the reel through /api/reel/video
     if (data.result?.videoUrl) {
-      data.result.videoUrl = `${REEL_SERVICE_URL}${data.result.videoUrl}`;
+      data.result.videoUrl = `/api/reel/video/${encodeURIComponent(jobId)}`;
     }
 
     return NextResponse.json(data, { status: response.status });

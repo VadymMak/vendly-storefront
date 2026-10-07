@@ -166,7 +166,7 @@ export function ReelGenerating() {
         </p>
         <div className="w-full max-w-sm space-y-3">
           <a
-            href={videoUrl}
+            href={`${videoUrl}?download=1`}
             download="reel.mp4"
             className="flex min-h-11 items-center justify-center rounded-xl bg-green-600 text-base font-semibold text-white active:bg-green-700"
           >

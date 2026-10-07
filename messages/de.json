@@ -1796,7 +1796,7 @@
       "statusWeak": "Besser ersetzen",
       "hintGood": "Bereits KI-bearbeitet — passt perfekt ins Reel.",
       "hintImprove": "Frisches Foto — die KI-Bearbeitung macht es heller und professioneller.",
-      "hintWeak": "Schwaches Foto — besser ein anderes wählen.",
+      "hintWeak": "Schwaches Foto — verbessere es oder wähle ein anderes.",
       "improveN": "Verbessern ({count, plural, one {# Foto} other {# Fotos}})",
       "remove": "Foto entfernen",
       "addMore": "Fotos hinzufügen",
@@ -1807,7 +1807,9 @@
       "comingSoon": "Bald verfügbar!",
       "comingSoonDesc": "Reels kannst du mit dem nächsten Update erstellen. Deine Fotos sind gespeichert.",
       "backToLibrary": "Zurück zur Galerie",
-      "useInReel": "Im Reel verwenden"
+      "useInReel": "Im Reel verwenden",
+      "scoring": "Qualität wird geprüft…",
+      "scoreUnavailable": "Qualitätsprüfung nicht verfügbar — grobe Einschätzung angezeigt"
     }
   }
 }

@@ -1796,7 +1796,7 @@
       "statusWeak": "Raději nahradit",
       "hintGood": "Fotka už prošla AI úpravou — do reelu se skvěle hodí.",
       "hintImprove": "Čerstvá fotka — AI úprava ji zjasní a dodá jí profesionální vzhled.",
-      "hintWeak": "Slabší fotka — raději vyberte jinou.",
+      "hintWeak": "Slabší fotka — vylepšete ji nebo vyberte jinou.",
       "improveN": "Vylepšit ({count, plural, one {# fotku} few {# fotky} other {# fotek}})",
       "remove": "Odebrat fotku",
       "addMore": "Přidat fotky",
@@ -1807,7 +1807,9 @@
       "comingSoon": "Již brzy!",
       "comingSoonDesc": "Tvorba Reelů bude dostupná v příští aktualizaci. Vaše fotky jsou uložené.",
       "backToLibrary": "Zpět do galerie",
-      "useInReel": "Použít v Reelu"
+      "useInReel": "Použít v Reelu",
+      "scoring": "Kontrolujeme kvalitu…",
+      "scoreUnavailable": "Kontrola kvality není dostupná — zobrazen přibližný odhad"
     }
   }
 }

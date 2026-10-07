@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
-import type { ReelPhoto, ReelPhotoStatus } from '@/lib/types';
+import type { ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
 
 const STATUS_STYLE: Record<ReelPhotoStatus, { tile: string; dot: string; label: 'statusGood' | 'statusImprove' | 'statusWeak'; hint: 'hintGood' | 'hintImprove' | 'hintWeak' }> = {
@@ -18,6 +18,21 @@ const noopSubscribe = () => () => {};
 
 // How long the first yellow photo stays highlighted before the Improve sheet opens
 const IMPROVE_HIGHLIGHT_MS = 700;
+
+/** Scores by image URL — an improved photo gets a new URL and is scored again. 'failed' = reel-service unreachable */
+type ScoreMap = Record<string, ReelScoreResult | 'failed'>;
+
+async function fetchRealScores(photos: ReelPhoto[]): Promise<ReelScoreResult[]> {
+  const res = await fetch('/api/reel/score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ images: photos.map((p) => ({ imageUrl: p.url, imageId: p.id })) }),
+  });
+  if (!res.ok) throw new Error(`reel score ${res.status}`);
+  const data = await res.json() as { results?: ReelScoreResult[] };
+  if (!Array.isArray(data.results)) throw new Error('reel score: no results');
+  return data.results;
+}
 
 // The photo list lives in sessionStorage — render the screen only once on the client
 export function ReelQualityCheck() {
@@ -44,6 +59,36 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const highlightTimer = useRef<number | null>(null);
   const thumbRefs = useRef(new Map<string, HTMLButtonElement>());
   const sheetOpen = improveQueue.length > 0;
+  const [scores, setScores] = useState<ScoreMap>({});
+  const scoringUrls = useRef(new Set<string>());
+
+  // Score every photo URL not scored yet (on mount, after "+", after Improve replaced a URL)
+  useEffect(() => {
+    const pending = photos.filter((p, i) =>
+      !(p.url in scores) && !scoringUrls.current.has(p.url) && photos.findIndex((q) => q.url === p.url) === i);
+    if (pending.length === 0) return;
+    pending.forEach((p) => scoringUrls.current.add(p.url));
+    const done = (entries: [string, ReelScoreResult | 'failed'][]) => {
+      pending.forEach((p) => scoringUrls.current.delete(p.url));
+      setScores((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    };
+    fetchRealScores(pending)
+      .then((results) => done(pending.map((p) => [p.url, results.find((r) => r.imageId === p.id) ?? 'failed'])))
+      .catch((e) => {
+        console.error('[reel score]', e);
+        done(pending.map((p) => [p.url, 'failed']));
+      });
+  }, [photos, scores]);
+
+  function scoreOf(photo: ReelPhoto): ReelScoreResult | null {
+    const s = scores[photo.url];
+    return s && s !== 'failed' && !s.error && s.status ? s : null;
+  }
+
+  // Real appeal score when available, else the operation-type estimate
+  function statusOf(photo: ReelPhoto): ReelPhotoStatus {
+    return scoreOf(photo)?.status ?? assessReelPhoto(photo);
+  }
 
   // Keep the selected thumbnail in view — also when the strip remounts after the Improve sheet closes
   useEffect(() => {
@@ -66,7 +111,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     if (activeId === id) setActiveId(next[0]?.id ?? null);
   }
 
-  // Select and flash the first yellow photo, then open the sheet for the yellow ones in order
+  // Select and flash the first photo to improve, then open the sheet for each in order
   function startImprove(ids: string[]) {
     if (ids.length === 0 || highlightId) return;
     setActiveId(ids[0]);
@@ -81,10 +126,13 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const improving = photos.find((p) => p.id === improveQueue[0]);
   if (improving) {
     return (
+      // Keyed per photo: the sheet keeps its phase and result URLs in state, so without a remount the
+      // next queued photo would open on the previous photo's result and "Use" would copy it over
       <ImproveBottomSheet
+        key={improving.id}
         imageUrl={improving.url}
         onDone={(improvedUrl) => {
-          // Improved = AI-finished: the photo turns green
+          // New URL → scored again by the effect above; operation only matters for the fallback estimate
           update(photos.map((p) => (p.id === improving.id ? { ...p, url: improvedUrl, operation: 'ai-edit' } : p)));
           setActiveId(improving.id);
           setImproveQueue((q) => q.slice(1));
@@ -112,8 +160,12 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   // A stale id (removed photo) falls back to the first one — status, preview and counter all follow `active`
   const activeIndex = Math.max(0, photos.findIndex((p) => p.id === activeId));
   const active = photos[activeIndex];
-  const activeStatus = STATUS_STYLE[assessReelPhoto(active)];
-  const yellowIds = photos.filter((p) => assessReelPhoto(p) === 'yellow').map((p) => p.id);
+  const activeScore = scoreOf(active);
+  const activeStatus = STATUS_STYLE[statusOf(active)];
+  // Red photos are offered Improve too — for an unimproved upload it is usually what lifts the score
+  const improveIds = photos.filter((p) => statusOf(p) !== 'green').map((p) => p.id);
+  const scoring = photos.some((p) => !(p.url in scores));
+  const scoreUnavailable = photos.some((p) => p.url in scores && !scoreOf(p));
 
   return (
     <div className="flex flex-col pb-6" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
@@ -135,7 +187,9 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
       {/* Thumbnails */}
       <div className="flex gap-3 overflow-x-auto px-4 pt-2 pb-3">
         {photos.map((photo) => {
-          const style = STATUS_STYLE[assessReelPhoto(photo)];
+          const style = STATUS_STYLE[statusOf(photo)];
+          const photoScore = scoreOf(photo);
+          const photoScoring = !(photo.url in scores);
           return (
             <div key={photo.id} className="relative shrink-0">
               <button
@@ -154,7 +208,18 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
-                <span className={`absolute bottom-1.5 left-1.5 h-3 w-3 rounded-full border border-black/40 ${style.dot}`} aria-hidden="true" />
+                {photoScoring ? (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40" aria-hidden="true">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  </span>
+                ) : (
+                  <span className={`absolute bottom-1.5 left-1.5 h-3 w-3 rounded-full border border-black/40 ${style.dot}`} aria-hidden="true" />
+                )}
+                {photoScore?.score !== undefined && (
+                  <span className="absolute top-1 left-1 rounded-md bg-black/70 px-1 text-[11px] font-semibold leading-4 text-white">
+                    {photoScore.score.toFixed(1)}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => remove(photo.id)}
@@ -191,30 +256,44 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
 
       {/* Status */}
       <div className="px-4 pt-4" role="status">
-        <p className="flex items-center gap-2 text-sm font-semibold text-white">
-          <span className={`h-2.5 w-2.5 rounded-full ${activeStatus.dot}`} aria-hidden="true" />
-          {t(activeStatus.label)}
-        </p>
-        <p className="mt-1 text-sm text-gray-400">{t(activeStatus.hint)}</p>
+        {!(active.url in scores) ? (
+          <p className="flex items-center gap-2 text-sm text-gray-400">
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-green-500" aria-hidden="true" />
+            {t('scoring')}
+          </p>
+        ) : (
+          <>
+            <p className="flex items-center gap-2 text-sm font-semibold text-white">
+              <span className={`h-2.5 w-2.5 rounded-full ${activeStatus.dot}`} aria-hidden="true" />
+              {t(activeStatus.label)}
+              {activeScore?.score !== undefined && <span className="font-normal text-gray-400">· {activeScore.score.toFixed(1)}</span>}
+            </p>
+            <p className="mt-1 text-sm text-gray-400">{t(activeStatus.hint)}</p>
+          </>
+        )}
+        {scoreUnavailable && (
+          <p className="mt-2 text-xs text-yellow-400/80">{t('scoreUnavailable')}</p>
+        )}
       </div>
 
       {/* Actions */}
       <div className="mt-5 flex flex-col gap-3 px-4">
-        {yellowIds.length > 0 && (
+        {!scoring && improveIds.length > 0 && (
           <button
-            onClick={() => startImprove(yellowIds)}
+            onClick={() => startImprove(improveIds)}
             disabled={highlightId !== null}
             className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 py-3.5 text-sm font-semibold text-yellow-300 active:bg-yellow-500/20 disabled:opacity-60"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
             </svg>
-            {t('improveN', { count: yellowIds.length })}
+            {t('improveN', { count: improveIds.length })}
           </button>
         )}
         <button
           onClick={() => router.push('/studio/m/reel/generate')}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green-600 py-3.5 text-base font-semibold text-white active:bg-green-700"
+          disabled={scoring}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green-600 py-3.5 text-base font-semibold text-white active:bg-green-700 disabled:opacity-50"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M23 7l-7 5 7 5V7zM1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1V5z" />

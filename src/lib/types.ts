@@ -719,6 +719,18 @@ export interface ReelPhoto {
 /** Phase 1 heuristic: green = AI-finished, yellow = Improve would help, red = replace (unused until appeal scoring) */
 export type ReelPhotoStatus = 'green' | 'yellow' | 'red';
 
+/** One image from POST /api/reel/score (reel-service appeal scoring). `error` set = this image could not be scored */
+export interface ReelScoreResult {
+  imageId: string | null;
+  score?: number;
+  status?: ReelPhotoStatus;
+  /** 'sharpen' | 'contrast' | 'saturation' | 'brightness' */
+  hints?: string[];
+  breakdown?: { sharpness: number; contrast: number; saturation: number; brightness: number };
+  yolo?: { confidence: number; bbox: { x: number; y: number; w: number; h: number } } | null;
+  error?: string;
+}
+
 /** GET /api/studio/my-work response */
 export interface StudioWorkPage {
   items: StudioWorkItem[];

@@ -305,7 +305,7 @@ export function ReelGenerating() {
         <div className="mx-4 mt-4 space-y-3">
           <a
             href={`${videoUrl}${videoUrl.includes('?') ? '&' : '?'}download=1`}
-            download="reel.mp4"
+            download={`reel-${new Date().toISOString().slice(0, 10)}-${currentTrackId}.mp4`}
             className="flex min-h-11 items-center justify-center rounded-xl bg-green-600 text-base font-semibold text-white active:bg-green-700"
           >
             {t('downloadReel')}

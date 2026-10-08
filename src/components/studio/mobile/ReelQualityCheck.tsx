@@ -147,7 +147,6 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
 
   // Select and flash the first photo to improve, then open the sheet for each in order
   function startImprove(ids: string[]) {
-    console.log('[QC] startImprove', ids, photos.map((p) => ({ id: p.id, url: p.url?.substring(0, 60) })));
     if (ids.length === 0 || highlightId) return;
     setActiveId(ids[0]);
     setHighlightId(ids[0]);
@@ -158,6 +157,16 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     }, IMPROVE_HIGHLIGHT_MS);
   }
 
+  // ── Computed values needed by the hook (MUST be before early returns) ──
+  const scoring = photos.some((p) => !(p.url in scores));
+  const allGreen = !scoring && photos.length > 0 && photos.every((p) => statusOf(p) === 'green');
+
+  // Auto-collapse thumbnails when all photos are green — hook BEFORE early returns
+  useEffect(() => {
+    if (allGreen) setScoresExpanded(false);
+  }, [allGreen]);
+
+  // ── Early returns ──
   const improving = photos.find((p) => p.id === improveQueue[0]);
   if (improving) {
     if (!improving.url) {
@@ -193,6 +202,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     );
   }
 
+  // ── Remaining computed values (only needed for the main render) ──
   const activeIndex = Math.max(0, photos.findIndex((p) => p.id === activeId));
   const active = photos[activeIndex];
   const activeScore = scoreOf(active);
@@ -201,14 +211,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const activeImproveIds = selectedIds.size > 0
     ? Array.from(selectedIds).filter((id) => allImproveIds.includes(id))
     : allImproveIds;
-  const scoring = photos.some((p) => !(p.url in scores));
   const scoreUnavailable = photos.some((p) => p.url in scores && !scoreOf(p));
-  const allGreen = !scoring && photos.length > 0 && photos.every((p) => statusOf(p) === 'green');
-
-  // Auto-collapse thumbnails when all photos are green
-  useEffect(() => {
-    if (allGreen) setScoresExpanded(false);
-  }, [allGreen]);
 
   return (
     <div className="flex flex-col pb-6" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>

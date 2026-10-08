@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
 import { preloadImage, proxyUrl } from '@/lib/studio/mobile/share';
-import type { EnhancementIntensity } from '@/lib/types';
+import type { EnhancementIntensity, ReelScoreResult } from '@/lib/types';
 // Mobile slider reserves its frame up front — the shared one is 0px tall until its image loads
 import { BeforeAfterSlider } from './BeforeAfterSlider';
 
@@ -112,6 +112,40 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [aiUrl, setAiUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [enhancedScore, setEnhancedScore] = useState<ReelScoreResult | null>(null);
+  const [aiScore, setAiScore] = useState<ReelScoreResult | null>(null);
+
+  useEffect(() => {
+    if (!enhancedUrl) return;
+    setEnhancedScore(null);
+    fetch('/api/reel/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: [{ imageUrl: enhancedUrl, imageId: 'enhanced' }] }),
+    })
+      .then(r => r.json())
+      .then((data: { results?: ReelScoreResult[] }) => {
+        const result = data.results?.[0];
+        if (result?.status) setEnhancedScore(result);
+      })
+      .catch(() => {});
+  }, [enhancedUrl]);
+
+  useEffect(() => {
+    if (!aiUrl) return;
+    setAiScore(null);
+    fetch('/api/reel/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: [{ imageUrl: aiUrl, imageId: 'ai' }] }),
+    })
+      .then(r => r.json())
+      .then((data: { results?: ReelScoreResult[] }) => {
+        const result = data.results?.[0];
+        if (result?.status) setAiScore(result);
+      })
+      .catch(() => {});
+  }, [aiUrl]);
 
   async function handleEnhance() {
     setPhase('processing');
@@ -271,6 +305,27 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
           <p className="mt-0.5 text-xs text-gray-500">{t('aiAppliedDesc')}</p>
         </div>
 
+        {aiScore && (
+          <div className={`mx-4 mt-3 flex items-center gap-2 rounded-xl px-4 py-2.5 border ${
+            aiScore.status === 'green'
+              ? 'border-green-500/20 bg-green-500/5'
+              : aiScore.status === 'yellow'
+                ? 'border-yellow-500/20 bg-yellow-500/5'
+                : 'border-red-500/20 bg-red-500/5'
+          }`}>
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+              aiScore.status === 'green' ? 'bg-green-500'
+                : aiScore.status === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'
+            }`} />
+            <span className="text-xs text-gray-300">
+              {t('qualityScore')}: {aiScore.score?.toFixed(1)}
+              {aiScore.status === 'green' && ` — ${t('qualityGood')}`}
+              {aiScore.status === 'yellow' && ` — ${t('qualityOk')}`}
+              {aiScore.status === 'red' && ` — ${t('qualityWeak')}`}
+            </span>
+          </div>
+        )}
+
         <div className="mt-4 grid grid-cols-2 gap-3 px-4">
           <button
             onClick={() => onDone(enhancedUrl)}
@@ -318,6 +373,27 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
           <p className="text-sm font-semibold text-green-400">✓ {t('photoEnhanced')}</p>
           <p className="mt-0.5 text-xs text-gray-500">{t('photoEnhancedDesc')}</p>
         </div>
+
+        {enhancedScore && (
+          <div className={`mx-4 mt-3 flex items-center gap-2 rounded-xl px-4 py-2.5 border ${
+            enhancedScore.status === 'green'
+              ? 'border-green-500/20 bg-green-500/5'
+              : enhancedScore.status === 'yellow'
+                ? 'border-yellow-500/20 bg-yellow-500/5'
+                : 'border-red-500/20 bg-red-500/5'
+          }`}>
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+              enhancedScore.status === 'green' ? 'bg-green-500'
+                : enhancedScore.status === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'
+            }`} />
+            <span className="text-xs text-gray-300">
+              {t('qualityScore')}: {enhancedScore.score?.toFixed(1)}
+              {enhancedScore.status === 'green' && ` — ${t('qualityGood')}`}
+              {enhancedScore.status === 'yellow' && ` — ${t('qualityOk')}`}
+              {enhancedScore.status === 'red' && ` — ${t('qualityWeak')}`}
+            </span>
+          </div>
+        )}
 
         <div className="mx-4 mt-4 rounded-xl border border-purple-500/20 bg-purple-500/5 px-4 py-4">
           <p className="text-sm font-semibold text-white">{t('wantMore')}</p>

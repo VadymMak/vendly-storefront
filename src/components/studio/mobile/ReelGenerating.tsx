@@ -136,6 +136,7 @@ export function ReelGenerating() {
   }, [startGeneration]);
 
   const handleMusicChange = async (trackId: string) => {
+    stopPreview();
     if (trackId === currentTrackId) {
       setShowMusicSheet(false);
       return;
@@ -186,6 +187,15 @@ export function ReelGenerating() {
 
     audio.onended = () => setAudioPreviewId(null);
   };
+
+  const stopPreview = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setAudioPreviewId(null);
+  }, []);
 
   // ── Starting ──────────────────────────────────────────────────────────
   if (phase === 'starting') {
@@ -327,7 +337,7 @@ export function ReelGenerating() {
             previewingId={audioPreviewId}
             onSelect={handleMusicChange}
             onPreview={handlePreview}
-            onClose={() => setShowMusicSheet(false)}
+            onClose={() => { stopPreview(); setShowMusicSheet(false); }}
           />
         )}
       </div>

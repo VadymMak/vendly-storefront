@@ -168,21 +168,20 @@ export function ReelGenerating() {
   };
 
   const handlePreview = (track: MusicTrack) => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-    }
     const audio = audioRef.current;
+    if (!audio) return;
 
     if (audioPreviewId === track.id) {
       audio.pause();
-      audio.src = '';
+      audio.currentTime = 0;
       setAudioPreviewId(null);
       return;
     }
 
     audio.pause();
     audio.src = `/api/reel/music/preview?id=${encodeURIComponent(track.id)}`;
-    audio.play().catch(() => {});
+    audio.load();
+    audio.play().catch((err) => { console.warn('Audio preview failed:', err); });
     setAudioPreviewId(track.id);
 
     audio.onended = () => setAudioPreviewId(null);
@@ -295,7 +294,7 @@ export function ReelGenerating() {
         {/* Action buttons */}
         <div className="mx-4 mt-4 space-y-3">
           <a
-            href={`${videoUrl}?download=1`}
+            href={`${videoUrl}${videoUrl.includes('?') ? '&' : '?'}download=1`}
             download="reel.mp4"
             className="flex min-h-11 items-center justify-center rounded-xl bg-green-600 text-base font-semibold text-white active:bg-green-700"
           >

@@ -1788,6 +1788,7 @@
       "squareSub": "Классика · 1:1"
     },
     "reel": {
+      "error": "Ошибка",
       "select": "Выбрать",
       "cancel": "Отмена",
       "selected": "Выбрано: {count}",

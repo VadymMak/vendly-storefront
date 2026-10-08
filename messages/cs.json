@@ -1788,6 +1788,7 @@
       "squareSub": "Klasika · 1:1"
     },
     "reel": {
+      "error": "Chyba",
       "select": "Vybrat",
       "cancel": "Zrušit",
       "selected": "Vybráno: {count}",

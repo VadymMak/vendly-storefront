@@ -1779,6 +1779,7 @@
       "squareSub": "Klasika · 1:1"
     },
     "reel": {
+      "error": "Chyba",
       "select": "Vybrať",
       "cancel": "Zrušiť",
       "selected": "Vybrané: {count}",

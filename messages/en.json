@@ -1788,6 +1788,7 @@
       "squareSub": "Classic · 1:1"
     },
     "reel": {
+      "error": "Error",
       "select": "Select",
       "cancel": "Cancel",
       "selected": "Selected: {count}",

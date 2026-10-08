@@ -304,8 +304,8 @@ export function ReelGenerating() {
         {/* Action buttons */}
         <div className="mx-4 mt-4 space-y-3">
           <a
-            href={`${videoUrl}${videoUrl.includes('?') ? '&' : '?'}download=1`}
-            download={`reel-${new Date().toISOString().slice(0, 10)}-${currentTrackId}.mp4`}
+            href={`${videoUrl}${videoUrl.includes('?') ? '&' : '?'}download=1&track=${encodeURIComponent(currentTrackId)}`}
+            download={`reel-${new Date().toISOString().slice(0, 10)}-${jobId.slice(0, 8)}-${currentTrackId}.mp4`}
             className="flex min-h-11 items-center justify-center rounded-xl bg-green-600 text-base font-semibold text-white active:bg-green-700"
           >
             {t('downloadReel')}
@@ -348,7 +348,7 @@ export function ReelGenerating() {
   return (
     <div className="flex flex-col items-center justify-center px-8 py-24 text-center">
       <span className="mb-4 text-4xl" aria-hidden="true">⚠️</span>
-      <h2 className="mb-2 text-xl font-bold text-white">Chyba</h2>
+      <h2 className="mb-2 text-xl font-bold text-white">{t('error')}</h2>
       <p className="mb-6 max-w-sm text-sm text-gray-400">{errorMsg}</p>
       <button
         onClick={() => router.back()}

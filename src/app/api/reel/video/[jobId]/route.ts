@@ -30,8 +30,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ jobI
       const value = upstream.headers.get(name);
       if (value) headers.set(name, value);
     }
-    if (new URL(request.url).searchParams.has('download')) {
-      headers.set('Content-Disposition', 'attachment; filename="reel.mp4"');
+    const search = new URL(request.url).searchParams;
+    if (search.has('download')) {
+      // Unique per reel (+ track) — this header overrides the <a download> name, so it must carry it
+      const date = new Date().toISOString().slice(0, 10);
+      const shortId = jobId.replace(/[^a-z0-9]/gi, '').slice(0, 8);
+      const track = (search.get('track') ?? '').replace(/[^a-z0-9-]/gi, '').slice(0, 40);
+      const filename = `reel-${date}-${shortId}${track ? `-${track}` : ''}.mp4`;
+      headers.set('Content-Disposition', `attachment; filename="${filename}"`);
     }
     return new Response(upstream.body, { status: upstream.status, headers });
   } catch (error: unknown) {

@@ -65,6 +65,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   // Text on the last (CTA) shot — prefilled in the user's language
   const [cta1, setCta1] = useState(() => t('ctaDefault1'));
   const [cta2, setCta2] = useState(() => t('ctaDefault2'));
+  const [scoresExpanded, setScoresExpanded] = useState(false);
 
   // Score every photo URL not scored yet (on mount, after "+", after Improve replaced a URL)
   useEffect(() => {
@@ -164,6 +165,12 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const improveIds = photos.filter((p) => statusOf(p) !== 'green').map((p) => p.id);
   const scoring = photos.some((p) => !(p.url in scores));
   const scoreUnavailable = photos.some((p) => p.url in scores && !scoreOf(p));
+  const allGreen = !scoring && photos.length > 0 && photos.every((p) => statusOf(p) === 'green');
+
+  // Auto-collapse thumbnails when all photos are green
+  useEffect(() => {
+    if (allGreen) setScoresExpanded(false);
+  }, [allGreen]);
 
   return (
     <div className="flex flex-col pb-6" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
@@ -182,7 +189,22 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
         <span className="text-sm text-gray-400">{activeIndex + 1}/{photos.length}</span>
       </div>
 
+      {/* All-green collapsed banner */}
+      {allGreen && !scoresExpanded && (
+        <button
+          onClick={() => setScoresExpanded(true)}
+          className="mx-4 mt-3 p-3 bg-green-500/10 rounded-xl flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-green-400 text-lg">✅</span>
+            <span className="text-green-300 text-sm">{t('allPhotosReady')}</span>
+          </div>
+          <span className="text-white/30 text-xs">{t('tapToSeeScores')}</span>
+        </button>
+      )}
+
       {/* Thumbnails */}
+      {(!allGreen || scoresExpanded) && (
       <div className="flex gap-3 overflow-x-auto px-4 pt-2 pb-3">
         {photos.map((photo) => {
           const style = STATUS_STYLE[statusOf(photo)];
@@ -243,6 +265,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           </Link>
         )}
       </div>
+      )}
 
       {/* Preview */}
       <div className="px-4">
@@ -347,6 +370,8 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
               sessionStorage.setItem('reel-mode', reelMode);
               sessionStorage.setItem('reel-cta1', cta1.trim());
               sessionStorage.setItem('reel-cta2', cta2.trim());
+              const preferredMusic = localStorage.getItem('reel-preferred-music') || 'warm-cafe';
+              sessionStorage.setItem('reel-musicTrackId', preferredMusic);
             } catch {}
             router.push('/studio/m/reel/generate');
           }}

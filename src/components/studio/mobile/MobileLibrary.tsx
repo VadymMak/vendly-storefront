@@ -45,9 +45,11 @@ interface Loaded {
 interface Props {
   /** Opened from Reel Quality Check "+" — start in select mode with the current reel photos */
   initialSelect?: boolean;
+  /** Opened from Home "Create Reel" card — show hint banner */
+  reelSelectMode?: boolean;
 }
 
-export function MobileLibrary({ initialSelect = false }: Props) {
+export function MobileLibrary({ initialSelect = false, reelSelectMode = false }: Props) {
   const t = useTranslations('mobile.library');
   const tReel = useTranslations('mobile.reel');
   const router = useRouter();
@@ -149,6 +151,13 @@ export function MobileLibrary({ initialSelect = false }: Props) {
           >
             {tReel('select')}
           </button>
+        </div>
+      )}
+
+      {/* Reel-select mode hint */}
+      {reelSelectMode && selectMode && selected.size === 0 && (
+        <div className="mx-4 mb-2 p-3 bg-green-500/10 rounded-xl text-center">
+          <p className="text-white text-sm">{tReel('selectPhotosHint')}</p>
         </div>
       )}
 

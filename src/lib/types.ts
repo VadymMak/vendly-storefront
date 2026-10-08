@@ -733,6 +733,20 @@ export interface ReelScoreResult {
   error?: string;
 }
 
+export interface MusicTrack {
+  id: string;
+  title: string;
+  emoji: string;
+  mood: string;
+  category: string[];
+  file: string;
+  duration: number;
+  bpm: number;
+  source: string;
+  license: string;
+  attributionRequired: boolean;
+}
+
 /** GET /api/studio/my-work response */
 export interface StudioWorkPage {
   items: StudioWorkItem[];

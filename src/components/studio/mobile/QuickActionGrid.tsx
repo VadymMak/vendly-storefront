@@ -24,6 +24,17 @@ const PRIMARY_ACTION_DEFS: Omit<QuickAction, 'titleKey' | 'subtitleKey'>[] = [
     ),
   },
   {
+    href: '/studio/m/library?mode=reel-select',
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="3" width="15" height="15" rx="2" />
+        <path d="M17 7.5l5-3v13l-5-3" />
+        <circle cx="9.5" cy="10.5" r="2" />
+        <path d="M2 14l4-4 3 3 3-2 5 5" />
+      </svg>
+    ),
+  },
+  {
     href: '/studio/m/improve',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -75,8 +86,8 @@ const PRIMARY_ACTION_DEFS: Omit<QuickAction, 'titleKey' | 'subtitleKey'>[] = [
   },
 ];
 
-const PRIMARY_TITLE_KEYS = ['instagramPost', 'improvePhoto', 'shortVideo', 'productPhoto', 'removeBg', 'upscale'] as const;
-const PRIMARY_SUBTITLE_KEYS = ['instagramPostDesc', 'improvePhotoDesc', 'shortVideoDesc', 'productPhotoDesc', 'removeBgDesc', 'upscaleDesc'] as const;
+const PRIMARY_TITLE_KEYS = ['instagramPost', 'createReel', 'improvePhoto', 'shortVideo', 'productPhoto', 'removeBg', 'upscale'] as const;
+const PRIMARY_SUBTITLE_KEYS = ['instagramPostDesc', 'createReelDesc', 'improvePhotoDesc', 'shortVideoDesc', 'productPhotoDesc', 'removeBgDesc', 'upscaleDesc'] as const;
 
 const MORE_ACTION_DEFS: Omit<QuickAction, 'titleKey' | 'subtitleKey'>[] = [
   {

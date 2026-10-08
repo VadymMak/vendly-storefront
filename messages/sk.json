@@ -1532,7 +1532,9 @@
       "generateVideoDesc": "AI video z textu",
       "placeInScene": "Umiestniť do scény",
       "placeInSceneDesc": "Produkty v kontexte",
-      "moreTools": "Ďalšie nástroje"
+      "moreTools": "Ďalšie nástroje",
+      "createReel": "Vytvoriť Reel",
+      "createReelDesc": "2–5 fotiek → video 13 sek"
     },
     "format": {
       "title": "Vytvoriť príspevok",
@@ -1823,7 +1825,16 @@
       "ctaDefault1": "Čerstvé každý deň",
       "ctaDefault2": "Objednajte teraz →",
       "ctaLine1": "Nadpis",
-      "ctaLine2": "Výzva na akciu"
+      "ctaLine2": "Výzva na akciu",
+      "musicTitle": "Hudba",
+      "musicChange": "Zmeniť",
+      "noMusic": "Bez hudby",
+      "applying": "Aplikujem...",
+      "allPhotosReady": "Všetky fotky pripravené",
+      "tapToSeeScores": "Ťuknite pre skóre",
+      "createAnother": "Vytvoriť ďalší Reel",
+      "backToGallery": "Späť do galérie",
+      "selectPhotosHint": "Vyberte 2–5 fotiek pre Reel"
     }
   }
 }

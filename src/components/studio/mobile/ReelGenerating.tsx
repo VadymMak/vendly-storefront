@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { readReelPhotos } from '@/lib/studio/mobile/reel';
+import type { MusicTrack } from '@/lib/types';
+import MusicBottomSheet from './MusicBottomSheet';
 
 interface JobStatus {
   jobId: string;
@@ -12,6 +14,7 @@ interface JobStatus {
   progress: number;
   mode: string;
   cost: number;
+  currentTrackId?: string;
   result?: {
     videoUrl: string;
     duration: number;
@@ -40,20 +43,40 @@ export function ReelGenerating() {
   const [phase, setPhase] = useState<'starting' | 'generating' | 'done' | 'error'>('starting');
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [jobId, setJobId] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Music state
+  const [currentTrackId, setCurrentTrackId] = useState<string>('warm-cafe');
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
+  const [showMusicSheet, setShowMusicSheet] = useState(false);
+  const [isRemuxing, setIsRemuxing] = useState(false);
+  const [audioPreviewId, setAudioPreviewId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fetch music catalog on mount
+  useEffect(() => {
+    fetch('/api/reel/music')
+      .then(r => r.json())
+      .then(data => setMusicTracks(data.tracks || []))
+      .catch(() => {});
+  }, []);
 
   const startGeneration = useCallback(async () => {
     try {
       const photos = readReelPhotos();
       let mode = 'images';
-      // Empty CTA lines are filled with defaults by reel-service
       let cta1 = '';
       let cta2 = '';
+      let musicTrackId = 'warm-cafe';
       try {
         mode = sessionStorage.getItem('reel-mode') ?? 'images';
         cta1 = sessionStorage.getItem('reel-cta1') ?? '';
         cta2 = sessionStorage.getItem('reel-cta2') ?? '';
+        musicTrackId = sessionStorage.getItem('reel-musicTrackId') ?? 'warm-cafe';
       } catch {}
+
+      setCurrentTrackId(musicTrackId);
 
       if (photos.length === 0) {
         setErrorMsg('No photos selected');
@@ -69,6 +92,7 @@ export function ReelGenerating() {
           mode,
           cta1,
           cta2,
+          musicTrackId,
         }),
       });
 
@@ -79,6 +103,7 @@ export function ReelGenerating() {
         return;
       }
 
+      setJobId(data.jobId);
       setPhase('generating');
 
       pollRef.current = setInterval(async () => {
@@ -88,6 +113,7 @@ export function ReelGenerating() {
           setJobStatus(poll);
           if (poll.status === 'done') {
             clearInterval(pollRef.current!);
+            if (poll.currentTrackId) setCurrentTrackId(poll.currentTrackId);
             setPhase('done');
           } else if (poll.status === 'error') {
             clearInterval(pollRef.current!);
@@ -108,6 +134,59 @@ export function ReelGenerating() {
     startGeneration();
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [startGeneration]);
+
+  const handleMusicChange = async (trackId: string) => {
+    if (trackId === currentTrackId) {
+      setShowMusicSheet(false);
+      return;
+    }
+
+    setIsRemuxing(true);
+    setShowMusicSheet(false);
+
+    try {
+      const res = await fetch('/api/reel/remux', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, musicTrackId: trackId }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.videoUrl) {
+        setJobStatus(prev => prev ? {
+          ...prev,
+          result: prev.result ? { ...prev.result, videoUrl: data.videoUrl } : prev.result,
+        } : prev);
+        setCurrentTrackId(trackId);
+        try { localStorage.setItem('reel-preferred-music', trackId); } catch {}
+      }
+    } catch (err) {
+      console.error('Re-mux failed:', err);
+    } finally {
+      setIsRemuxing(false);
+    }
+  };
+
+  const handlePreview = (track: MusicTrack) => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
+    const audio = audioRef.current;
+
+    if (audioPreviewId === track.id) {
+      audio.pause();
+      audio.src = '';
+      setAudioPreviewId(null);
+      return;
+    }
+
+    audio.pause();
+    audio.src = `/api/reel/music/preview?id=${encodeURIComponent(track.id)}`;
+    audio.play().catch(() => {});
+    setAudioPreviewId(track.id);
+
+    audio.onended = () => setAudioPreviewId(null);
+  };
 
   // ── Starting ──────────────────────────────────────────────────────────
   if (phase === 'starting') {
@@ -157,10 +236,14 @@ export function ReelGenerating() {
   // ── Done ──────────────────────────────────────────────────────────────
   if (phase === 'done' && jobStatus?.result) {
     const { videoUrl, duration, totalCost, shotCount } = jobStatus.result;
+    const currentTrack = musicTracks.find(t => t.id === currentTrackId);
+
     return (
-      <div className="flex flex-col items-center px-4 pb-8 pt-10" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
-        <h2 className="mb-4 text-xl font-bold text-white">{t('reelReady')}</h2>
-        <div className="mb-4 w-full max-w-sm overflow-hidden rounded-2xl bg-black">
+      <div className="flex flex-col pb-8 pt-6" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
+        <h2 className="mb-4 px-4 text-xl font-bold text-white">{t('reelReady')}</h2>
+
+        {/* Video player */}
+        <div className="mx-4 overflow-hidden rounded-2xl bg-black">
           <video
             src={videoUrl}
             controls
@@ -170,10 +253,47 @@ export function ReelGenerating() {
             style={{ aspectRatio: '9/16', objectFit: 'cover' }}
           />
         </div>
-        <p className="mb-6 text-sm text-gray-400">
+
+        {/* Stats */}
+        <p className="mt-3 px-4 text-sm text-gray-400">
           {duration.toFixed(1)}s · {shotCount} shots · ${totalCost.toFixed(2)}
         </p>
-        <div className="w-full max-w-sm space-y-3">
+
+        {/* Music section */}
+        <div className="mx-4 mt-4">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">
+                {currentTrackId === 'no-music' ? '🔇' : currentTrack?.emoji ?? '🎵'}
+              </span>
+              <span className="text-white text-sm">
+                {currentTrackId === 'no-music' ? t('noMusic') : currentTrack?.title ?? 'Warm Café'}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setShowMusicSheet(true)}
+              disabled={isRemuxing}
+              className="flex items-center gap-1.5 text-xs text-green-400 px-3 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors disabled:opacity-50"
+            >
+              {isRemuxing ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {t('applying')}
+                </>
+              ) : (
+                t('musicChange')
+              )}
+            </button>
+          </div>
+          <audio ref={audioRef} className="hidden" />
+        </div>
+
+        {/* Action buttons */}
+        <div className="mx-4 mt-4 space-y-3">
           <a
             href={`${videoUrl}?download=1`}
             download="reel.mp4"
@@ -181,13 +301,36 @@ export function ReelGenerating() {
           >
             {t('downloadReel')}
           </a>
+
+          <button
+            onClick={() => {
+              try { sessionStorage.removeItem('reel-photos'); } catch {}
+              router.push('/studio/m/library?mode=reel-select');
+            }}
+            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-white/5 text-sm font-medium text-white border border-white/10 active:bg-white/10"
+          >
+            {t('createAnother')}
+          </button>
+
           <button
             onClick={() => router.push('/studio/m/library')}
-            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-white/10 text-sm font-medium text-white active:bg-white/20"
+            className="flex w-full items-center justify-center py-2.5 text-sm text-gray-400"
           >
             {t('backToLibrary')}
           </button>
         </div>
+
+        {/* Music bottom sheet */}
+        {showMusicSheet && (
+          <MusicBottomSheet
+            tracks={musicTracks}
+            currentTrackId={currentTrackId}
+            previewingId={audioPreviewId}
+            onSelect={handleMusicChange}
+            onPreview={handlePreview}
+            onClose={() => setShowMusicSheet(false)}
+          />
+        )}
       </div>
     );
   }

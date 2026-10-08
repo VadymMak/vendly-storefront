@@ -11,12 +11,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { photos, mode, cta1, cta2 } = body;
+    const { photos, mode, cta1, cta2, musicTrackId } = body;
 
     const response = await fetch(`${REEL_SERVICE_URL}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos, mode, cta1, cta2, userId: session.user.id }),
+      body: JSON.stringify({ photos, mode, cta1, cta2, userId: session.user.id, musicTrackId: musicTrackId || 'warm-cafe' }),
     });
 
     const data = await response.json();

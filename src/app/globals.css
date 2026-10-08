@@ -236,6 +236,10 @@ body {
   to   { transform: translateY(0); }
 }
 
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
 /* KB Chat markdown prose */
 .kb-chat-prose a {
   color: #4ade80;

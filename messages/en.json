@@ -1532,7 +1532,9 @@
       "generateVideoDesc": "AI video from text",
       "placeInScene": "Place in Scene",
       "placeInSceneDesc": "Products in context",
-      "moreTools": "More tools"
+      "moreTools": "More tools",
+      "createReel": "Create Reel",
+      "createReelDesc": "2–5 photos → 13s video"
     },
     "format": {
       "title": "Create Post",
@@ -1832,7 +1834,16 @@
       "ctaDefault1": "Fresh Daily",
       "ctaDefault2": "Order Now →",
       "ctaLine1": "Headline",
-      "ctaLine2": "Call to action"
+      "ctaLine2": "Call to action",
+      "musicTitle": "Music",
+      "musicChange": "Change",
+      "noMusic": "No music",
+      "applying": "Applying...",
+      "allPhotosReady": "All photos ready",
+      "tapToSeeScores": "Tap to see scores",
+      "createAnother": "Create another Reel",
+      "backToGallery": "Back to gallery",
+      "selectPhotosHint": "Select 2–5 photos for your Reel"
     }
   }
 }

@@ -1532,7 +1532,9 @@
       "generateVideoDesc": "ИИ-видео из текста",
       "placeInScene": "Разместить в сцене",
       "placeInSceneDesc": "Товары в контексте",
-      "moreTools": "Ещё инструменты"
+      "moreTools": "Ещё инструменты",
+      "createReel": "Создать Reel",
+      "createReelDesc": "2–5 фото → видео 13 сек"
     },
     "format": {
       "title": "Создать пост",
@@ -1832,7 +1834,16 @@
       "ctaDefault1": "Свежее каждый день",
       "ctaDefault2": "Заказать сейчас →",
       "ctaLine1": "Заголовок",
-      "ctaLine2": "Призыв к действию"
+      "ctaLine2": "Призыв к действию",
+      "musicTitle": "Музыка",
+      "musicChange": "Изменить",
+      "noMusic": "Без музыки",
+      "applying": "Применяю...",
+      "allPhotosReady": "Все фото готовы",
+      "tapToSeeScores": "Нажмите для оценок",
+      "createAnother": "Создать другой Reel",
+      "backToGallery": "Назад в галерею",
+      "selectPhotosHint": "Выберите 2–5 фото для Reel"
     }
   }
 }

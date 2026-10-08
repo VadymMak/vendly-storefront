@@ -1532,7 +1532,9 @@
       "generateVideoDesc": "AI-Video aus Text",
       "placeInScene": "In Szene setzen",
       "placeInSceneDesc": "Produkte im Kontext",
-      "moreTools": "Mehr Werkzeuge"
+      "moreTools": "Mehr Werkzeuge",
+      "createReel": "Reel erstellen",
+      "createReelDesc": "2–5 Fotos → 13s Video"
     },
     "format": {
       "title": "Beitrag erstellen",
@@ -1832,7 +1834,16 @@
       "ctaDefault1": "Täglich frisch",
       "ctaDefault2": "Jetzt bestellen →",
       "ctaLine1": "Überschrift",
-      "ctaLine2": "Handlungsaufforderung"
+      "ctaLine2": "Handlungsaufforderung",
+      "musicTitle": "Musik",
+      "musicChange": "Ändern",
+      "noMusic": "Ohne Musik",
+      "applying": "Anwenden...",
+      "allPhotosReady": "Alle Fotos bereit",
+      "tapToSeeScores": "Tippen für Bewertungen",
+      "createAnother": "Weiteres Reel erstellen",
+      "backToGallery": "Zurück zur Galerie",
+      "selectPhotosHint": "Wählen Sie 2–5 Fotos für Ihr Reel"
     }
   }
 }

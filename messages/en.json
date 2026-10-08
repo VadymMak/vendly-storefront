@@ -1833,6 +1833,7 @@
       "ctaTitle": "Text on the last shot",
       "ctaDefault1": "Fresh Daily",
       "ctaDefault2": "Order Now →",
+      "ctaHint": "This text appears on the final frame of your reel",
       "ctaLine1": "Headline",
       "ctaLine2": "Call to action",
       "musicTitle": "Music",

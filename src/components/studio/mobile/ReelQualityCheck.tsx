@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
 import type { ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
@@ -49,6 +49,7 @@ export function ReelQualityCheck() {
 
 function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const t = useTranslations('mobile.reel');
+  const locale = useLocale();
   const router = useRouter();
   const [photos, setPhotos] = useState(initialPhotos);
   const [activeId, setActiveId] = useState<string | null>(initialPhotos[0]?.id ?? null);
@@ -65,7 +66,16 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   // Text on the last (CTA) shot — prefilled in the user's language
   const [cta1, setCta1] = useState(() => t('ctaDefault1'));
   const [cta2, setCta2] = useState(() => t('ctaDefault2'));
+  const [userEditedCta1, setUserEditedCta1] = useState(false);
+  const [userEditedCta2, setUserEditedCta2] = useState(false);
   const [scoresExpanded, setScoresExpanded] = useState(false);
+
+  // Sync CTA defaults when locale changes (only if user hasn't manually edited)
+  useEffect(() => {
+    if (!userEditedCta1) setCta1(t('ctaDefault1'));
+    if (!userEditedCta2) setCta2(t('ctaDefault2'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
 
   // Score every photo URL not scored yet (on mount, after "+", after Improve replaced a URL)
   useEffect(() => {
@@ -346,9 +356,10 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
         {/* CTA text for the last shot */}
         <div className="space-y-2">
           <p className="text-xs text-gray-400">{t('ctaTitle')}</p>
+          <p className="text-[11px] text-gray-600">{t('ctaHint')}</p>
           <input
             value={cta1}
-            onChange={(e) => setCta1(e.target.value)}
+            onChange={(e) => { setCta1(e.target.value); setUserEditedCta1(true); }}
             placeholder={t('ctaDefault1')}
             aria-label={t('ctaLine1')}
             maxLength={30}
@@ -356,7 +367,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           />
           <input
             value={cta2}
-            onChange={(e) => setCta2(e.target.value)}
+            onChange={(e) => { setCta2(e.target.value); setUserEditedCta2(true); }}
             placeholder={t('ctaDefault2')}
             aria-label={t('ctaLine2')}
             maxLength={30}

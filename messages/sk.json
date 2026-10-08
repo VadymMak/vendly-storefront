@@ -1791,6 +1791,7 @@
       "hintImprove": "Čerstvá fotka — AI úprava ju rozjasní a dodá jej profesionálny vzhľad.",
       "hintWeak": "Slabšia fotka — vylepšite ju alebo vyberte inú.",
       "improveN": "Vylepšiť ({count, plural, one {# fotku} few {# fotky} other {# fotiek}})",
+      "improveAll": "Vylepšiť všetko ({count, plural, one {# fotka} few {# fotky} other {# fotiek}})",
       "remove": "Odobrať fotku",
       "addMore": "Pridať fotky",
       "emptyCheck": "V reeli zatiaľ nie sú žiadne fotky",

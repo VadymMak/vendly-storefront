@@ -1800,6 +1800,7 @@
       "hintImprove": "Fresh photo — AI processing will make it brighter and more professional.",
       "hintWeak": "This photo is weak — improve it or pick another one.",
       "improveN": "Improve ({count, plural, one {# photo} other {# photos}})",
+      "improveAll": "Improve all ({count, plural, one {# photo} other {# photos}})",
       "remove": "Remove photo",
       "addMore": "Add photos",
       "emptyCheck": "No photos in your reel yet",

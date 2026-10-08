@@ -1800,6 +1800,7 @@
       "hintImprove": "Frisches Foto — die KI-Bearbeitung macht es heller und professioneller.",
       "hintWeak": "Schwaches Foto — verbessere es oder wähle ein anderes.",
       "improveN": "Verbessern ({count, plural, one {# Foto} other {# Fotos}})",
+      "improveAll": "Alle verbessern ({count, plural, one {# Foto} other {# Fotos}})",
       "remove": "Foto entfernen",
       "addMore": "Fotos hinzufügen",
       "emptyCheck": "Noch keine Fotos im Reel",

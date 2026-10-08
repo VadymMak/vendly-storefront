@@ -117,8 +117,11 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
     setPhase('processing');
     setError(null);
     try {
+      if (!imageUrl) throw new Error('No image URL');
       const res = await fetch(proxyUrl(imageUrl));
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
       const blob = await res.blob();
+      if (!blob.size) throw new Error('Empty image');
       const file = new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
 
       const fd = new FormData();

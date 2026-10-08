@@ -69,6 +69,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const [userEditedCta1, setUserEditedCta1] = useState(false);
   const [userEditedCta2, setUserEditedCta2] = useState(false);
   const [scoresExpanded, setScoresExpanded] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Sync CTA defaults when locale changes (only if user hasn't manually edited)
   useEffect(() => {
@@ -76,6 +77,15 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     if (!userEditedCta2) setCta2(t('ctaDefault2'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
+
+  // Clear selection 1.5s after improve queue empties
+  useEffect(() => {
+    if (improveQueue.length === 0 && selectedIds.size > 0) {
+      const timer = setTimeout(() => setSelectedIds(new Set()), 1500);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [improveQueue.length]);
 
   // Score every photo URL not scored yet (on mount, after "+", after Improve replaced a URL)
   useEffect(() => {
@@ -126,8 +136,18 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     if (activeId === id) setActiveId(next[0]?.id ?? null);
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   // Select and flash the first photo to improve, then open the sheet for each in order
   function startImprove(ids: string[]) {
+    console.log('[QC] startImprove', ids, photos.map((p) => ({ id: p.id, url: p.url?.substring(0, 60) })));
     if (ids.length === 0 || highlightId) return;
     setActiveId(ids[0]);
     setHighlightId(ids[0]);
@@ -140,18 +160,23 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
 
   const improving = photos.find((p) => p.id === improveQueue[0]);
   if (improving) {
-    return (
-      <ImproveBottomSheet
-        key={improving.id}
-        imageUrl={improving.url}
-        onDone={(improvedUrl) => {
-          update(photos.map((p) => (p.id === improving.id ? { ...p, url: improvedUrl, operation: 'ai-edit' } : p)));
-          setActiveId(improving.id);
-          setImproveQueue((q) => q.slice(1));
-        }}
-        onCancel={() => setImproveQueue([])}
-      />
-    );
+    if (!improving.url) {
+      // Skip photos with no URL rather than crashing
+      setImproveQueue((q) => q.slice(1));
+    } else {
+      return (
+        <ImproveBottomSheet
+          key={improving.id}
+          imageUrl={improving.url}
+          onDone={(improvedUrl) => {
+            update(photos.map((p) => (p.id === improving.id ? { ...p, url: improvedUrl, operation: 'ai-edit' } : p)));
+            setActiveId(improving.id);
+            setImproveQueue((q) => q.slice(1));
+          }}
+          onCancel={() => setImproveQueue([])}
+        />
+      );
+    }
   }
 
   if (photos.length === 0) {
@@ -172,7 +197,10 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const active = photos[activeIndex];
   const activeScore = scoreOf(active);
   const activeStatus = STATUS_STYLE[statusOf(active)];
-  const improveIds = photos.filter((p) => statusOf(p) !== 'green').map((p) => p.id);
+  const allImproveIds = photos.filter((p) => statusOf(p) !== 'green').map((p) => p.id);
+  const activeImproveIds = selectedIds.size > 0
+    ? Array.from(selectedIds).filter((id) => allImproveIds.includes(id))
+    : allImproveIds;
   const scoring = photos.some((p) => !(p.url in scores));
   const scoreUnavailable = photos.some((p) => p.url in scores && !scoreOf(p));
   const allGreen = !scoring && photos.length > 0 && photos.every((p) => statusOf(p) === 'green');
@@ -227,7 +255,10 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
                   if (el) thumbRefs.current.set(photo.id, el);
                   else thumbRefs.current.delete(photo.id);
                 }}
-                onClick={() => setActiveId(photo.id)}
+                onClick={() => {
+                  setActiveId(photo.id);
+                  if (statusOf(photo) !== 'green') toggleSelect(photo.id);
+                }}
                 aria-pressed={photo.id === active.id}
                 aria-label={t(style.label)}
                 className={`block h-20 w-16 overflow-hidden rounded-xl border-2 ${style.tile} ${
@@ -249,6 +280,13 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
                   <span className="absolute top-1 left-1 rounded-md bg-black/70 px-1 text-[11px] font-semibold leading-4 text-white">
                     {photoScore.score.toFixed(1)}
                   </span>
+                )}
+                {selectedIds.has(photo.id) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-green-500/30 rounded-xl" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
                 )}
               </button>
               <button
@@ -309,16 +347,19 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
 
       {/* Actions */}
       <div className="mt-5 flex flex-col gap-3 px-4">
-        {!scoring && improveIds.length > 0 && (
+        {!scoring && allImproveIds.length > 0 && (
           <button
-            onClick={() => startImprove(improveIds)}
-            disabled={highlightId !== null}
+            onClick={() => startImprove(activeImproveIds)}
+            disabled={highlightId !== null || activeImproveIds.length === 0}
             className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-yellow-500/40 bg-yellow-500/10 py-3.5 text-sm font-semibold text-yellow-300 active:bg-yellow-500/20 disabled:opacity-60"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
             </svg>
-            {t('improveN', { count: improveIds.length })}
+            {selectedIds.size > 0
+              ? t('improveN', { count: activeImproveIds.length })
+              : t('improveAll', { count: allImproveIds.length })
+            }
           </button>
         )}
 

@@ -195,7 +195,26 @@ job.videoPath = finalReelPath;
 
 ---
 
-## 5. Рестарт PM2
+## 5. PROMPT-226: Restrict outpaint to video mode only
+
+В `src/pipeline/reel-pipeline.js` найди условие запуска outpaint.
+Ищи по: `FAL_KEY`, `outpaint`, или `1.7` (порог соотношения сторон).
+
+Текущий вид (примерно):
+```js
+if (FAL_KEY && heroNeedsExtension) {
+```
+
+Изменить на:
+```js
+if (FAL_KEY && heroNeedsExtension && mode === 'video') {
+```
+
+**Почему:** image-mode reels должны быть бесплатными ($0.00). Outpaint через FLUX Kontext стоит ~$0.03–0.04 за рил и должен запускаться только в video mode.
+
+---
+
+## 6. Рестарт PM2
 
 ```bash
 pm2 restart reel-service
@@ -203,7 +222,7 @@ pm2 restart reel-service
 
 ---
 
-## 6. Тест
+## 7. Тест
 
 ```bash
 # Проверить каталог
@@ -213,4 +232,8 @@ curl http://127.0.0.1:3010/generate/music/catalog | jq '.tracks | length'
 # Проверить preview
 curl -I http://127.0.0.1:3010/generate/music/preview?id=warm-cafe
 # Должно вернуть: Content-Type: audio/mpeg
+
+# Проверить image-mode — outpaint не должен запускаться:
+# В логах PM2 после генерации image-reel не должно быть строк с "outpaint"
+pm2 logs reel-service --lines 50 | grep -i outpaint
 ```

@@ -6,7 +6,7 @@
 **Credits:** 2-4 credits
 
 1. **Generate Image** (1-2 credits): "professional product photo of [your product], white studio background, soft lighting, e-commerce style" → use Product style preset, Square 1:1 size
-2. **Improve Photo** (2 credits, optional): If the lighting or quality needs enhancement
+2. **Improve Photo** (free; AI Style 1 credit, optional): If the lighting or quality needs enhancement
 
 **Alternative workflow:**
 1. Take a photo of your product with your phone
@@ -27,7 +27,7 @@
 ## Create a Video for TikTok/Reels
 
 **Goal:** Short promotional video
-**Credits:** 8-16 video credits
+**Credits:** 4-28 video credits (depends on quality and length)
 
 1. **Generate Video**: Write a dynamic scene description
 2. Choose 9:16 Portrait aspect ratio
@@ -49,7 +49,7 @@
 **Credits:** 2-4 credits
 
 1. Upload your "before" photo
-2. **Improve Photo** (2 credits): Select an enhancement preset
+2. **Improve Photo** (free; AI Style 1 credit): Select an enhancement preset
 3. Save both versions for comparison content
 
 ## Remove Unwanted Objects from a Photo

@@ -35,7 +35,7 @@
 - Best for precise edits with text instructions
 
 ### Grok Edit
-- **Cost:** 0 credits (free!)
+- **Cost:** 1 image credit (used for AI Style in Improve Photo)
 - **Provider:** xAI
 - Good for general improvements and edits
 
@@ -43,7 +43,7 @@
 
 ### Grok Video 1.5
 - **Provider:** xAI
-- **Cost:** 8-25 video credits (depending on duration)
+- **Cost:** 4 / 8 / 12 video credits for 5s / 10s / 15s
 - Text-to-video generation
 - Supports 5s, 10s, and 15s videos
 

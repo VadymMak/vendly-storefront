@@ -17,22 +17,22 @@ Yes. All images generated in AI Studio are yours to use for any commercial purpo
 ## Credits & Billing
 
 ### How many free credits do I get?
-Free plan includes 15 image credits per month. No video credits on free plan.
+Free plan includes 5 image credits per month. No video credits on free plan.
 
 ### Do unused credits carry over?
 Monthly credits do NOT carry over — they reset every 30 days. Bonus credits from credit packs DO carry over indefinitely.
 
 ### When do my credits reset?
-Every 30 days from when you started your subscription (or from your first credit reset).
+Every 30 days — from your last reset, or when your subscription renews.
 
 ### Can I get more credits without upgrading?
-Yes. Buy a credit pack: Pack S (€12 — 120 images + 5 videos) or Pack L (€29 — 350 images + 15 videos).
+Yes. Buy a credit pack: Starter Pack (€5 — 50 image + 3 video credits), Creator Pack (€10 — 150 image + 8 video credits) or Pro Pack (€20 — 400 image + 20 video credits).
 
 ### What happens if I run out of credits mid-month?
 You can buy a credit pack for immediate top-up, or wait for your monthly reset. Free tools (Auto Split, Place Products, Quick Filters) continue to work.
 
 ### Are there any free tools?
-Yes! These tools cost 0 credits: Grok Imagine (image generation), Grok Edit (image editing), Auto Split, Place Products (manual compositing), Quick Filters. AI Blend after Place Products costs 1 credit.
+Yes! These tools cost 0 credits: Grok Imagine (image generation), the basic Improve Photo presets, Auto Split, Place Products (manual compositing), Quick Filters. AI Style in Improve Photo and AI Blend after Place Products cost 1 credit each.
 
 ## Technical
 
@@ -43,7 +43,7 @@ Quality depends on your tier: Quick (1 credit) is good for drafts, Best (2 credi
 Images: 3-15 seconds depending on quality tier. Videos: 30-120 seconds depending on duration. Longer videos take more time.
 
 ### Can I generate videos?
-Yes, but video credits are required. Free plan has no video credits. Upgrade to Starter (€9/month — 5 video credits) or Pro (€19/month — 15 video credits).
+Yes, but video credits are required. Free plan has no video credits. Upgrade to Starter (€9/month — 20 video credits) or Pro (€19/month — 60 video credits), or buy a credit pack.
 
 ### What's BYOK?
 BYOK (Bring Your Own Key) lets you use your own API keys from AI providers (Replicate, xAI, fal.ai, BFL). The BYOK Creator plan (€7/month) gives you unlimited usage with your own keys.

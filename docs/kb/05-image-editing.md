@@ -14,9 +14,9 @@ Edit and enhance images using AI. Describe what changes you want and AI applies 
 ## Credits
 
 - **Flux Kontext Pro** — 2 image credits
-- **Grok Edit** — 0 credits (free)
+- **Grok Edit** — 1 image credit
 
-The system automatically selects the best model. Grok Edit is free and produces good results.
+The system automatically selects the best model. Grok Edit costs 1 credit and produces good results.
 
 ## Enhancement Presets
 

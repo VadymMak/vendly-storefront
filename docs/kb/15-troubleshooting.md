@@ -5,7 +5,7 @@
 **Cause:** You've used all your monthly image credits and bonus credits.
 
 **Solutions:**
-1. Buy a credit pack (Pack S: €12 for 120 images, Pack L: €29 for 350 images)
+1. Buy a credit pack (€5 for 50 images, €10 for 150 images, €20 for 400 images)
 2. Upgrade your plan for more monthly credits
 3. Wait for monthly credit reset (every 30 days)
 4. Use free tools: Grok Imagine (0 credits), Quick Filters, Auto Split, Place Products
@@ -15,7 +15,7 @@
 **Cause:** You're on the Free plan and have no video credits.
 
 **Solutions:**
-1. Upgrade to Starter (€9/month — 5 video credits) or Pro (€19/month — 15 video credits)
+1. Upgrade to Starter (€9/month — 20 video credits) or Pro (€19/month — 60 video credits)
 2. Buy a credit pack that includes video credits
 
 ## "No video credits remaining"
@@ -23,7 +23,7 @@
 **Cause:** You've used all your video credits for this period.
 
 **Solutions:**
-1. Buy a credit pack (Pack S includes 5 videos, Pack L includes 15 videos)
+1. Buy a credit pack (€5 includes 3 video credits, €10 includes 8, €20 includes 20)
 2. Upgrade your plan for more video credits
 3. Wait for monthly credit reset
 

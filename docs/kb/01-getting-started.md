@@ -18,15 +18,15 @@ AI Studio is designed for small business owners: restaurants, barbershops, beaut
 
 1. **Generate your first image**: Click "Generate Image", describe what you want (e.g., "professional photo of a cozy barbershop interior"), choose a style preset, and click Generate
 2. **Try Quick Tools**: Use one-click tools like Remove Background, Upscale HD, or Improve Photo on any image
-3. **Check your credits**: Your credit balance is shown in the top bar. Free plan includes 15 image credits per month
+3. **Check your credits**: Your credit balance is shown in the top bar. Free plan includes 5 image credits per month
 
 ## Available tools
 
 | Tool | What it does | Credits |
 |------|-------------|---------|
 | Generate Image | Create images from text descriptions | 1-3 per image |
-| Generate Video | Create videos from text descriptions | 8-25 per video |
-| Improve Photo | Enhance lighting, clarity, and detail | 2 credits |
+| Generate Video | Create videos from text descriptions | 4-28 per video |
+| Improve Photo | Enhance lighting, clarity, and detail | Free (AI Style: 1 credit) |
 | Remove Background | Isolate subject with clean cutout | 1 credit |
 | Upscale HD | Boost resolution up to 4x | 1 credit |
 | Animate Video | Turn a still image into a short video | 5 credits |

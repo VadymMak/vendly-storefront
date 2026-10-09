@@ -250,6 +250,31 @@ async function handleEvent(event: Stripe.Event): Promise<NextResponse | void> {
       break;
     }
 
+    // ── Renewal charge failed ─────────────────────────────────────────────
+    // No downgrade here: Stripe retries (Smart Retries) and fires
+    // customer.subscription.deleted if every retry fails.
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const next = invoice.next_payment_attempt
+        ? new Date(invoice.next_payment_attempt * 1000).toISOString()
+        : 'none';
+      console.warn(
+        `⚠️ [stripe] Payment failed: invoice=${invoice.id} customer=${invoice.customer_email ?? invoice.customer} ` +
+        `amount=${invoice.amount_due} attempt=${invoice.attempt_count} nextAttempt=${next}`,
+      );
+      break;
+    }
+
+    // ── Refund — logged for manual review, credits are NOT revoked automatically ──
+    case 'charge.refunded': {
+      const charge = event.data.object as Stripe.Charge;
+      console.warn(
+        `⚠️ [stripe] Charge refunded: charge=${charge.id} customer=${charge.billing_details?.email ?? charge.customer} ` +
+        `refunded=${charge.amount_refunded}/${charge.amount} ${charge.currency}`,
+      );
+      break;
+    }
+
     case 'checkout.session.expired': {
       const session = event.data.object as Stripe.Checkout.Session;
       const orderId = session.metadata?.orderId;

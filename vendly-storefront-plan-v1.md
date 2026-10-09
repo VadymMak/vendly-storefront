@@ -236,5 +236,13 @@
 - [x] Deleted `/api/studio/buy-credits` (€12/€29) + `UpgradeModal`; one pack system via `/api/studio/checkout`
 - [x] `/studio/pricing` shows €9/€19, 15/100/300 images, reel counts, €5/€10/€20 packs (6 locales)
 - [x] PricingModal / CreditPackModal / chat assistant prompt / kb-chat read the constants
-- [ ] KB docs `docs/kb/02-plans-and-pricing.md` + `14-credits-system.md` still list old numbers → fix + re-ingest
 - [ ] `/create` page `CREATE_PLANS` (€19/€39) — website-builder plans, confirm they are a separate product
+
+### PROMPT-235 — Free tier hardening ✅ (partial)
+- [x] Free plan 15 → 5 image credits/month (new users + monthly reset; existing balances untouched)
+- [x] AI Style = 1 image credit, shown on the button (it was already charged, but labelled "Free" and logged as 0)
+- [x] /api/studio/edit charges each model's creditCost (Flux Kontext edits now 2, as labelled)
+- [x] Mobile credit counter refreshes after spending
+- [x] KB docs corrected + re-ingested
+- [ ] Email verification — blocked: Resend domain vendshop.shop is "failed" (DNS). Fix DNS, then build verification
+- [ ] Desktop label "Change or remove something · 2 cr" vs inpaint charging 1 — pick one

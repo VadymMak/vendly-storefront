@@ -220,3 +220,13 @@
 - [ ] Мультиязычность (sk/cz/ua/de)
 - [ ] Интеграция с CMS для контента
 - [ ] og-image.png — создать реальное OG изображение 1200×630
+
+## 5. AI Studio — Billing go-live (PROMPT-232 audit)
+
+### PROMPT-233A — Reel metering + webhook idempotency ✅
+- [x] Reels charge credits: images mode 2 image, video mode 5 video (`REEL_CREDIT_COST`); BYOK does not bypass; failed reels refunded once
+- [x] Stripe webhook records the event only after it is handled — failed grants are retried by Stripe
+- [x] `invoice.payment_failed` + `charge.refunded` logged (no automatic downgrade / revoke)
+- [x] Reel rate limit 10/hour, 30/day per user (superusers bypass)
+- [ ] Add `invoice.payment_failed` + `charge.refunded` to the Stripe webhook endpoint's event list (Dashboard)
+- [ ] Remaining "Must Fix" items from the PROMPT-232 audit (past_due handling, one credit-pack system, price copy, legal pages, tax, mobile purchase path)

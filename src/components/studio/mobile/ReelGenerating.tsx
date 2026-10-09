@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { readReelPhotos } from '@/lib/studio/mobile/reel';
 import type { MusicTrack } from '@/lib/types';
 import MusicBottomSheet from './MusicBottomSheet';
+import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 
 interface JobStatus {
   jobId: string;
@@ -104,6 +105,7 @@ export function ReelGenerating() {
       }
 
       setJobId(data.jobId);
+      notifyCreditsChanged(); // the reel was charged when it started
       setPhase('generating');
 
       pollRef.current = setInterval(async () => {

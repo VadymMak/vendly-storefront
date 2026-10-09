@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileLanguageSwitcher } from './MobileLanguageSwitcher';
 import { MobileAccountMenu } from './MobileAccountMenu';
+import { CREDITS_CHANGED_EVENT } from '@/lib/studio/credits-events';
 
 interface CreditStatus {
   plan: string;
@@ -24,19 +26,29 @@ interface Props {
 export function MobileStudioShell({ userId, userEmail, children }: Props) {
   const t = useTranslations('mobile.shell');
   const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
+  const pathname = usePathname();
+
+  const loadCredits = useCallback(() => {
+    fetch('/api/studio/credits')
+      .then(r => (r.ok ? r.json() as Promise<CreditStatus> : null))
+      .then((data) => { if (data?.monthly) setCreditStatus(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
+  }, []);
 
-    // Fetch credits
-    fetch('/api/studio/credits')
-      .then(r => r.json())
-      .then((data: CreditStatus) => setCreditStatus(data))
-      .catch(() => {});
-  }, [userId]);
+  // Refetch on every screen change and whenever a tool reports it spent credits
+  useEffect(() => { loadCredits(); }, [userId, pathname, loadCredits]);
+
+  useEffect(() => {
+    window.addEventListener(CREDITS_CHANGED_EVENT, loadCredits);
+    return () => window.removeEventListener(CREDITS_CHANGED_EVENT, loadCredits);
+  }, [loadCredits]);
 
   const creditsLabel = (() => {
     if (!creditStatus) return null;

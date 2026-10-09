@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { PLATFORM_IMAGE_PRESETS, STYLE_CHIPS } from '@/lib/studio/constants';
 import type { GenerationMode } from '@/lib/types';
+import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 
 interface GenerateParams {
   prompt: string;
@@ -112,6 +113,7 @@ export function GeneratingStep({ generateParams, onComplete, onError }: Props) {
         setProgress(100);
 
         setTimeout(() => {
+          notifyCreditsChanged();
           onComplete({ imageUrl, prompt: styledPrompt, model: 'fast', generationMode });
         }, 300);
       } catch (e) {

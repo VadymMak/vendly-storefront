@@ -925,7 +925,7 @@ export const STUDIO_PLAN_PRICES_EUR = {
 
 // Credit allowances per plan (monthly reset values)
 export const PLAN_CREDITS = {
-  free:         { images: 15,  videos: 0  },
+  free:         { images: 5,   videos: 0  },
   starter:      { images: 100, videos: 20 },
   pro:          { images: 300, videos: 60 },
   byok_creator: { images: 0,   videos: 0  },

@@ -59,8 +59,13 @@ export async function getOrCreateCredits(userId: string) {
   });
 
   if (!credits) {
+    // Explicit allowance — the column default (15) predates the current free plan
     credits = await db.studioCredits.create({
-      data: { userId },
+      data: {
+        userId,
+        monthlyImages: PLAN_CREDITS.free.images,
+        monthlyVideos: PLAN_CREDITS.free.videos,
+      },
     });
   }
 
@@ -414,6 +419,9 @@ export async function getCreditStatus(userId: string) {
   ]);
   const plan = credits.planType as PlanType;
   const allowance = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
+  // A balance granted under an older, larger allowance can exceed the current one until the next reset
+  const imagesTotal = Math.max(allowance.images, credits.monthlyImages);
+  const videosTotal = Math.max(allowance.videos, credits.monthlyVideos);
 
   return {
     plan: credits.planType,
@@ -422,13 +430,13 @@ export async function getCreditStatus(userId: string) {
     byokUnlimited: byok && plan === 'byok_creator',
     monthly: {
       images: {
-        used: allowance.images - credits.monthlyImages,
-        total: allowance.images,
+        used: imagesTotal - credits.monthlyImages,
+        total: imagesTotal,
         remaining: credits.monthlyImages,
       },
       videos: {
-        used: allowance.videos - credits.monthlyVideos,
-        total: allowance.videos,
+        used: videosTotal - credits.monthlyVideos,
+        total: videosTotal,
         remaining: credits.monthlyVideos,
       },
     },

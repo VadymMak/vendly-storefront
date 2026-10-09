@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { PLAN_CREDITS, STUDIO_CREDIT_PACKS, STUDIO_PLAN_PRICES_EUR, REEL_CREDIT_COST, reelsForCredits } from '@/lib/constants';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,8 @@ function IconKey() {
 
 // ── Plan rows data ─────────────────────────────────────────────────────────────
 
-type CellValue = string | boolean;
+// Numbers are rendered with plans.values.upTo / plain numbers; booleans as check / cross
+type CellValue = number | { upTo: number } | boolean;
 
 interface PlanRow {
   labelKey: string;
@@ -55,10 +57,18 @@ interface PlanRow {
   pro: CellValue;
 }
 
+const PLAN_KEYS = ['free', 'starter', 'pro'] as const;
+
+function perPlan(value: (plan: (typeof PLAN_KEYS)[number]) => CellValue) {
+  return { free: value('free'), starter: value('starter'), pro: value('pro') };
+}
+
 const PLAN_ROWS: PlanRow[] = [
-  { labelKey: 'imagesMonth',    free: '5',              starter: '50',           pro: '150' },
-  { labelKey: 'videosMonth',    free: '0',              starter: '20 credits',   pro: '60 credits' },
-  { labelKey: 'video10s',       free: false,            starter: '2 credits',    pro: '2 credits' },
+  { labelKey: 'imagesMonth',    ...perPlan((p) => PLAN_CREDITS[p].images) },
+  { labelKey: 'videosMonth',    ...perPlan((p) => PLAN_CREDITS[p].videos) },
+  { labelKey: 'reelsImages',    ...perPlan((p) => ({ upTo: reelsForCredits(PLAN_CREDITS[p].images, 'images') })) },
+  { labelKey: 'reelsVideo',     ...perPlan((p) => ({ upTo: reelsForCredits(PLAN_CREDITS[p].videos, 'video') })) },
+  { labelKey: 'aiStyle',        free: true,             starter: true,           pro: true },
   { labelKey: 'allTools',       free: true,             starter: true,           pro: true },
   { labelKey: 'promptEnhance',  free: true,             starter: true,           pro: true },
   { labelKey: 'creditPacks',    free: true,             starter: true,           pro: true },
@@ -66,6 +76,8 @@ const PLAN_ROWS: PlanRow[] = [
   { labelKey: 'customDomain',   free: false,            starter: false,          pro: true },
   { labelKey: 'prioritySupport',free: false,            starter: false,          pro: true },
 ];
+
+const CHEAPEST_PACK = STUDIO_CREDIT_PACKS[0];
 
 // ── Tool pricing rows ──────────────────────────────────────────────────────────
 
@@ -80,7 +92,7 @@ const FAQ_KEYS = ['howCredits', 'runOut', 'freePlan', 'byok', 'compare'] as cons
 
 // ── Cell renderer ──────────────────────────────────────────────────────────────
 
-function Cell({ value, highlight }: { value: CellValue; highlight: boolean }) {
+function Cell({ value, highlight, upToLabel }: { value: CellValue; highlight: boolean; upToLabel: (count: number) => string }) {
   const base = `flex items-center justify-center p-4 text-sm ${highlight ? 'bg-[var(--color-accent)]' : ''}`;
   if (typeof value === 'boolean') {
     return (
@@ -92,9 +104,10 @@ function Cell({ value, highlight }: { value: CellValue; highlight: boolean }) {
       </div>
     );
   }
+  const text = typeof value === 'number' ? String(value) : value.upTo > 0 ? upToLabel(value.upTo) : '0';
   return (
     <div className={base}>
-      <span className="font-medium text-white">{value}</span>
+      <span className="font-medium text-white">{text}</span>
     </div>
   );
 }
@@ -123,6 +136,14 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export default function StudioPricingPage() {
   const t = useTranslations('studioPricing');
+  const upToLabel = (count: number) => t('plans.values.upTo', { count });
+  // Every number the FAQ answers mention — keys a given answer doesn't use are ignored
+  const faqValues = {
+    price:      CHEAPEST_PACK.priceEur,
+    images:     PLAN_CREDITS.free.images,
+    reelImages: REEL_CREDIT_COST.images.amount,
+    reelVideo:  REEL_CREDIT_COST.video.amount,
+  };
 
   return (
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
@@ -148,7 +169,7 @@ export default function StudioPricingPage() {
             {/* Free */}
             <div className="flex flex-col items-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-center sm:p-6">
               <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('plans.free.name')}</p>
-              <p className="mt-2 text-3xl font-extrabold text-white">{t('plans.free.price')}</p>
+              <p className="mt-2 text-3xl font-extrabold text-white">{t('plans.price', { price: STUDIO_PLAN_PRICES_EUR.free })}</p>
               <Link
                 href="/login?callbackUrl=/studio"
                 className="mt-5 w-full rounded-lg border border-[var(--color-border)] py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-card-hover)]"
@@ -164,10 +185,10 @@ export default function StudioPricingPage() {
               </span>
               <p className="text-sm font-semibold text-[var(--color-primary)]">{t('plans.starter.name')}</p>
               <p className="mt-2 text-3xl font-extrabold text-white">
-                {t('plans.starter.price')}<span className="text-sm font-normal text-[var(--color-text-muted)]">{t('plans.starter.period')}</span>
+                {t('plans.price', { price: STUDIO_PLAN_PRICES_EUR.starter })}<span className="text-sm font-normal text-[var(--color-text-muted)]">{t('plans.starter.period')}</span>
               </p>
               <Link
-                href="/pricing"
+                href="/login?callbackUrl=/studio"
                 className="mt-5 w-full rounded-lg bg-[var(--color-primary)] py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]"
               >
                 {t('plans.starter.cta')}
@@ -178,10 +199,10 @@ export default function StudioPricingPage() {
             <div className="flex flex-col items-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-center sm:p-6">
               <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('plans.pro.name')}</p>
               <p className="mt-2 text-3xl font-extrabold text-white">
-                {t('plans.pro.price')}<span className="text-sm font-normal text-[var(--color-text-muted)]">{t('plans.pro.period')}</span>
+                {t('plans.price', { price: STUDIO_PLAN_PRICES_EUR.pro })}<span className="text-sm font-normal text-[var(--color-text-muted)]">{t('plans.pro.period')}</span>
               </p>
               <Link
-                href="/pricing"
+                href="/login?callbackUrl=/studio"
                 className="mt-5 w-full rounded-lg border border-[var(--color-border)] py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-card-hover)]"
               >
                 {t('plans.pro.cta')}
@@ -199,9 +220,9 @@ export default function StudioPricingPage() {
                 <div className="flex items-center p-4 text-sm text-[var(--color-text-muted)]">
                   {t(`plans.rows.${row.labelKey}` as Parameters<typeof t>[0])}
                 </div>
-                <Cell value={row.free}    highlight={false} />
-                <Cell value={row.starter} highlight={true} />
-                <Cell value={row.pro}     highlight={false} />
+                <Cell value={row.free}    highlight={false} upToLabel={upToLabel} />
+                <Cell value={row.starter} highlight={true}  upToLabel={upToLabel} />
+                <Cell value={row.pro}     highlight={false} upToLabel={upToLabel} />
               </div>
             ))}
           </div>
@@ -217,47 +238,45 @@ export default function StudioPricingPage() {
             <p className="mt-3 text-[var(--color-text-muted)]">{t('packs.subtitle')}</p>
           </div>
 
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            {/* Pack S */}
-            <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-              <div>
-                <p className="text-lg font-bold text-white">{t('packs.s.name')}</p>
-                <p className="mt-1 text-3xl font-extrabold text-white">{t('packs.s.price')}</p>
-              </div>
-              <ul className="space-y-2 text-sm text-[var(--color-text-muted)]">
-                <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.s.images')}</li>
-                <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.s.videos')}</li>
-                <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>Credits never expire</li>
-              </ul>
-              <Link
-                href="/login?callbackUrl=/studio"
-                className="mt-auto rounded-lg border border-[var(--color-border)] py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[var(--color-card-hover)]"
-              >
-                {t('packs.s.cta')}
-              </Link>
-            </div>
-
-            {/* Pack L — best value */}
-            <div className="relative flex flex-col gap-4 rounded-2xl border-2 border-[var(--color-primary)] bg-[var(--color-card)] p-6 shadow-lg shadow-[var(--color-primary)]/10">
-              <span className="absolute -top-3.5 right-5 rounded-full bg-[var(--color-primary)] px-3 py-0.5 text-xs font-bold text-white">
-                {t('packs.l.badge')}
-              </span>
-              <div>
-                <p className="text-lg font-bold text-white">{t('packs.l.name')}</p>
-                <p className="mt-1 text-3xl font-extrabold text-white">{t('packs.l.price')}</p>
-              </div>
-              <ul className="space-y-2 text-sm text-[var(--color-text-muted)]">
-                <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.l.images')}</li>
-                <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.l.videos')}</li>
-                <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>Credits never expire</li>
-              </ul>
-              <Link
-                href="/login?callbackUrl=/studio"
-                className="mt-auto rounded-lg bg-[var(--color-primary)] py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]"
-              >
-                {t('packs.l.cta')}
-              </Link>
-            </div>
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
+            {STUDIO_CREDIT_PACKS.map((pack) => {
+              const name = t(`packs.names.${pack.id}` as Parameters<typeof t>[0]);
+              return (
+                <div
+                  key={pack.id}
+                  className={`relative flex flex-col gap-4 rounded-2xl bg-[var(--color-card)] p-6 ${
+                    pack.popular
+                      ? 'border-2 border-[var(--color-primary)] shadow-lg shadow-[var(--color-primary)]/10'
+                      : 'border border-[var(--color-border)]'
+                  }`}
+                >
+                  {pack.popular && (
+                    <span className="absolute -top-3.5 right-5 rounded-full bg-[var(--color-primary)] px-3 py-0.5 text-xs font-bold text-white">
+                      {t('packs.badge')}
+                    </span>
+                  )}
+                  <div>
+                    <p className="text-lg font-bold text-white">{name}</p>
+                    <p className="mt-1 text-3xl font-extrabold text-white">{t('packs.price', { price: pack.priceEur })}</p>
+                  </div>
+                  <ul className="space-y-2 text-sm text-[var(--color-text-muted)]">
+                    <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.images', { count: pack.images })}</li>
+                    <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.videos', { count: pack.videos })}</li>
+                    <li className="flex items-center gap-2"><span className="text-[var(--color-primary)]"><IconCheck /></span>{t('packs.neverExpire')}</li>
+                  </ul>
+                  <Link
+                    href="/login?callbackUrl=/studio"
+                    className={`mt-auto rounded-lg py-2.5 text-center text-sm font-semibold text-white transition-colors ${
+                      pack.popular
+                        ? 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]'
+                        : 'border border-[var(--color-border)] hover:bg-[var(--color-card-hover)]'
+                    }`}
+                  >
+                    {t('packs.cta', { name })}
+                  </Link>
+                </div>
+              );
+            })}
           </div>
 
           <p className="mt-6 text-center text-sm text-[var(--color-text-dim)]">{t('packs.note')}</p>
@@ -308,7 +327,10 @@ export default function StudioPricingPage() {
               <IconKey />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-white">{t('byok.title')}</h2>
+              <h2 className="text-lg font-bold text-white">
+                {t('byok.title')}{' '}
+                <span className="text-[var(--color-primary)]">{t('byok.price', { price: STUDIO_PLAN_PRICES_EUR.byok_creator })}</span>
+              </h2>
               <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-muted)]">{t('byok.description')}</p>
             </div>
             <Link
@@ -330,7 +352,7 @@ export default function StudioPricingPage() {
               <FaqItem
                 key={key}
                 q={t(`faq.items.${key}.q` as Parameters<typeof t>[0])}
-                a={t(`faq.items.${key}.a` as Parameters<typeof t>[0])}
+                a={t(`faq.items.${key}.a` as Parameters<typeof t>[0], faqValues)}
               />
             ))}
           </div>
@@ -341,7 +363,7 @@ export default function StudioPricingPage() {
       <section className="py-20 sm:py-28">
         <div className="mx-auto max-w-xl px-4 text-center sm:px-6">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">{t('cta.title')}</h2>
-          <p className="mt-4 text-[var(--color-text-muted)]">{t('cta.note')}</p>
+          <p className="mt-4 text-[var(--color-text-muted)]">{t('cta.note', { images: PLAN_CREDITS.free.images })}</p>
           <Link
             href="/login?callbackUrl=/studio"
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-10 py-4 text-base font-semibold text-white transition-colors hover:bg-[var(--color-primary-dark)]"

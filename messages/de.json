@@ -913,7 +913,7 @@
     "faqAiQ1": "Was ist AI Studio?",
     "faqAiA1": "AI Studio ist unser integriertes Content-Erstellungs-Tool. Generieren Sie professionelle Bilder und Videos für Ihre Website und Social Media mit KI. Jeder Plan beinhaltet kostenlose monatliche Credits.",
     "faqAiQ2": "Kann ich mehr KI-Credits kaufen?",
-    "faqAiA2": "Ja! Credit-Pakete starten ab €12 (120 Bilder + 5 Videos). Credits aus Paketen verfallen nie. Besuchen Sie /studio/pricing für Details."
+    "faqAiA2": "Ja! Credit-Pakete starten ab €{price} ({images} Bild-Credits + {videos} Video-Credits). Credits aus Paketen verfallen nie. Details unter"
   },
   "templatesPage": {
     "badge": "6 Vorlagen",
@@ -1237,22 +1237,6 @@
       "title": "Bereit für jede Plattform",
       "subtitle": "Erstellen Sie Inhalte für alle wichtigen Social-Media-Plattformen im richtigen Format"
     },
-    "pricing": {
-      "title": "Einfache, transparente Preise",
-      "free": "Kostenlos",
-      "starter": "Starter",
-      "pro": "Pro",
-      "month": "/Mo.",
-      "imagesMonth": "Bilder/Monat",
-      "videosMonth": "Videos/Monat (5s)",
-      "video10s": "Video 10s",
-      "allTools": "Alle 7 KI-Tools",
-      "creditPacks": "Credit-Pakete",
-      "websiteBuilder": "Website-Baukasten",
-      "tryCta": "Kostenlos testen",
-      "startCta": "Loslegen",
-      "creditNote": "Mehr benötigt? Credit-Pakete ab €12 — Credits verfallen nie"
-    },
     "howItWorks": {
       "title": "So funktioniert es",
       "step1Title": "Beschreiben",
@@ -1261,11 +1245,6 @@
       "step2Desc": "KI erstellt Ihr Bild oder Video in Sekunden. Keine Design-Kenntnisse nötig.",
       "step3Title": "Überall nutzen",
       "step3Desc": "Herunterladen und auf Social Media, Ihrer Website oder überall teilen."
-    },
-    "cta": {
-      "title": "Kostenlos mit dem Erstellen beginnen",
-      "subtitle": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich.",
-      "button": "Erstes Bild erstellen"
     },
     "byok": {
       "note": "Für Fortgeschrittene: Bringen Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzten Zugang mit"
@@ -1351,25 +1330,24 @@
       "badge": "Beliebteste Wahl",
       "free": {
         "name": "Kostenlos",
-        "price": "€0",
         "cta": "Kostenlos starten"
       },
       "starter": {
         "name": "Starter",
-        "price": "€19",
         "period": "/Mo.",
         "cta": "Mit Starter beginnen"
       },
       "pro": {
         "name": "Pro",
-        "price": "€39",
         "period": "/Mo.",
         "cta": "Pro werden"
       },
       "rows": {
         "imagesMonth": "Bilder pro Monat",
-        "videosMonth": "Videos pro Monat",
-        "video10s": "10s-Videos",
+        "videosMonth": "Video-Credits pro Monat",
+        "reelsImages": "Foto-Reels pro Monat",
+        "reelsVideo": "KI-Video-Reels pro Monat",
+        "aiStyle": "KI-Stil-Feinschliff",
         "allTools": "Alle 7 KI-Tools",
         "promptEnhance": "KI-Prompt-Verbesserung",
         "creditPacks": "Credit-Pakete",
@@ -1378,33 +1356,24 @@
         "prioritySupport": "Priority-Support"
       },
       "values": {
-        "freeImages": "5",
-        "freeVideos": "1 (nur 5s)",
-        "starterImages": "50",
-        "starterVideos": "3",
-        "proImages": "150",
-        "proVideos": "8",
-        "video10sNote": "2 Credits"
-      }
+        "upTo": "bis zu {count}"
+      },
+      "price": "€{price}"
     },
     "packs": {
       "title": "Credit-Pakete",
       "subtitle": "Jederzeit aufladen — Credits verfallen nie",
       "note": "Credit-Pakete funktionieren mit jedem Plan — auch mit Kostenlos",
-      "s": {
-        "name": "Paket S",
-        "price": "€12",
-        "images": "120 Bilder",
-        "videos": "5 Videos",
-        "cta": "Paket S kaufen"
-      },
-      "l": {
-        "name": "Paket L",
-        "price": "€29",
-        "badge": "Bestes Angebot",
-        "images": "350 Bilder",
-        "videos": "15 Videos",
-        "cta": "Paket L kaufen"
+      "badge": "Am beliebtesten",
+      "price": "€{price}",
+      "images": "{count} Bild-Credits",
+      "videos": "{count} Video-Credits",
+      "neverExpire": "Credits verfallen nie",
+      "cta": "{name} kaufen",
+      "names": {
+        "starter": "Starter-Paket",
+        "creator": "Creator-Paket",
+        "pro": "Pro-Paket"
       }
     },
     "toolPricing": {
@@ -1461,22 +1430,23 @@
     "byok": {
       "title": "Power-User: Eigenen Schlüssel mitbringen",
       "description": "Verbinden Sie Ihren eigenen Replicate API-Schlüssel für unbegrenzte Generierungen. Sie bezahlen Replicate direkt — ohne Aufschlag von uns.",
-      "cta": "BYOK einrichten"
+      "cta": "BYOK einrichten",
+      "price": "€{price}/Mo."
     },
     "faq": {
       "title": "Häufig gestellte Fragen",
       "items": {
         "howCredits": {
           "q": "Wie funktionieren Credits?",
-          "a": "Jeden Monat erhalten Sie einen frischen Satz Credits basierend auf Ihrem Plan. Bilder kosten 1 Credit, 5s-Videos 1 Video-Credit, 10s-Videos 2 Video-Credits. Nicht genutzte monatliche Credits verfallen — Credit-Paket-Credits nie."
+          "a": "Jeden Monat erhalten Sie neue Bild- und Video-Credits je nach Plan. Jedes Tool zeigt die Credit-Kosten vor dem Generieren an. Ein Foto-Reel kostet {reelImages} Bild-Credits, ein KI-Video-Reel {reelVideo} Video-Credits. Nicht genutzte monatliche Credits verfallen — Credit-Paket-Credits nie."
         },
         "runOut": {
           "q": "Was passiert, wenn mir die Credits ausgehen?",
-          "a": "Sie können ein Credit-Paket (ab €12) für eine sofortige Aufladung kaufen oder Ihren Plan für mehr monatliche Credits upgraden. Credit-Paket-Credits verfallen nie."
+          "a": "Sie können ein Credit-Paket (ab €{price}) für eine sofortige Aufladung kaufen oder Ihren Plan für mehr monatliche Credits upgraden. Credit-Paket-Credits verfallen nie."
         },
         "freePlan": {
           "q": "Kann ich AI Studio mit dem kostenlosen Plan nutzen?",
-          "a": "Ja! Der kostenlose Plan beinhaltet 5 Bilder und 1 Video jeden Monat. Keine Kreditkarte erforderlich."
+          "a": "Ja! Der kostenlose Plan beinhaltet {images} Bild-Credits jeden Monat. Keine Kreditkarte erforderlich."
         },
         "byok": {
           "q": "Was ist BYOK?",
@@ -1490,7 +1460,7 @@
     },
     "cta": {
       "title": "Kostenlos mit dem Erstellen beginnen",
-      "note": "5 kostenlose Bilder + 1 Video jeden Monat. Keine Kreditkarte erforderlich.",
+      "note": "{images} kostenlose Bild-Credits jeden Monat. Keine Kreditkarte erforderlich.",
       "button": "Kostenlos starten"
     }
   },

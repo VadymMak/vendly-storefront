@@ -913,7 +913,7 @@
     "faqAiQ1": "What is AI Studio?",
     "faqAiA1": "AI Studio is our built-in content creation tool. Generate professional images and videos for your website and social media using AI. Every plan includes free monthly credits.",
     "faqAiQ2": "Can I buy more AI credits?",
-    "faqAiA2": "Yes! Credit packs start from €12 (120 images + 5 videos). Credits from packs never expire. Visit /studio/pricing for details."
+    "faqAiA2": "Yes! Credit packs start from €{price} ({images} image credits + {videos} video credits). Credits from packs never expire. Visit"
   },
   "templatesPage": {
     "badge": "6 šablón",
@@ -1237,22 +1237,6 @@
       "title": "Ready for Every Platform",
       "subtitle": "Create content for all major social platforms in the right format"
     },
-    "pricing": {
-      "title": "Simple, Transparent Pricing",
-      "free": "Free",
-      "starter": "Starter",
-      "pro": "Pro",
-      "month": "/mo",
-      "imagesMonth": "Images/month",
-      "videosMonth": "Videos/month (5s)",
-      "video10s": "Video 10s",
-      "allTools": "All 7 AI tools",
-      "creditPacks": "Credit packs",
-      "websiteBuilder": "Website builder",
-      "tryCta": "Try Free",
-      "startCta": "Get Started",
-      "creditNote": "Need more? Buy credit packs from €12 — credits never expire"
-    },
     "howItWorks": {
       "title": "How It Works",
       "step1Title": "Describe",
@@ -1261,11 +1245,6 @@
       "step2Desc": "AI creates your image or video in seconds. No design skills needed.",
       "step3Title": "Use Everywhere",
       "step3Desc": "Download and post to social media, your website, or anywhere you need."
-    },
-    "cta": {
-      "title": "Start Creating for Free",
-      "subtitle": "5 free images + 1 video every month. No credit card required.",
-      "button": "Create Your First Image"
     },
     "byok": {
       "note": "Advanced users: bring your own Replicate API key for unlimited access"
@@ -1351,25 +1330,24 @@
       "badge": "Most Popular",
       "free": {
         "name": "Free",
-        "price": "€0",
         "cta": "Get Started Free"
       },
       "starter": {
         "name": "Starter",
-        "price": "€19",
         "period": "/mo",
         "cta": "Start with Starter"
       },
       "pro": {
         "name": "Pro",
-        "price": "€39",
         "period": "/mo",
         "cta": "Go Pro"
       },
       "rows": {
         "imagesMonth": "Images per month",
-        "videosMonth": "Videos per month",
-        "video10s": "10s videos",
+        "videosMonth": "Video credits per month",
+        "reelsImages": "Photo reels per month",
+        "reelsVideo": "AI video reels per month",
+        "aiStyle": "AI Style photo finish",
         "allTools": "All 7 AI tools",
         "promptEnhance": "AI prompt enhancement",
         "creditPacks": "Credit packs",
@@ -1378,33 +1356,24 @@
         "prioritySupport": "Priority support"
       },
       "values": {
-        "freeImages": "5",
-        "freeVideos": "1 (5s only)",
-        "starterImages": "50",
-        "starterVideos": "3",
-        "proImages": "150",
-        "proVideos": "8",
-        "video10sNote": "2 credits"
-      }
+        "upTo": "up to {count}"
+      },
+      "price": "€{price}"
     },
     "packs": {
       "title": "Credit Packs",
       "subtitle": "Top up anytime — credits never expire",
       "note": "Credit packs work on any plan — even Free",
-      "s": {
-        "name": "Pack S",
-        "price": "€12",
-        "images": "120 images",
-        "videos": "5 videos",
-        "cta": "Buy Pack S"
-      },
-      "l": {
-        "name": "Pack L",
-        "price": "€29",
-        "badge": "Best Value",
-        "images": "350 images",
-        "videos": "15 videos",
-        "cta": "Buy Pack L"
+      "badge": "Most Popular",
+      "price": "€{price}",
+      "images": "{count} image credits",
+      "videos": "{count} video credits",
+      "neverExpire": "Credits never expire",
+      "cta": "Buy {name}",
+      "names": {
+        "starter": "Starter Pack",
+        "creator": "Creator Pack",
+        "pro": "Pro Pack"
       }
     },
     "toolPricing": {
@@ -1461,22 +1430,23 @@
     "byok": {
       "title": "Power Users: Bring Your Own Key",
       "description": "Connect your own Replicate API key for unlimited generations. You pay Replicate directly — no markup from us.",
-      "cta": "Set up BYOK"
+      "cta": "Set up BYOK",
+      "price": "€{price}/mo"
     },
     "faq": {
       "title": "Frequently Asked Questions",
       "items": {
         "howCredits": {
           "q": "How do credits work?",
-          "a": "Each month you get a fresh set of credits based on your plan. Images cost 1 credit, 5-second videos cost 1 video credit, 10-second videos cost 2 video credits. Unused monthly credits do not roll over — but credit pack credits never expire."
+          "a": "Each month you get a fresh set of image and video credits based on your plan. Every tool shows its credit cost before you generate. A photo reel costs {reelImages} image credits, an AI video reel costs {reelVideo} video credits. Unused monthly credits do not roll over — credit pack credits never expire."
         },
         "runOut": {
           "q": "What happens when I run out of credits?",
-          "a": "You can buy a credit pack (from €12) for an instant top-up, or upgrade your plan for more monthly credits. Credit pack credits never expire."
+          "a": "You can buy a credit pack (from €{price}) for an instant top-up, or upgrade your plan for more monthly credits. Credit pack credits never expire."
         },
         "freePlan": {
           "q": "Can I use AI Studio on the Free plan?",
-          "a": "Yes! Free plan includes 5 images and 1 video every month. No credit card required."
+          "a": "Yes! The Free plan includes {images} image credits every month. No credit card required."
         },
         "byok": {
           "q": "What is BYOK?",
@@ -1490,7 +1460,7 @@
     },
     "cta": {
       "title": "Start Creating for Free",
-      "note": "5 free images + 1 video every month. No credit card required.",
+      "note": "{images} free image credits every month. No credit card required.",
       "button": "Get Started Free"
     }
   },

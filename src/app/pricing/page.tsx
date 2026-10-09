@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import PricingSection from '@/components/sections/PricingSection';
-import { COMPETITOR_TABLE } from '@/lib/constants';
+import { COMPETITOR_TABLE, STUDIO_CREDIT_PACKS } from '@/lib/constants';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('pricingPage');
@@ -118,7 +118,11 @@ export default async function PricingPage() {
               <div className="px-6 py-5">
                 <p className="text-sm font-semibold text-white">{t('faqAiQ2')}</p>
                 <p className="mt-2 text-sm leading-relaxed text-[--color-text-muted]">
-                  {t('faqAiA2')}{' '}
+                  {t('faqAiA2', {
+                    price:  STUDIO_CREDIT_PACKS[0].priceEur,
+                    images: STUDIO_CREDIT_PACKS[0].images,
+                    videos: STUDIO_CREDIT_PACKS[0].videos,
+                  })}{' '}
                   <a href="/studio/pricing" className="text-[--color-primary] underline hover:opacity-80">
                     /studio/pricing
                   </a>

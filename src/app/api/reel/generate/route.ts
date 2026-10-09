@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { consumeCredits, refundCredits, REEL_CREDIT_COST, type ReelMode } from '@/lib/credits';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 const REEL_SERVICE_URL = 'http://127.0.0.1:3010';
 
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'mode must be "images" or "video"' }, { status: 400 });
   }
   const cost = REEL_CREDIT_COST[mode];
+
+  if (
+    !(await checkRateLimitWithBypass(`reel:hour:${userId}`, RATE_LIMITS.reel.hourly, userId)) ||
+    !(await checkRateLimitWithBypass(`reel:day:${userId}`, RATE_LIMITS.reel.daily, userId))
+  ) {
+    return NextResponse.json({ error: 'Too many reels. Please try again later.' }, { status: 429 });
+  }
 
   // Charge up front: a reel takes minutes and pays FAL before it finishes, so a
   // charge-on-success check would let parallel requests start reels the balance can't cover.

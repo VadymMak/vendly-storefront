@@ -77,6 +77,11 @@ export const RATE_LIMITS = {
     pro:          { maxRequests: 400,  windowMs: 60 * 60 * 1000 },
     byok_creator: { maxRequests: 1000, windowMs: 60 * 60 * 1000 },
   },
+  // Per user, all plans — credits are the real cap, this stops bursts against FAL/Kling
+  reel: {
+    hourly: { maxRequests: 10, windowMs: 60 * 60 * 1000 },
+    daily:  { maxRequests: 30, windowMs: 24 * 60 * 60 * 1000 },
+  },
   register:   { maxRequests: 2, windowMs: 24 * 60 * 60 * 1000 },
   buyCredits: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
 } as const;

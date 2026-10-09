@@ -107,7 +107,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-neutral">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
+            <Link href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="font-medium text-primary hover:underline">
               Sign up
             </Link>
           </p>

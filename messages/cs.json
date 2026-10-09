@@ -1468,7 +1468,11 @@
     "shell": {
       "title": "AI Studio",
       "credits": "kr",
-      "language": "Jazyk"
+      "language": "Jazyk",
+      "account": "Účet",
+      "signedInAs": "Přihlášen jako",
+      "logout": "Odhlásit se",
+      "loggingOut": "Odhlašuji…"
     },
     "nav": {
       "home": "Domů",

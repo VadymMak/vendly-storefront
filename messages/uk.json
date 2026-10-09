@@ -1468,7 +1468,11 @@
     "shell": {
       "title": "AI Студія",
       "credits": "кр",
-      "language": "Мова"
+      "language": "Мова",
+      "account": "Обліковий запис",
+      "signedInAs": "Ви увійшли як",
+      "logout": "Вийти",
+      "loggingOut": "Вихід…"
     },
     "nav": {
       "home": "Головна",

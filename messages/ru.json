@@ -1468,7 +1468,11 @@
     "shell": {
       "title": "ИИ Studio",
       "credits": "кр",
-      "language": "Язык"
+      "language": "Язык",
+      "account": "Аккаунт",
+      "signedInAs": "Вы вошли как",
+      "logout": "Выйти",
+      "loggingOut": "Выход…"
     },
     "nav": {
       "home": "Главная",

@@ -1468,7 +1468,11 @@
     "shell": {
       "title": "AI Studio",
       "credits": "Cr",
-      "language": "Sprache"
+      "language": "Sprache",
+      "account": "Konto",
+      "signedInAs": "Angemeldet als",
+      "logout": "Abmelden",
+      "loggingOut": "Abmelden…"
     },
     "nav": {
       "home": "Start",

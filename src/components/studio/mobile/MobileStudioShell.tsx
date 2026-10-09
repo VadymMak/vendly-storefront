@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { MobileBottomNav } from './MobileBottomNav';
 import { MobileLanguageSwitcher } from './MobileLanguageSwitcher';
+import { MobileAccountMenu } from './MobileAccountMenu';
 
 interface CreditStatus {
   plan: string;
@@ -37,8 +38,6 @@ export function MobileStudioShell({ userId, userEmail, children }: Props) {
       .catch(() => {});
   }, [userId]);
 
-  const initial = (userEmail[0] ?? 'U').toUpperCase();
-
   const creditsLabel = (() => {
     if (!creditStatus) return null;
     if (creditStatus.superuser || creditStatus.byokUnlimited) return '∞';
@@ -61,9 +60,7 @@ export function MobileStudioShell({ userId, userEmail, children }: Props) {
             </span>
           )}
           <MobileLanguageSwitcher />
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-700 text-xs font-bold text-white">
-            {initial}
-          </div>
+          <MobileAccountMenu userEmail={userEmail} />
         </div>
       </header>
 

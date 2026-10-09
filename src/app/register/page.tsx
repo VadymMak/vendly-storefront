@@ -133,7 +133,7 @@ export default function RegisterPage() {
 
           <p className="mt-6 text-center text-sm text-neutral">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="font-medium text-primary hover:underline">
               Sign in
             </Link>
           </p>

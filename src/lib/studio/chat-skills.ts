@@ -1,3 +1,5 @@
+import { PLAN_CREDITS, REEL_CREDIT_COST, STUDIO_CREDIT_PACKS, STUDIO_PLAN_PRICES_EUR } from '@/lib/constants';
+
 // ── Chat skill blocks — composable system prompt pieces ──────────────────────
 
 export const SKILL_CORE = `You are VendShop Studio AI assistant. You help small business owners create visual content.
@@ -36,11 +38,17 @@ export const SKILL_TIMELINE = `Timeline Editing:
 - Always get_timeline first, then describe your plan, then execute.
 - All timeline mutations are undoable (Ctrl+Z).`;
 
+const PACKS_LINE = STUDIO_CREDIT_PACKS
+  .map((p) => `${p.name} €${p.priceEur} (${p.images} image + ${p.videos} video credits)`)
+  .join(', ');
+
 export const SKILL_CREDITS = `Credit System:
-- Free plan: 15 image credits/month, 0 video credits.
-- Starter (€12/mo): 100 image + 50 video credits.
-- Pro (€29/mo): 500 image + 200 video credits.
-- BYOK users with own API keys: unlimited generation, 0 credits charged.`;
+- Free plan: ${PLAN_CREDITS.free.images} image credits/month, ${PLAN_CREDITS.free.videos} video credits.
+- Starter (€${STUDIO_PLAN_PRICES_EUR.starter}/mo): ${PLAN_CREDITS.starter.images} image + ${PLAN_CREDITS.starter.videos} video credits.
+- Pro (€${STUDIO_PLAN_PRICES_EUR.pro}/mo): ${PLAN_CREDITS.pro.images} image + ${PLAN_CREDITS.pro.videos} video credits.
+- BYOK Creator (€${STUDIO_PLAN_PRICES_EUR.byok_creator}/mo): unlimited generation with the user's own API keys, 0 credits charged. On other plans own keys do not skip credits.
+- Reels: photo reel ${REEL_CREDIT_COST.images.amount} image credits, AI video reel ${REEL_CREDIT_COST.video.amount} video credits — on every plan, BYOK included.
+- One-time credit packs (never expire): ${PACKS_LINE}.`;
 
 export const SKILL_COST_GATE = `Cost Confirmation Rule:
 - Before ANY operation costing 4 or more credits, you MUST:

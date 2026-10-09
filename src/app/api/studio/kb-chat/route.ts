@@ -7,6 +7,7 @@ import { generateEmbedding } from '@/lib/kb/embedding';
 import { hybridSearch } from '@/lib/kb/search';
 import { trackKbGap, saveKbInteractionToBrain } from '@/lib/kb/learning';
 import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR } from '@/lib/constants';
 import { getBrainStudioContext } from '@/lib/studio/brain-client';
 import { executeTool } from '@/lib/studio/tool-executor';
 import type { SessionContext } from '@/lib/studio/types';
@@ -328,7 +329,7 @@ export async function POST(req: NextRequest) {
             videoCredits: total,
             plan: credits.planType,
             note: !available
-              ? 'No video credits remaining. Upgrade to Starter (€12/mo, 50 video credits) or Pro (€29/mo, 200 video credits), or enable BYOK.'
+              ? `No video credits remaining. Upgrade to Starter (€${STUDIO_PLAN_PRICES_EUR.starter}/mo, ${PLAN_CREDITS.starter.videos} video credits) or Pro (€${STUDIO_PLAN_PRICES_EUR.pro}/mo, ${PLAN_CREDITS.pro.videos} video credits), or buy a credit pack.`
               : null,
           };
         }

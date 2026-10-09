@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR, reelsForCredits } from '@/lib/constants';
 
 interface Props {
   isOpen: boolean;
@@ -12,19 +13,31 @@ interface Props {
 
 type PlanKey = 'starter' | 'pro' | 'byok_creator';
 
+function reelLine(images: number, videos: number) {
+  return `Up to ${reelsForCredits(images, 'images')} photo reels or ${reelsForCredits(videos, 'video')} AI video reels/month`;
+}
+
 function getPlanDisplay(key: PlanKey) {
+  const price = STUDIO_PLAN_PRICES_EUR[key];
   switch (key) {
-    case 'starter': return {
-      name: 'Starter', price: 9,
-      features: ['100 images/month', '20 video credits/month', 'Best & HD quality tiers', 'Own API keys supported'],
-    };
-    case 'pro': return {
-      name: 'Pro', price: 19,
-      features: ['300 images/month', '60 video credits/month', 'Best & HD quality tiers', 'Priority generation queue', 'Own API keys supported'],
-    };
+    case 'starter': {
+      const { images, videos } = PLAN_CREDITS.starter;
+      return {
+        name: 'Starter', price,
+        features: [`${images} images/month`, `${videos} video credits/month`, reelLine(images, videos), 'Best & HD quality tiers', 'Own API keys supported'],
+      };
+    }
+    case 'pro': {
+      const { images, videos } = PLAN_CREDITS.pro;
+      return {
+        name: 'Pro', price,
+        features: [`${images} images/month`, `${videos} video credits/month`, reelLine(images, videos), 'Best & HD quality tiers', 'Priority generation queue', 'Own API keys supported'],
+      };
+    }
     case 'byok_creator': return {
-      name: 'BYOK Creator', price: 7,
-      features: ['Unlimited with your API keys', 'All quality tiers unlocked', 'Full model access', 'Priority queue'],
+      name: 'BYOK Creator', price,
+      // Reels run on platform keys, so they still use credits (packs) on this plan
+      features: ['Unlimited with your API keys', 'All quality tiers unlocked', 'Full model access', 'Priority queue', 'Reels use credits from packs'],
     };
   }
 }

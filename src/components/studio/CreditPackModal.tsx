@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { STUDIO_CREDIT_PACKS } from '@/lib/constants';
+import type { StudioCreditPackId } from '@/lib/types';
 
 interface Props {
   isOpen: boolean;
@@ -9,36 +11,6 @@ interface Props {
   reason?: 'video' | 'tier' | 'credits';
   onShowPlans?: () => void;
 }
-
-const PACKS = [
-  {
-    id:       'starter' as const,
-    label:    'Starter Pack',
-    price:    '€5',
-    images:   50,
-    videos:   3,
-    popular:  false,
-    color:    'border-white/10',
-  },
-  {
-    id:       'creator' as const,
-    label:    'Creator Pack',
-    price:    '€10',
-    images:   150,
-    videos:   8,
-    popular:  true,
-    color:    'border-green-500/50',
-  },
-  {
-    id:       'pro' as const,
-    label:    'Pro Pack',
-    price:    '€20',
-    images:   400,
-    videos:   20,
-    popular:  false,
-    color:    'border-white/10',
-  },
-];
 
 const REASON_TITLES: Record<NonNullable<Props['reason']>, string> = {
   video:   '🎬 Video Generation Requires Credits',
@@ -51,7 +23,7 @@ export default function CreditPackModal({ isOpen, onClose, reason = 'credits', o
 
   if (!isOpen) return null;
 
-  async function handleBuy(packId: 'starter' | 'creator' | 'pro') {
+  async function handleBuy(packId: StudioCreditPackId) {
     setLoading(packId);
     try {
       const res = await fetch('/api/studio/checkout', {
@@ -88,11 +60,11 @@ export default function CreditPackModal({ isOpen, onClose, reason = 'credits', o
         <h2 className="text-xl font-bold text-white text-center mb-6">{REASON_TITLES[reason]}</h2>
 
         {/* Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          {PACKS.map(pack => (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {STUDIO_CREDIT_PACKS.map(pack => (
             <div
               key={pack.id}
-              className={`relative rounded-xl border p-4 flex flex-col gap-3 ${pack.color} ${pack.popular ? 'bg-green-500/5' : 'bg-white/[0.02]'}`}
+              className={`relative rounded-xl border p-4 flex flex-col gap-3 ${pack.popular ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 bg-white/[0.02]'}`}
             >
               {pack.popular && (
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
@@ -101,8 +73,8 @@ export default function CreditPackModal({ isOpen, onClose, reason = 'credits', o
               )}
 
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{pack.label}</p>
-                <p className="text-2xl font-bold text-white mt-1">{pack.price}</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{pack.name}</p>
+                <p className="text-2xl font-bold text-white mt-1">€{pack.priceEur}</p>
               </div>
 
               <ul className="space-y-1 text-sm text-gray-300 flex-1">
@@ -112,7 +84,7 @@ export default function CreditPackModal({ isOpen, onClose, reason = 'credits', o
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="text-green-400 text-xs">✓</span>
-                  {pack.videos} videos
+                  {pack.videos} video credits
                 </li>
               </ul>
 

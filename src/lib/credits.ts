@@ -11,6 +11,14 @@ export const PLAN_CREDITS = {
 export type PlanType = keyof typeof PLAN_CREDITS;
 export type CreditType = "image" | "video";
 
+// Reel cost per mode. Reels run on the platform FAL_KEY in reel-service, so BYOK never makes them free.
+export const REEL_CREDIT_COST = {
+  images: { type: "image", amount: 2 }, // outpaint only, ≤ $0.04
+  video:  { type: "video", amount: 5 }, // Kling 5s ≈ $0.35 + outpaint
+} as const satisfies Record<string, { type: CreditType; amount: number }>;
+
+export type ReelMode = keyof typeof REEL_CREDIT_COST;
+
 // Superusers — unlimited access, no credit deduction
 export const SUPERUSER_EMAILS = [
   "makevytssvadym@gmail.com",
@@ -192,14 +200,17 @@ export async function deductCredit(
 /**
  * Atomic credit consumption — check AND deduct in one DB transaction.
  * Prevents negative balances under concurrent requests.
- * Returns { success: true } or { success: false, reason }.
+ * Returns { success: true } or { success: false, reason }; `fromBonus`/`fromMonthly`
+ * say where a deduction came from so refundCredits can put it back.
+ * `allowByok: false` charges byok_creator users too — for features that run on platform keys.
  */
 export async function consumeCredits(
   userId: string,
   type: CreditType,
   amount: number = 1,
   provider?: string,
-): Promise<{ success: boolean; reason?: string; byok?: boolean }> {
+  { allowByok = true }: { allowByok?: boolean } = {},
+): Promise<{ success: boolean; reason?: string; byok?: boolean; fromBonus?: number; fromMonthly?: number }> {
   if (await isSuperuser(userId)) {
     await db.studioCredits.update({
       where: { userId },
@@ -213,9 +224,9 @@ export async function consumeCredits(
   const credits = await getOrCreateCredits(userId);
   const userPlan = (credits.planType || 'free') as string;
 
-  const isByok = provider
+  const isByok = allowByok && (provider
     ? await hasUserApiKey(userId, provider)
-    : await hasAnyApiKey(userId);
+    : await hasAnyApiKey(userId));
 
   if (isByok && userPlan === 'byok_creator') {
     await db.studioCredits.update({
@@ -246,6 +257,7 @@ export async function consumeCredits(
           totalGeneratedImages: { increment: amount },
         },
       });
+      return { success: true as const, fromBonus, fromMonthly };
     } else {
       const available = current.monthlyVideos + current.bonusVideos;
       if (available < amount) {
@@ -267,12 +279,40 @@ export async function consumeCredits(
           totalGeneratedVideos: { increment: amount },
         },
       });
+      return { success: true as const, fromBonus, fromMonthly };
     }
-
-    return { success: true as const };
   });
 
   return result;
+}
+
+/**
+ * Put back credits taken by consumeCredits (e.g. the job they paid for failed),
+ * into the same buckets they came from.
+ */
+export async function refundCredits(
+  userId: string,
+  type: CreditType,
+  fromBonus: number,
+  fromMonthly: number,
+): Promise<void> {
+  if (fromBonus + fromMonthly <= 0) return;
+  const amount = fromBonus + fromMonthly;
+
+  await db.studioCredits.update({
+    where: { userId },
+    data: type === 'image'
+      ? {
+          bonusImages:          { increment: fromBonus },
+          monthlyImages:        { increment: fromMonthly },
+          totalGeneratedImages: { decrement: amount },
+        }
+      : {
+          bonusVideos:          { increment: fromBonus },
+          monthlyVideos:        { increment: fromMonthly },
+          totalGeneratedVideos: { decrement: amount },
+        },
+  });
 }
 
 /**

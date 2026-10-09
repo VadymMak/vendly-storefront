@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { VideoSkill } from '@/lib/types';
-import UpgradeModal from '@/components/studio/UpgradeModal';
+import CreditPackModal from '@/components/studio/CreditPackModal';
 import { useStudioStore } from '@/lib/studio/store';
 import { AccordionSection } from '@/components/studio/AccordionSection';
 
@@ -694,7 +694,7 @@ export function AnimateCanvas({ userId: _userId }: Props) {
         </div>
       </div>
 
-      {showUpgrade && <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />}
+      <CreditPackModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} reason="video" onShowPlans={() => router.push('/studio/pricing')} />
 
       {showSavedToast && (
         <div className="animate-toast-in fixed bottom-6 left-1/2 z-50 flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">

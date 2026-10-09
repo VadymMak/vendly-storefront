@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, useMemo, type ChangeEvent, type KeyboardEvent, type DragEvent } from 'react';
-import UpgradeModal from '@/components/studio/UpgradeModal';
 import CreditPackModal from '@/components/studio/CreditPackModal';
 import PricingModal from '@/components/studio/PricingModal';
 import { ImageDetailModal } from './ImageDetailModal';
@@ -458,7 +457,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
 
   // UI
   const [error,       setError]       = useState<string | null>(null);
-  const [showUpgrade,    setShowUpgrade]    = useState(false);
   const [showCreditPack, setShowCreditPack] = useState(false);
   const [creditPackReason, setCreditPackReason] = useState<'video' | 'tier' | 'credits'>('credits');
   const [showPricing, setShowPricing] = useState(false);
@@ -533,7 +531,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
       if (!res.ok) {
         const data = await res.json() as { error?: string; needsUpgrade?: boolean };
-        if (data.needsUpgrade) { setShowUpgrade(true); return; }
+        if (data.needsUpgrade) { setCreditPackReason('credits'); setShowCreditPack(true); return; }
         throw new Error(data.error ?? 'Enhancement failed');
       }
       const data = await res.json() as { url: string };
@@ -620,7 +618,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       });
       if (!res.ok) {
         const e = await res.json() as { error?: string; needsUpgrade?: boolean };
-        if (e.needsUpgrade) { setShowUpgrade(true); return; }
+        if (e.needsUpgrade) { setCreditPackReason('credits'); setShowCreditPack(true); return; }
         throw new Error(e.error ?? 'Generation failed');
       }
       const blob = await res.blob();
@@ -1252,9 +1250,6 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
-      {showUpgrade && (
-        <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
-      )}
       <CreditPackModal
         isOpen={showCreditPack}
         onClose={() => setShowCreditPack(false)}

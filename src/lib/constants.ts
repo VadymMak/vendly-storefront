@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule, StudioCreditPack } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -911,3 +911,40 @@ export const CREATE_DEFAULT_SCHEDULE: CreateHoursSchedule = {
 export const CREATE_STORE_KEY = 'vendshop_create_state_v1';
 
 export const COOKIE_ACCEPTED_KEY = 'vendshop_cookie_accepted';
+
+// ===== AI Studio billing — single source of truth for prices and credits =====
+// Read by the Stripe routes (via src/lib/credits.ts) and by every pricing UI.
+// Subscription prices must match the Stripe Price objects behind STRIPE_PRICE_*.
+
+export const STUDIO_PLAN_PRICES_EUR = {
+  free:         0,
+  starter:      9,
+  pro:          19,
+  byok_creator: 7,
+} as const;
+
+// Credit allowances per plan (monthly reset values)
+export const PLAN_CREDITS = {
+  free:         { images: 15,  videos: 0  },
+  starter:      { images: 100, videos: 20 },
+  pro:          { images: 300, videos: 60 },
+  byok_creator: { images: 0,   videos: 0  },
+} as const;
+
+// Reel cost per mode. Reels run on the platform FAL_KEY in reel-service, so BYOK never makes them free.
+export const REEL_CREDIT_COST = {
+  images: { type: 'image', amount: 2 }, // outpaint only, ≤ $0.04
+  video:  { type: 'video', amount: 5 }, // Kling 5s ≈ $0.35 + outpaint
+} as const;
+
+/** How many reels of a mode a credit balance covers, e.g. 100 image credits → 50 image reels. */
+export function reelsForCredits(credits: number, mode: keyof typeof REEL_CREDIT_COST): number {
+  return Math.floor(credits / REEL_CREDIT_COST[mode].amount);
+}
+
+// One-time credit packs (Stripe Checkout, inline price_data). Pack credits never expire.
+export const STUDIO_CREDIT_PACKS: StudioCreditPack[] = [
+  { id: 'starter', name: 'Starter Pack', priceEur: 5,  images: 50,  videos: 3  },
+  { id: 'creator', name: 'Creator Pack', priceEur: 10, images: 150, videos: 8,  popular: true },
+  { id: 'pro',     name: 'Pro Pack',     priceEur: 20, images: 400, videos: 20 },
+];

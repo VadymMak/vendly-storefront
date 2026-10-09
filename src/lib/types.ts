@@ -752,3 +752,16 @@ export interface StudioWorkPage {
   items: StudioWorkItem[];
   nextCursor: string | null;
 }
+
+// ===== AI Studio credit packs =====
+
+export type StudioCreditPackId = 'starter' | 'creator' | 'pro';
+
+export interface StudioCreditPack {
+  id:       StudioCreditPackId;
+  name:     string;
+  priceEur: number;
+  images:   number;
+  videos:   number;
+  popular?: boolean;
+}

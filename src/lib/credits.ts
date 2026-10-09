@@ -1,22 +1,11 @@
 import { db } from "@/lib/db";
+import { PLAN_CREDITS, REEL_CREDIT_COST, STUDIO_PLAN_PRICES_EUR } from "@/lib/constants";
 
-// Credit allowances per plan (monthly reset values)
-export const PLAN_CREDITS = {
-  free:         { images: 15,  videos: 0  },
-  starter:      { images: 100, videos: 20 },
-  pro:          { images: 300, videos: 60 },
-  byok_creator: { images: 0,   videos: 0  },
-} as const;
+// Prices and allowances live in src/lib/constants.ts (shared with the pricing UI)
+export { PLAN_CREDITS, REEL_CREDIT_COST };
 
 export type PlanType = keyof typeof PLAN_CREDITS;
 export type CreditType = "image" | "video";
-
-// Reel cost per mode. Reels run on the platform FAL_KEY in reel-service, so BYOK never makes them free.
-export const REEL_CREDIT_COST = {
-  images: { type: "image", amount: 2 }, // outpaint only, ≤ $0.04
-  video:  { type: "video", amount: 5 }, // Kling 5s ≈ $0.35 + outpaint
-} as const satisfies Record<string, { type: CreditType; amount: number }>;
-
 export type ReelMode = keyof typeof REEL_CREDIT_COST;
 
 // Superusers — unlimited access, no credit deduction
@@ -393,21 +382,21 @@ export async function addBonusCredits(
 export const SUBSCRIPTION_PLANS = {
   starter: {
     name: 'Starter',
-    price: 9,
+    price: STUDIO_PLAN_PRICES_EUR.starter,
     priceId: process.env.STRIPE_PRICE_STARTER!,
     credits: PLAN_CREDITS.starter,
-    features: ['100 images/month', '20 video credits/month', 'Best & HD quality', 'Own API keys'],
+    features: [`${PLAN_CREDITS.starter.images} images/month`, `${PLAN_CREDITS.starter.videos} video credits/month`, 'Best & HD quality', 'Own API keys'],
   },
   pro: {
     name: 'Pro',
-    price: 19,
+    price: STUDIO_PLAN_PRICES_EUR.pro,
     priceId: process.env.STRIPE_PRICE_PRO!,
     credits: PLAN_CREDITS.pro,
-    features: ['300 images/month', '60 video credits/month', 'Best & HD quality', 'Priority queue', 'Own API keys'],
+    features: [`${PLAN_CREDITS.pro.images} images/month`, `${PLAN_CREDITS.pro.videos} video credits/month`, 'Best & HD quality', 'Priority queue', 'Own API keys'],
   },
   byok_creator: {
     name: 'BYOK Creator',
-    price: 7,
+    price: STUDIO_PLAN_PRICES_EUR.byok_creator,
     priceId: process.env.STRIPE_PRICE_BYOK!,
     credits: { images: 0, videos: 0 },
     features: ['Unlimited with your API keys', 'All models unlocked', 'Priority queue'],

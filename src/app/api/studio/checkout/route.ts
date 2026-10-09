@@ -2,12 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { z } from 'zod/v4';
-
-const CREDIT_PACKS = {
-  starter: { label: 'Starter Pack — 50 Images + 3 Videos',   images: 50,  videos: 3,  priceEur: 500  },
-  creator: { label: 'Creator Pack — 150 Images + 8 Videos',  images: 150, videos: 8,  priceEur: 1000 },
-  pro:     { label: 'Pro Pack — 400 Images + 20 Videos',     images: 400, videos: 20, priceEur: 2000 },
-} as const;
+import { STUDIO_CREDIT_PACKS } from '@/lib/constants';
+import type { StudioCreditPackId } from '@/lib/types';
 
 const checkoutSchema = z.object({
   pack: z.enum(['starter', 'creator', 'pro']),
@@ -19,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let pack: 'starter' | 'creator' | 'pro';
+  let pack: StudioCreditPackId;
   try {
     const body = await request.json() as Record<string, unknown>;
     ({ pack } = checkoutSchema.parse(body));
@@ -27,7 +23,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid pack' }, { status: 400 });
   }
 
-  const packConfig = CREDIT_PACKS[pack];
+  const packConfig = STUDIO_CREDIT_PACKS.find((p) => p.id === pack);
+  if (!packConfig) {
+    return NextResponse.json({ error: 'Invalid pack' }, { status: 400 });
+  }
   const origin = process.env.NEXTAUTH_URL ?? 'https://vendshop.shop';
 
   try {
@@ -38,10 +37,10 @@ export async function POST(request: Request) {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: packConfig.label,
-            description: `${packConfig.images} images + ${packConfig.videos} videos · Credits never expire`,
+            name: `${packConfig.name} — ${packConfig.images} Images + ${packConfig.videos} Video Credits`,
+            description: `${packConfig.images} image credits + ${packConfig.videos} video credits · Credits never expire`,
           },
-          unit_amount: packConfig.priceEur,
+          unit_amount: packConfig.priceEur * 100,
         },
         quantity: 1,
       }],

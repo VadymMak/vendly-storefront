@@ -229,4 +229,12 @@
 - [x] `invoice.payment_failed` + `charge.refunded` logged (no automatic downgrade / revoke)
 - [x] Reel rate limit 10/hour, 30/day per user (superusers bypass)
 - [ ] Add `invoice.payment_failed` + `charge.refunded` to the Stripe webhook endpoint's event list (Dashboard)
-- [ ] Remaining "Must Fix" items from the PROMPT-232 audit (past_due handling, one credit-pack system, price copy, legal pages, tax, mobile purchase path)
+- [ ] Remaining "Must Fix" items from the PROMPT-232 audit (past_due handling, legal pages, tax, mobile purchase path)
+
+### PROMPT-233B — Price consistency ✅
+- [x] Single source of truth in `src/lib/constants.ts`: `STUDIO_PLAN_PRICES_EUR`, `PLAN_CREDITS`, `REEL_CREDIT_COST`, `STUDIO_CREDIT_PACKS`
+- [x] Deleted `/api/studio/buy-credits` (€12/€29) + `UpgradeModal`; one pack system via `/api/studio/checkout`
+- [x] `/studio/pricing` shows €9/€19, 15/100/300 images, reel counts, €5/€10/€20 packs (6 locales)
+- [x] PricingModal / CreditPackModal / chat assistant prompt / kb-chat read the constants
+- [ ] KB docs `docs/kb/02-plans-and-pricing.md` + `14-credits-system.md` still list old numbers → fix + re-ingest
+- [ ] `/create` page `CREATE_PLANS` (€19/€39) — website-builder plans, confirm they are a separate product

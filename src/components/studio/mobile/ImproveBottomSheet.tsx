@@ -7,6 +7,8 @@ import { preloadImage, proxyUrl } from '@/lib/studio/mobile/share';
 import type { EnhancementIntensity, ReelScoreResult } from '@/lib/types';
 // Mobile slider reserves its frame up front — the shared one is 0px tall until its image loads
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { MODEL_CATALOG } from '@/lib/studio/config';
+import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 
 interface Props {
   imageUrl: string;
@@ -229,6 +231,7 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
       await preloadImage(finalUrl);
       setAiUrl(finalUrl);
       setPhase('ai-result');
+      notifyCreditsChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error'));
       setPhase('result');
@@ -402,7 +405,7 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
             onClick={handleAiStyle}
             className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600/80 py-3 text-sm font-semibold text-white active:bg-purple-700"
           >
-            ✨ {t('applyAiStyle')}
+            ✨ {t('applyAiStyle', { count: MODEL_CATALOG['edit-grok'].creditCost })}
           </button>
         </div>
 

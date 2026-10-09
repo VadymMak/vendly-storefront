@@ -249,8 +249,8 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     modelId:        'grok-imagine-image-2.0',
     operation:      'edit',
     tier:           'quality',
-    costPerCall:    0.04, // xAI list price per image; still free to users (creditCost 0)
-    creditCost:     0,
+    costPerCall:    0.04, // xAI list price per image
+    creditCost:     1,    // AI Style finish in Improve
     creditType:     'image',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',

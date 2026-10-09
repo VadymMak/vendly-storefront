@@ -8,6 +8,8 @@ import type { EnhancementIntensity } from '@/lib/types';
 import { MobileMediaPicker } from './MobileMediaPicker';
 import { MobileTextOverlayEditor } from './MobileTextOverlayEditor';
 import { BeforeAfterSlider } from '@/components/studio/editors/shared/BeforeAfterSlider';
+import { MODEL_CATALOG } from '@/lib/studio/config';
+import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 import { downloadImage, extFromMime, proxyUrl, saveBlob } from '@/lib/studio/mobile/share';
 
 type ImproveStep = 'upload' | 'configure' | 'processing' | 'result' | 'ai-processing' | 'ai-result';
@@ -168,6 +170,7 @@ export function MobileImproveEditor() {
       }
 
       setStep('ai-result');
+      notifyCreditsChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error'));
       setStep('result');
@@ -442,7 +445,7 @@ export function MobileImproveEditor() {
             onClick={handleAiStyle}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600/80 py-3 text-sm font-semibold text-white active:bg-purple-700"
           >
-            ✨ {t('applyAiStyle')}
+            ✨ {t('applyAiStyle', { count: MODEL_CATALOG['edit-grok'].creditCost })}
           </button>
         </div>
 

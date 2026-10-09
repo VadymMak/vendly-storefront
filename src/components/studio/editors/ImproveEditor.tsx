@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { EditorStatus, EnhancementIntensity } from '@/lib/types';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
+import { MODEL_CATALOG } from '@/lib/studio/config';
 import { EditorShell } from './shared/EditorShell';
 import { BeforeAfterSlider } from './shared/BeforeAfterSlider';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
@@ -107,7 +108,7 @@ function EnhancedSidebar({
               AI processing...
             </span>
           ) : (
-            '✨ AI Style · Free'
+            `✨ AI Style · ${MODEL_CATALOG['edit-grok'].creditCost} credit`
           )}
         </button>
       </div>

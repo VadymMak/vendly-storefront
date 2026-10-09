@@ -87,7 +87,7 @@ export async function POST(req: Request) {
   // Credit check
   let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
   if (!model.byokOnly) {
-    creditCheck = await checkCredits(session.user.id, model.creditType);
+    creditCheck = await checkCredits(session.user.id, model.creditType, model.creditCost);
     if (!creditCheck.allowed) {
       return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
     }
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
     const durationMs = Date.now() - startTime;
 
     if (!model.byokOnly && !creditCheck.byok) {
-      const consume = await consumeCredits(session.user.id, model.creditType as 'image' | 'video');
+      const consume = await consumeCredits(session.user.id, model.creditType as 'image' | 'video', model.creditCost);
       if (!consume.success) {
         return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
       }

@@ -1413,7 +1413,7 @@ export function StudioHome({ userId: _userId }: Props) {
                 {/* Tool options grid */}
                 <div className="grid grid-cols-2 gap-2">
                   {([
-                    { id: 'improve' as const,        label: 'Improve quality',          credits: '2 cr', icon: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z' },
+                    { id: 'improve' as const,        label: 'Improve quality',          credits: '0–1 cr', icon: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z' },
                     { id: 'remove-bg' as const,      label: 'Remove background',        credits: '1 cr', icon: 'M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12' },
                     { id: 'upscale' as const,        label: 'Make larger & sharper',    credits: '1 cr', icon: 'M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7' },
                     { id: 'animate' as const,        label: 'Animate this photo',        credits: '5 cr', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },

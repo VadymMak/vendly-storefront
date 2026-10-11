@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     console.log(`[auto-split] SAM2 returned ${masks.length} masks`);
 
     // 2) Download original image
-    const origBuffer = await fetchAllowedImage(imageUrl);
+    const { buffer: origBuffer } = await fetchAllowedImage(imageUrl);
     const origMeta = await sharp(origBuffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
     const origW = origMeta.width!;
     const origH = origMeta.height!;
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     for (const mask of masks.filter((m: FalMask) => m.url).slice(0, 20)) {
       try {
-        const maskBuffer = await fetchAllowedImage(mask.url);
+        const { buffer: maskBuffer } = await fetchAllowedImage(mask.url);
 
         const maskMeta = await sharp(maskBuffer).metadata();
         const maskResized = (maskMeta.width !== origW || maskMeta.height !== origH)

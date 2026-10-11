@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const inputBuffer = await fetchAllowedImage(resultUrl);
+    const { buffer: inputBuffer } = await fetchAllowedImage(resultUrl);
 
     const input = sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS });
     const { hasAlpha } = await input.metadata();

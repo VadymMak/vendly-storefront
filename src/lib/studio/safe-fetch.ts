@@ -43,11 +43,16 @@ export function isAllowedImageUrl(raw: string): boolean {
   );
 }
 
+export interface FetchedImage {
+  buffer: Buffer;
+  contentType: string;
+}
+
 /** Fetch an image from an allowlisted host into a Buffer, or throw SafeFetchError. */
 export async function fetchAllowedImage(
   raw: string,
   maxBytes: number = MAX_IMAGE_FETCH_BYTES,
-): Promise<Buffer> {
+): Promise<FetchedImage> {
   if (!isAllowedImageUrl(raw)) {
     throw new SafeFetchError('Image URL not allowed', 403);
   }
@@ -70,11 +75,12 @@ export async function fetchAllowedImage(
     throw new SafeFetchError(`Upstream error: ${res.status}`, 502);
   }
 
-  const contentType = (res.headers.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
-  if (contentType && contentType !== 'application/octet-stream' &&
-      (!contentType.startsWith('image/') || contentType === 'image/svg+xml')) {
+  const rawContentType = (res.headers.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
+  if (rawContentType && rawContentType !== 'application/octet-stream' &&
+      (!rawContentType.startsWith('image/') || rawContentType === 'image/svg+xml')) {
     throw new SafeFetchError('Unsupported content type', 415);
   }
+  const contentType = rawContentType && rawContentType.startsWith('image/') ? rawContentType : 'image/webp';
 
   const declared = parseInt(res.headers.get('Content-Length') ?? '0', 10);
   if (declared > maxBytes) {
@@ -96,5 +102,5 @@ export async function fetchAllowedImage(
     chunks.push(value);
   }
 
-  return Buffer.concat(chunks);
+  return { buffer: Buffer.from(Buffer.concat(chunks)), contentType };
 }

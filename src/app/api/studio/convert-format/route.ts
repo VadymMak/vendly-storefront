@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   let ext: string;
 
   try {
-    const inputBuffer = await fetchAllowedImage(imageUrl);
+    const { buffer: inputBuffer } = await fetchAllowedImage(imageUrl);
     const pipeline = sharp(inputBuffer, { limitInputPixels: MAX_INPUT_PIXELS });
 
     switch (format) {

@@ -2,6 +2,7 @@ import { put } from '@vercel/blob';
 import type { ToolName, MediaAttachment, SessionContext } from './types';
 import { getUserApiKey } from './get-user-key';
 import { consumeCredits } from '@/lib/credits';
+import { fetchAllowedImage, SafeFetchError } from './safe-fetch';
 
 interface ToolResult {
   media?: MediaAttachment;
@@ -281,9 +282,17 @@ async function executeEditImage(
     return { error: 'No image in context. Please generate or upload an image first.' };
   }
 
-  const imageRes = await fetch(context.lastImageUrl);
-  const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
-  const imageBlob = new Blob([imageBuffer], { type: 'image/webp' });
+  let imageBuffer: Buffer;
+  let imageMime: string;
+  try {
+    const fetched = await fetchAllowedImage(context.lastImageUrl);
+    imageBuffer = fetched.buffer;
+    imageMime = fetched.contentType;
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { error: `Could not fetch image: ${err.message}` };
+    return { error: 'Could not fetch image' };
+  }
+  const imageBlob = new Blob([new Uint8Array(imageBuffer)], { type: imageMime });
 
   const formData = new FormData();
   formData.append('image', imageBlob, 'input.webp');
@@ -315,9 +324,16 @@ async function executeEnhanceImage(
     return { error: 'No image in context. Please generate or upload an image first.' };
   }
 
-  const imageRes = await fetch(context.lastImageUrl);
-  const originalBuffer = Buffer.from(await imageRes.arrayBuffer());
-  const originalContentType = imageRes.headers.get('content-type') || 'image/webp';
+  let originalBuffer: Buffer;
+  let originalContentType: string;
+  try {
+    const fetched = await fetchAllowedImage(context.lastImageUrl);
+    originalBuffer = fetched.buffer;
+    originalContentType = fetched.contentType;
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { error: `Could not fetch image: ${err.message}` };
+    return { error: 'Could not fetch image' };
+  }
 
   // Auto-resize if image exceeds Real-ESRGAN GPU pixel limit
   const { buffer: imageBuffer, contentType } = await ensureWithinPixelLimit(
@@ -353,9 +369,16 @@ async function executeSupirUpscale(
     return { error: 'No image in session. Upload or generate an image first.' };
   }
 
-  const imageRes = await fetch(context.lastImageUrl);
-  const originalBuffer = Buffer.from(await imageRes.arrayBuffer());
-  const originalContentType = imageRes.headers.get('content-type') || 'image/webp';
+  let originalBuffer: Buffer;
+  let originalContentType: string;
+  try {
+    const fetched = await fetchAllowedImage(context.lastImageUrl);
+    originalBuffer = fetched.buffer;
+    originalContentType = fetched.contentType;
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { error: `Could not fetch image: ${err.message}` };
+    return { error: 'Could not fetch image' };
+  }
 
   const { buffer: imageBuffer, contentType } = await ensureWithinPixelLimit(
     originalBuffer,
@@ -396,9 +419,17 @@ async function executeRemoveBg(
     return { error: 'No image in context. Please generate or upload an image first.' };
   }
 
-  const imageRes = await fetch(context.lastImageUrl);
-  const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
-  const imageBlob = new Blob([imageBuffer], { type: 'image/webp' });
+  let imageBuffer: Buffer;
+  let imageMime: string;
+  try {
+    const fetched = await fetchAllowedImage(context.lastImageUrl);
+    imageBuffer = fetched.buffer;
+    imageMime = fetched.contentType;
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { error: `Could not fetch image: ${err.message}` };
+    return { error: 'Could not fetch image' };
+  }
+  const imageBlob = new Blob([new Uint8Array(imageBuffer)], { type: imageMime });
 
   const formData = new FormData();
   formData.append('image', imageBlob, 'input.webp');
@@ -468,9 +499,16 @@ async function executeTransformImage(
     return { error: 'No image in context. Please upload or generate an image first.' };
   }
 
-  const imageRes = await fetch(context.lastImageUrl);
-  const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
-  const contentType = imageRes.headers.get('content-type') || 'image/webp';
+  let imageBuffer: Buffer;
+  let contentType: string;
+  try {
+    const fetched = await fetchAllowedImage(context.lastImageUrl);
+    imageBuffer = fetched.buffer;
+    contentType = fetched.contentType;
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { error: `Could not fetch image: ${err.message}` };
+    return { error: 'Could not fetch image' };
+  }
 
   const formData = new FormData();
   formData.append('image', new Blob([new Uint8Array(imageBuffer)], { type: contentType }), 'input.webp');
@@ -911,9 +949,16 @@ async function executeGenerateWithReference(
     return { error: 'No reference image in context. Please upload or generate an image first, then ask again.' };
   }
 
-  const refRes = await fetch(context.lastImageUrl);
-  const refBuffer = Buffer.from(await refRes.arrayBuffer());
-  const refContentType = refRes.headers.get('content-type') || 'image/webp';
+  let refBuffer: Buffer;
+  let refContentType: string;
+  try {
+    const fetched = await fetchAllowedImage(context.lastImageUrl);
+    refBuffer = fetched.buffer;
+    refContentType = fetched.contentType;
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { error: `Could not fetch reference image: ${err.message}` };
+    return { error: 'Could not fetch reference image' };
+  }
 
   const fd = new FormData();
   fd.append('prompt', String(params.prompt || 'high quality photo'));

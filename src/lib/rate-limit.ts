@@ -84,4 +84,10 @@ export const RATE_LIMITS = {
   },
   register:   { maxRequests: 2, windowMs: 24 * 60 * 60 * 1000 },
   buyCredits: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
+  kbChat: {
+    free:         { maxRequests: 10,  windowMs: 60_000 },
+    starter:      { maxRequests: 30,  windowMs: 60_000 },
+    pro:          { maxRequests: 60,  windowMs: 60_000 },
+    byok_creator: { maxRequests: 120, windowMs: 60_000 },
+  },
 } as const;

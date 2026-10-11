@@ -7,6 +7,7 @@ import { generateEmbedding } from '@/lib/kb/embedding';
 import { hybridSearch } from '@/lib/kb/search';
 import { trackKbGap, saveKbInteractionToBrain } from '@/lib/kb/learning';
 import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR } from '@/lib/constants';
 import { getBrainStudioContext } from '@/lib/studio/brain-client';
 import { executeTool } from '@/lib/studio/tool-executor';
@@ -24,23 +25,6 @@ import {
 } from '@/lib/studio/chat-skills';
 import { NextRequest } from 'next/server';
 
-// === Rate limiter (in-memory, per user) ===
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const MAX_REQUESTS_PER_MINUTE = 10;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimits.get(userId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimits.set(userId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-
-  if (entry.count >= MAX_REQUESTS_PER_MINUTE) return false;
-  entry.count++;
-  return true;
-}
 
 function extractTextFromMessage(msg: UIMessage): string {
   return msg.parts
@@ -81,9 +65,12 @@ export async function POST(req: NextRequest) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const userId = session.user.id;
+  const userId  = session.user.id;
+  const ip      = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const credits = await getOrCreateCredits(userId);
+  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
 
-  if (!checkRateLimit(userId)) {
+  if (!(await checkRateLimitWithBypass(`kbc:${ip}:${userId}`, RATE_LIMITS.kbChat[planType], userId))) {
     return new Response('Too many requests', { status: 429 });
   }
 
@@ -106,8 +93,7 @@ export async function POST(req: NextRequest) {
     data: { sessionId, userId, role: 'user', content: lastUserText },
   });
 
-  const [credits, user, recentJobs, superuser] = await Promise.all([
-    getOrCreateCredits(userId),
+  const [user, recentJobs, superuser] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
       select: { email: true, name: true, plan: true, uiLanguage: true },

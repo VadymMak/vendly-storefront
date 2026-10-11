@@ -8,12 +8,14 @@ export type PlanType = keyof typeof PLAN_CREDITS;
 export type CreditType = "image" | "video";
 export type ReelMode = keyof typeof REEL_CREDIT_COST;
 
-// Superusers — unlimited access, no credit deduction
-export const SUPERUSER_EMAILS = [
-  "makevytssvadym@gmail.com",
-  "akolesnyk1989@gmail.com",
-  "777sdv@gmail.com",
-] as const;
+// Superuser emails read from SUPERUSER_EMAILS env var (comma-separated).
+// Set in .env.local — never hardcode in source (public repo).
+function getSuperuserEmails(): Set<string> {
+  const raw = process.env.SUPERUSER_EMAILS ?? '';
+  return new Set(
+    raw.split(',').map(e => e.trim().toLowerCase()).filter(e => e.includes('@')),
+  );
+}
 
 /**
  * Check if user is a superuser (unlimited free access).
@@ -25,9 +27,7 @@ export async function isSuperuser(userId: string): Promise<boolean> {
     select: { email: true },
   });
   if (!user?.email) return false;
-  return (SUPERUSER_EMAILS as readonly string[]).includes(
-    user.email.toLowerCase(),
-  );
+  return getSuperuserEmails().has(user.email.toLowerCase());
 }
 
 /**

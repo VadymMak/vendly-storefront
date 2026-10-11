@@ -6,7 +6,7 @@ import { buildLearningContext, formatLearningContext } from '@/lib/studio/learni
 import { getComboPreset } from '@/lib/studio/prompt-library';
 import type { ComboStep } from '@/lib/studio/prompt-library';
 import { executeCombo } from '@/lib/studio/combo-executor';
-import { SUPERUSER_EMAILS } from '@/lib/credits';
+import { isSuperuser } from '@/lib/credits';
 import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-client';
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
 import { FACE_REGISTRY } from '@/lib/studio/face-registry';
@@ -168,10 +168,8 @@ export async function POST(req: NextRequest) {
     const learningPrompt = formatLearningContext(learning);
 
     // Brain context — only for superusers
-    const isSuperuser = (SUPERUSER_EMAILS as readonly string[]).includes(
-      session.user.email?.toLowerCase() ?? '',
-    );
-    const brainContext = isSuperuser
+    const isUserSuperuser = await isSuperuser(session.user.id);
+    const brainContext = isUserSuperuser
       ? await getBrainStudioContext(message)
       : '';
 
@@ -875,7 +873,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Save to Brain async (non-blocking, superusers only)
-    if (isSuperuser && toolMessage) {
+    if (isUserSuperuser && toolMessage) {
       saveToBrainAsync(message, toolMessage, decision.toolCall?.tool ?? undefined, {
         provider: imageProvider,
         quality: imageQuality,

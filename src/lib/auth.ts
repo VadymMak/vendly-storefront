@@ -2,7 +2,10 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { db } from './db';
-import { SUPERUSER_EMAILS } from './credits';
+function getSuperuserEmailsForAuth(): Set<string> {
+  const raw = process.env.SUPERUSER_EMAILS ?? '';
+  return new Set(raw.split(',').map(e => e.trim().toLowerCase()).filter(e => e.includes('@')));
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET,
@@ -24,7 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const superuserPassword = process.env.ADMIN_PASSWORD;
         if (
           superuserPassword &&
-          (SUPERUSER_EMAILS as readonly string[]).includes(email) &&
+          getSuperuserEmailsForAuth().has(email) &&
           password === superuserPassword
         ) {
           const user = await db.user.upsert({

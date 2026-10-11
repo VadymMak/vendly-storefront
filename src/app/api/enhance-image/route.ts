@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { createJob } from '@/lib/studio-jobs';
-import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const maxDuration = 300;
@@ -82,11 +82,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Credit check ─────────────────────────────────────────────────────────────
-  const creditCheck = await checkCredits(session.user.id, 'image');
-  if (!creditCheck.allowed) {
+  // ── Credit check (atomic — reserves before AI call to prevent TOCTOU race) ───
+  const consume = await consumeCredits(session.user.id, 'image');
+  if (!consume.success) {
     return NextResponse.json(
-      { error: creditCheck.reason, needsUpgrade: true },
+      { error: consume.reason, needsUpgrade: true },
       { status: 403 },
     );
   }
@@ -137,10 +137,6 @@ export async function POST(req: Request) {
         { access: 'public', contentType: 'image/png' },
       );
 
-      if (!creditCheck.byok) {
-        await deductCredit(session.user.id, 'image');
-      }
-
       const capturedSupirUrl = blob.url;
       createJob({
         userId:       session.user.id,
@@ -158,6 +154,9 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ url: blob.url });
     } catch (err) {
+      if (!consume.byok) {
+        await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
       console.error('[enhance-image supir]', err);
       return NextResponse.json(
         { error: err instanceof Error ? err.message : 'SUPIR enhancement failed' },
@@ -207,10 +206,6 @@ export async function POST(req: Request) {
       { access: 'public', contentType: 'image/png' },
     );
 
-    if (!creditCheck.byok) {
-      await deductCredit(session.user.id, 'image');
-    }
-
     const capturedUrl = blob.url;
     createJob({
       userId:       session.user.id,
@@ -228,6 +223,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: blob.url });
   } catch (err) {
+    if (!consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
     console.error('[enhance-image]', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Enhancement failed' },

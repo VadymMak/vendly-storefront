@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
-import { checkCredits, consumeCredits, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel, LEGACY_GENERATE_ALIAS, TIER_ROUTES, MODEL_CATALOG, type ModelEntry } from '@/lib/studio/config';
@@ -272,11 +272,12 @@ export async function POST(request: Request) {
 
   for (const { alias, model, apiKey } of candidates) {
     const creditCost = model.creditCost ?? 1;
-    let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
+    // Atomically reserve credit BEFORE calling the provider (prevents TOCTOU race)
+    let consume: { success: boolean; reason?: string; byok?: boolean; fromBonus?: number; fromMonthly?: number } = { success: true, byok: true };
     if (!model.byokOnly) {
-      creditCheck = await checkCredits(session.user.id, model.creditType, creditCost, model.apiKeyProvider);
-      if (!creditCheck.allowed) {
-        return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
+      consume = await consumeCredits(session.user.id, model.creditType, creditCost, model.apiKeyProvider);
+      if (!consume.success) {
+        return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });
       }
     }
 
@@ -299,13 +300,6 @@ export async function POST(request: Request) {
         throw new Error(`${model.displayName} returned invalid image URL`);
       }
 
-      if (!model.byokOnly && !creditCheck.byok) {
-        const consume = await consumeCredits(session.user.id, model.creditType, creditCost, model.apiKeyProvider);
-        if (!consume.success) {
-          return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 402 });
-        }
-      }
-
       await logUsage({
         userId:     session.user.id,
         modelAlias: alias,
@@ -316,7 +310,7 @@ export async function POST(request: Request) {
         durationMs,
         costUsd:    model.costPerCall,
         creditCost: model.byokOnly ? 0 : model.creditCost,
-        byok:       model.byokOnly ?? (creditCheck.byok ?? false),
+        byok:       model.byokOnly ?? (consume.byok ?? false),
         metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length },
       });
 
@@ -357,6 +351,10 @@ export async function POST(request: Request) {
       const durationMs = Date.now() - startTime;
       lastError = err instanceof Error ? err.message : 'Generation failed';
       console.error(`[studio/generate][${alias}] failed, ${candidates.length > 1 ? 'trying next...' : 'no fallback'}`, lastError);
+
+      if (!model.byokOnly && !consume.byok) {
+        await refundCredits(session.user.id, model.creditType, consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
 
       await logUsage({
         userId:       session.user.id,
@@ -400,11 +398,12 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
   const alias = 'fal-kontext';
 
   const creditCost = model.creditCost ?? 2;
-  let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
+  // Atomically reserve credit BEFORE calling the provider (prevents TOCTOU race)
+  let consume: { success: boolean; reason?: string; byok?: boolean; fromBonus?: number; fromMonthly?: number } = { success: true, byok: true };
   if (!model.byokOnly) {
-    creditCheck = await checkCredits(userId, model.creditType, creditCost, model.apiKeyProvider);
-    if (!creditCheck.allowed) {
-      return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
+    consume = await consumeCredits(userId, model.creditType, creditCost, model.apiKeyProvider);
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });
     }
   }
 
@@ -448,13 +447,6 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
       throw new Error(`${model.displayName} returned invalid image URL`);
     }
 
-    if (!model.byokOnly && !creditCheck.byok) {
-      const consume = await consumeCredits(userId, model.creditType, creditCost, model.apiKeyProvider);
-      if (!consume.success) {
-        return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 402 });
-      }
-    }
-
     await logUsage({
       userId,
       modelAlias: alias,
@@ -465,7 +457,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
       durationMs,
       costUsd:    model.costPerCall,
       creditCost: model.byokOnly ? 0 : model.creditCost,
-      byok:       model.byokOnly ?? (creditCheck.byok ?? false),
+      byok:       model.byokOnly ?? (consume.byok ?? false),
       metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length, generationMode: 'photo_transform' },
     });
 
@@ -508,6 +500,10 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
     const durationMs = Date.now() - startTime;
     const errMsg = err instanceof Error ? err.message : 'img2img failed';
     console.error(`[studio/generate][${alias}] img2img failed:`, errMsg);
+
+    if (!model.byokOnly && !consume.byok) {
+      await refundCredits(userId, model.creditType, consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
 
     await logUsage({
       userId,

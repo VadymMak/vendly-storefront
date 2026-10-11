@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
-import { checkCredits, deductCredit, getOrCreateCredits } from '@/lib/credits';
+import { consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokEdit } from '@/lib/xai-client';
@@ -117,10 +117,11 @@ export async function POST(req: Request) {
   }
 
   // ── Flux Kontext Pro path (default) ───────────────────────────────────────────
-  const creditCheck = await checkCredits(session.user.id, 'image');
-  if (!creditCheck.allowed) {
+  // Atomically reserve credit before calling the AI provider (prevents TOCTOU race)
+  const consume = await consumeCredits(session.user.id, 'image');
+  if (!consume.success) {
     return NextResponse.json(
-      { error: creditCheck.reason, needsUpgrade: true },
+      { error: consume.reason, needsUpgrade: true },
       { status: 403 },
     );
   }
@@ -182,12 +183,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'AI edit returned invalid image URL' }, { status: 500 });
     }
 
-    if (!creditCheck.byok) {
-      await deductCredit(session.user.id, 'image');
-    }
-
     return NextResponse.json({ url: imageUrl });
   } catch (err) {
+    if (!consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
     console.error('[ai-edit flux]', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'AI edit failed' },

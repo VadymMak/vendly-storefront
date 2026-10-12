@@ -43,15 +43,36 @@ Bei der Registrierung erheben wir folgende Daten:
 
 Diese Daten werden ausschließlich für den Betrieb Ihres Kontos und die Kommunikation mit Ihnen genutzt. Sie können Ihr Konto und alle damit verbundenen Daten jederzeit über die Einstellungen löschen oder uns unter makevytssvadym@gmail.com kontaktieren.
 
-## 7. Zahlungsabwicklung (Stripe)
+## 7. Missbrauchsschutz bei der Registrierung
+
+Um zu verhindern, dass kostenlose Guthaben durch das massenhafte Anlegen von Konten missbraucht werden, setzen wir bei der Registrierung die folgenden Schutzmaßnahmen ein.
+
+**a) Gehashte IP-Adresse**
+
+Bei einer erfolgreichen Registrierung speichern wir nicht Ihre IP-Adresse selbst, sondern ausschließlich einen kryptografischen Hashwert davon (HMAC-SHA256 mit einem geheimen Schlüssel) sowie den Zeitpunkt der Registrierung. Aus dem Hashwert lässt sich die IP-Adresse ohne den geheimen Schlüssel nicht zurückrechnen; er wird nicht mit Ihrem Nutzerkonto verknüpft. Es handelt sich um pseudonymisierte Daten. Anhand des Hashwerts begrenzen wir die Anzahl neuer Konten auf drei pro Netzwerk innerhalb von 24 Stunden.
+
+- **Rechtsgrundlage:** Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt in der Verhinderung von Missbrauch und Betrug sowie im Schutz unseres kostenlosen Angebots.
+- **Speicherdauer:** Die Hashwerte werden nach 30 Tagen automatisch gelöscht.
+
+**b) Cloudflare Turnstile**
+
+Zum Schutz des Registrierungsformulars vor automatisierten Anfragen (Bots) nutzen wir Cloudflare Turnstile, einen Dienst der Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA. Turnstile prüft beim Aufruf des Formulars, ob die Anfrage von einem Menschen stammt. Dabei verarbeitet Cloudflare insbesondere Ihre IP-Adresse sowie technische Informationen über Ihren Browser und Ihr Gerät. Bei der Registrierung übermittelt unser Server das Prüfergebnis (Token) zusammen mit Ihrer IP-Adresse an Cloudflare, um es zu verifizieren. Nach Angaben von Cloudflare werden diese Daten nicht zu Werbezwecken verwendet.
+
+- **Rechtsgrundlage:** Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt im Schutz unseres Angebots vor automatisierten Registrierungen und Missbrauch.
+- **Drittlandübermittlung:** Cloudflare ist unter dem EU-US Data Privacy Framework zertifiziert; die Übermittlung in die USA erfolgt auf Grundlage des Angemessenheitsbeschlusses der EU-Kommission (Art. 45 DSGVO).
+- Weitere Informationen: https://www.cloudflare.com/privacypolicy/
+
+**Widerspruch:** Sie können der Verarbeitung nach Art. 21 DSGVO aus Gründen, die sich aus Ihrer besonderen Situation ergeben, widersprechen. Ohne diese Prüfungen ist eine Registrierung allerdings nicht möglich.
+
+## 8. Zahlungsabwicklung (Stripe)
 
 Für die Abwicklung von Zahlungen nutzen wir den Dienst Stripe (Stripe Inc., 510 Townsend Street, San Francisco, CA 94103, USA). Ihre Zahlungsdaten (Kartennummer, CVC, Ablaufdatum) werden dabei direkt und verschlüsselt an Stripe übermittelt. Wir speichern keine vollständigen Zahlungsdaten. Weitere Informationen finden Sie in der Datenschutzerklärung von Stripe: https://stripe.com/de/privacy
 
-## 8. Hosting (Vercel)
+## 9. Hosting (Vercel)
 
 Unsere Website wird bei Vercel Inc. (340 Pine Street, Suite 900, San Francisco, CA 94104, USA) gehostet. Vercel erhebt und verarbeitet Daten im Rahmen der Bereitstellung der Hosting-Infrastruktur. Weitere Informationen: https://vercel.com/legal/privacy-policy
 
-## 9. Ihre Rechte (DSGVO Art. 15–22)
+## 10. Ihre Rechte (DSGVO Art. 15–22)
 
 Sie haben gegenüber uns folgende Rechte hinsichtlich Ihrer personenbezogenen Daten:
 
@@ -66,6 +87,6 @@ Zur Ausübung Ihrer Rechte wenden Sie sich bitte an: makevytssvadym@gmail.com
 
 Sie haben außerdem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung Ihrer personenbezogenen Daten zu beschweren.
 
-## 10. Aktualität und Änderungen
+## 11. Aktualität und Änderungen
 
-Diese Datenschutzerklärung ist aktuell gültig und hat den Stand **April 2026**. Wir behalten uns vor, diese Datenschutzerklärung anzupassen, damit sie stets den aktuellen rechtlichen Anforderungen entspricht oder um Änderungen unserer Leistungen in der Datenschutzerklärung umzusetzen, z. B. bei der Einführung neuer Services.
+Diese Datenschutzerklärung ist aktuell gültig und hat den Stand **Oktober 2026**. Wir behalten uns vor, diese Datenschutzerklärung anzupassen, damit sie stets den aktuellen rechtlichen Anforderungen entspricht oder um Änderungen unserer Leistungen in der Datenschutzerklärung umzusetzen, z. B. bei der Einführung neuer Services.

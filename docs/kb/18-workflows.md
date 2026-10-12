@@ -14,15 +14,40 @@
 3. **Place Products** (free): Put the cutout on a generated background
 4. **AI Blend** (1 credit): Make it look natural
 
-## Create an Instagram Post
+## Create a Promo Post
 
-**Goal:** Eye-catching social media content
-**Credits:** 1-3 credits
+**Goal:** A ready-to-post image for your feed or story (Instagram, Facebook, TikTok)
+**Credits:** 1 credit from a text description, 2 credits when you start from your own photo
 
-1. **Generate Image**: Choose Instagram 4:5 preset (1080×1350)
-2. Use Food/Product/Beauty style preset matching your business
-3. Apply a Quick Filter for brand consistency (free)
-4. Download and post
+1. On the mobile Studio home, tap **Promo Post**
+2. Optional: take or pick a photo — the AI keeps your product and builds the ad around it
+3. Describe what you want (or tap an example / use voice input)
+4. Choose the format: **Instagram feed (4:5)**, **Story (9:16)** or **Square (1:1)**
+5. Pick a direction: social promo, food, beauty, interior or product
+6. Tap **Create**, then on the result: add text, make a 9:16 Story version, save or share
+
+A Promo Post is a still image. For a short video made from several photos, use **Reel** instead.
+
+## Remove a Background on Mobile
+
+**Goal:** A clean cut-out of your product (transparent PNG)
+**Credits:** 1 credit
+
+1. On the mobile Studio home, tap **Remove Background**
+2. Take or pick a photo
+3. Tap **Remove background** — takes about 5–15 seconds
+4. Preview the cut-out on a checkerboard, white or black background
+5. **Download PNG**, **Share**, or **Use in Promo Post** to build an ad around the cut-out
+
+## Upscale a Photo on Mobile
+
+**Goal:** A larger, sharper version of a photo (4×)
+**Credits:** 1 credit
+
+1. On the mobile Studio home, tap **Upscale**
+2. Take or pick a photo — you see its current size and the size after upscaling
+3. Tap **Upscale 4×** — can take up to a minute
+4. Compare before/after with the slider, then **Download** or **Share**
 
 ## Create a Video for TikTok/Reels
 

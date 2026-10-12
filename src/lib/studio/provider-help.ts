@@ -48,7 +48,7 @@ export const PROVIDER_HELP: ProviderHelp[] = [
       'Copy the key (starts with xai-)',
     ],
     keyFormat: 'xai-...',
-    pricing: 'Free tier available. Grok Imagine is free for image generation',
+    pricing: 'Pay-as-you-go — xAI bills each Grok Imagine image',
     icon: '🤖',
   },
   {

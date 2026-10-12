@@ -14,10 +14,10 @@
 - **Cost:** 2 credits
 - **Providers:** fal.ai (primary), Replicate (fallback)
 
-### Grok Imagine (Best Tier — Free)
+### Grok Imagine (Best Tier)
 - **Speed:** ~5-10 seconds
 - **Quality:** Good quality
-- **Cost:** 0 credits (free!)
+- **Cost:** 2 image credits
 - **Provider:** xAI
 - Used as automatic fallback in Best tier
 

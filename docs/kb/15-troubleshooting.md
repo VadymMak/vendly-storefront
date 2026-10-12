@@ -8,7 +8,7 @@
 1. Buy a credit pack (€5 for 50 images, €10 for 150 images, €20 for 400 images)
 2. Upgrade your plan for more monthly credits
 3. Wait for monthly credit reset (every 30 days)
-4. Use free tools: Grok Imagine (0 credits), Quick Filters, Auto Split, Place Products
+4. Use free tools: Quick Filters, Auto Split, Place Products, basic Improve Photo presets
 
 ## "Video generation requires a paid plan or credit pack"
 

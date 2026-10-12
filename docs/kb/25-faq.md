@@ -32,7 +32,7 @@ Yes. Buy a credit pack: Starter Pack (€5 — 50 image + 3 video credits), Crea
 You can buy a credit pack for immediate top-up, or wait for your monthly reset. Free tools (Auto Split, Place Products, Quick Filters) continue to work.
 
 ### Are there any free tools?
-Yes! These tools cost 0 credits: Grok Imagine (image generation), the basic Improve Photo presets, Auto Split, Place Products (manual compositing), Quick Filters. AI Style in Improve Photo and AI Blend after Place Products cost 1 credit each.
+Yes! These tools cost 0 credits: the basic Improve Photo presets, Auto Split, Place Products (manual compositing), Quick Filters. AI Style in Improve Photo and AI Blend after Place Products cost 1 credit each.
 
 ## Technical
 

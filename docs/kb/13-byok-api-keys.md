@@ -51,7 +51,7 @@ If you're on Starter or Pro and add your own keys:
 | fal.ai Flux Schnell | fal-schnell | ~$0.003 |
 | fal.ai Flux Dev | fal-dev | ~$0.012 |
 | BFL FLUX.2 Pro | img-premium | ~$0.03 |
-| xAI Grok Imagine | img-grok | Free |
+| xAI Grok Imagine | img-grok | per image, see xAI pricing |
 | xAI Grok Edit | edit-grok | 1 image credit |
 | xAI Grok Video 1.5 | video | ~$0.15-0.30 |
 

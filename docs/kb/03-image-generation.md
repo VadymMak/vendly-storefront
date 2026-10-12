@@ -68,6 +68,6 @@ The system automatically selects the best AI model for your chosen quality tier:
 
 If one model is unavailable, the system automatically falls back to the next available model.
 
-## Grok Imagine (Free Model)
+## Grok Imagine
 
-Grok Imagine by xAI is available as a free model in the Best quality tier. It costs 0 credits and produces good quality results. The system may use it automatically as a fallback.
+Grok Imagine by xAI is part of the Best quality tier and costs 2 image credits, like the other Best models. The system may use it automatically as a fallback.

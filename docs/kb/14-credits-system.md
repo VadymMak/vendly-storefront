@@ -14,13 +14,13 @@ There are two types of credits:
 | Generate Image (Quick) | 1 image credit |
 | Generate Image (Best) | 2 image credits |
 | Generate Image (HD) | 3 image credits |
-| Grok Imagine | 0 credits (free) |
+| Grok Imagine | 2 image credits |
 | Improve Photo — basic presets | Free |
 | Improve Photo — AI Style (Grok) | 1 image credit |
 | AI Edit (Flux Kontext) | 2 image credits |
 | Remove Background | 1 image credit |
 | Upscale HD | 1 image credit |
-| Edit & Replace (Inpaint) | 1 image credit |
+| Edit & Replace (Inpaint) | 2 image credits |
 | AI Blend | 1 image credit |
 | Scene Compose | 1 image credit |
 | Auto Split | Free |

@@ -20,6 +20,8 @@ VendShop is operated from the EU and complies with GDPR:
 - You can export all your data (Account → Export Data)
 - You can delete your account and all data (Account → Delete Account)
 - We process minimal personal data (email, name, usage stats)
+- To prevent abuse of free credits, sign-ups are limited per network: we store only a one-way hash of your IP address (never the IP itself) and delete it after 30 days
+- Sign-up is protected by Cloudflare Turnstile (a privacy-friendly bot check)
 - Full privacy policy at vendshop.shop/datenschutz
 
 ## Payment Security

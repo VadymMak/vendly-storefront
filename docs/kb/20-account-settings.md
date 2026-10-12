@@ -6,6 +6,11 @@
 2. Enter your email and create a password
 3. You automatically start on the Free plan with 5 image credits
 
+Sign-up rules (to keep free credits fair):
+- Temporary / disposable email addresses are not accepted — use your real email
+- A short automatic security check (Cloudflare Turnstile) runs on the sign-up form; if it fails, refresh the page and try again
+- At most 3 accounts can be created from the same network per day
+
 ## Studio Settings
 
 Access settings from the gear icon in Studio or go to Studio → Settings.

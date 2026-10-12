@@ -1,4 +1,4 @@
-import { del, put } from '@vercel/blob';
+import { del, localPathnameFromUrl, put } from '@/lib/storage';
 import { fetchAllowedImage, isAllowedImageUrl } from '@/lib/studio/safe-fetch';
 
 // Provider CDN URLs (Replicate, fal, xAI, BFL) expire after hours/days; StudioJob.outputUrl
@@ -26,7 +26,7 @@ export async function persistBufferToBlob(buffer: Buffer, contentType: string, p
  * a temporary URL is better than none.
  */
 export async function persistToBlob(providerUrl: string, prefix: string): Promise<string> {
-  if (providerUrl.includes('.blob.vercel-storage.com/')) return providerUrl;
+  if (providerUrl.includes('.blob.vercel-storage.com/') || localPathnameFromUrl(providerUrl) !== null) return providerUrl;
   try {
     const { buffer, contentType } = await fetchAllowedImage(providerUrl);
     return await persistBufferToBlob(buffer, contentType, prefix);
@@ -67,7 +67,7 @@ async function readCapped(body: ReadableStream<Uint8Array>, max: number): Promis
  * crawled (a 12 MB clip did not finish in 10 min) while put(buffer) took ~14 s.
  */
 export async function persistVideoToBlob(providerUrl: string, prefix: string): Promise<string> {
-  if (providerUrl.includes('.blob.vercel-storage.com/')) return providerUrl;
+  if (providerUrl.includes('.blob.vercel-storage.com/') || localPathnameFromUrl(providerUrl) !== null) return providerUrl;
   try {
     if (!isAllowedImageUrl(providerUrl)) throw new Error('host not allowed');
 

@@ -2,7 +2,7 @@ import { execFile } from 'child_process';
 import { writeFileSync, readFileSync, unlinkSync } from 'fs';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 
 const execFileAsync = promisify(execFile);
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;

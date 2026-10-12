@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { localPathnameFromUrl } from '@/lib/storage';
 import { isSuperuser, getOrCreateCredits, consumeCredits, refundCredits } from '@/lib/credits';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -8,6 +9,7 @@ const TRANSCRIBE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 function isAllowedTranscribeUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
+    if (localPathnameFromUrl(url) !== null) return true; // our own uploads
     if (parsed.protocol !== 'https:') return false;
     if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|localhost)/i.test(parsed.hostname)) return false;
     const allowed = ['vercel-storage.com', 'replicate.delivery', 'fal.media'];

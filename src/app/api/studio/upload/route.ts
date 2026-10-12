@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import sharp from 'sharp';
 import { heicToJpegIfNeeded } from '@/lib/studio/heic';
 

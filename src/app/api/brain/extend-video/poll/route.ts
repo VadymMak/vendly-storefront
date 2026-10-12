@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import { getVideoProvider, VideoProviderError } from '@/lib/video';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';

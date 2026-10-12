@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createReadStream } from 'fs';
+import { stat } from 'fs/promises';
+import { Readable } from 'stream';
+import { localPathnameFromUrl, resolveUploadPath } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -51,6 +55,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 });
   }
 
+  const filename = `vendshop-video-${jobId.slice(0, 8)}-${Date.now()}.mp4`;
+
+  // Stored on this server: stream from disk as an attachment
+  const localPath = localPathnameFromUrl(job.outputUrl);
+  if (localPath !== null) {
+    try {
+      const fullPath = resolveUploadPath(localPath);
+      const info = await stat(fullPath);
+      const stream = Readable.toWeb(createReadStream(fullPath)) as ReadableStream<Uint8Array>;
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          'Content-Type':           'video/mp4',
+          'Content-Length':         String(info.size),
+          'Content-Disposition':    `attachment; filename="${filename}"`,
+          'Cache-Control':          'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    } catch {
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    }
+  }
+
   let parsed: URL;
   try {
     parsed = new URL(job.outputUrl);
@@ -86,8 +114,6 @@ export async function GET(req: NextRequest) {
   if (!contentType.startsWith('video/')) {
     return NextResponse.json({ error: 'Unexpected content type' }, { status: 502 });
   }
-
-  const filename = `vendshop-video-${jobId.slice(0, 8)}-${Date.now()}.mp4`;
 
   const headers = new Headers({
     'Content-Type':              contentType,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createFalClient } from '@fal-ai/client';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 import sharp from 'sharp';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';

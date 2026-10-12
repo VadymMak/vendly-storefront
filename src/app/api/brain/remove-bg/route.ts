@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
 

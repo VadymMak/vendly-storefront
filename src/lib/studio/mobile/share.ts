@@ -8,6 +8,10 @@ export function proxyUrl(url: string): string {
   if (url.startsWith('blob:') || url.startsWith('/') || url.startsWith('data:')) {
     return url;
   }
+  // Same-origin files (our own /uploads) need no proxy
+  try {
+    if (new URL(url, location.href).origin === location.origin) return url;
+  } catch {}
   return `/api/studio/proxy-media?url=${encodeURIComponent(url)}`;
 }
 

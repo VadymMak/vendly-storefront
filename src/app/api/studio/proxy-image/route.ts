@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { localPathnameFromUrl } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 
 const SAFE_CONTENT_TYPES = new Set([
@@ -28,6 +29,9 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.json({ error: 'Relative paths not allowed' }, { status: 403 });
   }
+
+  // Our own uploads are same-origin — no proxying needed
+  if (localPathnameFromUrl(url) !== null) return NextResponse.redirect(url);
 
   let parsedUrl: URL;
   try {

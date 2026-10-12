@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
+import { del, localPathnameFromUrl } from '@/lib/storage';
 import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 
@@ -22,7 +22,7 @@ interface PurgeResult {
 const VERCEL_BLOB_HOST_FRAGMENT = '.public.blob.vercel-storage.com';
 
 function isVercelBlobUrl(url: string): boolean {
-  return url.includes(VERCEL_BLOB_HOST_FRAGMENT);
+  return url.includes(VERCEL_BLOB_HOST_FRAGMENT) || localPathnameFromUrl(url) !== null;
 }
 
 /** Pull every photo URL we know about off a lead, dedup, and keep only Vercel-Blob URLs. */

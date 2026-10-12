@@ -4,6 +4,8 @@
  * no redirects, timeout, hard size cap enforced while streaming.
  */
 
+import { localPathnameFromUrl, readLocalUpload } from '@/lib/storage';
+
 // Hosts our generators and storage return image URLs from (mirrors proxy-image)
 export const IMAGE_ALLOWED_HOSTS = [
   'vercel-storage.com',
@@ -37,6 +39,8 @@ export function isAllowedImageUrl(raw: string): boolean {
   } catch {
     return false;
   }
+  // Our own server-local uploads (src/lib/storage.ts)
+  if (localPathnameFromUrl(raw) !== null) return true;
   if (parsed.protocol !== 'https:') return false;
   return IMAGE_ALLOWED_HOSTS.some(
     (h) => parsed.hostname === h || parsed.hostname.endsWith('.' + h),
@@ -55,6 +59,23 @@ export async function fetchAllowedImage(
 ): Promise<FetchedImage> {
   if (!isAllowedImageUrl(raw)) {
     throw new SafeFetchError('Image URL not allowed', 403);
+  }
+
+  // Our own uploads: read from disk instead of a round trip through Cloudflare
+  if (localPathnameFromUrl(raw) !== null) {
+    let local: Awaited<ReturnType<typeof readLocalUpload>>;
+    try {
+      local = await readLocalUpload(raw, maxBytes);
+    } catch (err) {
+      const tooLarge = err instanceof Error && err.message === 'file too large';
+      throw new SafeFetchError(tooLarge ? 'Image too large' : 'Image not found', tooLarge ? 413 : 404);
+    }
+    const LOCAL_IMAGE_TYPES: Record<string, string> = {
+      webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', avif: 'image/avif',
+    };
+    const contentType = local && LOCAL_IMAGE_TYPES[local.ext];
+    if (!local || !contentType) throw new SafeFetchError('Unsupported content type', 415);
+    return { buffer: local.buffer, contentType };
   }
 
   let res: Response;

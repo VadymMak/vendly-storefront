@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import { db } from '@/lib/db';
 import { runImagePipeline } from '@/lib/image-pipeline/decision-engine';
 

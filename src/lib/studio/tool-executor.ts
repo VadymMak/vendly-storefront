@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import type { ToolName, MediaAttachment, SessionContext } from './types';
 import { getUserApiKey } from './get-user-key';
 import { consumeCredits } from '@/lib/credits';

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { localPathnameFromUrl } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 
 const ALLOWED_HOSTS = [
@@ -40,6 +41,9 @@ export async function GET(req: NextRequest) {
   if (!url) {
     return NextResponse.json({ error: 'Missing url' }, { status: 400 });
   }
+
+  // Our own uploads are same-origin — no proxying needed
+  if (localPathnameFromUrl(url) !== null) return NextResponse.redirect(url);
 
   let parsed: URL;
   try {

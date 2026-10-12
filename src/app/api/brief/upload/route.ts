@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import sharp from 'sharp';

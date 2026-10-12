@@ -63,3 +63,6 @@ ecosystem.config.js
 /SYNTHESIS-*.md
 /vendly-new/
 /docs/studio-server-review-*.md
+
+# server-local uploads (src/lib/storage.ts)
+/uploads/

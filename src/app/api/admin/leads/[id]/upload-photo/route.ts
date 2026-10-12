@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import { requireAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 import { getLeadPhotos, serializeLeadPhotos } from '@/lib/lead-photos';

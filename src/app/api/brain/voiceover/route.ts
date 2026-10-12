@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits } from '@/lib/credits';
 

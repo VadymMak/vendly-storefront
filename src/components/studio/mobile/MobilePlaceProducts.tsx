@@ -10,7 +10,7 @@ import { MobileMediaPicker } from './MobileMediaPicker';
 import { BeforeAfterSlider } from '@/components/studio/editors/shared/BeforeAfterSlider';
 import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 import { downloadImage, proxyUrl, shareImage } from '@/lib/studio/mobile/share';
-import { canvasSizeFor, clamp, fitScale, twoFingerDelta, type Point } from '@/lib/place-products/geometry';
+import { canvasSizeFor, clamp, fitScale, getObjBounds, ptDist, twoFingerDelta, type Point } from '@/lib/place-products/geometry';
 import {
   BlendError, canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, saveComposite,
 } from '@/lib/place-products/canvas';
@@ -23,6 +23,9 @@ const CANVAS_MAX = 1600;
 const MIN_SCALE_FACTOR = 0.1;
 const MAX_SCALE_FACTOR = 3;
 const MAX_HISTORY = 20;
+// Corner handles, in CSS px (converted to canvas px at draw / hit time): 28px dot, 44px target
+const MOBILE_HANDLE_RADIUS = 14;
+const MOBILE_HANDLE_HIT_RADIUS = 22;
 
 interface Gesture {
   checkpointed: boolean;
@@ -32,6 +35,20 @@ interface Gesture {
   /** Two fingers: start positions of both pointers (client px) */
   startA?: Point;
   startB?: Point;
+  /** Corner resize: opposite corner stays put (canvas px) */
+  resize?: { anchor: Point; startDist: number };
+}
+
+/** Canvas px per CSS px — the 1600px canvas is shown much smaller on a phone. */
+function canvasScale(canvas: HTMLCanvasElement): number {
+  const w = canvas.getBoundingClientRect().width;
+  return w > 0 ? canvas.width / w : 1;
+}
+
+function toCanvasPoint(canvas: HTMLCanvasElement, clientX: number, clientY: number): Point {
+  const r = canvas.getBoundingClientRect();
+  const k = canvasScale(canvas);
+  return { x: (clientX - r.left) * k, y: (clientY - r.top) * k };
 }
 
 interface Props {
@@ -91,16 +108,29 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
     if (!ctx) return;
     drawScene(ctx, bg, [o], objImgsRef.current);
     if (withOutline) {
+      const k = canvasScale(canvas);
       const ow = o.scale * o.naturalWidth;
       const oh = o.scale * o.naturalHeight;
       ctx.save();
       ctx.translate(o.x * canvas.width, o.y * canvas.height);
       ctx.rotate(o.rotation);
       ctx.strokeStyle = 'rgba(34,197,94,0.9)';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([12, 8]);
+      ctx.lineWidth = 2 * k;
+      ctx.setLineDash([8 * k, 6 * k]);
       ctx.strokeRect(-ow / 2, -oh / 2, ow, oh);
       ctx.restore();
+
+      // Corner handles follow the rotated box
+      const b = getObjBounds(o, canvas.width, canvas.height, 0);
+      for (const c of [b.tl, b.tr, b.bl, b.br]) {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, MOBILE_HANDLE_RADIUS * k, 0, Math.PI * 2);
+        ctx.fillStyle = '#16a34a';
+        ctx.fill();
+        ctx.lineWidth = 2 * k;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+      }
     }
   }, []);
 
@@ -178,6 +208,28 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
     ptrsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const canvas = canvasRef.current;
+    const o = objRef.current;
+
+    // One finger on a corner handle → proportional resize anchored at the opposite corner.
+    // Handles are checked before the body (they overlap its edges).
+    if (ptrsRef.current.size === 1 && canvas && o) {
+      const pt = toCanvasPoint(canvas, e.clientX, e.clientY);
+      const hitR = MOBILE_HANDLE_HIT_RADIUS * canvasScale(canvas);
+      const b = getObjBounds(o, canvas.width, canvas.height, 0);
+      const corners: [Point, Point][] = [[b.tl, b.br], [b.tr, b.bl], [b.bl, b.tr], [b.br, b.tl]];
+      const hit = corners.find(([c]) => ptDist(pt.x, pt.y, c.x, c.y) <= hitR);
+      if (hit) {
+        const [corner, anchor] = hit;
+        gestureRef.current = {
+          checkpointed: false,
+          start: o,
+          resize: { anchor, startDist: Math.max(1, ptDist(corner.x, corner.y, anchor.x, anchor.y)) },
+        };
+        return;
+      }
+    }
+
     // A second finger continues the same gesture (one undo step for the whole touch)
     beginGesture(ptrsRef.current.size > 1 && (gestureRef.current?.checkpointed ?? false));
   }
@@ -193,7 +245,20 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
     const pts = Array.from(ptrsRef.current.values());
     let next: PlacedObject;
 
-    if (pts.length >= 2 && g.startA && g.startB) {
+    if (g.resize && pts.length === 1) {
+      const { anchor, startDist } = g.resize;
+      const pt = toCanvasPoint(canvas, e.clientX, e.clientY);
+      const scale = clamp(
+        g.start.scale * (ptDist(pt.x, pt.y, anchor.x, anchor.y) / startDist),
+        initialObj.scale * MIN_SCALE_FACTOR,
+        initialObj.scale * MAX_SCALE_FACTOR,
+      );
+      // Centre slides along the anchor→corner diagonal so the anchor corner stays fixed
+      const r = scale / g.start.scale;
+      const cx = anchor.x + (g.start.x * canvas.width - anchor.x) * r;
+      const cy = anchor.y + (g.start.y * canvas.height - anchor.y) * r;
+      next = { ...g.start, scale, x: cx / canvas.width, y: cy / canvas.height };
+    } else if (pts.length >= 2 && g.startA && g.startB) {
       const { scaleRatio, angleDelta } = twoFingerDelta(g.startA, g.startB, pts[0], pts[1]);
       // Midpoint shift moves the product too, so a two-finger gesture feels like holding it
       const midDx = (pts[0].x + pts[1].x - g.startA.x - g.startB.x) / 2;
@@ -301,6 +366,14 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
 
   // ── UI ──────────────────────────────────────────────────────────────────────
 
+  // Own full-screen layer above the studio header / bottom nav: a canvas editor needs the
+  // whole viewport, and nothing underneath may show through or scroll along
+  const screen = (content: React.ReactNode) => (
+    <div className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-[#0a0a0f] text-white">
+      {content}
+    </div>
+  );
+
   const header = (title: string) => (
     <div className="flex items-center gap-3 px-4 pt-4 pb-3">
       <button
@@ -317,7 +390,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   );
 
   if (!cutoutUrl) {
-    return (
+    return screen(
       <div className="flex flex-col pb-8">
         {header(t('title'))}
         <div className="px-4 pt-6 text-center">
@@ -334,7 +407,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   if (step === 'pick-bg') {
-    return (
+    return screen(
       <div className="flex flex-col pb-8" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         {header(t('title'))}
         <div className="px-4">
@@ -377,7 +450,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   if (step === 'processing') {
-    return (
+    return screen(
       <div className="flex flex-col items-center justify-center gap-3 py-20" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
         <p className="text-sm text-gray-300">{t('blending')}</p>
@@ -387,7 +460,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   if (step === 'result' && result) {
-    return (
+    return screen(
       <div className="flex flex-col pb-8" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         {header(t('result'))}
         <div className="px-4">
@@ -433,7 +506,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   // step === 'edit'
-  return (
+  return screen(
     <div className="flex flex-col pb-56" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
       {header(t('title'))}
       <div className="px-4">
@@ -479,7 +552,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
         )}
       </div>
 
-      <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
+      <div className="fixed inset-x-0 bottom-0 z-[61] bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-lg space-y-2">
           <button
             onClick={() => void blend()}

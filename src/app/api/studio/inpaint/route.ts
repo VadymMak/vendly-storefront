@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
+import { CREDIT_COSTS } from '@/lib/constants';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
-  const creditCheck = await checkCredits(session.user.id, 'image', 1, 'replicate');
+  const creditCheck = await checkCredits(session.user.id, 'image', CREDIT_COSTS.inpaint, 'replicate');
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[inpaint] Done:', finalBlob.url);
-    const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+    const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.inpaint, 'replicate');
     if (!consume.success) {
       return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
     }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
+import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 
 type BgMode = 'transparent' | 'white' | 'gray' | 'custom';
 
@@ -191,11 +192,11 @@ export function RemoveBgEditor({ imageUrl, imageFile, onAccept, onClose }: Remov
   return (
     <EditorShell
       title="Remove background"
-      creditCost={1}
+      creditCost={CREDIT_COSTS.removeBg}
       status={status}
       onBack={onClose}
       primaryAction={{
-        label: isResultReady ? 'Keep result' : 'Remove background · 1 credit',
+        label: isResultReady ? 'Keep result' : `Remove background · ${creditLabel(CREDIT_COSTS.removeBg)}`,
         onClick: isResultReady ? () => onAccept(resultUrl) : () => void handleRemoveBg(),
         disabled: status === 'processing',
         loading: status === 'processing',

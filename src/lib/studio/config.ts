@@ -104,7 +104,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'quality',
     costPerCall:    0.0,
-    creditCost:     0,
+    creditCost:     2,    // platform XAI_API_KEY — xAI bills per image
     creditType:     'image',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',

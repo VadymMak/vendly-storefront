@@ -5,6 +5,7 @@ import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
 import { SceneCreator } from './SceneCreator';
+import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 
 interface InpaintEditorProps {
   imageUrl: string;
@@ -458,7 +459,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
     <>
       <EditorShell
         title="Edit image"
-        creditCost={2}
+        creditCost={CREDIT_COSTS.inpaint}
         status={status}
         onBack={onClose}
         primaryAction={
@@ -468,7 +469,7 @@ export function InpaintEditor({ imageUrl, onClose, onResult }: InpaintEditorProp
                 onClick: () => { onResult(result); onClose(); },
               }
             : {
-                label: prompt.trim() ? 'Inpaint · 2 credits' : 'Remove object · 2 credits',
+                label: prompt.trim() ? `Inpaint · ${creditLabel(CREDIT_COSTS.inpaint)}` : `Remove object · ${creditLabel(CREDIT_COSTS.inpaint)}`,
                 onClick: () => void handleInpaint(!prompt.trim()),
                 disabled: status === 'processing',
                 loading: status === 'processing',

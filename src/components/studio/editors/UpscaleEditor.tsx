@@ -5,6 +5,7 @@ import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import { BeforeAfterSlider } from './shared/BeforeAfterSlider';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
+import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 
 interface UpscaleEditorProps {
   imageUrl: string;
@@ -132,11 +133,11 @@ export function UpscaleEditor({ imageUrl, imageFile, onAccept, onClose }: Upscal
   return (
     <EditorShell
       title="Upscale image"
-      creditCost={1}
+      creditCost={CREDIT_COSTS.upscale}
       status={status}
       onBack={onClose}
       primaryAction={{
-        label: isResultReady ? 'Keep result' : 'Upscale · 1 credit',
+        label: isResultReady ? 'Keep result' : `Upscale · ${creditLabel(CREDIT_COSTS.upscale)}`,
         onClick: isResultReady ? () => onAccept(resultUrl) : () => void handleUpscale(),
         disabled: status === 'processing',
         loading: status === 'processing',

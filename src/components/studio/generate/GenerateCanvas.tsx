@@ -21,6 +21,7 @@ import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
 import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
 import { AnimateEditor } from '@/components/studio/editors/AnimateEditor';
+import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 
 interface Props {
   userId: string;
@@ -1092,7 +1093,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     setActiveEditor({ tool: 'improve', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
                 }} highlight disabled={!!processingTask} />
-                <ActionButton icon="edit"     label="Edit"           sublabel="2 credits" onClick={() => {
+                <ActionButton icon="edit"     label="Edit"           sublabel={creditLabel(CREDIT_COSTS.inpaint)} onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'inpaint', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
@@ -1102,12 +1103,12 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     setActiveEditor({ tool: 'animate', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
                 }} disabled={!!processingTask} />
-                <ActionButton icon="upscale"  label="Upscale"        sublabel="1 credit"  onClick={() => {
+                <ActionButton icon="upscale"  label="Upscale"        sublabel={creditLabel(CREDIT_COSTS.upscale)} onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'upscale', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
                 }} disabled={!!processingTask} />
-                <ActionButton icon="removebg" label="Remove BG"      sublabel="1 credit"  onClick={() => {
+                <ActionButton icon="removebg" label="Remove BG"      sublabel={creditLabel(CREDIT_COSTS.removeBg)} onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'remove-bg', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }

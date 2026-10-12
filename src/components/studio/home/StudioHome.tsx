@@ -21,6 +21,7 @@ import { GenerateVideoEditor } from '@/components/studio/editors/GenerateVideoEd
 import { compressImage } from '@/lib/studio/compress-image';
 import { ImageDetailModal } from '@/components/studio/generate/ImageDetailModal';
 import { VideoDetailModal } from '@/components/studio/generate/VideoDetailModal';
+import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 
 // ── Quick tool config ─────────────────────────────────────────────────────────
 
@@ -54,14 +55,14 @@ const QUICK_TOOLS: QuickTool[] = [
     id: 'remove-bg',
     label: 'Remove Background',
     description: 'Isolate subject with clean cutout',
-    credits: '1 credit',
+    credits: creditLabel(CREDIT_COSTS.removeBg),
     iconSvg: 'M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12',
   },
   {
     id: 'upscale',
     label: 'Upscale HD',
     description: 'Boost resolution up to 4x',
-    credits: '1 credit',
+    credits: creditLabel(CREDIT_COSTS.upscale),
     iconSvg: 'M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7',
   },
   {
@@ -75,7 +76,7 @@ const QUICK_TOOLS: QuickTool[] = [
     id: 'inpaint',
     label: 'Edit & Replace',
     description: 'Paint over areas to change or remove',
-    credits: '2 credits',
+    credits: creditLabel(CREDIT_COSTS.inpaint),
     iconSvg: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z',
   },
   {

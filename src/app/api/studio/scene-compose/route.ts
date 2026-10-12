@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
+import { CREDIT_COSTS } from '@/lib/constants';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokMultiImageEdit } from '@/lib/xai-client';
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  const creditCheck = await checkCredits(session.user.id, 'image', 1);
+  const creditCheck = await checkCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose);
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
       { access: 'public', contentType },
     );
 
-    await consumeCredits(session.user.id, 'image', 1);
+    await consumeCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose);
     return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error('[scene-compose] Error:', err);

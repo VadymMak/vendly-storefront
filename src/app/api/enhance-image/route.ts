@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { createJob } from '@/lib/studio-jobs';
 import { consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
+import { CREDIT_COSTS } from '@/lib/constants';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const maxDuration = 300;
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
   }
 
   // ── Credit check (atomic — reserves before AI call to prevent TOCTOU race) ───
-  const consume = await consumeCredits(session.user.id, 'image');
+  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.upscale);
   if (!consume.success) {
     return NextResponse.json(
       { error: consume.reason, needsUpgrade: true },

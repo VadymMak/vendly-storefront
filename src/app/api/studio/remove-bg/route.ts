@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { checkCredits, consumeCredits } from '@/lib/credits';
+import { CREDIT_COSTS } from '@/lib/constants';
 
 export const maxDuration = 60;
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const creditCheck = await checkCredits(session.user.id, 'image', 1, 'replicate');
+  const creditCheck = await checkCredits(session.user.id, 'image', CREDIT_COSTS.removeBg, 'replicate');
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[remove-bg] Done:', finalBlob.url);
-    const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+    const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg, 'replicate');
     if (!consume.success) {
       return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
     }

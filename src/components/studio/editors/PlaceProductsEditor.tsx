@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { EditorCheckpoint, PlacedObject, PlaceProductsEditorProps } from '@/lib/types';
+import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1036,7 +1037,7 @@ export function PlaceProductsEditor({
               style={{ background: '#7c3aed' }}
               title="AI smooths edges so objects look naturally placed in the scene"
             >
-              {blending ? 'Blending…' : '✨ AI Blend · 1 credit'}
+              {blending ? 'Blending…' : `✨ AI Blend · ${creditLabel(CREDIT_COSTS.aiBlend)}`}
             </button>
           </div>
         )}

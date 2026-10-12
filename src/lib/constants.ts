@@ -937,6 +937,25 @@ export const REEL_CREDIT_COST = {
   video:  { type: 'video', amount: 5 }, // Kling 5s ≈ $0.35 + outpaint
 } as const;
 
+// Credit cost of single-purpose editor operations (image credits). Text-to-image and
+// video models are priced per model in src/lib/studio/config.ts (creditCost), not here.
+// Routes and editor labels must read these values instead of hardcoding numbers.
+export const CREDIT_COSTS = {
+  inpaint:               2,
+  removeBg:              1,
+  upscale:               1, // /api/enhance-image (chat upscale and face_enhance too)
+  aiBlend:               1,
+  sceneCompose:          1,
+  generateWithReference: 1,
+} as const;
+
+export type CreditOperation = keyof typeof CREDIT_COSTS;
+
+/** "1 credit" / "2 credits" for editor button labels. */
+export function creditLabel(amount: number): string {
+  return `${amount} credit${amount === 1 ? '' : 's'}`;
+}
+
 /** How many reels of a mode a credit balance covers, e.g. 100 image credits → 50 image reels. */
 export function reelsForCredits(credits: number, mode: keyof typeof REEL_CREDIT_COST): number {
   return Math.floor(credits / REEL_CREDIT_COST[mode].amount);

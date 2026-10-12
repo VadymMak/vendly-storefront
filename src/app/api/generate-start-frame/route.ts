@@ -4,7 +4,8 @@ import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 import { createJob } from '@/lib/studio-jobs';
-import { getOrCreateCredits } from '@/lib/credits';
+import { consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
+import { CREDIT_COSTS } from '@/lib/constants';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 const schema = z.object({
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
 
   const body = schema.parse(await request.json());
 
-  // No credit charge for the Animate start frame, but every call runs Flux on the platform
-  // Replicate key — cap it per plan so it can't be used as a free image generator
+  // 1 image credit per start frame (BYOK users with their own Replicate key: no charge).
+  // The per-plan rate limit stays as an extra layer against bursts.
   const credits   = await getOrCreateCredits(session.user.id);
   const planType  = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
   const rateLimit = RATE_LIMITS.generateImage[planType] ?? RATE_LIMITS.generateImage.free;
@@ -59,27 +60,53 @@ export async function POST(request: Request) {
     : (process.env.REPLICATE_API_TOKEN ?? '');
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
+  // Reserve the credit atomically BEFORE the paid call — only when the platform key pays.
+  // Superusers pass through consumeCredits without a deduction.
+  const userId = session.user.id;
+  const cost = CREDIT_COSTS.startFrame;
+  const consume = keyRecord
+    ? null
+    : await consumeCredits(userId, 'image', cost);
+  if (consume && !consume.success) {
+    return NextResponse.json(
+      { error: consume.reason ?? 'Not enough image credits', needsUpgrade: true, creditsRequired: cost, creditType: 'image' },
+      { status: 402 },
+    );
+  }
+  const charged = Boolean(consume?.success && !consume.byok && (consume.fromBonus || consume.fromMonthly));
+  const refund = async () => {
+    if (charged && consume) await refundCredits(userId, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+  };
+
   // Prefer:wait — Replicate holds until Flux completes (~3-6s, well within 60s)
-  const createRes = await fetchWithRetry('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${replicateKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'wait',
-    },
-    body: JSON.stringify({
-      input: {
-        prompt:              body.prompt,
-        aspect_ratio:        body.aspectRatio,
-        num_outputs:         1,
-        output_format:       'webp',
-        go_fast:             true,
-        num_inference_steps: 4,
+  let createRes: Response;
+  try {
+    createRes = await fetchWithRetry('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${replicateKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'wait',
       },
-    }),
-  });
+      body: JSON.stringify({
+        input: {
+          prompt:              body.prompt,
+          aspect_ratio:        body.aspectRatio,
+          num_outputs:         1,
+          output_format:       'webp',
+          go_fast:             true,
+          num_inference_steps: 4,
+        },
+      }),
+    });
+  } catch (err) {
+    await refund();
+    console.error('[generate-start-frame] Replicate request failed:', err);
+    return NextResponse.json({ error: 'Frame generation failed' }, { status: 502 });
+  }
 
   if (!createRes.ok) {
+    await refund();
     const err = await createRes.json().catch(() => ({})) as Record<string, unknown>;
     return NextResponse.json({ error: `Replicate error: ${JSON.stringify(err)}` }, { status: 502 });
   }
@@ -92,16 +119,31 @@ export async function POST(request: Request) {
   }
 
   if (prediction.status === 'failed') {
+    await refund();
     return NextResponse.json({ error: prediction.error ?? 'Frame generation failed' }, { status: 502 });
   }
 
   // Rare: Prefer:wait timed out on Replicate side — fall back to async job
-  const jobId = await createJob({
-    userId:       session.user.id,
-    predictionId: prediction.id,
-    type:         'image',
-    metadata:     { prompt: body.prompt, type: 'start-frame' },
-  });
+  // The credit stays reserved; refreshJobStatus refunds it if this job fails
+  let jobId: string;
+  try {
+    jobId = await createJob({
+      userId,
+      predictionId:   prediction.id,
+      type:           'image',
+      creditType:     charged ? 'image' : undefined,
+      creditAmount:   charged ? cost : 0,
+      creditDeducted: charged,
+      metadata: {
+        prompt: body.prompt,
+        type:   'start-frame',
+        ...(charged && consume && { reserved: { fromBonus: consume.fromBonus ?? 0, fromMonthly: consume.fromMonthly ?? 0 } }),
+      },
+    });
+  } catch (err) {
+    await refund();
+    throw err;
+  }
 
   return NextResponse.json({ jobId, async: true });
 }

@@ -33,6 +33,7 @@ There are two types of credits:
 | Generate Video — Quick (Grok) 5s / 10s / 15s | 4 / 8 / 12 video credits |
 | Generate Video — Best (Kling) 5s / 10s / 15s | 10 / 18 / 28 video credits |
 | Animate (Image-to-Video) | 5 video credits |
+| Animate from text — start frame (generated first) | 1 image credit (free with your own Replicate key) |
 
 ### Reels
 | Reel type | Credits |

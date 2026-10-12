@@ -961,6 +961,7 @@ export const CREDIT_COSTS = {
   aiBlend:               1,
   sceneCompose:          1,
   generateWithReference: 1,
+  startFrame:            1, // Animate text→video start frame (Flux Schnell)
 } as const;
 
 export type CreditOperation = keyof typeof CREDIT_COSTS;

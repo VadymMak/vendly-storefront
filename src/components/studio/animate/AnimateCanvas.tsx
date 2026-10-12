@@ -145,6 +145,8 @@ export function AnimateCanvas({ userId: _userId }: Props) {
 
   // UI
   const [showUpgrade, setShowUpgrade] = useState(false);
+  // Start frame needs an image credit, the animation needs video credits
+  const [upgradeReason, setUpgradeReason] = useState<'video' | 'credits'>('video');
   const [textToVideo, setTextToVideo] = useState(!imageParam);
 
   const isGenerating = genStep !== null;
@@ -252,8 +254,13 @@ export function AnimateCanvas({ userId: _userId }: Props) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: finalPrompt, aspectRatio: selectedSkill.aspectRatio }),
         });
-        const frameData = await frameRes.json() as { url?: string; jobId?: string; async?: boolean; error?: string };
-        if (!frameRes.ok) { setError(frameData.error ?? 'Start frame generation failed'); setGenStep(null); return; }
+        const frameData = await frameRes.json() as { url?: string; jobId?: string; async?: boolean; error?: string; needsUpgrade?: boolean };
+        if (!frameRes.ok) {
+          if (frameData.needsUpgrade) { setUpgradeReason('credits'); setShowUpgrade(true); setGenStep(null); return; }
+          setError(frameData.error ?? 'Start frame generation failed');
+          setGenStep(null);
+          return;
+        }
 
         if (frameData.url) {
           startImage = frameData.url;
@@ -291,7 +298,7 @@ export function AnimateCanvas({ userId: _userId }: Props) {
       });
       const videoData = await videoRes.json() as { jobId?: string; url?: string; error?: string; needsUpgrade?: boolean };
       if (!videoRes.ok) {
-        if (videoData.needsUpgrade) { setShowUpgrade(true); setGenStep(null); return; }
+        if (videoData.needsUpgrade) { setUpgradeReason('video'); setShowUpgrade(true); setGenStep(null); return; }
         throw new Error(videoData.error ?? 'Video generation failed');
       }
 
@@ -694,7 +701,7 @@ export function AnimateCanvas({ userId: _userId }: Props) {
         </div>
       </div>
 
-      <CreditPackModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} reason="video" onShowPlans={() => router.push('/studio/pricing')} />
+      <CreditPackModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} reason={upgradeReason} onShowPlans={() => router.push('/studio/pricing')} />
 
       {showSavedToast && (
         <div className="animate-toast-in fixed bottom-6 left-1/2 z-50 flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-medium text-white shadow-lg ring-1 ring-white/10">

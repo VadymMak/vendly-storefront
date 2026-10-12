@@ -6,11 +6,13 @@ import type { EnhanceOutput, SharpEnhanceParams } from '@/lib/types';
  * No CLAHE, no normalize, no gamma, no color matrix.
  * ~50-200ms, deterministic, no AI.
  */
+const WEBP_MAX_SIDE = 16383;
+
 export async function enhanceDeterministic(
   inputBuffer: Buffer,
   params: SharpEnhanceParams,
 ): Promise<EnhanceOutput> {
-  const { hasAlpha } = await sharp(inputBuffer).metadata();
+  const { hasAlpha, width = 0, height = 0 } = await sharp(inputBuffer).metadata();
 
   let pipeline = sharp(inputBuffer, { failOn: 'none' })
     .rotate()
@@ -62,8 +64,14 @@ export async function enhanceDeterministic(
     return { buffer, contentType: 'image/png', ext: 'png' };
   }
 
-  const buffer = await pipeline
-    .jpeg({ quality: 92, mozjpeg: true, chromaSubsampling: '4:4:4' })
-    .toBuffer();
-  return { buffer, contentType: 'image/jpeg', ext: 'jpg' };
+  // WebP: smaller than JPEG at the same visual quality (Blob storage is capped at 1 GB).
+  // WebP can't encode sides over 16383 px — JPEG for those.
+  if (width > WEBP_MAX_SIDE || height > WEBP_MAX_SIDE) {
+    const buffer = await pipeline
+      .jpeg({ quality: 92, mozjpeg: true, chromaSubsampling: '4:4:4' })
+      .toBuffer();
+    return { buffer, contentType: 'image/jpeg', ext: 'jpg' };
+  }
+  const buffer = await pipeline.webp({ quality: 90, effort: 4 }).toBuffer();
+  return { buffer, contentType: 'image/webp', ext: 'webp' };
 }

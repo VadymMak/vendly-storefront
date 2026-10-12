@@ -18,6 +18,22 @@ const ENHANCE_TYPES = {
 
 type EnhanceType = keyof typeof ENHANCE_TYPES;
 
+/**
+ * Upscale/SUPIR output is photographic: store it as WebP instead of a 15–20 MB PNG
+ * (Blob storage is capped at 1 GB). WebP can't encode sides over 16383 px — JPEG for those.
+ * Dimensions are unchanged.
+ */
+async function encodeForStorage(input: Buffer, quality: number): Promise<{ buffer: Buffer; contentType: string; ext: string }> {
+  const sharp = (await import('sharp')).default;
+  const { width = 0, height = 0 } = await sharp(input).metadata();
+  if (width > 16383 || height > 16383) {
+    const buffer = await sharp(input).jpeg({ quality, mozjpeg: true }).toBuffer();
+    return { buffer, contentType: 'image/jpeg', ext: 'jpg' };
+  }
+  const buffer = await sharp(input).webp({ quality, effort: 4 }).toBuffer();
+  return { buffer, contentType: 'image/webp', ext: 'webp' };
+}
+
 function extractUrl(output: unknown): string | null {
   if (typeof output === 'string' && output.startsWith('http')) return output;
   if (output instanceof URL) return output.toString();
@@ -132,10 +148,11 @@ export async function POST(req: Request) {
       }
       const supirRes = await fetch(supirUrl);
       const supirBuf = Buffer.from(await supirRes.arrayBuffer());
+      const supirOut = await encodeForStorage(supirBuf, 92); // premium tier — slightly higher quality
       const blob     = await put(
-        `studio/supir/${session.user.id}/${Date.now()}.png`,
-        supirBuf,
-        { access: 'public', contentType: 'image/png' },
+        `studio/supir/${session.user.id}/${Date.now()}.${supirOut.ext}`,
+        supirOut.buffer,
+        { access: 'public', contentType: supirOut.contentType },
       );
 
       const capturedSupirUrl = blob.url;
@@ -201,10 +218,11 @@ export async function POST(req: Request) {
       throw new Error(`Failed to download upscaled image: ${imgRes.status}`);
     }
     const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+    const out    = await encodeForStorage(imgBuf, 90);
     const blob   = await put(
-      `studio/upscale/${session.user.id}/${Date.now()}.png`,
-      imgBuf,
-      { access: 'public', contentType: 'image/png' },
+      `studio/upscale/${session.user.id}/${Date.now()}.${out.ext}`,
+      out.buffer,
+      { access: 'public', contentType: out.contentType },
     );
 
     const capturedUrl = blob.url;

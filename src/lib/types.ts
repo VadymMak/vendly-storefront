@@ -641,8 +641,8 @@ export interface SharpEnhanceParams {
 
 export interface EnhanceOutput {
   buffer: Buffer;
-  contentType: 'image/jpeg' | 'image/png';
-  ext: 'jpg' | 'png';
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp';
+  ext: 'jpg' | 'png' | 'webp';
 }
 
 export interface EnhancementPreset {

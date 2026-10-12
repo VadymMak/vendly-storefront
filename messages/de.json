@@ -1841,7 +1841,8 @@
       "failed": "Hintergrund konnte nicht entfernt werden. Bitte erneut versuchen.",
       "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan.",
       "shareTitle": "Erstellt mit VendShop Studio",
-      "bgLabel": "Vorschau auf"
+      "bgLabel": "Vorschau auf",
+      "placeOnBackground": "Auf Hintergrund platzieren"
     },
     "upscaleEditor": {
       "title": "Vergrößern",
@@ -1861,6 +1862,33 @@
       "failed": "Vergrößern fehlgeschlagen. Bitte erneut versuchen.",
       "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan.",
       "shareTitle": "Erstellt mit VendShop Studio"
+    },
+    "placeProducts": {
+      "title": "Auf Hintergrund platzieren",
+      "back": "Zurück",
+      "pickBackground": "Wählen Sie ein Hintergrundfoto für Ihr Produkt",
+      "recentImages": "Letzte Bilder",
+      "noCutout": "Entfernen Sie zuerst den Hintergrund Ihres Produktfotos.",
+      "noCutoutCta": "Hintergrund entfernen",
+      "dragHint": "Ziehen zum Verschieben",
+      "pinchHint": "Zusammenziehen für Größe · Zwei Finger zum Drehen",
+      "undo": "Rückgängig",
+      "reset": "Zurücksetzen",
+      "saveAsIs": "So speichern · Kostenlos",
+      "saving": "Wird gespeichert…",
+      "blend": "Natürlich wirken lassen · {count, plural, one {# Credit} other {# Credits}}",
+      "blending": "Wird natürlich angepasst…",
+      "blendingHint": "Dauert meist 10–30 Sekunden",
+      "result": "Ergebnis",
+      "before": "Vorher",
+      "after": "Nachher",
+      "save": "Speichern",
+      "share": "Teilen",
+      "usePromo": "Im Werbe-Post verwenden",
+      "keepEditing": "Weiter bearbeiten",
+      "failed": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+      "noCredits": "Nicht genug Credits.",
+      "getCredits": "Credits holen"
     }
   }
 }

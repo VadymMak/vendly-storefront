@@ -1841,7 +1841,8 @@
       "failed": "Odstranění pozadí selhalo. Zkuste to znovu.",
       "noCredits": "Nedostatek kreditů. Upgradujte svůj plán.",
       "shareTitle": "Vytvořeno ve VendShop Studio",
-      "bgLabel": "Náhled na"
+      "bgLabel": "Náhled na",
+      "placeOnBackground": "Umístit na pozadí"
     },
     "upscaleEditor": {
       "title": "Zvětšit",
@@ -1861,6 +1862,33 @@
       "failed": "Zvětšení selhalo. Zkuste to znovu.",
       "noCredits": "Nedostatek kreditů. Upgradujte svůj plán.",
       "shareTitle": "Vytvořeno ve VendShop Studio"
+    },
+    "placeProducts": {
+      "title": "Umístit na pozadí",
+      "back": "Zpět",
+      "pickBackground": "Vyberte fotku pozadí pro váš produkt",
+      "recentImages": "Nedávné obrázky",
+      "noCutout": "Nejprve odstraňte pozadí z fotky produktu.",
+      "noCutoutCta": "Odstranit pozadí",
+      "dragHint": "Tažením posuňte",
+      "pinchHint": "Sevřením změňte velikost · Dvěma prsty otočte",
+      "undo": "Zpět",
+      "reset": "Obnovit",
+      "saveAsIs": "Uložit tak, jak je · Zdarma",
+      "saving": "Ukládáme…",
+      "blend": "Přirozený vzhled · {count, plural, one {# kredit} few {# kredity} other {# kreditů}}",
+      "blending": "Děláme to přirozeně…",
+      "blendingHint": "Obvykle 10–30 sekund",
+      "result": "Výsledek",
+      "before": "Před",
+      "after": "Po",
+      "save": "Uložit",
+      "share": "Sdílet",
+      "usePromo": "Použít v promo příspěvku",
+      "keepEditing": "Pokračovat v úpravách",
+      "failed": "Něco se pokazilo. Zkuste to znovu.",
+      "noCredits": "Nedostatek kreditů.",
+      "getCredits": "Získat kredity"
     }
   }
 }

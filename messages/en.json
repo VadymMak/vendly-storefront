@@ -1841,7 +1841,8 @@
       "failed": "Background removal failed. Please try again.",
       "noCredits": "Not enough credits. Upgrade your plan.",
       "shareTitle": "Created in VendShop Studio",
-      "bgLabel": "Preview on"
+      "bgLabel": "Preview on",
+      "placeOnBackground": "Place on Background"
     },
     "upscaleEditor": {
       "title": "Upscale",
@@ -1861,6 +1862,33 @@
       "failed": "Upscaling failed. Please try again.",
       "noCredits": "Not enough credits. Upgrade your plan.",
       "shareTitle": "Created in VendShop Studio"
+    },
+    "placeProducts": {
+      "title": "Place on Background",
+      "back": "Back",
+      "pickBackground": "Choose a background photo for your product",
+      "recentImages": "Recent images",
+      "noCutout": "First remove the background from your product photo.",
+      "noCutoutCta": "Remove background",
+      "dragHint": "Drag to move",
+      "pinchHint": "Pinch to resize · Two fingers to rotate",
+      "undo": "Undo",
+      "reset": "Reset",
+      "saveAsIs": "Save as is · Free",
+      "saving": "Saving…",
+      "blend": "Make it look natural · {count, plural, one {# credit} other {# credits}}",
+      "blending": "Making it look natural…",
+      "blendingHint": "Usually takes 10–30 seconds",
+      "result": "Result",
+      "before": "Before",
+      "after": "After",
+      "save": "Save",
+      "share": "Share",
+      "usePromo": "Use in Promo Post",
+      "keepEditing": "Keep editing",
+      "failed": "Something went wrong. Try again.",
+      "noCredits": "Not enough credits.",
+      "getCredits": "Get credits"
     }
   }
 }

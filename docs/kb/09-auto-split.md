@@ -20,9 +20,11 @@ Free — no credits required.
 
 Auto Split uses SAM2 (Segment Anything Model 2) to detect objects. It:
 1. Analyzes the entire image for distinct objects
-2. Creates a transparent mask for each detected object
-3. Returns up to 12 individual cutouts
-4. Filters out noise (objects smaller than 0.5% of image area are removed)
+2. Skips what is usually not a product: tiny specks (under 0.5% of the image), large areas over half of the image (background, table top) and regions touching 3 or more image edges (walls, surfaces)
+3. Cuts out each remaining object with slightly softened edges, so cutouts blend in naturally
+4. Returns up to 12 cutouts, largest objects first
+
+If a single product fills almost the whole photo, Auto Split still returns it as one cutout.
 
 ## Best for
 

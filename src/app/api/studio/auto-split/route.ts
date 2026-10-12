@@ -9,6 +9,14 @@ import { fetchAllowedImage, isAllowedImageUrl, SafeFetchError, MAX_INPUT_PIXELS 
 
 export const maxDuration = 120;
 
+const MAX_CUTOUTS = 12;
+// SAM2 auto-segment masks EVERYTHING (table, wall, shadows, plate rims). Keep likely objects:
+const MIN_COVERAGE = 0.005;      // below: micro-noise
+const MAX_COVERAGE = 0.5;        // above: background / surface
+const BORDER_MARGIN_PX = 5;      // "touches the edge" tolerance
+const MAX_BORDERS_TOUCHED = 2;   // 3+ edges touched: surface or backdrop, not a product
+const EDGE_FEATHER_SIGMA = 1.5;  // soft alpha instead of jagged binary edges
+
 interface FalMask {
   url: string;
   width?: number;
@@ -22,8 +30,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json() as { imageUrl?: unknown };
+    const body = await req.json() as { imageUrl?: unknown; maxObjects?: unknown };
     const { imageUrl } = body;
+    const maxObjects = typeof body.maxObjects === 'number' && Number.isFinite(body.maxObjects)
+      ? Math.max(1, Math.min(MAX_CUTOUTS, Math.floor(body.maxObjects)))
+      : MAX_CUTOUTS;
     if (!imageUrl || typeof imageUrl !== 'string') {
       return NextResponse.json({ error: 'Missing imageUrl' }, { status: 400 });
     }
@@ -78,11 +89,9 @@ export async function POST(req: NextRequest) {
     const origH = origMeta.height!;
     const totalPixels = origW * origH;
 
-    // 3) Filter: only skip micro-noise (<0.5% of image area)
-    // Upper limit intentionally removed — let user delete unwanted objects
-    const MIN_COVERAGE = 0.005;
-
-    const validMasks: Buffer[] = [];
+    // 3) Filter junk masks, measured on each mask's own pixels
+    interface MaskInfo { mask: Buffer; coverage: number; borders: number }
+    const candidates: MaskInfo[] = [];
 
     for (const mask of masks.filter((m: FalMask) => m.url).slice(0, 20)) {
       try {
@@ -95,45 +104,67 @@ export async function POST(req: NextRequest) {
 
         const grayscale = await sharp(maskResized).grayscale().raw().toBuffer();
         let whitePixels = 0;
+        let minX = origW, minY = origH, maxX = -1, maxY = -1;
         for (let i = 0; i < grayscale.length; i++) {
-          if (grayscale[i] > 128) whitePixels++;
+          if (grayscale[i] > 128) {
+            whitePixels++;
+            const x = i % origW;
+            const y = (i - x) / origW;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
         }
+        if (whitePixels === 0) continue;
 
-        const coverage = whitePixels / totalPixels;
-
-        if (coverage < MIN_COVERAGE) {
-          console.log(`[auto-split] Skip micro-noise: ${(coverage * 100).toFixed(2)}%`);
-          continue;
-        }
-
-        console.log(`[auto-split] Mask accepted: ${(coverage * 100).toFixed(1)}% coverage`);
-        validMasks.push(maskResized);
+        const borders =
+          (minX <= BORDER_MARGIN_PX ? 1 : 0) +
+          (minY <= BORDER_MARGIN_PX ? 1 : 0) +
+          (maxX >= origW - 1 - BORDER_MARGIN_PX ? 1 : 0) +
+          (maxY >= origH - 1 - BORDER_MARGIN_PX ? 1 : 0);
+        candidates.push({ mask: maskResized, coverage: whitePixels / totalPixels, borders });
       } catch (e) {
         console.warn('[auto-split] Failed to process mask:', e);
       }
     }
 
-    if (validMasks.length === 0) {
+    let kept = candidates.filter((c) =>
+      c.coverage >= MIN_COVERAGE && c.coverage <= MAX_COVERAGE && c.borders <= MAX_BORDERS_TOUCHED,
+    );
+    // A close-up of a single product fills the frame and touches the edges — rather than
+    // returning nothing, keep the largest mask that isn't the whole backdrop
+    if (kept.length === 0) {
+      const fallback = candidates
+        .filter((c) => c.coverage >= MIN_COVERAGE && c.coverage <= 0.85)
+        .sort((a, b) => b.coverage - a.coverage)[0];
+      if (fallback) kept = [fallback];
+    }
+    console.log(`[auto-split] SAM2 masks ${masks.length} → candidates ${candidates.length} → kept ${kept.length}`);
+
+    if (kept.length === 0) {
       return NextResponse.json({ error: 'No objects detected' }, { status: 422 });
     }
 
-    console.log(`[auto-split] Processing ${validMasks.length} masks`);
+    // Largest objects first — the main products lead the list
+    const validMasks = kept.sort((a, b) => b.coverage - a.coverage).map((c) => c.mask);
 
-    // 4) Apply each mask → transparent PNG cutout (max 12)
-    const origRGBA = await sharp(origBuffer).ensureAlpha().raw().toBuffer();
+    // 4) Apply each mask → transparent PNG cutout with feathered edges
+    const origRGBA = await sharp(origBuffer, { limitInputPixels: MAX_INPUT_PIXELS }).ensureAlpha().raw().toBuffer();
     const cutoutUrls: string[] = [];
 
-    for (let i = 0; i < Math.min(validMasks.length, 12); i++) {
-      const maskGrayscale = await sharp(validMasks[i]).grayscale().raw().toBuffer();
+    for (let i = 0; i < Math.min(validMasks.length, maxObjects); i++) {
+      // Slightly blurred mask = soft alpha ramp at the edge (no staircase)
+      const softAlpha = await sharp(validMasks[i]).grayscale().blur(EDGE_FEATHER_SIGMA).raw().toBuffer();
 
-      // Binary alpha: >128 → fully opaque, else fully transparent
       const cutoutRGBA = Buffer.alloc(origW * origH * 4);
       for (let px = 0; px < origW * origH; px++) {
-        if (maskGrayscale[px] > 128) {
+        const a = softAlpha[px];
+        if (a > 0) {
           cutoutRGBA[px * 4 + 0] = origRGBA[px * 4 + 0];
           cutoutRGBA[px * 4 + 1] = origRGBA[px * 4 + 1];
           cutoutRGBA[px * 4 + 2] = origRGBA[px * 4 + 2];
-          cutoutRGBA[px * 4 + 3] = 255;
+          cutoutRGBA[px * 4 + 3] = a;
         }
       }
 

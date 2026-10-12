@@ -3,30 +3,25 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { EditorCheckpoint, PlacedObject, PlaceProductsEditorProps } from '@/lib/types';
 import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
+import {
+  canvasSizeFor, fitScale, getObjBounds, hitTestSelected, isInsideObj, ptDist,
+  type HandleOptions, type HitType,
+} from '@/lib/place-products/geometry';
+import {
+  canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, uploadComposite,
+} from '@/lib/place-products/canvas';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const HANDLE_R = 7;
 const ROTATE_OFFSET = 28;
 const MAX_CANVAS = 800;
+const HANDLES: HandleOptions = { rotateOffset: ROTATE_OFFSET, hitRadius: HANDLE_R + 4 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function uid(): string {
   return crypto.randomUUID();
-}
-
-function ptDist(ax: number, ay: number, bx: number, by: number): number {
-  return Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
-}
-
-function rotPt(px: number, py: number, cx: number, cy: number, angle: number) {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    x: cx + (px - cx) * cos - (py - cy) * sin,
-    y: cy + (px - cx) * sin + (py - cy) * cos,
-  };
 }
 
 function toCanvasPt(e: PointerEvent, canvas: HTMLCanvasElement) {
@@ -35,129 +30,6 @@ function toCanvasPt(e: PointerEvent, canvas: HTMLCanvasElement) {
     x: (e.clientX - r.left) * (canvas.width / r.width),
     y: (e.clientY - r.top) * (canvas.height / r.height),
   };
-}
-
-function getObjBounds(obj: PlacedObject, cw: number, ch: number) {
-  const cx = obj.x * cw;
-  const cy = obj.y * ch;
-  const hw = (obj.scale * obj.naturalWidth) / 2;
-  const hh = (obj.scale * obj.naturalHeight) / 2;
-  const r = obj.rotation;
-  return {
-    cx, cy, hw, hh,
-    tl: rotPt(cx - hw, cy - hh, cx, cy, r),
-    tr: rotPt(cx + hw, cy - hh, cx, cy, r),
-    bl: rotPt(cx - hw, cy + hh, cx, cy, r),
-    br: rotPt(cx + hw, cy + hh, cx, cy, r),
-    topMid: rotPt(cx, cy - hh, cx, cy, r),
-    rotHandle: rotPt(cx, cy - hh - ROTATE_OFFSET, cx, cy, r),
-  };
-}
-
-function isInsideObj(px: number, py: number, obj: PlacedObject, cw: number, ch: number): boolean {
-  const cx = obj.x * cw;
-  const cy = obj.y * ch;
-  const dx = px - cx;
-  const dy = py - cy;
-  const cos = Math.cos(-obj.rotation);
-  const sin = Math.sin(-obj.rotation);
-  const lx = dx * cos - dy * sin;
-  const ly = dx * sin + dy * cos;
-  const hw = (obj.scale * obj.naturalWidth) / 2;
-  const hh = (obj.scale * obj.naturalHeight) / 2;
-  return Math.abs(lx) <= hw && Math.abs(ly) <= hh;
-}
-
-type HitType = 'move' | 'tl' | 'tr' | 'bl' | 'br' | 'rotate';
-
-function hitTestSelected(
-  px: number,
-  py: number,
-  obj: PlacedObject,
-  cw: number,
-  ch: number,
-): HitType | null {
-  const b = getObjBounds(obj, cw, ch);
-  const r = HANDLE_R + 4;
-  if (ptDist(px, py, b.rotHandle.x, b.rotHandle.y) <= r) return 'rotate';
-  if (ptDist(px, py, b.tl.x, b.tl.y) <= r) return 'tl';
-  if (ptDist(px, py, b.tr.x, b.tr.y) <= r) return 'tr';
-  if (ptDist(px, py, b.bl.x, b.bl.y) <= r) return 'bl';
-  if (ptDist(px, py, b.br.x, b.br.y) <= r) return 'br';
-  if (isInsideObj(px, py, obj, cw, ch)) return 'move';
-  return null;
-}
-
-function loadImg(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
-// ── Edge mask generation ──────────────────────────────────────────────────────
-
-function generateEdgeMask(
-  canvas: HTMLCanvasElement,
-  objects: PlacedObject[],
-  objImgs: Map<string, HTMLImageElement>,
-): HTMLCanvasElement {
-  const W = canvas.width;
-  const H = canvas.height;
-  const EDGE = 6;
-
-  const maskCanvas = document.createElement('canvas');
-  maskCanvas.width = W;
-  maskCanvas.height = H;
-  const mctx = maskCanvas.getContext('2d')!;
-
-  mctx.fillStyle = '#000';
-  mctx.fillRect(0, 0, W, H);
-
-  // Dilate pass: draw each object scaled up to create edge zone
-  mctx.globalCompositeOperation = 'source-over';
-  for (const obj of objects) {
-    const img = objImgs.get(obj.id);
-    if (!img) continue;
-    const cx = obj.x * W;
-    const cy = obj.y * H;
-    const hw = (obj.scale * obj.naturalWidth) / 2;
-    const hh = (obj.scale * obj.naturalHeight) / 2;
-    const minDim = Math.min(hw * 2, hh * 2);
-    const scaleUp = minDim > 0 ? 1 + (EDGE * 2) / minDim : 1;
-    mctx.save();
-    mctx.translate(cx, cy);
-    mctx.rotate(obj.rotation);
-    mctx.scale(scaleUp, scaleUp);
-    mctx.drawImage(img, -hw, -hh, hw * 2, hh * 2);
-    mctx.restore();
-  }
-
-  // Erode pass: cut out the interior of each object
-  mctx.globalCompositeOperation = 'destination-out';
-  for (const obj of objects) {
-    const img = objImgs.get(obj.id);
-    if (!img) continue;
-    const cx = obj.x * W;
-    const cy = obj.y * H;
-    const hw = (obj.scale * obj.naturalWidth) / 2;
-    const hh = (obj.scale * obj.naturalHeight) / 2;
-    const ERODE = 2;
-    const minDim = Math.min(hw * 2, hh * 2);
-    const scaleDown = minDim > 0 ? Math.max(0, 1 - (ERODE * 2) / minDim) : 1;
-    mctx.save();
-    mctx.translate(cx, cy);
-    mctx.rotate(obj.rotation);
-    mctx.scale(scaleDown, scaleDown);
-    mctx.drawImage(img, -hw, -hh, hw * 2, hh * 2);
-    mctx.restore();
-  }
-
-  mctx.globalCompositeOperation = 'source-over';
-  return maskCanvas;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -225,21 +97,7 @@ export function PlaceProductsEditor({
     const cw = canvas.width;
     const ch = canvas.height;
 
-    ctx.clearRect(0, 0, cw, ch);
-
-    // Background (cover-fit)
-    const bg = bgImgRef.current;
-    const bgR = bg.naturalWidth / bg.naturalHeight;
-    const cnR = cw / ch;
-    let sx = 0, sy = 0, sw = bg.naturalWidth, sh = bg.naturalHeight;
-    if (bgR > cnR) {
-      sw = bg.naturalHeight * cnR;
-      sx = (bg.naturalWidth - sw) / 2;
-    } else {
-      sh = bg.naturalWidth / cnR;
-      sy = (bg.naturalHeight - sh) / 2;
-    }
-    ctx.drawImage(bg, sx, sy, sw, sh, 0, 0, cw, ch);
+    drawScene(ctx, bgImgRef.current, objectsRef.current, objImgsRef.current);
 
     // Empty state hint
     if (objectsRef.current.length === 0) {
@@ -252,31 +110,13 @@ export function PlaceProductsEditor({
       ctx.restore();
     }
 
-    // Objects (back → front)
-    for (const obj of objectsRef.current) {
-      const img = objImgsRef.current.get(obj.id);
-      if (!img) continue;
-      const ox = obj.x * cw;
-      const oy = obj.y * ch;
-      const ow = obj.scale * obj.naturalWidth;
-      const oh = obj.scale * obj.naturalHeight;
-      ctx.save();
-      ctx.translate(ox, oy);
-      ctx.rotate(obj.rotation);
-      ctx.shadowColor = 'rgba(0,0,0,0.55)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 6;
-      ctx.drawImage(img, -ow / 2, -oh / 2, ow, oh);
-      ctx.restore();
-    }
-
     // Selection UI
     if (!hideSelection) {
       const selId = selectedRef.current;
       if (selId) {
         const obj = objectsRef.current.find(o => o.id === selId);
         if (obj) {
-          const b = getObjBounds(obj, cw, ch);
+          const b = getObjBounds(obj, cw, ch, ROTATE_OFFSET);
 
           // Dashed bounding box
           ctx.save();
@@ -337,10 +177,7 @@ export function PlaceProductsEditor({
     setBgLoaded(false);
     loadImg(backgroundUrl).then(img => {
       bgImgRef.current = img;
-      const ratio = img.naturalWidth / img.naturalHeight;
-      let w: number, h: number;
-      if (ratio >= 1) { w = MAX_CANVAS; h = Math.round(MAX_CANVAS / ratio); }
-      else { h = MAX_CANVAS; w = Math.round(MAX_CANVAS * ratio); }
+      const { w, h } = canvasSizeFor(img.naturalWidth, img.naturalHeight, MAX_CANVAS);
       setCanvasW(w);
       setCanvasH(h);
       setBgLoaded(true);
@@ -376,11 +213,7 @@ export function PlaceProductsEditor({
       const img = await loadImg(src);
       const cw  = canvasWRef.current;
       const ch  = canvasHRef.current;
-      const scale = Math.min(
-        (cw * 0.25) / img.naturalWidth,
-        (ch * 0.25) / img.naturalHeight,
-        1,
-      );
+      const scale = fitScale(img.naturalWidth, img.naturalHeight, cw, ch, 0.25);
       const obj: PlacedObject = {
         id: uid(),
         src,
@@ -435,7 +268,7 @@ export function PlaceProductsEditor({
     if (selId) {
       const selObj = objectsRef.current.find(o => o.id === selId);
       if (selObj) {
-        const hit = hitTestSelected(pt.x, pt.y, selObj, cw, ch);
+        const hit = hitTestSelected(pt.x, pt.y, selObj, cw, ch, HANDLES);
         if (hit) {
           dragRef.current = {
             type: hit,
@@ -799,15 +632,7 @@ export function PlaceProductsEditor({
       // Redraw without selection handles
       draw(true);
 
-      const blob = await new Promise<Blob>((res, rej) =>
-        canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob failed')), 'image/png')
-      );
-
-      const fd = new FormData();
-      fd.append('image', blob, 'composite.png');
-      const resp = await fetch('/api/studio/upload', { method: 'POST', body: fd });
-      if (!resp.ok) throw new Error('Upload failed');
-      const { url } = await resp.json() as { url: string };
+      const url = await uploadComposite(await canvasToBlob(canvas));
       onResult(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
@@ -833,43 +658,21 @@ export function PlaceProductsEditor({
     try {
       draw(true);
 
-      const compositeBlob = await new Promise<Blob>((res, rej) =>
-        canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob failed')), 'image/png')
-      );
+      const compositeBlob = await canvasToBlob(canvas);
+      const maskCanvas = generateEdgeMask(canvas.width, canvas.height, objects, objImgsRef.current);
+      const blendedUrl = await requestAiBlend(compositeBlob, await canvasToBlob(maskCanvas));
 
-      const maskCanvas = generateEdgeMask(canvas, objects, objImgsRef.current);
-      const maskBlob = await new Promise<Blob>((res, rej) =>
-        maskCanvas.toBlob(b => b ? res(b) : rej(new Error('mask toBlob failed')), 'image/png')
-      );
+      // Load blended result as new background
+      bgImgRef.current = await loadImg(blendedUrl);
+      backgroundUrlRef.current = blendedUrl;
 
-      const fd = new FormData();
-      fd.append('composite', compositeBlob, 'composite.png');
-      fd.append('mask', maskBlob, 'mask.png');
+      // Bake objects into background — clear them from the editor
+      objImgsRef.current.clear();
+      setObjects([]);
+      setSelectedId(null);
 
-      const resp = await fetch('/api/studio/ai-blend', { method: 'POST', body: fd });
-      const json = await resp.json() as { url?: string; error?: string };
-
-      if (!resp.ok) {
-        // Blend failed — roll back the checkpoint we pushed
-        setHistoryStack(prev => prev.slice(0, -1));
-        setError(json.error ?? 'AI Blend failed');
-        return;
-      }
-
-      if (json.url) {
-        // Load blended result as new background
-        const newBg = await loadImg(json.url);
-        bgImgRef.current = newBg;
-        backgroundUrlRef.current = json.url;
-
-        // Bake objects into background — clear them from the editor
-        objImgsRef.current.clear();
-        setObjects([]);
-        setSelectedId(null);
-
-        // Stay in editor — draw with new background, no objects
-        draw();
-      }
+      // Stay in editor — draw with new background, no objects
+      draw();
     } catch (err) {
       setHistoryStack(prev => prev.slice(0, -1));
       setError(err instanceof Error ? err.message : 'AI Blend failed');

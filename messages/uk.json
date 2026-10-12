@@ -1488,8 +1488,8 @@
       "desktopLink": "Десктоп-версія студії →"
     },
     "tools": {
-      "instagramPost": "Instagram пост",
-      "instagramPostDesc": "Створіть пост для соцмереж",
+      "promoPost": "Промо-пост",
+      "promoPostDesc": "Картинка для стрічки чи сторіс",
       "improvePhoto": "Покращити фото",
       "improvePhotoDesc": "Покращте будь-яке фото",
       "shortVideo": "Коротке відео",
@@ -1506,7 +1506,9 @@
       "generateVideoDesc": "AI відео з тексту",
       "placeInScene": "Розмістити в сцені",
       "placeInSceneDesc": "Товари в контексті",
-      "moreTools": "Більше інструментів"
+      "moreTools": "Більше інструментів",
+      "createReelDesc": "Відео з 2–5 фото",
+      "createReel": "Створити Reel"
     },
     "format": {
       "title": "Створити пост",
@@ -1741,7 +1743,7 @@
       "close": "Закрити",
       "igFeed": "Стрічка Instagram",
       "igFeedSub": "Вертикально · 4:5",
-      "story": "Stories / Reels",
+      "story": "Сторіс",
       "storySub": "На весь екран · 9:16",
       "square": "Квадрат",
       "squareSub": "Класика · 1:1"

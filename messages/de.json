@@ -1488,8 +1488,8 @@
       "desktopLink": "Desktop-Studio verwenden →"
     },
     "tools": {
-      "instagramPost": "Instagram-Beitrag",
-      "instagramPostDesc": "Social-Media-Beitrag erstellen",
+      "promoPost": "Werbe-Post",
+      "promoPostDesc": "Bild für Feed oder Story",
       "improvePhoto": "Foto verbessern",
       "improvePhotoDesc": "Jedes Foto verbessern",
       "shortVideo": "Kurzes Video",
@@ -1508,7 +1508,7 @@
       "placeInSceneDesc": "Produkte im Kontext",
       "moreTools": "Mehr Werkzeuge",
       "createReel": "Reel erstellen",
-      "createReelDesc": "2–5 Fotos → 13s Video"
+      "createReelDesc": "Video aus 2–5 Fotos"
     },
     "format": {
       "title": "Beitrag erstellen",
@@ -1756,7 +1756,7 @@
       "close": "Schließen",
       "igFeed": "Instagram-Feed",
       "igFeedSub": "Hochformat · 4:5",
-      "story": "Story / Reel",
+      "story": "Story",
       "storySub": "Vollbild · 9:16",
       "square": "Quadrat",
       "squareSub": "Klassisch · 1:1"

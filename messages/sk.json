@@ -1488,8 +1488,8 @@
       "desktopLink": "Použiť desktop štúdio →"
     },
     "tools": {
-      "instagramPost": "Instagram príspevok",
-      "instagramPostDesc": "Vytvorte sociálny príspevok",
+      "promoPost": "Promo príspevok",
+      "promoPostDesc": "Obrázok do feedu alebo story",
       "improvePhoto": "Vylepšiť fotku",
       "improvePhotoDesc": "Vylepšite akúkoľvek fotku",
       "shortVideo": "Krátke video",
@@ -1508,7 +1508,7 @@
       "placeInSceneDesc": "Produkty v kontexte",
       "moreTools": "Ďalšie nástroje",
       "createReel": "Vytvoriť Reel",
-      "createReelDesc": "2–5 fotiek → video 13 sek"
+      "createReelDesc": "Video z 2–5 fotiek"
     },
     "format": {
       "title": "Vytvoriť príspevok",
@@ -1747,7 +1747,7 @@
       "close": "Zavrieť",
       "igFeed": "Instagram feed",
       "igFeedSub": "Na výšku · 4:5",
-      "story": "Story / Reel",
+      "story": "Story",
       "storySub": "Celá obrazovka · 9:16",
       "square": "Štvorec",
       "squareSub": "Klasika · 1:1"

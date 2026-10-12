@@ -1488,8 +1488,8 @@
       "desktopLink": "Использовать десктопную версию →"
     },
     "tools": {
-      "instagramPost": "Пост для Instagram",
-      "instagramPostDesc": "Создать пост для соцсети",
+      "promoPost": "Промо-пост",
+      "promoPostDesc": "Картинка для ленты или сторис",
       "improvePhoto": "Улучшить фото",
       "improvePhotoDesc": "Улучшить любое фото",
       "shortVideo": "Короткое видео",
@@ -1508,7 +1508,7 @@
       "placeInSceneDesc": "Товары в контексте",
       "moreTools": "Ещё инструменты",
       "createReel": "Создать Reel",
-      "createReelDesc": "2–5 фото → видео 13 сек"
+      "createReelDesc": "Видео из 2–5 фото"
     },
     "format": {
       "title": "Создать пост",
@@ -1756,7 +1756,7 @@
       "close": "Закрыть",
       "igFeed": "Лента Instagram",
       "igFeedSub": "Вертикально · 4:5",
-      "story": "Stories / Reels",
+      "story": "Сторис",
       "storySub": "Во весь экран · 9:16",
       "square": "Квадрат",
       "squareSub": "Классика · 1:1"

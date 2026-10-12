@@ -1488,8 +1488,8 @@
       "desktopLink": "Use desktop studio →"
     },
     "tools": {
-      "instagramPost": "Instagram Post",
-      "instagramPostDesc": "Create a social post",
+      "promoPost": "Promo Post",
+      "promoPostDesc": "Image for feed or story",
       "improvePhoto": "Improve Photo",
       "improvePhotoDesc": "Enhance any photo",
       "shortVideo": "Short Video",
@@ -1508,7 +1508,7 @@
       "placeInSceneDesc": "Products in context",
       "moreTools": "More tools",
       "createReel": "Create Reel",
-      "createReelDesc": "2–5 photos → 13s video"
+      "createReelDesc": "Video from 2–5 photos"
     },
     "format": {
       "title": "Create Post",
@@ -1756,7 +1756,7 @@
       "close": "Close",
       "igFeed": "Instagram Feed",
       "igFeedSub": "Portrait · 4:5",
-      "story": "Story / Reel",
+      "story": "Story",
       "storySub": "Full screen · 9:16",
       "square": "Square",
       "squareSub": "Classic · 1:1"

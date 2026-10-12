@@ -1488,8 +1488,8 @@
       "desktopLink": "Použít desktopové studio →"
     },
     "tools": {
-      "instagramPost": "Instagram příspěvek",
-      "instagramPostDesc": "Vytvořte příspěvek na sociální sítě",
+      "promoPost": "Promo příspěvek",
+      "promoPostDesc": "Obrázek do feedu nebo story",
       "improvePhoto": "Vylepšit fotku",
       "improvePhotoDesc": "Vylepšete jakoukoli fotku",
       "shortVideo": "Krátké video",
@@ -1508,7 +1508,7 @@
       "placeInSceneDesc": "Produkty v kontextu",
       "moreTools": "Další nástroje",
       "createReel": "Vytvořit Reel",
-      "createReelDesc": "2–5 fotek → video 13 sek"
+      "createReelDesc": "Video ze 2–5 fotek"
     },
     "format": {
       "title": "Vytvořit příspěvek",
@@ -1756,7 +1756,7 @@
       "close": "Zavřít",
       "igFeed": "Instagram feed",
       "igFeedSub": "Na výšku · 4:5",
-      "story": "Story / Reel",
+      "story": "Story",
       "storySub": "Celá obrazovka · 9:16",
       "square": "Čtverec",
       "squareSub": "Klasika · 1:1"

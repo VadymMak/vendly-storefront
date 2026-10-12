@@ -3,7 +3,9 @@ import { Prisma } from '@prisma/client';
 import { FalKlingProvider, FalKlingT2VProvider, KlingDirectProvider, GrokVideoProvider } from '@/lib/video';
 
 export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit' | 'place-products';
-export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
+// 'expired': output URL died at the provider (set by maintenance SQL); 'deleted': removed by
+// the user in My Work. Both are terminal and hidden from My Work.
+export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled' | 'expired' | 'deleted';
 
 export async function createJob(params: {
   userId: string;
@@ -74,7 +76,11 @@ export async function refreshJobStatus(
   if (
     job.status === 'succeeded' ||
     job.status === 'failed' ||
-    job.status === 'canceled'
+    job.status === 'canceled' ||
+    // Never re-poll: the provider would report the old prediction as succeeded again
+    // (un-deleting it) and a legacy charge-on-success job would get billed retroactively
+    job.status === 'expired' ||
+    job.status === 'deleted'
   ) {
     return {
       status:    job.status as JobStatus,

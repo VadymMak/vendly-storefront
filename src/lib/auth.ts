@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { db } from './db';
+import { getPasswordChangedAt } from './password-reset';
 function getSuperuserEmailsForAuth(): Set<string> {
   const raw = process.env.SUPERUSER_EMAILS ?? '';
   return new Set(raw.split(',').map(e => e.trim().toLowerCase()).filter(e => e.includes('@')));
@@ -64,6 +65,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.authTime = Date.now();
+        return token;
+      }
+      if (!token.id) return token;
+
+      // Sessions from before this field existed: start the clock now
+      if (typeof token.authTime !== 'number') token.authTime = Date.now();
+
+      // Reject sessions issued before the last password change (PROMPT-237)
+      try {
+        const changedAt = await getPasswordChangedAt(token.id as string);
+        if (changedAt === undefined) return null; // user deleted
+        if (changedAt !== null && changedAt > (token.authTime as number)) return null;
+      } catch (err) {
+        console.error('[auth] passwordChangedAt check failed — keeping session:', err);
       }
       return token;
     },

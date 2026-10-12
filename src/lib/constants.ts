@@ -918,6 +918,14 @@ export const REGISTRATION_LIMITS = {
   ipRetentionDays:  30, // GDPR: legitimate interest (fraud prevention), then purged
 } as const;
 
+// Password reset (PROMPT-237)
+export const PASSWORD_RESET = {
+  tokenTtlMinutes:    60,
+  perUserPerHour:     3,  // reset emails per account
+  perIpPerHour:       5,  // reset emails per network (DB-backed)
+  requestsPerIpHour:  10, // all forgot-password requests per network (in-memory)
+} as const;
+
 // ===== AI Studio billing — single source of truth for prices and credits =====
 // Read by the Stripe routes (via src/lib/credits.ts) and by every pricing UI.
 // Subscription prices must match the Stripe Price objects behind STRIPE_PRICE_*.

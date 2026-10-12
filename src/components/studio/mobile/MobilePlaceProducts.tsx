@@ -384,13 +384,6 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
 
   // ── UI ──────────────────────────────────────────────────────────────────────
 
-  // Own full-screen layer above the studio header / bottom nav: a canvas editor needs the
-  // whole viewport, and nothing underneath may show through or scroll along
-  const screen = (content: React.ReactNode) => (
-    <div className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-[#0a0a0f] text-white">
-      {content}
-    </div>
-  );
 
   const header = (title: string) => (
     <div className="flex items-center gap-3 px-4 pt-4 pb-3">
@@ -408,7 +401,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   );
 
   if (!cutoutUrl) {
-    return screen(
+    return (
       <div className="flex flex-col pb-8">
         {header(t('title'))}
         <div className="px-4 pt-6 text-center">
@@ -425,7 +418,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   if (step === 'pick-bg') {
-    return screen(
+    return (
       <div className="flex flex-col pb-8" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         {header(t('title'))}
         <div className="px-4">
@@ -468,19 +461,19 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   if (step === 'improve' && result) {
-    return screen(
+    return (
       <ImproveBottomSheet
         imageUrl={result.url}
         // Composites need light/shadows matched between product and scene
         defaultPreset="studio_light"
         onDone={(url, source) => void handleImproved(url, source)}
         onCancel={() => setStep('result')}
-      />,
+      />
     );
   }
 
   if (step === 'processing') {
-    return screen(
+    return (
       <div className="flex flex-col items-center justify-center gap-3 py-20" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
         <p className="text-sm text-gray-300">{t('blending')}</p>
@@ -490,7 +483,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   if (step === 'result' && result) {
-    return screen(
+    return (
       <div className="flex flex-col pb-8" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
         {header(t('result'))}
         <div className="px-4">
@@ -544,8 +537,8 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
   }
 
   // step === 'edit'
-  return screen(
-    <div className="flex flex-col pb-56" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
+  return (
+    <div className="flex flex-col pb-40" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
       {header(t('title'))}
       <div className="px-4">
         {canvasSize && bgUrl && (
@@ -590,7 +583,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-[61] bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div className="fixed right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 z-40 bg-gradient-to-t from-[#0a0a0f] from-70% to-transparent px-4 pt-6 pb-2">
         <div className="mx-auto max-w-lg space-y-2">
           <button
             onClick={() => void blend()}

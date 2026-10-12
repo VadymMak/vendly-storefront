@@ -68,9 +68,33 @@ Zum Schutz des Registrierungsformulars vor automatisierten Anfragen (Bots) nutze
 
 Für die Abwicklung von Zahlungen nutzen wir den Dienst Stripe (Stripe Inc., 510 Townsend Street, San Francisco, CA 94103, USA). Ihre Zahlungsdaten (Kartennummer, CVC, Ablaufdatum) werden dabei direkt und verschlüsselt an Stripe übermittelt. Wir speichern keine vollständigen Zahlungsdaten. Weitere Informationen finden Sie in der Datenschutzerklärung von Stripe: https://stripe.com/de/privacy
 
-## 9. Hosting (Vercel)
+## 9. Hosting und Infrastruktur
 
-Unsere Website wird bei Vercel Inc. (340 Pine Street, Suite 900, San Francisco, CA 94104, USA) gehostet. Vercel erhebt und verarbeitet Daten im Rahmen der Bereitstellung der Hosting-Infrastruktur. Weitere Informationen: https://vercel.com/legal/privacy-policy
+Unsere Anwendung läuft auf einem von uns selbst betriebenen Server. Für die Auslieferung, die Datenbank und die Speicherung von Bildern setzen wir die folgenden Dienstleister ein.
+
+**a) Cloudflare (Netzwerk und Sicherheit)**
+
+Der gesamte Datenverkehr zu unserer Website wird über das Netzwerk der Cloudflare, Inc. (101 Townsend St., San Francisco, CA 94107, USA) geleitet (Cloudflare Tunnel). Cloudflare stellt die verschlüsselte Verbindung (TLS) bereit, leitet Anfragen an unseren Server weiter und schützt die Website vor Angriffen. Dabei verarbeitet Cloudflare insbesondere Ihre IP-Adresse, die aufgerufene Adresse, Browser- und Geräteinformationen sowie den Zeitpunkt der Anfrage.
+
+- **Rechtsgrundlage:** Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt in einer sicheren, zuverlässigen und schnellen Bereitstellung unserer Website.
+- **Drittlandübermittlung:** Cloudflare ist unter dem EU-US Data Privacy Framework zertifiziert (Art. 45 DSGVO).
+- Weitere Informationen: https://www.cloudflare.com/privacypolicy/
+
+**b) Neon (Datenbank)**
+
+Ihre Kontodaten (Name, E-Mail-Adresse, verschlüsseltes Passwort) sowie Nutzungs- und Guthabendaten speichern wir in einer verwalteten PostgreSQL-Datenbank der Neon, Inc. Die Datenbankserver befinden sich in den USA (Amazon Web Services, Region us-east-1).
+
+- **Rechtsgrundlage:** Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
+- **Drittlandübermittlung:** auf Grundlage der EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).
+- Weitere Informationen: https://neon.com/privacy-policy
+
+**c) Vercel Blob (Bildspeicher)**
+
+Von Ihnen hochgeladene und mit unseren KI-Werkzeugen erzeugte Bilder und Videos speichern wir im Speicherdienst Vercel Blob der Vercel Inc. (340 Pine Street, Suite 900, San Francisco, CA 94104, USA).
+
+- **Rechtsgrundlage:** Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
+- **Drittlandübermittlung:** Vercel ist unter dem EU-US Data Privacy Framework zertifiziert (Art. 45 DSGVO).
+- Weitere Informationen: https://vercel.com/legal/privacy-policy
 
 ## 10. Ihre Rechte (DSGVO Art. 15–22)
 

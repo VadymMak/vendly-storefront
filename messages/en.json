@@ -1888,7 +1888,8 @@
       "keepEditing": "Keep editing",
       "failed": "Something went wrong. Try again.",
       "noCredits": "Not enough credits.",
-      "getCredits": "Get credits"
+      "getCredits": "Get credits",
+      "improve": "Improve photo"
     }
   }
 }

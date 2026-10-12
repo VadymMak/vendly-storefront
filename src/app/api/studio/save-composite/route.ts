@@ -35,8 +35,13 @@ export async function POST(req: NextRequest) {
   }
 
   let file: File | null;
+  let sourceUrl: string | null = null;
   try {
-    file = (await req.formData()).get('image') as File | null;
+    const form = await req.formData();
+    file = form.get('image') as File | null;
+    // Set when this is an improved version of an earlier composite (gallery links them)
+    const rawSource = form.get('sourceUrl');
+    if (typeof rawSource === 'string' && rawSource.startsWith('https://') && rawSource.length <= 2048) sourceUrl = rawSource;
   } catch {
     return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
   }
@@ -67,7 +72,7 @@ export async function POST(req: NextRequest) {
       type:         'place-products',
       outputUrl:    blob.url,
       creditAmount: 0,
-      metadata:     { blended: false },
+      metadata:     sourceUrl ? { blended: false, improved: true, sourceUrl } : { blended: false },
     }).catch((err) => console.error('[save-composite] Failed to save to StudioJob:', err));
     return NextResponse.json({ url: blob.url });
   } catch (err) {

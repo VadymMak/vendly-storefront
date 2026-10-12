@@ -113,9 +113,10 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 }
 
 /** Save a finished composite (free) — stored and listed in My Work; returns its URL. */
-export async function saveComposite(blob: Blob): Promise<string> {
+export async function saveComposite(blob: Blob, sourceUrl?: string): Promise<string> {
   const fd = new FormData();
   fd.append('image', blob, 'composite.png');
+  if (sourceUrl) fd.append('sourceUrl', sourceUrl);
   const res = await fetch('/api/studio/save-composite', { method: 'POST', body: fd });
   if (!res.ok) throw new Error('Save failed');
   return ((await res.json()) as { url: string }).url;

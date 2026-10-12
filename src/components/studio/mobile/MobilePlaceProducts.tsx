@@ -7,15 +7,16 @@ import { useTranslations } from 'next-intl';
 import type { PlacedObject, StudioWorkItem, StudioWorkPage } from '@/lib/types';
 import { CREDIT_COSTS } from '@/lib/constants';
 import { MobileMediaPicker } from './MobileMediaPicker';
+import { ImproveBottomSheet } from './ImproveBottomSheet';
 import { BeforeAfterSlider } from '@/components/studio/editors/shared/BeforeAfterSlider';
 import { notifyCreditsChanged } from '@/lib/studio/credits-events';
-import { downloadImage, proxyUrl, shareImage } from '@/lib/studio/mobile/share';
+import { downloadImage, fileFromUrl, proxyUrl, shareImage } from '@/lib/studio/mobile/share';
 import { canvasSizeFor, clamp, fitScale, getObjBounds, ptDist, twoFingerDelta, type Point } from '@/lib/place-products/geometry';
 import {
   BlendError, canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, saveComposite,
 } from '@/lib/place-products/canvas';
 
-type Step = 'pick-bg' | 'edit' | 'processing' | 'result';
+type Step = 'pick-bg' | 'edit' | 'processing' | 'result' | 'improve';
 
 // 2× the desktop canvas: sharp on Retina and a better input for AI Blend
 const CANVAS_MAX = 1600;
@@ -351,6 +352,23 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
     }
   }
 
+  // Improve (free sharp pass + optional AI Style) on the finished result
+  async function handleImproved(url: string, source: 'enhanced' | 'ai') {
+    const before = result?.url;
+    if (!before) return;
+    setStep('processing');
+    try {
+      // AI Style results are recorded by /api/studio/edit (with sourceUrl); the free pass
+      // isn't, so save it as a place-products result linked to the composite it came from
+      const finalUrl = source === 'enhanced' ? await saveComposite(await fileFromUrl(url, 'improved'), before) : url;
+      if (source === 'ai') notifyCreditsChanged();
+      setResult({ url: finalUrl, beforeUrl: before });
+    } catch {
+      setError(t('failed'));
+    }
+    setStep('result');
+  }
+
   async function handleShare() {
     if (!result) return;
     setSharing(true);
@@ -449,6 +467,18 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
     );
   }
 
+  if (step === 'improve' && result) {
+    return screen(
+      <ImproveBottomSheet
+        imageUrl={result.url}
+        // Composites need light/shadows matched between product and scene
+        defaultPreset="studio_light"
+        onDone={(url, source) => void handleImproved(url, source)}
+        onCancel={() => setStep('result')}
+      />,
+    );
+  }
+
   if (step === 'processing') {
     return screen(
       <div className="flex flex-col items-center justify-center gap-3 py-20" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
@@ -494,6 +524,14 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
           >
             🎨 {t('usePromo')}
+          </button>
+        </div>
+        <div className="mt-3 px-4">
+          <button
+            onClick={() => setStep('improve')}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 py-3.5 text-sm font-semibold text-purple-200 active:bg-purple-500/20"
+          >
+            ✨ {t('improve')}
           </button>
         </div>
         <div className="mt-4 flex justify-center">

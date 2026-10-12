@@ -12,8 +12,11 @@ import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 
 interface Props {
   imageUrl: string;
-  onDone: (resultUrl: string) => void;
+  /** source: which version the user kept — the free sharp pass or the AI Style (Grok) pass */
+  onDone: (resultUrl: string, source: 'enhanced' | 'ai') => void;
   onCancel: () => void;
+  /** Preset selected initially (an ENHANCEMENT_PRESETS id); defaults to 'professional' */
+  defaultPreset?: string;
 }
 
 type ImprovePhase = 'configure' | 'processing' | 'result' | 'ai-processing' | 'ai-result';
@@ -106,10 +109,12 @@ function BackHeader({ title, label, onBack }: { title: string; label: string; on
   );
 }
 
-export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
+export function ImproveBottomSheet({ imageUrl, onDone, onCancel, defaultPreset }: Props) {
   const t = useTranslations('mobile.improveSheet');
   const [phase, setPhase] = useState<ImprovePhase>('configure');
-  const [selectedPreset, setSelectedPreset] = useState('professional');
+  const [selectedPreset, setSelectedPreset] = useState(
+    () => (defaultPreset && ENHANCEMENT_PRESETS.some((p) => p.id === defaultPreset) ? defaultPreset : 'professional'),
+  );
   const [intensity, setIntensity] = useState<EnhancementIntensity>('professional');
   const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
   const [aiUrl, setAiUrl] = useState<string | null>(null);
@@ -331,13 +336,13 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
 
         <div className="mt-4 grid grid-cols-2 gap-3 px-4">
           <button
-            onClick={() => onDone(enhancedUrl)}
+            onClick={() => onDone(enhancedUrl, 'enhanced')}
             className="flex min-h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"
           >
             {t('keepEnhanced')}
           </button>
           <button
-            onClick={() => onDone(aiUrl)}
+            onClick={() => onDone(aiUrl, 'ai')}
             className="flex min-h-11 items-center justify-center rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700"
           >
             {t('keepAi')}
@@ -420,7 +425,7 @@ export function ImproveBottomSheet({ imageUrl, onDone, onCancel }: Props) {
 
         <div className="mt-2 px-4">
           <button
-            onClick={() => onDone(enhancedUrl)}
+            onClick={() => onDone(enhancedUrl, 'enhanced')}
             className="flex min-h-11 w-full items-center justify-center rounded-xl bg-green-600 py-3.5 text-sm font-semibold text-white active:bg-green-700"
           >
             {t('useThis')}

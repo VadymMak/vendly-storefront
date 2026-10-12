@@ -1888,7 +1888,8 @@
       "keepEditing": "Weiter bearbeiten",
       "failed": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
       "noCredits": "Nicht genug Credits.",
-      "getCredits": "Credits holen"
+      "getCredits": "Credits holen",
+      "improve": "Foto verbessern"
     }
   }
 }

@@ -42,22 +42,29 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // provider clips are 5–50 MB
 const VIDEO_HEADERS_TIMEOUT_MS = 30_000;
 const VIDEO_TRANSFER_TIMEOUT_MS = 10 * 60_000;
 
-/** Pass-through stream that errors once more than `max` bytes went through. */
-function byteLimit(max: number): TransformStream<Uint8Array, Uint8Array> {
-  let seen = 0;
-  return new TransformStream({
-    transform(chunk, controller) {
-      seen += chunk.byteLength;
-      if (seen > max) controller.error(new Error(`video larger than ${max} bytes`));
-      else controller.enqueue(chunk);
-    },
-  });
+/** Read a response body into memory, failing as soon as it exceeds `max` bytes. */
+async function readCapped(body: ReadableStream<Uint8Array>, max: number): Promise<Buffer> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel();
+      throw new Error(`video larger than ${max} bytes`);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks, total);
 }
 
 /**
- * Download a video from a provider URL and persist it to Vercel Blob (streamed — the file
- * is never held in memory as a whole). Only allowlisted provider hosts, no redirects,
- * video content types, max 100 MB. On any failure returns the original URL.
+ * Download a video from a provider URL and persist it to Vercel Blob. Only allowlisted
+ * provider hosts, no redirects, video content types, max 100 MB. On any failure returns
+ * the original URL. Buffered on purpose: put() with a ReadableStream of unknown length
+ * crawled (a 12 MB clip did not finish in 10 min) while put(buffer) took ~14 s.
  */
 export async function persistVideoToBlob(providerUrl: string, prefix: string): Promise<string> {
   if (providerUrl.includes('.blob.vercel-storage.com/')) return providerUrl;
@@ -85,10 +92,11 @@ export async function persistVideoToBlob(providerUrl: string, prefix: string): P
     if (declared > MAX_VIDEO_BYTES) throw new Error(`too large (${declared} bytes)`);
 
     const ext = contentType.includes('webm') ? 'webm' : 'mp4';
-    const blob = await put(`studio/${prefix}/${Date.now()}-result.${ext}`, res.body.pipeThrough(byteLimit(MAX_VIDEO_BYTES)), {
+    const buffer = await readCapped(res.body, MAX_VIDEO_BYTES);
+    const blob = await put(`studio/${prefix}/${Date.now()}-result.${ext}`, buffer, {
       access:      'public',
       contentType: contentType.startsWith('video/') ? contentType : 'video/mp4',
-      multipart:   true,
+      multipart:   buffer.length > 16 * 1024 * 1024, // parallel parts + retries for big clips
     });
     return blob.url;
   } catch (err) {

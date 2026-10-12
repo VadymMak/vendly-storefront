@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   } else if (type === 'video') {
     where.type = 'video';
   } else if (type === 'image') {
-    where.type = { in: ['image', 'upscale', 'remove-bg', 'ai-edit'] };
+    where.type = { in: ['image', 'upscale', 'remove-bg', 'ai-edit', 'place-products'] };
   }
 
   // Hide intermediate steps that were later improved — the Gallery shows only the final result.

@@ -4,6 +4,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
+import { createFinishedJob } from '@/lib/studio-jobs';
 
 export const maxDuration = 120;
 
@@ -117,6 +118,14 @@ export async function POST(req: NextRequest) {
 
 
     console.log('[ai-blend] Done:', finalBlob.url);
+    // Show the paid result in My Work; a failed bookkeeping write must not lose the image
+    await createFinishedJob({
+      userId:       session.user.id,
+      type:         'place-products',
+      outputUrl:    finalBlob.url,
+      creditAmount: CREDIT_COSTS.aiBlend,
+      metadata:     { blended: true, modelUsed: 'flux-fill-pro', provider: 'replicate' },
+    }).catch((err) => console.error('[ai-blend] Failed to save to StudioJob:', err));
     return NextResponse.json({ url: finalBlob.url });
   } catch (error) {
     console.error('[ai-blend] Error:', error);

@@ -112,12 +112,12 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   );
 }
 
-/** Upload a rendered image to Blob storage; returns its public URL. */
-export async function uploadComposite(blob: Blob): Promise<string> {
+/** Save a finished composite (free) — stored and listed in My Work; returns its URL. */
+export async function saveComposite(blob: Blob): Promise<string> {
   const fd = new FormData();
   fd.append('image', blob, 'composite.png');
-  const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });
-  if (!res.ok) throw new Error('Upload failed');
+  const res = await fetch('/api/studio/save-composite', { method: 'POST', body: fd });
+  if (!res.ok) throw new Error('Save failed');
   return ((await res.json()) as { url: string }).url;
 }
 
@@ -128,7 +128,7 @@ export class BlendError extends Error {
   }
 }
 
-/** POST composite + edge mask to /api/studio/ai-blend (1 credit); returns the blended URL. */
+/** POST composite + edge mask to /api/studio/ai-blend (1 credit, listed in My Work); returns the blended URL. */
 export async function requestAiBlend(composite: Blob, mask: Blob): Promise<string> {
   const fd = new FormData();
   fd.append('composite', composite, 'composite.png');

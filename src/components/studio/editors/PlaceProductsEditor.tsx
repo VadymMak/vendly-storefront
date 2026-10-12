@@ -8,7 +8,7 @@ import {
   type HandleOptions, type HitType,
 } from '@/lib/place-products/geometry';
 import {
-  canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, uploadComposite,
+  canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, saveComposite,
 } from '@/lib/place-products/canvas';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -667,7 +667,7 @@ export function PlaceProductsEditor({
       // Redraw without selection handles
       draw(true);
 
-      const url = await uploadComposite(await canvasToBlob(canvas));
+      const url = await saveComposite(await canvasToBlob(canvas));
       onResult(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');

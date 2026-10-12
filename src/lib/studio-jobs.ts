@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { FalKlingProvider, FalKlingT2VProvider, KlingDirectProvider, GrokVideoProvider } from '@/lib/video';
 
-export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit';
+export type JobType = 'image' | 'video' | 'upscale' | 'remove-bg' | 'ai-edit' | 'place-products';
 export type JobStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
 
 export async function createJob(params: {
@@ -20,6 +20,32 @@ export async function createJob(params: {
       type:         params.type,
       creditType:   params.creditType,
       creditAmount: params.creditAmount ?? 1,
+      metadata:     params.metadata as Prisma.InputJsonObject | undefined,
+    },
+  });
+  return job.id;
+}
+
+/**
+ * Record a result that is already finished and stored (no provider polling), so it shows
+ * in My Work right away — e.g. a Place Products composite or an AI Blend result.
+ */
+export async function createFinishedJob(params: {
+  userId: string;
+  type: JobType;
+  outputUrl: string;
+  creditAmount: number;
+  metadata?: Record<string, unknown>;
+}): Promise<string> {
+  const job = await db.studioJob.create({
+    data: {
+      userId:       params.userId,
+      predictionId: `${params.type}:${crypto.randomUUID()}`,
+      type:         params.type,
+      status:       'succeeded',
+      outputUrl:    params.outputUrl,
+      creditType:   'image',
+      creditAmount: params.creditAmount,
       metadata:     params.metadata as Prisma.InputJsonObject | undefined,
     },
   });

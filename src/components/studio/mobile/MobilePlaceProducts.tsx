@@ -12,7 +12,7 @@ import { notifyCreditsChanged } from '@/lib/studio/credits-events';
 import { downloadImage, proxyUrl, shareImage } from '@/lib/studio/mobile/share';
 import { canvasSizeFor, clamp, fitScale, twoFingerDelta, type Point } from '@/lib/place-products/geometry';
 import {
-  BlendError, canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, uploadComposite,
+  BlendError, canvasToBlob, drawScene, generateEdgeMask, loadImg, requestAiBlend, saveComposite,
 } from '@/lib/place-products/canvas';
 
 type Step = 'pick-bg' | 'edit' | 'processing' | 'result';
@@ -248,7 +248,7 @@ export function MobilePlaceProducts({ cutoutUrl }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const url = await uploadComposite(await renderComposite());
+      const url = await saveComposite(await renderComposite());
       setResult({ url });
       setStep('result');
     } catch {

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
-import { checkCredits, getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits, isSuperuser } from '@/lib/credits';
 import { getVideoCreditCost } from '@/lib/studio/config';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  // ── Credit check (still required — deduction happens later in job polling) ─
+  // ── Credit check — fast fail; the atomic reserve happens right before the provider call ─
   const creditAmount = getVideoCreditCost('vid-animate', body.duration ?? 5);
   // Don't bind to specific provider — any BYOK key counts for byok_creator bypass
   const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
@@ -126,68 +126,100 @@ export async function POST(request: Request) {
     referenceImages: body.referenceImages,
   };
 
+  // ── Reserve credits atomically BEFORE the paid provider call ─────────────
+  // Parallel requests can't all pass on a balance for one; refunded below if no job
+  // starts, and by refreshJobStatus if the job fails.
+  const userId = session.user.id;
+  const consume = creditCheck.byok
+    ? { success: true, byok: true, fromBonus: 0, fromMonthly: 0, reason: undefined }
+    : await consumeCredits(userId, 'video', creditAmount);
+  if (!consume.success) {
+    return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });
+  }
+  const charged = !consume.byok;
+  const refund = async () => {
+    if (charged) await refundCredits(userId, 'video', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+  };
+
   // ── Create prediction — fallback chain: fal → Replicate → Kling Direct ──
   let prediction;
   let usedProvider: 'fal' | 'replicate' | 'kling-direct' = 'fal';
 
-  // Step 1: Try fal.ai (primary)
-  if (falKey) {
-    try {
-      const raw = await new FalKlingProvider().createVideo(videoReq, falKey);
-      prediction = { ...raw, predictionId: `fal:${raw.predictionId}` };
-      usedProvider = 'fal';
-    } catch (error) {
-      console.warn('[generate-video] fal.ai failed, trying Replicate fallback:', error instanceof Error ? error.message : error);
-    }
-  }
-
-  // Step 2: Fallback to Replicate
-  if (!prediction && replicateKey) {
-    try {
-      prediction = await new KlingProvider().createVideo(videoReq, replicateKey);
-      usedProvider = 'replicate';
-    } catch (error) {
-      console.warn('[generate-video] Replicate failed, trying Kling Direct:', error instanceof Error ? error.message : error);
-
-      // Step 3: Fallback to Kling Direct
-      if (isQuotaError(error) && klingKeyRec && klingSecretRec) {
-        const compositeKey = `${decrypt(klingKeyRec.encryptedKey)}:${decrypt(klingSecretRec.encryptedKey)}`;
-        const directProvider = new KlingDirectProvider();
-        const raw = await directProvider.createVideo(videoReq, compositeKey);
-        prediction = { ...raw, predictionId: `kling-direct:${raw.predictionId}` };
-        usedProvider = 'kling-direct';
-      } else {
-        if (error instanceof VideoProviderError) {
-          return NextResponse.json({ error: error.message }, { status: error.status });
-        }
-        throw error;
+  try {
+    // Step 1: Try fal.ai (primary)
+    if (falKey) {
+      try {
+        const raw = await new FalKlingProvider().createVideo(videoReq, falKey);
+        prediction = { ...raw, predictionId: `fal:${raw.predictionId}` };
+        usedProvider = 'fal';
+      } catch (error) {
+        console.warn('[generate-video] fal.ai failed, trying Replicate fallback:', error instanceof Error ? error.message : error);
       }
     }
+
+    // Step 2: Fallback to Replicate
+    if (!prediction && replicateKey) {
+      try {
+        prediction = await new KlingProvider().createVideo(videoReq, replicateKey);
+        usedProvider = 'replicate';
+      } catch (error) {
+        console.warn('[generate-video] Replicate failed, trying Kling Direct:', error instanceof Error ? error.message : error);
+
+        // Step 3: Fallback to Kling Direct
+        if (isQuotaError(error) && klingKeyRec && klingSecretRec) {
+          const compositeKey = `${decrypt(klingKeyRec.encryptedKey)}:${decrypt(klingSecretRec.encryptedKey)}`;
+          const directProvider = new KlingDirectProvider();
+          const raw = await directProvider.createVideo(videoReq, compositeKey);
+          prediction = { ...raw, predictionId: `kling-direct:${raw.predictionId}` };
+          usedProvider = 'kling-direct';
+        } else {
+          if (error instanceof VideoProviderError) {
+            await refund();
+            return NextResponse.json({ error: error.message }, { status: error.status });
+          }
+          throw error;
+        }
+      }
+    }
+
+    if (!prediction) {
+      await refund();
+      return NextResponse.json({ error: 'No video provider available' }, { status: 500 });
+    }
+
+    if (prediction.status === 'failed') {
+      await refund();
+      return NextResponse.json({ error: prediction.error ?? 'Generation failed' }, { status: 500 });
+    }
+  } catch (error) {
+    await refund();
+    throw error;
   }
 
-  if (!prediction) {
-    return NextResponse.json({ error: 'No video provider available' }, { status: 500 });
+  // ── Persist job — credits are already reserved; refreshJobStatus refunds on failure ─
+  let jobId: string;
+  try {
+    jobId = await createJob({
+      userId,
+      predictionId:   prediction.predictionId,
+      type:           'video',
+      creditType:     charged ? 'video' : undefined,
+      creditAmount:   charged ? creditAmount : 0,
+      creditDeducted: charged,
+      metadata: {
+        reserved:    charged ? { fromBonus: consume.fromBonus ?? 0, fromMonthly: consume.fromMonthly ?? 0 } : undefined,
+        prompt:      body.prompt,
+        skillId:     body.skillId,
+        aspectRatio: body.aspectRatio,
+        duration:    body.duration,
+        provider:    usedProvider,
+      },
+    });
+  } catch (err) {
+    // No job row → nobody could poll or refund it later
+    await refund();
+    throw err;
   }
-
-  if (prediction.status === 'failed') {
-    return NextResponse.json({ error: prediction.error ?? 'Generation failed' }, { status: 500 });
-  }
-
-  // ── Persist job — credit deduction happens in refreshJobStatus on success ─
-  const jobId = await createJob({
-    userId:       session.user.id,
-    predictionId: prediction.predictionId,
-    type:         'video',
-    creditType:   creditCheck.byok ? undefined : 'video',
-    creditAmount: creditCheck.byok ? 0 : creditAmount,
-    metadata: {
-      prompt:      body.prompt,
-      skillId:     body.skillId,
-      aspectRatio: body.aspectRatio,
-      duration:    body.duration,
-      provider:    usedProvider,
-    },
-  });
 
   return NextResponse.json({ jobId, predictionId: prediction.predictionId, provider: usedProvider });
 }

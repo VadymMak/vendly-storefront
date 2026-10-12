@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { z } from 'zod/v4';
-import { checkCredits, getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits, isSuperuser } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { createJob } from '@/lib/studio-jobs';
@@ -93,6 +93,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ jobId: `mock-job-${Date.now()}` });
   }
 
+  // Reserve credits atomically BEFORE the paid provider call (free trial / 0-cost routes
+  // skip it); refunded below if no job starts, and by refreshJobStatus if the job fails
+  const consume = route.creditCost > 0
+    ? await consumeCredits(userId, 'video', route.creditCost)
+    : { success: true, byok: true, fromBonus: 0, fromMonthly: 0, reason: undefined };
+  if (!consume.success) {
+    return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });
+  }
+  const charged = route.creditCost > 0 && !consume.byok;
+  const refund = async () => {
+    if (charged) await refundCredits(userId, 'video', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+  };
+
   try {
     let predictionId: string;
 
@@ -107,6 +120,7 @@ export async function POST(request: Request) {
         : (process.env.FAL_KEY ?? '');
 
       if (!falKey && !userIsSuperuser) {
+        await refund();
         return NextResponse.json({ error: 'fal.ai API key not configured' }, { status: 500 });
       }
 
@@ -122,6 +136,7 @@ export async function POST(request: Request) {
     } else {
       const xaiKey = process.env.XAI_API_KEY ?? '';
       if (!xaiKey && !userIsSuperuser) {
+        await refund();
         return NextResponse.json({ error: 'xAI API key not configured' }, { status: 500 });
       }
 
@@ -138,10 +153,13 @@ export async function POST(request: Request) {
     const jobId = await createJob({
       userId,
       predictionId,
-      type:         'video',
-      creditType:   'video',
-      creditAmount: route.creditCost,
+      type:           'video',
+      creditType:     'video',
+      creditAmount:   route.creditCost,
+      // Reserved above — refreshJobStatus refunds the same split if the job fails
+      creditDeducted: charged,
       metadata: {
+        reserved:    charged ? { fromBonus: consume.fromBonus ?? 0, fromMonthly: consume.fromMonthly ?? 0 } : undefined,
         prompt:      body.prompt,
         qualityTier: route.qualityTier,
         routeReason: route.reason,
@@ -152,6 +170,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ jobId, qualityTier: route.qualityTier });
   } catch (err) {
+    await refund();
     if (err instanceof VideoProviderError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }

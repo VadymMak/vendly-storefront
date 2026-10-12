@@ -11,16 +11,22 @@ export async function createJob(params: {
   type: JobType;
   creditType?: 'image' | 'video';
   creditAmount?: number;
+  /**
+   * true when the route already reserved the credits (consumeCredits before the provider
+   * call). Put the consumeCredits split in metadata.reserved so a failed job can refund it.
+   */
+  creditDeducted?: boolean;
   metadata?: Record<string, unknown>;
 }): Promise<string> {
   const job = await db.studioJob.create({
     data: {
-      userId:       params.userId,
-      predictionId: params.predictionId,
-      type:         params.type,
-      creditType:   params.creditType,
-      creditAmount: params.creditAmount ?? 1,
-      metadata:     params.metadata as Prisma.InputJsonObject | undefined,
+      userId:         params.userId,
+      predictionId:   params.predictionId,
+      type:           params.type,
+      creditType:     params.creditType,
+      creditAmount:   params.creditAmount ?? 1,
+      creditDeducted: params.creditDeducted ?? false,
+      metadata:       params.metadata as Prisma.InputJsonObject | undefined,
     },
   });
   return job.id;
@@ -100,6 +106,26 @@ export async function refreshJobStatus(
     },
   });
 
+  // Credits reserved at start (video routes) come back exactly once if the job fails —
+  // atomic claim on creditDeducted prevents a double refund from concurrent polls
+  const reserved = (job.metadata as { reserved?: { fromBonus?: number; fromMonthly?: number } } | null)?.reserved;
+  if ((newStatus === 'failed' || newStatus === 'canceled') && job.creditDeducted && job.creditType && reserved) {
+    const claimed = await db.studioJob.updateMany({
+      where: { id: jobId, creditDeducted: true },
+      data:  { creditDeducted: false },
+    });
+    if (claimed.count === 1) {
+      const { refundCredits } = await import('@/lib/credits');
+      await refundCredits(
+        job.userId,
+        job.creditType as 'image' | 'video',
+        reserved.fromBonus ?? 0,
+        reserved.fromMonthly ?? 0,
+      );
+    }
+  }
+
+  // Legacy charge-on-success for jobs created before reserve-on-start (creditDeducted false).
   // Deduct credit exactly once on success — atomic claim prevents double-charge
   if (newStatus === 'succeeded' && !job.creditDeducted && job.creditType) {
     const claimed = await db.studioJob.updateMany({

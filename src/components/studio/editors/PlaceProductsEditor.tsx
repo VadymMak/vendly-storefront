@@ -36,6 +36,8 @@ function toCanvasPt(e: PointerEvent, canvas: HTMLCanvasElement) {
 
 interface DragState {
   type: HitType;
+  /** Checkpoint pushed on the first actual movement — a plain tap adds no undo step */
+  checkpointed: boolean;
   objId: string;
   startPtr: { x: number; y: number };
   startX: number;
@@ -68,6 +70,8 @@ export function PlaceProductsEditor({
   const [zoomLevel, setZoomLevel]         = useState(1);
   const [historyStack, setHistoryStack]   = useState<EditorCheckpoint[]>([]);
   const [redoStack, setRedoStack]         = useState<EditorCheckpoint[]>([]);
+  // Mirrors backgroundUrlRef for rendering: differs from the prop after an AI Blend
+  const [currentBgUrl, setCurrentBgUrl]   = useState(backgroundUrl);
 
   const bgImgRef          = useRef<HTMLImageElement | null>(null);
   const objImgsRef        = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -85,7 +89,7 @@ export function PlaceProductsEditor({
 
   const dragRef    = useRef<DragState | null>(null);
   const ptrsRef    = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const pinchRef   = useRef<{ dist: number; scale: number; objId: string } | null>(null);
+  const pinchRef   = useRef<{ dist: number; scale: number; objId: string; checkpointed: boolean } | null>(null);
 
   // ── Drawing ────────────────────────────────────────────────────────────────
 
@@ -206,6 +210,20 @@ export function PlaceProductsEditor({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bgLoaded]);
 
+  // ── History ────────────────────────────────────────────────────────────────
+  // Snapshot taken BEFORE every user mutation (first move of a gesture, add, delete,
+  // rotate 90°, forward, split, blend) so Undo steps back one action at a time.
+
+  const MAX_HISTORY = 15;
+
+  const pushCheckpoint = useCallback(() => {
+    setHistoryStack(prev => [
+      ...prev.slice(-(MAX_HISTORY - 1)),
+      { backgroundUrl: backgroundUrlRef.current, objects: [...objectsRef.current] },
+    ]);
+    setRedoStack([]);
+  }, []);
+
   // ── Add object from src ────────────────────────────────────────────────────
 
   const addObject = useCallback(async (src: string, position?: { x: number; y: number }) => {
@@ -236,9 +254,10 @@ export function PlaceProductsEditor({
     const file = e.target.files?.[0];
     if (!file) return;
     const src = URL.createObjectURL(file);
+    pushCheckpoint();
     void addObject(src);
     e.target.value = '';
-  }, [addObject]);
+  }, [addObject, pushCheckpoint]);
 
   // ── Pointer events ─────────────────────────────────────────────────────────
 
@@ -253,7 +272,7 @@ export function PlaceProductsEditor({
       const sel = selectedRef.current;
       if (sel) {
         const obj = objectsRef.current.find(o => o.id === sel);
-        if (obj) pinchRef.current = { dist: d, scale: obj.scale, objId: sel };
+        if (obj) pinchRef.current = { dist: d, scale: obj.scale, objId: sel, checkpointed: false };
       }
       dragRef.current = null;
       return;
@@ -272,6 +291,7 @@ export function PlaceProductsEditor({
         if (hit) {
           dragRef.current = {
             type: hit,
+            checkpointed: false,
             objId: selId,
             startPtr: pt,
             startX: selObj.x,
@@ -293,6 +313,7 @@ export function PlaceProductsEditor({
         setSelectedId(obj.id);
         dragRef.current = {
           type: 'move',
+          checkpointed: false,
           objId: obj.id,
           startPtr: pt,
           startX: obj.x,
@@ -317,6 +338,10 @@ export function PlaceProductsEditor({
       const [a, b_] = Array.from(ptrsRef.current.values());
       const d = ptDist(a.x, a.y, b_.x, b_.y);
       const ratio = d / pinchRef.current.dist;
+      if (!pinchRef.current.checkpointed) {
+        pushCheckpoint();
+        pinchRef.current.checkpointed = true;
+      }
       const objId = pinchRef.current.objId;
       const baseScale = pinchRef.current.scale;
       setObjects(prev => prev.map(o =>
@@ -333,6 +358,11 @@ export function PlaceProductsEditor({
     const ch = canvasHRef.current;
     const dx = pt.x - d.startPtr.x;
     const dy = pt.y - d.startPtr.y;
+    if (!d.checkpointed) {
+      if (dx === 0 && dy === 0) return;
+      pushCheckpoint();
+      d.checkpointed = true;
+    }
 
     setObjects(prev => prev.map(obj => {
       if (obj.id !== d.objId) return obj;
@@ -357,7 +387,7 @@ export function PlaceProductsEditor({
       const curD = ptDist(pt.x, pt.y, d.objCx, d.objCy);
       return { ...obj, scale: Math.max(0.01, d.startScale * (curD / startD)) };
     }));
-  }, []);
+  }, [pushCheckpoint]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     ptrsRef.current.delete(e.pointerId);
@@ -369,29 +399,21 @@ export function PlaceProductsEditor({
 
   const rotate90 = useCallback(() => {
     if (!selectedId) return;
+    pushCheckpoint();
     setObjects(prev => prev.map(o =>
       o.id === selectedId ? { ...o, rotation: o.rotation + Math.PI / 2 } : o
     ));
-  }, [selectedId]);
+  }, [selectedId, pushCheckpoint]);
 
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;
+    pushCheckpoint();
     objImgsRef.current.delete(selectedId);
     setObjects(prev => prev.filter(o => o.id !== selectedId));
     setSelectedId(null);
-  }, [selectedId]);
+  }, [selectedId, pushCheckpoint]);
 
   // ── History ────────────────────────────────────────────────────────────────
-
-  const MAX_HISTORY = 15;
-
-  const pushCheckpoint = useCallback(() => {
-    setHistoryStack(prev => [
-      ...prev.slice(-(MAX_HISTORY - 1)),
-      { backgroundUrl: backgroundUrlRef.current, objects: [...objectsRef.current] },
-    ]);
-    setRedoStack([]);
-  }, []);
 
   const handleUndo = useCallback(async () => {
     setHistoryStack(prev => {
@@ -410,6 +432,7 @@ export function PlaceProductsEditor({
       img.onload = () => {
         bgImgRef.current = img;
         backgroundUrlRef.current = checkpoint.backgroundUrl;
+        setCurrentBgUrl(checkpoint.backgroundUrl);
 
         // Reload object images missing from cache
         const pending = checkpoint.objects.filter(o => !objImgsRef.current.has(o.id));
@@ -449,6 +472,7 @@ export function PlaceProductsEditor({
       img.onload = () => {
         bgImgRef.current = img;
         backgroundUrlRef.current = redoState.backgroundUrl;
+        setCurrentBgUrl(redoState.backgroundUrl);
 
         const pending = redoState.objects.filter(o => !objImgsRef.current.has(o.id));
         Promise.all(pending.map(o => loadImg(o.src).then(loaded => ({ id: o.id, loaded }))))
@@ -540,6 +564,7 @@ export function PlaceProductsEditor({
 
   const bringForward = useCallback(() => {
     if (!selectedId) return;
+    pushCheckpoint();
     setObjects(prev => {
       const i = prev.findIndex(o => o.id === selectedId);
       if (i >= prev.length - 1) return prev;
@@ -547,7 +572,7 @@ export function PlaceProductsEditor({
       [next[i], next[i + 1]] = [next[i + 1], next[i]];
       return next;
     });
-  }, [selectedId]);
+  }, [selectedId, pushCheckpoint]);
 
   // ── Auto Split ────────────────────────────────────────────────────────────
 
@@ -600,7 +625,8 @@ export function PlaceProductsEditor({
         return;
       }
 
-      // Remove original
+      // Remove original (one undo step for the whole split)
+      pushCheckpoint();
       objImgsRef.current.delete(objId);
       setObjects(prev => prev.filter(o => o.id !== objId));
       setSelectedId(null);
@@ -617,14 +643,23 @@ export function PlaceProductsEditor({
     } finally {
       setSplittingId(null);
     }
-  }, [addObject]);
+  }, [addObject, pushCheckpoint]);
 
   // ── Export ─────────────────────────────────────────────────────────────────
 
+  // Something to export: placed objects, or an AI Blend result already baked into the background
+  const canExport = objects.length > 0 || currentBgUrl !== backgroundUrl;
+
   const handleExport = useCallback(async () => {
-    if (exporting || objects.length === 0) return;
+    if (exporting || !canExport) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Blended and nothing added since — the blend result is already uploaded
+    if (objects.length === 0) {
+      onResult(backgroundUrlRef.current);
+      return;
+    }
 
     setExporting(true);
     setError('');
@@ -640,7 +675,7 @@ export function PlaceProductsEditor({
       setExporting(false);
       draw();
     }
-  }, [exporting, objects.length, draw, onResult]);
+  }, [exporting, canExport, objects.length, draw, onResult]);
 
   // ── AI Blend ───────────────────────────────────────────────────────────────
 
@@ -665,6 +700,7 @@ export function PlaceProductsEditor({
       // Load blended result as new background
       bgImgRef.current = await loadImg(blendedUrl);
       backgroundUrlRef.current = blendedUrl;
+      setCurrentBgUrl(blendedUrl);
 
       // Bake objects into background — clear them from the editor
       objImgsRef.current.clear();
@@ -740,7 +776,7 @@ export function PlaceProductsEditor({
         </div>
         <button
           onClick={handleExport}
-          disabled={exporting || objects.length === 0}
+          disabled={exporting || !canExport}
           className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-40"
         >
           {exporting ? 'Exporting…' : 'Export →'}
@@ -876,6 +912,7 @@ export function PlaceProductsEditor({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  pushCheckpoint();
                   objImgsRef.current.delete(obj.id);
                   setObjects(prev => prev.filter(o => o.id !== obj.id));
                   if (selectedId === obj.id) setSelectedId(null);
@@ -895,7 +932,7 @@ export function PlaceProductsEditor({
             .map(src => (
               <button
                 key={src}
-                onClick={() => void addObject(src)}
+                onClick={() => { pushCheckpoint(); void addObject(src); }}
                 className="relative shrink-0 overflow-hidden rounded-lg transition-all hover:border-green-500/50"
                 style={{
                   width: 56,

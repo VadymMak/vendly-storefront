@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
-import { checkCredits, consumeCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
 
 export const maxDuration = 120;
@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason }, { status: 403 });
   }
+
+  let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
 
   try {
     const formData = await req.formData();
@@ -53,6 +55,12 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('[ai-blend] Calling Flux Fill Pro...');
+
+    // Atomic reserve BEFORE the paid provider call — refunded below if it fails
+    consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.aiBlend);
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+    }
 
     const replicate = new Replicate({ auth: token });
 
@@ -93,6 +101,9 @@ export async function POST(req: NextRequest) {
 
     if (!imageUrl) {
       console.error('[ai-blend] Unexpected output:', JSON.stringify(output));
+      if (!consume.byok) {
+        await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
     }
 
@@ -104,15 +115,14 @@ export async function POST(req: NextRequest) {
       { access: 'public', contentType: 'image/png' },
     );
 
-    const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.aiBlend);
-    if (!consume.success) {
-      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
-    }
 
     console.log('[ai-blend] Done:', finalBlob.url);
     return NextResponse.json({ url: finalBlob.url });
   } catch (error) {
     console.error('[ai-blend] Error:', error);
+    if (consume?.success && !consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
     return NextResponse.json({ error: 'AI blend failed. Please try again.' }, { status: 500 });
   }
 }

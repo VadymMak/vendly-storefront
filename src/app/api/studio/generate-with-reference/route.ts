@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
-import { checkCredits, consumeCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
 
 export const maxDuration = 120;
@@ -43,51 +43,64 @@ export async function POST(req: NextRequest) {
     contentType: referenceImage.type || 'image/webp',
   });
 
-  const replicate = new Replicate({ auth: token });
-
-  const output = await replicate.run('black-forest-labs/flux-dev', {
-    input: {
-      prompt,
-      image: refBlob.url,
-      prompt_strength: Math.max(0.1, Math.min(1.0, strength)),
-      num_inference_steps: 50,
-      guidance_scale: 3.5,
-      aspect_ratio: aspectRatio,
-      output_format: 'webp',
-      output_quality: 85,
-    },
-  });
-
-  // Replicate returns an array of FileOutput objects or URL strings
-  const urls = output as unknown[];
-  const first = urls?.[0];
-
-  let imageUrl: string | null = null;
-  if (typeof first === 'string') {
-    imageUrl = first;
-  } else if (first && typeof (first as { url?: () => string | URL }).url === 'function') {
-    const result = (first as { url: () => string | URL }).url();
-    imageUrl = result instanceof URL ? result.toString() : result;
-  } else if (first instanceof URL) {
-    imageUrl = first.toString();
-  }
-
-  if (!imageUrl) {
-    console.error('[generate-with-reference] Unexpected Replicate output:', JSON.stringify(output));
-    return NextResponse.json({ error: 'No image URL in Replicate response' }, { status: 500 });
-  }
-
-  // Fetch from Replicate CDN and re-upload to our blob storage for permanence
-  const imgRes = await fetch(imageUrl);
-  const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-  const finalBlob = await put(`studio/chat/${Date.now()}-ref-gen.webp`, imgBuffer, {
-    access: 'public',
-    contentType: 'image/webp',
-  });
-
+  // Atomic reserve BEFORE the paid provider call — refunded below if it fails
   const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.generateWithReference, 'replicate');
   if (!consume.success) {
     return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
   }
-  return NextResponse.json({ url: finalBlob.url });
+
+  try {
+    const replicate = new Replicate({ auth: token });
+
+    const output = await replicate.run('black-forest-labs/flux-dev', {
+      input: {
+        prompt,
+        image: refBlob.url,
+        prompt_strength: Math.max(0.1, Math.min(1.0, strength)),
+        num_inference_steps: 50,
+        guidance_scale: 3.5,
+        aspect_ratio: aspectRatio,
+        output_format: 'webp',
+        output_quality: 85,
+      },
+    });
+
+    // Replicate returns an array of FileOutput objects or URL strings
+    const urls = output as unknown[];
+    const first = urls?.[0];
+
+    let imageUrl: string | null = null;
+    if (typeof first === 'string') {
+      imageUrl = first;
+    } else if (first && typeof (first as { url?: () => string | URL }).url === 'function') {
+      const result = (first as { url: () => string | URL }).url();
+      imageUrl = result instanceof URL ? result.toString() : result;
+    } else if (first instanceof URL) {
+      imageUrl = first.toString();
+    }
+
+    if (!imageUrl) {
+      console.error('[generate-with-reference] Unexpected Replicate output:', JSON.stringify(output));
+      if (!consume.byok) {
+        await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
+      return NextResponse.json({ error: 'No image URL in Replicate response' }, { status: 500 });
+    }
+
+    // Fetch from Replicate CDN and re-upload to our blob storage for permanence
+    const imgRes = await fetch(imageUrl);
+    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+    const finalBlob = await put(`studio/chat/${Date.now()}-ref-gen.webp`, imgBuffer, {
+      access: 'public',
+      contentType: 'image/webp',
+    });
+
+    return NextResponse.json({ url: finalBlob.url });
+  } catch (error) {
+    console.error('[generate-with-reference] Error:', error);
+    if (!consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
+    return NextResponse.json({ error: 'Generation failed. Please try again.' }, { status: 500 });
+  }
 }

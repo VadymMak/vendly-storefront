@@ -4,7 +4,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
-import { checkCredits, consumeCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
 
 export const maxDuration = 60;
@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
+
+  let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
 
   try {
     const formData = await req.formData();
@@ -52,6 +54,12 @@ export async function POST(req: NextRequest) {
     });
     console.log('[remove-bg] Image uploaded:', imageBlob.url);
 
+    // Atomic reserve BEFORE the paid provider call — refunded below if it fails
+    consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg, 'replicate');
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+    }
+
     const replicate = new Replicate({ auth: token });
 
     console.log('[remove-bg] Calling lucataco/remove-bg...');
@@ -76,6 +84,9 @@ export async function POST(req: NextRequest) {
 
     if (!resultUrl) {
       console.error('[remove-bg] Unexpected output:', JSON.stringify(output));
+      if (!consume.byok) {
+        await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
       return NextResponse.json({ error: 'No image URL in response' }, { status: 500 });
     }
 
@@ -88,17 +99,13 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[remove-bg] Done:', finalBlob.url);
-    const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg, 'replicate');
-    if (!consume.success) {
-      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
-    }
     const capturedUrl = finalBlob.url;
     createJob({
       userId:       session.user.id,
       predictionId: `remove-bg:${Date.now()}`,
       type:         'remove-bg',
       creditType:   'image',
-      creditAmount: 1,
+      creditAmount: CREDIT_COSTS.removeBg,
       metadata:     { modelUsed: 'remove-bg', provider: 'replicate' },
     }).then(async (jobId) => {
       await db.studioJob.update({
@@ -111,6 +118,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: finalBlob.url });
   } catch (error) {
     console.error('[remove-bg] Error:', error);
+    if (consume?.success && !consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
     return NextResponse.json({ error: 'Background removal failed. Please try again.' }, { status: 500 });
   }
 }

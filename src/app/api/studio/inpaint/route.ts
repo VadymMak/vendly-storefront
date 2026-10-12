@@ -5,7 +5,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
-import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
+
+  let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
 
   try {
     const formData = await req.formData();
@@ -103,6 +105,12 @@ export async function POST(req: NextRequest) {
     // Log metadata only — user prompts are personal content (GDPR)
     console.log('[inpaint] Mode:', isRemoval ? 'REMOVAL' : 'REPLACEMENT', '| guidance:', guidance, '| prompt chars:', userPrompt.length);
 
+    // Atomic reserve BEFORE the paid provider call — refunded below if it fails
+    consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.inpaint, 'replicate');
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+    }
+
     const replicate = new Replicate({ auth: token });
 
     const output = await replicate.run('black-forest-labs/flux-fill-pro', {
@@ -140,6 +148,9 @@ export async function POST(req: NextRequest) {
 
     if (!imageUrl) {
       console.error('[inpaint] Unexpected Replicate output:', JSON.stringify(output));
+      if (!consume.byok) {
+        await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
       return NextResponse.json({ error: 'No image URL in Replicate response' }, { status: 500 });
     }
 
@@ -153,17 +164,13 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('[inpaint] Done:', finalBlob.url);
-    const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.inpaint, 'replicate');
-    if (!consume.success) {
-      return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
-    }
     const capturedUrl = finalBlob.url;
     createJob({
       userId:       session.user.id,
       predictionId: `inpaint:${Date.now()}`,
       type:         'ai-edit',
       creditType:   'image',
-      creditAmount: 1,
+      creditAmount: CREDIT_COSTS.inpaint,
       metadata:     { prompt: userPrompt, modelUsed: 'flux-fill-pro', provider: 'replicate' },
     }).then(async (jobId) => {
       await db.studioJob.update({
@@ -176,6 +183,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: finalBlob.url });
   } catch (error) {
     console.error('[inpaint] Error:', error);
+    if (consume?.success && !consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
     const message = error instanceof Error ? error.message : 'Inpaint failed';
     return NextResponse.json({ error: message }, { status: 500 });
   }

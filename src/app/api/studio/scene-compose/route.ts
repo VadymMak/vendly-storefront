@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
-import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
+import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
@@ -85,6 +85,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // Atomic reserve BEFORE the paid provider call — refunded below if it fails
+  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose);
+  if (!consume.success) {
+    return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+  }
+
   try {
     const resultUrl = await grokMultiImageEdit(xaiKey, imageUrls, prompt.trim(), aspectRatio);
 
@@ -99,10 +105,12 @@ export async function POST(req: Request) {
       { access: 'public', contentType },
     );
 
-    await consumeCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose);
     return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error('[scene-compose] Error:', err);
+    if (!consume.byok) {
+      await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Scene composition failed' },
       { status: 500 },

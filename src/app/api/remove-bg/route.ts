@@ -52,15 +52,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Credit check (atomic — reserves before AI call to prevent TOCTOU race) ───
-  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg);
-  if (!consume.success) {
-    return NextResponse.json(
-      { error: consume.reason, needsUpgrade: true },
-      { status: 403 },
-    );
-  }
-
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
     select: { encryptedKey: true },
@@ -69,6 +60,15 @@ export async function POST(req: Request) {
     ? decrypt(keyRecord.encryptedKey)
     : (process.env.REPLICATE_API_TOKEN ?? '');
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
+
+  // ── Credit check (atomic — reserves before AI call to prevent TOCTOU race) ───
+  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg);
+  if (!consume.success) {
+    return NextResponse.json(
+      { error: consume.reason, needsUpgrade: true },
+      { status: 403 },
+    );
+  }
 
   try {
     const bytes    = await file.arrayBuffer();

@@ -9,27 +9,29 @@ datasource db {
 }
 
 model User {
-  id                String           @id @default(cuid())
-  email             String           @unique
-  passwordHash      String?
-  name              String?
-  uiLanguage        String           @default("sk")
-  plan              Plan             @default(FREE)
-  stripeAccountId   String?
-  aiUsageCount      Int              @default(0)
-  aiUsageMonth      String?
-  createdAt         DateTime         @default(now())
-  aiAdvisorCount    Int              @default(0)
-  aiAdvisorLastUsed DateTime?
-  aiAdvisorMonth    String?
-  studioPaid        Boolean          @default(false)
-  stripeCustomerId  String?          @unique
-  stores            Store[]
-  studioCredits     StudioCredits?
-  studioFeedback    StudioFeedback[]
-  studioJobs        StudioJob[]
-  studioUsageLogs   StudioUsageLog[]
-  apiKeys           UserApiKey[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String?
+  passwordChangedAt   DateTime?
+  name                String?
+  uiLanguage          String               @default("sk")
+  plan                Plan                 @default(FREE)
+  stripeAccountId     String?
+  aiUsageCount        Int                  @default(0)
+  aiUsageMonth        String?
+  createdAt           DateTime             @default(now())
+  aiAdvisorCount      Int                  @default(0)
+  aiAdvisorLastUsed   DateTime?
+  aiAdvisorMonth      String?
+  studioPaid          Boolean              @default(false)
+  stripeCustomerId    String?              @unique
+  stores              Store[]
+  studioCredits       StudioCredits?
+  studioFeedback      StudioFeedback[]
+  studioJobs          StudioJob[]
+  studioUsageLogs     StudioUsageLog[]
+  apiKeys             UserApiKey[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model UserApiKey {
@@ -365,16 +367,16 @@ model KbDocument {
 }
 
 model KbChunk {
-  id         String     @id @default(cuid())
+  id         String                      @id @default(cuid())
   documentId String
-  document   KbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document   KbDocument                  @relation(fields: [documentId], references: [id], onDelete: Cascade)
   heading    String
   content    String
   tokens     Int
   embedding  Unsupported("vector(1536)")
   tsv        Unsupported("tsvector")?
   metadata   Json?
-  createdAt  DateTime   @default(now())
+  createdAt  DateTime                    @default(now())
 
   @@index([documentId])
   @@index([tsv], map: "KbChunk_tsv_idx", type: Gin)
@@ -426,4 +428,20 @@ model RegistrationAttempt {
 
   @@index([ipHash, createdAt])
   @@index([createdAt])
+}
+
+// Password reset links (PROMPT-237). Only the SHA-256 of the token is stored; the raw
+// token exists solely in the emailed link. Single-use via usedAt, 1h expiry.
+model PasswordResetToken {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  requestIpHash String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([requestIpHash, createdAt])
 }

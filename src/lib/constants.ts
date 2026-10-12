@@ -914,7 +914,7 @@ export const COOKIE_ACCEPTED_KEY = 'vendshop_cookie_accepted';
 
 // Sign-up abuse limits (PROMPT-236). IPs are stored only as HMAC hashes.
 export const REGISTRATION_LIMITS = {
-  perIpPerDay:      3,
+  perIpPerDay:      2, // 1 blocks shared IPs (mobile CGNAT, offices); forgot-password covers lost access
   ipRetentionDays:  30, // GDPR: legitimate interest (fraud prevention), then purged
 } as const;
 

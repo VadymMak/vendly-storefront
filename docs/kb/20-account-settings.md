@@ -9,7 +9,16 @@
 Sign-up rules (to keep free credits fair):
 - Temporary / disposable email addresses are not accepted — use your real email
 - A short automatic security check (Cloudflare Turnstile) runs on the sign-up form; if it fails, refresh the page and try again
-- At most 3 accounts can be created from the same network per day
+- At most 2 accounts can be created from the same network per day
+
+## Forgot Password
+
+1. Go to [vendshop.shop/login](https://vendshop.shop/login) and click **Forgot password?**
+2. Enter the email you registered with — if an account exists, we send a reset link
+3. Open the link within 1 hour and choose a new password (at least 8 characters)
+4. For security you are signed out on all devices; sign in again with the new password
+
+Each link works once. You can request up to 3 links per hour. No email? Check your spam folder.
 
 ## Studio Settings
 

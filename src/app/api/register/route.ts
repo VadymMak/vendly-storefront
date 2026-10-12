@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     if (!isSuperuser && ipHash && await isRegistrationLimited(ipHash)) {
       return NextResponse.json(
-        { error: 'Too many accounts created from this network today. Please try again tomorrow.' },
+        { error: 'Too many accounts created from this network today. Please try again tomorrow, or use "Forgot password?" on the sign-in page if you already have an account.' },
         { status: 429 },
       );
     }

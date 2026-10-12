@@ -43,13 +43,15 @@ Bei der Registrierung erheben wir folgende Daten:
 
 Diese Daten werden ausschließlich für den Betrieb Ihres Kontos und die Kommunikation mit Ihnen genutzt. Sie können Ihr Konto und alle damit verbundenen Daten jederzeit über die Einstellungen löschen oder uns unter makevytssvadym@gmail.com kontaktieren.
 
+**Passwort zurücksetzen:** Wenn Sie ein neues Passwort anfordern, senden wir einen Link an Ihre E-Mail-Adresse (Versand über Resend). Wir speichern dazu nur einen Hashwert des Links, dessen Ablaufzeit (1 Stunde) sowie einen Hashwert Ihrer IP-Adresse zur Missbrauchsbegrenzung; abgelaufene Einträge werden regelmäßig gelöscht, spätestens mit Ihrem Konto. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+
 ## 7. Missbrauchsschutz bei der Registrierung
 
 Um zu verhindern, dass kostenlose Guthaben durch das massenhafte Anlegen von Konten missbraucht werden, setzen wir bei der Registrierung die folgenden Schutzmaßnahmen ein.
 
 **a) Gehashte IP-Adresse**
 
-Bei einer erfolgreichen Registrierung speichern wir nicht Ihre IP-Adresse selbst, sondern ausschließlich einen kryptografischen Hashwert davon (HMAC-SHA256 mit einem geheimen Schlüssel) sowie den Zeitpunkt der Registrierung. Aus dem Hashwert lässt sich die IP-Adresse ohne den geheimen Schlüssel nicht zurückrechnen; er wird nicht mit Ihrem Nutzerkonto verknüpft. Es handelt sich um pseudonymisierte Daten. Anhand des Hashwerts begrenzen wir die Anzahl neuer Konten auf drei pro Netzwerk innerhalb von 24 Stunden.
+Bei einer erfolgreichen Registrierung speichern wir nicht Ihre IP-Adresse selbst, sondern ausschließlich einen kryptografischen Hashwert davon (HMAC-SHA256 mit einem geheimen Schlüssel) sowie den Zeitpunkt der Registrierung. Aus dem Hashwert lässt sich die IP-Adresse ohne den geheimen Schlüssel nicht zurückrechnen; er wird nicht mit Ihrem Nutzerkonto verknüpft. Es handelt sich um pseudonymisierte Daten. Anhand des Hashwerts begrenzen wir die Anzahl neuer Konten auf zwei pro Netzwerk innerhalb von 24 Stunden.
 
 - **Rechtsgrundlage:** Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt in der Verhinderung von Missbrauch und Betrug sowie im Schutz unseres kostenlosen Angebots.
 - **Speicherdauer:** Die Hashwerte werden nach 30 Tagen automatisch gelöscht.

@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { z } from 'zod/v4';
 import { createJob } from '@/lib/studio-jobs';
+import { getOrCreateCredits } from '@/lib/credits';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 const schema = z.object({
   prompt:      z.string().min(1),
@@ -38,6 +40,15 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = schema.parse(await request.json());
+
+  // No credit charge for the Animate start frame, but every call runs Flux on the platform
+  // Replicate key — cap it per plan so it can't be used as a free image generator
+  const credits   = await getOrCreateCredits(session.user.id);
+  const planType  = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
+  const rateLimit = RATE_LIMITS.generateImage[planType] ?? RATE_LIMITS.generateImage.free;
+  if (!(await checkRateLimitWithBypass(`start-frame:${session.user.id}`, rateLimit, session.user.id))) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
 
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },

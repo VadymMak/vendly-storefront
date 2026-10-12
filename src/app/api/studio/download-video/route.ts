@@ -14,6 +14,8 @@ const ALLOWED_HOSTS = new Set([
   'fal-cdn.com',
   // Replicate-hosted video outputs (23 of 47 video jobs at time of writing) were 403'd
   'replicate.delivery',
+  // Videos are copied to our Vercel Blob store once finished (studio-jobs persistVideoInBackground)
+  'public.blob.vercel-storage.com',
 ]);
 
 function isAllowedHost(hostname: string): boolean {

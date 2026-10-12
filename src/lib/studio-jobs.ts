@@ -60,6 +60,35 @@ export async function createFinishedJob(params: {
   return job.id;
 }
 
+// Videos being copied to Blob right now — concurrent polls of the same job start one copy
+const videoPersistInFlight = new Set<string>();
+
+/**
+ * Copy a finished video from the provider CDN (expires in hours/days) to Vercel Blob, in the
+ * background so the poll that saw `succeeded` isn't held up by a 10–50 MB transfer. The
+ * provider URL is served meanwhile; outputUrl is swapped only if nothing changed it since.
+ */
+function persistVideoInBackground(jobId: string, providerUrl: string): void {
+  if (videoPersistInFlight.has(jobId)) return;
+  videoPersistInFlight.add(jobId);
+  void (async () => {
+    try {
+      const { persistVideoToBlob } = await import('@/lib/persist-to-blob');
+      const blobUrl = await persistVideoToBlob(providerUrl, 'video');
+      if (blobUrl !== providerUrl) {
+        await db.studioJob.updateMany({
+          where: { id: jobId, outputUrl: providerUrl },
+          data:  { outputUrl: blobUrl },
+        });
+      }
+    } catch (err) {
+      console.error('[studio-jobs] video persist failed:', err);
+    } finally {
+      videoPersistInFlight.delete(jobId);
+    }
+  })();
+}
+
 /**
  * Poll Replicate for prediction status and sync to DB.
  * Returns cached result immediately for terminal states.
@@ -111,6 +140,11 @@ export async function refreshJobStatus(
       error:     polled.error ?? undefined,
     },
   });
+
+  // Videos only — image routes already store their results in Blob
+  if (newStatus === 'succeeded' && outputUrl && job.type === 'video') {
+    persistVideoInBackground(jobId, outputUrl);
+  }
 
   // Credits reserved at start (video routes) come back exactly once if the job fails —
   // atomic claim on creditDeducted prevents a double refund from concurrent polls

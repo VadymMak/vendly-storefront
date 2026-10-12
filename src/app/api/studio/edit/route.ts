@@ -2,7 +2,7 @@ import { put } from '@vercel/blob';
 import sharp from 'sharp';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { checkCredits, consumeCredits, getOrCreateCredits } from '@/lib/credits';
+import { consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel } from '@/lib/studio/config';
@@ -84,47 +84,46 @@ export async function POST(req: Request) {
     );
   }
 
-  // Credit check
-  let creditCheck: { allowed: boolean; byok?: boolean; reason?: string } = { allowed: true, byok: true };
+  // Atomically reserve credits BEFORE the paid provider call; refunded below on any failure
+  let consume: Awaited<ReturnType<typeof consumeCredits>> = { success: true, byok: true };
   if (!model.byokOnly) {
-    creditCheck = await checkCredits(session.user.id, model.creditType, model.creditCost);
-    if (!creditCheck.allowed) {
-      return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
+    consume = await consumeCredits(session.user.id, model.creditType as 'image' | 'video', model.creditCost, model.apiKeyProvider);
+    if (!consume.success) {
+      return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });
     }
   }
-
-  // Resize + upload image to blob storage
-  const bytes   = await file.arrayBuffer();
-  const maxSize = model.maxInputSize ?? 1024;
-  const { data: resized, info } = await sharp(Buffer.from(bytes))
-    .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
-    .png()
-    .toBuffer({ resolveWithObject: true });
-  // Tell Grok the input's shape so it doesn't fall back to its default ratio
-  const aspectRatio = model.provider === 'xai' ? grokAspectRatioFor(info.width, info.height) : undefined;
-
-  const blob = await put(
-    `studio/ai-edit/${session.user.id}/${Date.now()}.png`,
-    resized,
-    { access: 'public', contentType: 'image/png' },
-  );
+  const userId = session.user.id;
+  const refund = async () => {
+    if (!model.byokOnly && !consume.byok) {
+      await refundCredits(userId, model.creditType as 'image' | 'video', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
+  };
 
   const startTime = Date.now();
 
   try {
+    // Resize + upload image to blob storage
+    const bytes   = await file.arrayBuffer();
+    const maxSize = model.maxInputSize ?? 1024;
+    const { data: resized, info } = await sharp(Buffer.from(bytes))
+      .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer({ resolveWithObject: true });
+    // Tell Grok the input's shape so it doesn't fall back to its default ratio
+    const aspectRatio = model.provider === 'xai' ? grokAspectRatioFor(info.width, info.height) : undefined;
+
+    const blob = await put(
+      `studio/ai-edit/${session.user.id}/${Date.now()}.png`,
+      resized,
+      { access: 'public', contentType: 'image/png' },
+    );
+
     const result = await provider.edit!(
       { prompt, imageUrl: blob.url, aspectRatio },
       apiKey,
       model.modelId,
     );
     const durationMs = Date.now() - startTime;
-
-    if (!model.byokOnly && !creditCheck.byok) {
-      const consume = await consumeCredits(session.user.id, model.creditType as 'image' | 'video', model.creditCost);
-      if (!consume.success) {
-        return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
-      }
-    }
 
     await logUsage({
       userId:     session.user.id,
@@ -136,7 +135,7 @@ export async function POST(req: Request) {
       durationMs,
       costUsd:    model.costPerCall,
       creditCost: model.byokOnly ? 0 : model.creditCost,
-      byok:       model.byokOnly ?? (creditCheck.byok ?? false),
+      byok:       model.byokOnly ?? (consume.byok ?? false),
       metadata:   { promptLength: prompt.length },
     });
 
@@ -165,6 +164,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: result.url });
   } catch (err) {
+    await refund();
     const durationMs = Date.now() - startTime;
     const msg = err instanceof Error ? err.message : 'Edit failed';
     await logUsage({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { isSuperuser, getOrCreateCredits, consumeCredits } from '@/lib/credits';
+import { isSuperuser, getOrCreateCredits, consumeCredits, refundCredits } from '@/lib/credits';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const TRANSCRIBE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -40,6 +40,13 @@ export async function POST(req: NextRequest) {
       );
     }
   }
+
+  let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
+  const refund = async () => {
+    if (consume?.success && !consume.byok) {
+      await refundCredits(userId, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+    }
+  };
 
   try {
     const contentType = req.headers.get('content-type') || '';
@@ -91,6 +98,14 @@ export async function POST(req: NextRequest) {
       whisperForm.append('language', language);
     }
 
+    // Atomically reserve the credit BEFORE the paid Whisper call — refunded below on failure
+    if (!superuser) {
+      consume = await consumeCredits(userId, 'image', 1);
+      if (!consume.success) {
+        return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
+      }
+    }
+
     const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
@@ -98,6 +113,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!whisperRes.ok) {
+      await refund();
       const err = await whisperRes.text();
       return NextResponse.json({ error: `Whisper error: ${err}` }, { status: 500 });
     }
@@ -109,13 +125,6 @@ export async function POST(req: NextRequest) {
       words?: Array<{ word: string; start: number; end: number }>;
     };
 
-    if (!superuser) {
-      const consume = await consumeCredits(userId, 'image', 1);
-      if (!consume.success) {
-        return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
-      }
-    }
-
     return NextResponse.json({
       text: data.text,
       language: data.language,
@@ -124,6 +133,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error('[transcribe]', err);
+    await refund();
     return NextResponse.json({ error: 'Transcription failed. Please try again.' }, { status: 500 });
   }
 }

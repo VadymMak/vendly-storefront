@@ -189,7 +189,13 @@ export function MobileRemoveBgEditor() {
           </button>
         </div>
 
-        <div className="mt-3 px-4">
+        <div className="mt-3 space-y-2 px-4">
+          <button
+            onClick={() => router.push(`/studio/m/place-products?cutout=${encodeURIComponent(resultUrl)}`)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 py-3.5 text-sm font-semibold text-green-300 active:bg-green-500/20"
+          >
+            ✨ {t('placeOnBackground')}
+          </button>
           <button
             onClick={() => router.push(`/studio/m/create?ref=${encodeURIComponent(resultUrl)}`)}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-3.5 text-sm font-semibold text-white active:bg-white/[0.08]"

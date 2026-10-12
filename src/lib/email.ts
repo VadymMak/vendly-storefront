@@ -10,6 +10,34 @@ const OWNER = process.env.OWNER_EMAIL || '';
 const SITE = process.env.NEXT_PUBLIC_SITE_NAME || 'VendShop';
 const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://vendshop.shop';
 
+// Resend's SDK returns { data, error } instead of throwing on API errors (e.g. unverified
+// domain), so a bare try/catch silently drops failures. Always check `error`.
+type SendPayload = Parameters<typeof resend.emails.send>[0];
+
+async function deliver(label: string, payload: SendPayload): Promise<boolean> {
+  try {
+    const { error } = await resend.emails.send(payload);
+    if (error) {
+      console.error(`[email] ${label} failed:`, error.name, error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`[email] ${label} threw:`, err);
+    return false;
+  }
+}
+
+/** Escape user-controlled text before it goes into email HTML. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── Shared base template ─────────────────────────────────────────────────────
 function baseTemplate(content: string, previewText = '') {
   return `<!DOCTYPE html>
@@ -132,7 +160,7 @@ export async function sendVerificationEmail({
     ${accentBar(ACCENT_BLUE)}
     <div style="height:32px"></div>
     ${heading('Confirm your email address')}
-    ${subtext(`Hi ${name}, please verify your email address to get started with ${SITE}.`)}
+    ${subtext(`Hi ${escapeHtml(name)}, please verify your email address to get started with ${SITE}.`)}
     ${infoBox(`
       <p style="margin:0;color:#6b7280;font-size:13px">Verification link expires in</p>
       <p style="margin:4px 0 0;color:#111827;font-size:22px;font-weight:700">24 hours</p>
@@ -141,16 +169,12 @@ export async function sendVerificationEmail({
     ${smallNote(`If you didn't create an account on ${SITE}, you can safely ignore this email.`)}
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: email,
-      subject: `Verify your email — ${SITE}`,
-      html: baseTemplate(content, `Confirm your email to get started with ${SITE}`),
-    });
-  } catch (err) {
-    console.error('Failed to send verification email:', err);
-  }
+  return deliver('verification email', {
+    from: FROM,
+    to: email,
+    subject: `Verify your email — ${SITE}`,
+    html: baseTemplate(content, `Confirm your email to get started with ${SITE}`),
+  });
 }
 
 // ── Password reset ───────────────────────────────────────────────────────────
@@ -163,13 +187,13 @@ export async function sendPasswordResetEmail({
   name: string;
   token: string;
 }) {
-  const resetUrl = `${BASE}/auth/reset-password?token=${token}`;
+  const resetUrl = `${BASE}/reset-password?token=${encodeURIComponent(token)}`;
 
   const content = cardBody(`
     ${accentBar(ACCENT_BLUE)}
     <div style="height:32px"></div>
     ${heading('Reset your password')}
-    ${subtext(`Hi ${name}, we received a request to reset your password. Click the button below to choose a new one.`)}
+    ${subtext(`Hi ${escapeHtml(name)}, we received a request to reset your password. Click the button below to choose a new one.`)}
     ${infoBox(`
       <p style="margin:0;color:#6b7280;font-size:13px">This link expires in</p>
       <p style="margin:4px 0 0;color:#111827;font-size:22px;font-weight:700">1 hour</p>
@@ -179,16 +203,12 @@ export async function sendPasswordResetEmail({
     ${smallNote('If you didn\'t request a password reset, ignore this email. Your password will not be changed.')}
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: email,
-      subject: `Reset your password — ${SITE}`,
-      html: baseTemplate(content, 'Reset your password link inside'),
-    });
-  } catch (err) {
-    console.error('Failed to send password reset email:', err);
-  }
+  return deliver('password reset email', {
+    from: FROM,
+    to: email,
+    subject: `Reset your password — ${SITE}`,
+    html: baseTemplate(content, 'Reset your password link inside'),
+  });
 }
 
 // ── Welcome email (store creation) ───────────────────────────────────────────
@@ -226,16 +246,12 @@ export async function sendWelcomeEmail({
     </div>
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: ownerEmail,
-      subject: `Your shop "${storeName}" is live — ${SITE}`,
-      html: baseTemplate(content, `${storeName} is ready — start selling today`),
-    });
-  } catch (err) {
-    console.error('Failed to send welcome email:', err);
-  }
+  return deliver('welcome email', {
+    from: FROM,
+    to: ownerEmail,
+    subject: `Your shop "${storeName}" is live — ${SITE}`,
+    html: baseTemplate(content, `${storeName} is ready — start selling today`),
+  });
 }
 
 // ── Order confirmation → customer ────────────────────────────────────────────
@@ -290,16 +306,12 @@ export async function sendOrderConfirmation({
     ${smallNote('The seller will contact you soon with delivery details.')}
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to,
-      subject: `Order confirmed — ${storeName}`,
-      html: baseTemplate(content, `Your order total: ${formatPrice(total)}`),
-    });
-  } catch (err) {
-    console.error('Failed to send order confirmation email:', err);
-  }
+  return deliver('order confirmation email', {
+    from: FROM,
+    to,
+    subject: `Order confirmed — ${storeName}`,
+    html: baseTemplate(content, `Your order total: ${formatPrice(total)}`),
+  });
 }
 
 // ── New order notification → store owner ─────────────────────────────────────
@@ -353,16 +365,12 @@ export async function sendNewOrderNotification({
     </div>
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to,
-      subject: `New order #${orderId.slice(0, 8)} — ${formatPrice(total)} — ${storeName}`,
-      html: baseTemplate(content, `New order from ${customerName}: ${formatPrice(total)}`),
-    });
-  } catch (err) {
-    console.error('Failed to send new order notification:', err);
-  }
+  return deliver('new order notification', {
+    from: FROM,
+    to,
+    subject: `New order #${orderId.slice(0, 8)} — ${formatPrice(total)} — ${storeName}`,
+    html: baseTemplate(content, `New order from ${customerName}: ${formatPrice(total)}`),
+  });
 }
 
 // ── Review notification → store owner ────────────────────────────────────────
@@ -391,16 +399,12 @@ export async function sendReviewNotification({
     ${button('View Reviews &rarr;', `${BASE}/dashboard/reviews`, ACCENT_YELLOW)}
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to,
-      subject: `New review for ${storeName} — ${SITE}`,
-      html: baseTemplate(content, `${authorName} left a ${rating}-star review`),
-    });
-  } catch (err) {
-    console.error('Failed to send review notification:', err);
-  }
+  return deliver('review notification', {
+    from: FROM,
+    to,
+    subject: `New review for ${storeName} — ${SITE}`,
+    html: baseTemplate(content, `${authorName} left a ${rating}-star review`),
+  });
 }
 
 // ── Content report → admin ───────────────────────────────────────────────────
@@ -430,14 +434,10 @@ export async function sendReportNotification({
     ${button('Review in Admin &rarr;', `${BASE}/admin/items?report=${itemId}`, ACCENT_RED)}
   `);
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: OWNER,
-      subject: `Content report — ${itemTitle}`,
-      html: baseTemplate(content, `Report: ${reportReason}`),
-    });
-  } catch (err) {
-    console.error('Failed to send report notification:', err);
-  }
+  return deliver('report notification', {
+    from: FROM,
+    to: OWNER,
+    subject: `Content report — ${itemTitle}`,
+    html: baseTemplate(content, `Report: ${reportReason}`),
+  });
 }

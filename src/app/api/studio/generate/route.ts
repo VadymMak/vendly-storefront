@@ -13,6 +13,7 @@ import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
 import { STYLE_CHIPS } from '@/lib/studio/constants';
+import { fetchAllowedImage, isAllowedImageUrl, MAX_INPUT_PIXELS } from '@/lib/studio/safe-fetch';
 
 export const maxDuration = 120;
 
@@ -69,8 +70,9 @@ function closestRatio(requested: string, supported: string[]): string {
 /** True when the source photo's height/width ratio is off the target by more than 0.05. */
 async function sourceRatioDiffers(imageUrl: string, targetRatio: number): Promise<boolean> {
   try {
-    const arrBuf: ArrayBuffer = await fetch(imageUrl).then(r => r.arrayBuffer());
-    const meta = await sharp(Buffer.from(arrBuf)).metadata();
+    // Allowlisted hosts only — imageUrl comes from the request body (SSRF)
+    const { buffer } = await fetchAllowedImage(imageUrl);
+    const meta = await sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
     if (!meta.width || !meta.height) return false;
     // EXIF orientations 5–8 are rotated 90°, so the displayed width/height are swapped.
     const [w, h] = (meta.orientation ?? 1) >= 5 ? [meta.height, meta.width] : [meta.width, meta.height];
@@ -187,7 +189,7 @@ export async function POST(request: Request) {
 
   // ── img2img: user uploaded a photo in the mobile wizard → transform it with Kontext ──
   if (body.reference_image && body.style_id) {
-    if (!body.reference_image.startsWith('https://')) {
+    if (!isAllowedImageUrl(body.reference_image)) {
       return NextResponse.json({ error: 'Invalid reference image' }, { status: 400 });
     }
     const kontextModel = MODEL_CATALOG['fal-kontext'];

@@ -7,6 +7,7 @@ import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
+import { discardBlobs } from '@/lib/persist-to-blob';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
 
   let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
 
+  // Input copies exist only for the provider to fetch — deleted once the call is over
+  const inputBlobs: string[] = [];
+
   try {
     const formData = await req.formData();
     const image = formData.get('image') as File | null;
@@ -81,6 +85,7 @@ export async function POST(req: NextRequest) {
       access: 'public',
       contentType: image.type || 'image/png',
     });
+    inputBlobs.push(imageBlob.url);
     console.log('[inpaint] Image uploaded:', imageBlob.url);
 
     const maskBuffer = Buffer.from(await mask.arrayBuffer());
@@ -88,6 +93,7 @@ export async function POST(req: NextRequest) {
       access: 'public',
       contentType: 'image/png',
     });
+    inputBlobs.push(maskBlob.url);
     console.log('[inpaint] Mask uploaded:', maskBlob.url);
 
     const isRemoval = !userPrompt;
@@ -188,5 +194,7 @@ export async function POST(req: NextRequest) {
     }
     const message = error instanceof Error ? error.message : 'Inpaint failed';
     return NextResponse.json({ error: message }, { status: 500 });
+  } finally {
+    void discardBlobs(inputBlobs);
   }
 }

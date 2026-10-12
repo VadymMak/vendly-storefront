@@ -11,7 +11,7 @@ import { grokAspectRatioFor } from '@/lib/xai-client';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
 import { createJob } from '@/lib/studio-jobs';
-import { persistToBlob } from '@/lib/persist-to-blob';
+import { discardBlobs, persistToBlob } from '@/lib/persist-to-blob';
 import { db } from '@/lib/db';
 
 export const maxDuration = 60;
@@ -101,6 +101,8 @@ export async function POST(req: Request) {
   };
 
   const startTime = Date.now();
+  // The upload below exists only for the provider to fetch — deleted once the call is over
+  let inputBlobUrl: string | null = null;
 
   try {
     // Resize + upload image to blob storage
@@ -118,6 +120,7 @@ export async function POST(req: Request) {
       resized,
       { access: 'public', contentType: 'image/png' },
     );
+    inputBlobUrl = blob.url;
 
     const result = await provider.edit!(
       { prompt, imageUrl: blob.url, aspectRatio },
@@ -184,5 +187,7 @@ export async function POST(req: Request) {
     });
     console.error(`[studio/edit][${modelAlias}]`, err);
     return NextResponse.json({ error: 'Image editing failed. Please try again.' }, { status: 500 });
+  } finally {
+    if (inputBlobUrl) void discardBlobs([inputBlobUrl]);
   }
 }

@@ -6,6 +6,7 @@ import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
+import { discardBlobs } from '@/lib/persist-to-blob';
 
 export const maxDuration = 60;
 
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
   }
 
   let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
+
+  // Input copies exist only for the provider to fetch — deleted once the call is over
+  const inputBlobs: string[] = [];
 
   try {
     const formData = await req.formData();
@@ -52,6 +56,7 @@ export async function POST(req: NextRequest) {
       access: 'public',
       contentType: image.type || 'image/png',
     });
+    inputBlobs.push(imageBlob.url);
     console.log('[remove-bg] Image uploaded:', imageBlob.url);
 
     // Atomic reserve BEFORE the paid provider call — refunded below if it fails
@@ -122,5 +127,7 @@ export async function POST(req: NextRequest) {
       await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
     }
     return NextResponse.json({ error: 'Background removal failed. Please try again.' }, { status: 500 });
+  } finally {
+    void discardBlobs(inputBlobs);
   }
 }

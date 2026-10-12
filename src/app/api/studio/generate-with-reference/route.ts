@@ -4,6 +4,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
+import { discardBlobs } from '@/lib/persist-to-blob';
 
 export const maxDuration = 120;
 
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
   // Atomic reserve BEFORE the paid provider call — refunded below if it fails
   const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.generateWithReference, 'replicate');
   if (!consume.success) {
+    void discardBlobs([refBlob.url]);
     return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
   }
 
@@ -102,5 +104,8 @@ export async function POST(req: NextRequest) {
       await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
     }
     return NextResponse.json({ error: 'Generation failed. Please try again.' }, { status: 500 });
+  } finally {
+    // The reference copy exists only for Replicate to fetch
+    void discardBlobs([refBlob.url]);
   }
 }

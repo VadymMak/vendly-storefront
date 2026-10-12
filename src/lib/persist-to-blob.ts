@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
 import { fetchAllowedImage, isAllowedImageUrl } from '@/lib/studio/safe-fetch';
 
 // Provider CDN URLs (Replicate, fal, xAI, BFL) expire after hours/days; StudioJob.outputUrl
@@ -102,5 +102,18 @@ export async function persistVideoToBlob(providerUrl: string, prefix: string): P
   } catch (err) {
     console.error('[persistVideoToBlob] keeping provider URL —', err instanceof Error ? err.message : err);
     return providerUrl;
+  }
+}
+
+/**
+ * Delete temporary input copies (images uploaded only so a provider can fetch them) once the
+ * provider call is over. Never throws — a leftover file is better than a failed request.
+ */
+export async function discardBlobs(urls: string[]): Promise<void> {
+  if (urls.length === 0) return;
+  try {
+    await del(urls);
+  } catch (err) {
+    console.error('[discardBlobs] could not delete input copies:', err instanceof Error ? err.message : err);
   }
 }

@@ -4,6 +4,7 @@ import { put } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
 import { CREDIT_COSTS } from '@/lib/constants';
+import { discardBlobs } from '@/lib/persist-to-blob';
 import { createFinishedJob } from '@/lib/studio-jobs';
 
 export const maxDuration = 120;
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
   }
 
   let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
+
+  // Input copies exist only for the provider to fetch — deleted once the call is over
+  const inputBlobs: string[] = [];
 
   try {
     const formData = await req.formData();
@@ -47,6 +51,7 @@ export async function POST(req: NextRequest) {
       compositeBuffer,
       { access: 'public', contentType: 'image/png' },
     );
+    inputBlobs.push(compositeBlob.url);
 
     const maskBuffer = Buffer.from(await mask.arrayBuffer());
     const maskBlob = await put(
@@ -54,6 +59,7 @@ export async function POST(req: NextRequest) {
       maskBuffer,
       { access: 'public', contentType: 'image/png' },
     );
+    inputBlobs.push(maskBlob.url);
 
     console.log('[ai-blend] Calling Flux Fill Pro...');
 
@@ -133,5 +139,7 @@ export async function POST(req: NextRequest) {
       await refundCredits(session.user.id, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
     }
     return NextResponse.json({ error: 'AI blend failed. Please try again.' }, { status: 500 });
+  } finally {
+    void discardBlobs(inputBlobs);
   }
 }

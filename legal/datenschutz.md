@@ -98,6 +98,14 @@ Von Ihnen hochgeladene und mit unseren KI-Werkzeugen erzeugte Bilder und Videos 
 - **Drittlandübermittlung:** Vercel ist unter dem EU-US Data Privacy Framework zertifiziert (Art. 45 DSGVO).
 - Weitere Informationen: https://vercel.com/legal/privacy-policy
 
+**d) Resend (E-Mail-Versand)**
+
+Systemnachrichten – etwa Links zum Zurücksetzen des Passworts, Bestellbestätigungen und Benachrichtigungen an Shop-Betreiber – versenden wir über den Dienst Resend der Resend, Inc. (USA). Dabei werden insbesondere Ihre E-Mail-Adresse, Ihr Name, der Inhalt der Nachricht (z. B. Bestelldetails) sowie technische Zustelldaten verarbeitet.
+
+- **Rechtsgrundlage:** Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
+- **Drittlandübermittlung:** auf Grundlage der EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).
+- Weitere Informationen: https://resend.com/legal/privacy-policy
+
 ## 10. Ihre Rechte (DSGVO Art. 15–22)
 
 Sie haben gegenüber uns folgende Rechte hinsichtlich Ihrer personenbezogenen Daten:

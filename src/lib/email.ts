@@ -224,16 +224,16 @@ export async function sendWelcomeEmail({
   storeSlug: string;
 }) {
   const dashboardUrl = `${BASE}/dashboard`;
-  const shopUrl = `${BASE}/shop/${storeSlug}`;
+  const shopUrl = `${BASE}/shop/${encodeURIComponent(storeSlug)}`;
 
   const content = cardBody(`
     ${accentBar(ACCENT_GREEN)}
     <div style="height:32px"></div>
     ${heading('Your shop is live! &#127881;', '#111827')}
-    ${subtext(`Hi ${ownerName}, welcome to ${SITE}! Your shop <strong style="color:#111827">${storeName}</strong> is ready for customers.`)}
+    ${subtext(`Hi ${escapeHtml(ownerName)}, welcome to ${SITE}! Your shop <strong style="color:#111827">${escapeHtml(storeName)}</strong> is ready for customers.`)}
     ${infoBox(`
       <p style="margin:0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Your shop URL</p>
-      <a href="${shopUrl}" style="display:block;margin:6px 0 0;color:#16a34a;font-size:16px;font-weight:600;text-decoration:none;word-break:break-all">${shopUrl}</a>
+      <a href="${escapeHtml(shopUrl)}" style="display:block;margin:6px 0 0;color:#16a34a;font-size:16px;font-weight:600;text-decoration:none;word-break:break-all">${escapeHtml(shopUrl)}</a>
     `)}
     <p style="margin:20px 0 8px;color:#374151;font-size:14px;font-weight:600">Next steps:</p>
     <ul style="margin:0;padding-left:20px;color:#6b7280;font-size:14px;line-height:2">
@@ -250,7 +250,7 @@ export async function sendWelcomeEmail({
     from: FROM,
     to: ownerEmail,
     subject: `Your shop "${storeName}" is live — ${SITE}`,
-    html: baseTemplate(content, `${storeName} is ready — start selling today`),
+    html: baseTemplate(content, `${escapeHtml(storeName)} is ready — start selling today`),
   });
 }
 
@@ -274,7 +274,7 @@ export async function sendOrderConfirmation({
     .map(
       (i) => `
       <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px">${i.name}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#374151;font-size:14px">${escapeHtml(i.name)}</td>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:center;color:#6b7280;font-size:14px">&times;${i.quantity}</td>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:right;color:#374151;font-size:14px;font-weight:600">${i.price ? formatPrice(i.price * i.quantity) : '&mdash;'}</td>
       </tr>`,
@@ -285,7 +285,7 @@ export async function sendOrderConfirmation({
     ${accentBar(ACCENT_GREEN)}
     <div style="height:32px"></div>
     ${heading('Order Confirmed! &#10003;')}
-    ${subtext(`Hi ${customerName}, thank you for your order from <strong style="color:#111827">${storeName}</strong>.`)}
+    ${subtext(`Hi ${escapeHtml(customerName)}, thank you for your order from <strong style="color:#111827">${escapeHtml(storeName)}</strong>.`)}
     <p style="margin:0 0 16px;color:#6b7280;font-size:13px">Order #${orderId.slice(0, 8)}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px">
       <thead>
@@ -337,7 +337,7 @@ export async function sendNewOrderNotification({
   const itemList = items
     .map(
       (i) => `<p style="margin:6px 0;color:#374151;font-size:14px">
-        <span style="color:#6b7280">&bull;</span> ${i.name} &times;${i.quantity}
+        <span style="color:#6b7280">&bull;</span> ${escapeHtml(i.name)} &times;${i.quantity}
         <span style="float:right;font-weight:600">${i.price ? formatPrice(i.price * i.quantity) : '&mdash;'}</span>
       </p>`,
     )
@@ -347,10 +347,10 @@ export async function sendNewOrderNotification({
     ${accentBar(ACCENT_BLUE)}
     <div style="height:32px"></div>
     ${heading('New Order Received! &#128717;')}
-    ${subtext(`Hi${ownerName ? ` <strong>${ownerName}</strong>` : ''}, you have a new order from <strong style="color:#111827">${customerName}</strong>.`)}
+    ${subtext(`Hi${ownerName ? ` <strong>${escapeHtml(ownerName)}</strong>` : ''}, you have a new order from <strong style="color:#111827">${escapeHtml(customerName)}</strong>.`)}
     ${infoBox(`
-      <p style="margin:0 0 4px;color:#374151;font-size:14px"><strong>Customer:</strong> ${customerName}</p>
-      <p style="margin:0 0 4px;color:#374151;font-size:14px"><strong>Email:</strong> <a href="mailto:${customerEmail}" style="color:#3b82f6">${customerEmail}</a></p>
+      <p style="margin:0 0 4px;color:#374151;font-size:14px"><strong>Customer:</strong> ${escapeHtml(customerName)}</p>
+      <p style="margin:0 0 4px;color:#374151;font-size:14px"><strong>Email:</strong> <a href="mailto:${escapeHtml(customerEmail)}" style="color:#3b82f6">${escapeHtml(customerEmail)}</a></p>
       <p style="margin:0;color:#374151;font-size:14px"><strong>Order:</strong> #${orderId.slice(0, 8)}</p>
     `)}
     ${infoBox(itemList)}
@@ -369,7 +369,7 @@ export async function sendNewOrderNotification({
     from: FROM,
     to,
     subject: `New order #${orderId.slice(0, 8)} — ${formatPrice(total)} — ${storeName}`,
-    html: baseTemplate(content, `New order from ${customerName}: ${formatPrice(total)}`),
+    html: baseTemplate(content, `New order from ${escapeHtml(customerName)}: ${formatPrice(total)}`),
   });
 }
 
@@ -391,7 +391,7 @@ export async function sendReviewNotification({
     ${accentBar(ACCENT_YELLOW)}
     <div style="height:32px"></div>
     ${heading('New Review! &#11088;')}
-    ${subtext(`<strong style="color:#111827">${authorName}</strong> left a review for <strong style="color:#111827">${storeName}</strong>.`)}
+    ${subtext(`<strong style="color:#111827">${escapeHtml(authorName)}</strong> left a review for <strong style="color:#111827">${escapeHtml(storeName)}</strong>.`)}
     ${infoBox(`
       <p style="margin:0;font-size:28px;color:#f59e0b;letter-spacing:2px">${stars}</p>
       <p style="margin:8px 0 0;color:#6b7280;font-size:13px">View and manage reviews in your dashboard.</p>
@@ -403,7 +403,7 @@ export async function sendReviewNotification({
     from: FROM,
     to,
     subject: `New review for ${storeName} — ${SITE}`,
-    html: baseTemplate(content, `${authorName} left a ${rating}-star review`),
+    html: baseTemplate(content, `${escapeHtml(authorName)} left a ${rating}-star review`),
   });
 }
 
@@ -427,17 +427,17 @@ export async function sendReportNotification({
     ${heading('&#9888; Content Report', ACCENT_RED)}
     ${subtext('A listing has been reported by a user and requires your review.')}
     ${infoBox(`
-      <p style="margin:0 0 8px;color:#374151;font-size:14px"><strong>Item:</strong> ${itemTitle}</p>
-      <p style="margin:0 0 8px;color:#374151;font-size:14px"><strong>Reason:</strong> ${reportReason}</p>
-      <p style="margin:0;color:#374151;font-size:14px"><strong>Reporter:</strong> ${reporterEmail}</p>
+      <p style="margin:0 0 8px;color:#374151;font-size:14px"><strong>Item:</strong> ${escapeHtml(itemTitle)}</p>
+      <p style="margin:0 0 8px;color:#374151;font-size:14px"><strong>Reason:</strong> ${escapeHtml(reportReason)}</p>
+      <p style="margin:0;color:#374151;font-size:14px"><strong>Reporter:</strong> ${escapeHtml(reporterEmail)}</p>
     `)}
-    ${button('Review in Admin &rarr;', `${BASE}/admin/items?report=${itemId}`, ACCENT_RED)}
+    ${button('Review in Admin &rarr;', `${BASE}/admin/items?report=${encodeURIComponent(itemId)}`, ACCENT_RED)}
   `);
 
   return deliver('report notification', {
     from: FROM,
     to: OWNER,
     subject: `Content report — ${itemTitle}`,
-    html: baseTemplate(content, `Report: ${reportReason}`),
+    html: baseTemplate(content, `Report: ${escapeHtml(reportReason)}`),
   });
 }

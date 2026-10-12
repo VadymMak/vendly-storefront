@@ -37,7 +37,10 @@ export async function persistToBlob(providerUrl: string, prefix: string): Promis
 }
 
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // provider clips are 5–50 MB
-const VIDEO_FETCH_TIMEOUT_MS = 120_000;
+// Upload from this server to Blob runs at ~0.75 MB/s, so a 50 MB clip needs over a minute:
+// a short limit only on getting the response headers, a generous one for the whole transfer
+const VIDEO_HEADERS_TIMEOUT_MS = 30_000;
+const VIDEO_TRANSFER_TIMEOUT_MS = 10 * 60_000;
 
 /** Pass-through stream that errors once more than `max` bytes went through. */
 function byteLimit(max: number): TransformStream<Uint8Array, Uint8Array> {
@@ -61,10 +64,17 @@ export async function persistVideoToBlob(providerUrl: string, prefix: string): P
   try {
     if (!isAllowedImageUrl(providerUrl)) throw new Error('host not allowed');
 
-    const res = await fetch(providerUrl, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(VIDEO_FETCH_TIMEOUT_MS),
-    });
+    const headersAbort = new AbortController();
+    const headersTimer = setTimeout(() => headersAbort.abort(new Error('no response headers in time')), VIDEO_HEADERS_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(providerUrl, {
+        redirect: 'manual',
+        signal: AbortSignal.any([headersAbort.signal, AbortSignal.timeout(VIDEO_TRANSFER_TIMEOUT_MS)]),
+      });
+    } finally {
+      clearTimeout(headersTimer);
+    }
     if (!res.ok || !res.body) throw new Error(`fetch failed ${res.status}`);
 
     const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase() || 'video/mp4';

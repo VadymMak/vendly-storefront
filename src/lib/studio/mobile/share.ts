@@ -56,3 +56,25 @@ export function preloadImage(url: string, timeoutMs = 15000): Promise<void> {
     img.src = url;
   });
 }
+
+/** Fetch an image (via the proxy when remote) as a File, e.g. to re-upload it to a tool API. */
+export async function fileFromUrl(url: string, baseName = 'image'): Promise<File> {
+  const res = await fetch(proxyUrl(url));
+  if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  return new File([blob], `${baseName}.${extFromMime(blob.type)}`, { type: blob.type || 'image/png' });
+}
+
+/** Native share sheet with the image file when supported, otherwise a download. */
+export async function shareImage(url: string, title: string): Promise<void> {
+  try {
+    const file = await fileFromUrl(url, `vendshop-${Date.now()}`);
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ title, files: [file] });
+      return;
+    }
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') return;
+  }
+  await downloadImage(url);
+}

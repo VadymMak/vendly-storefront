@@ -1825,6 +1825,42 @@
       "createAnother": "Create another Reel",
       "backToGallery": "Back to gallery",
       "selectPhotosHint": "Select 2–5 photos for your Reel"
+    },
+    "removeBgEditor": {
+      "title": "Remove Background",
+      "subtitle": "Take or pick a photo — we cut out the subject.",
+      "action": "Remove background · {count, plural, one {# credit} other {# credits}}",
+      "processing": "Removing background…",
+      "processingHint": "Usually takes 5–15 seconds",
+      "result": "Background removed",
+      "save": "Download PNG",
+      "share": "Share",
+      "usePromo": "Use in Promo Post",
+      "newPhoto": "New photo",
+      "back": "Back",
+      "failed": "Background removal failed. Please try again.",
+      "noCredits": "Not enough credits. Upgrade your plan.",
+      "shareTitle": "Created in VendShop Studio",
+      "bgLabel": "Preview on"
+    },
+    "upscaleEditor": {
+      "title": "Upscale",
+      "subtitle": "Make a photo 4× larger and sharper.",
+      "current": "Now: {w} × {h} px",
+      "target": "After: {w} × {h} px (4×)",
+      "action": "Upscale 4× · {count, plural, one {# credit} other {# credits}}",
+      "processing": "Upscaling…",
+      "processingHint": "Can take up to a minute",
+      "result": "Photo upscaled",
+      "original": "Original",
+      "upscaled": "Upscaled",
+      "save": "Download",
+      "share": "Share",
+      "newPhoto": "New photo",
+      "back": "Back",
+      "failed": "Upscaling failed. Please try again.",
+      "noCredits": "Not enough credits. Upgrade your plan.",
+      "shareTitle": "Created in VendShop Studio"
     }
   }
 }

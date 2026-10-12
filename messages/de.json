@@ -1825,6 +1825,42 @@
       "createAnother": "Weiteres Reel erstellen",
       "backToGallery": "Zurück zur Galerie",
       "selectPhotosHint": "Wählen Sie 2–5 Fotos für Ihr Reel"
+    },
+    "removeBgEditor": {
+      "title": "Hintergrund entfernen",
+      "subtitle": "Foto aufnehmen oder auswählen — wir schneiden das Motiv frei.",
+      "action": "Hintergrund entfernen · {count, plural, one {# Credit} other {# Credits}}",
+      "processing": "Hintergrund wird entfernt…",
+      "processingHint": "Dauert meist 5–15 Sekunden",
+      "result": "Hintergrund entfernt",
+      "save": "PNG herunterladen",
+      "share": "Teilen",
+      "usePromo": "Im Werbe-Post verwenden",
+      "newPhoto": "Neues Foto",
+      "back": "Zurück",
+      "failed": "Hintergrund konnte nicht entfernt werden. Bitte erneut versuchen.",
+      "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan.",
+      "shareTitle": "Erstellt mit VendShop Studio",
+      "bgLabel": "Vorschau auf"
+    },
+    "upscaleEditor": {
+      "title": "Vergrößern",
+      "subtitle": "Foto 4× vergrößern und schärfen.",
+      "current": "Jetzt: {w} × {h} px",
+      "target": "Danach: {w} × {h} px (4×)",
+      "action": "Vergrößern 4× · {count, plural, one {# Credit} other {# Credits}}",
+      "processing": "Wird vergrößert…",
+      "processingHint": "Kann bis zu einer Minute dauern",
+      "result": "Foto vergrößert",
+      "original": "Original",
+      "upscaled": "Vergrößert",
+      "save": "Herunterladen",
+      "share": "Teilen",
+      "newPhoto": "Neues Foto",
+      "back": "Zurück",
+      "failed": "Vergrößern fehlgeschlagen. Bitte erneut versuchen.",
+      "noCredits": "Nicht genug Credits. Upgraden Sie Ihren Plan.",
+      "shareTitle": "Erstellt mit VendShop Studio"
     }
   }
 }

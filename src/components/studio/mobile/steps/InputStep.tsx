@@ -29,7 +29,12 @@ export function InputStep({ onContinue, onBack, presetId, onPresetChange, initia
   const searchParams = useSearchParams();
   // ?prompt= comes from "Make a Story" on the result screen — start from the original description
   const [description, setDescription] = useState(() => initialDescription || (searchParams.get('prompt') ?? ''));
-  const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>(initialReferenceImageUrl);
+  // ?ref= comes from tool results ("Use in Promo Post" after Remove BG); https only
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | undefined>(() => {
+    if (initialReferenceImageUrl) return initialReferenceImageUrl;
+    const ref = searchParams.get('ref');
+    return ref?.startsWith('https://') ? ref : undefined;
+  });
   const [styleId, setStyleId] = useState<string>(() =>
     initialStyleId && (initialStyleId !== 'reference' || initialReferenceImageUrl) ? initialStyleId : DEFAULT_STYLE_ID,
   );

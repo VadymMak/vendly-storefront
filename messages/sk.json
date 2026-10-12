@@ -1816,6 +1816,42 @@
       "createAnother": "Vytvoriť ďalší Reel",
       "backToGallery": "Späť do galérie",
       "selectPhotosHint": "Vyberte 2–5 fotiek pre Reel"
+    },
+    "removeBgEditor": {
+      "title": "Odstrániť pozadie",
+      "subtitle": "Odfoťte alebo vyberte fotku — vystrihneme objekt.",
+      "action": "Odstrániť pozadie · {count, plural, one {# kredit} few {# kredity} other {# kreditov}}",
+      "processing": "Odstraňujeme pozadie…",
+      "processingHint": "Zvyčajne 5–15 sekúnd",
+      "result": "Pozadie odstránené",
+      "save": "Stiahnuť PNG",
+      "share": "Zdieľať",
+      "usePromo": "Použiť v promo príspevku",
+      "newPhoto": "Nová fotka",
+      "back": "Späť",
+      "failed": "Odstránenie pozadia zlyhalo. Skúste to znova.",
+      "noCredits": "Nedostatok kreditov. Vylepšite svoj plán.",
+      "shareTitle": "Vytvorené vo VendShop Studio",
+      "bgLabel": "Náhľad na"
+    },
+    "upscaleEditor": {
+      "title": "Zväčšiť",
+      "subtitle": "Fotku zväčšíme 4× a zaostríme.",
+      "current": "Teraz: {w} × {h} px",
+      "target": "Potom: {w} × {h} px (4×)",
+      "action": "Zväčšiť 4× · {count, plural, one {# kredit} few {# kredity} other {# kreditov}}",
+      "processing": "Zväčšujeme…",
+      "processingHint": "Môže trvať až minútu",
+      "result": "Fotka zväčšená",
+      "original": "Pôvodná",
+      "upscaled": "Zväčšená",
+      "save": "Stiahnuť",
+      "share": "Zdieľať",
+      "newPhoto": "Nová fotka",
+      "back": "Späť",
+      "failed": "Zväčšenie zlyhalo. Skúste to znova.",
+      "noCredits": "Nedostatok kreditov. Vylepšite svoj plán.",
+      "shareTitle": "Vytvorené vo VendShop Studio"
     }
   }
 }

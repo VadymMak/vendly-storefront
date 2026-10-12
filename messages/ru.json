@@ -1825,6 +1825,42 @@
       "createAnother": "Создать другой Reel",
       "backToGallery": "Назад в галерею",
       "selectPhotosHint": "Выберите 2–5 фото для Reel"
+    },
+    "removeBgEditor": {
+      "title": "Удалить фон",
+      "subtitle": "Сфотографируйте или выберите фото — мы вырежем объект.",
+      "action": "Удалить фон · {count, plural, one {# кредит} few {# кредита} many {# кредитов} other {# кредита}}",
+      "processing": "Удаляем фон…",
+      "processingHint": "Обычно 5–15 секунд",
+      "result": "Фон удалён",
+      "save": "Скачать PNG",
+      "share": "Поделиться",
+      "usePromo": "Использовать в промо-посте",
+      "newPhoto": "Новое фото",
+      "back": "Назад",
+      "failed": "Не удалось удалить фон. Попробуйте ещё раз.",
+      "noCredits": "Недостаточно кредитов. Обновите план.",
+      "shareTitle": "Создано в VendShop Studio",
+      "bgLabel": "Фон превью"
+    },
+    "upscaleEditor": {
+      "title": "Улучшить качество",
+      "subtitle": "Увеличим фото в 4 раза и сделаем чётче.",
+      "current": "Сейчас: {w} × {h} px",
+      "target": "Станет: {w} × {h} px (4×)",
+      "action": "Улучшить 4× · {count, plural, one {# кредит} few {# кредита} many {# кредитов} other {# кредита}}",
+      "processing": "Улучшаем качество…",
+      "processingHint": "Может занять до минуты",
+      "result": "Качество улучшено",
+      "original": "Было",
+      "upscaled": "Стало",
+      "save": "Скачать",
+      "share": "Поделиться",
+      "newPhoto": "Новое фото",
+      "back": "Назад",
+      "failed": "Не удалось улучшить качество. Попробуйте ещё раз.",
+      "noCredits": "Недостаточно кредитов. Обновите план.",
+      "shareTitle": "Создано в VendShop Studio"
     }
   }
 }

@@ -25,6 +25,11 @@ const MIME: Record<string, string> = {
   ogg:  'audio/ogg',
 };
 
+// no-store, so Cloudflare never caches a miss for a file that's written a moment later
+function notFound(): Response {
+  return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+}
+
 function baseHeaders(contentType: string): Record<string, string> {
   return {
     'Content-Type':                 contentType,
@@ -43,19 +48,19 @@ async function serve(req: Request, segments: string[], headOnly: boolean): Promi
   try {
     fullPath = resolveUploadPath(segments.map((s) => decodeURIComponent(s)).join('/'));
   } catch {
-    return new Response('Not found', { status: 404 });
+    return notFound();
   }
 
   const contentType = MIME[extname(fullPath).slice(1).toLowerCase()];
-  if (!contentType) return new Response('Not found', { status: 404 });
+  if (!contentType) return notFound();
 
   let size: number;
   try {
     const info = await stat(fullPath);
-    if (!info.isFile()) return new Response('Not found', { status: 404 });
+    if (!info.isFile()) return notFound();
     size = info.size;
   } catch {
-    return new Response('Not found', { status: 404 });
+    return notFound();
   }
 
   const headers = baseHeaders(contentType);

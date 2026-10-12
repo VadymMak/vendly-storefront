@@ -912,6 +912,12 @@ export const CREATE_STORE_KEY = 'vendshop_create_state_v1';
 
 export const COOKIE_ACCEPTED_KEY = 'vendshop_cookie_accepted';
 
+// Sign-up abuse limits (PROMPT-236). IPs are stored only as HMAC hashes.
+export const REGISTRATION_LIMITS = {
+  perIpPerDay:      3,
+  ipRetentionDays:  30, // GDPR: legitimate interest (fraud prevention), then purged
+} as const;
+
 // ===== AI Studio billing — single source of truth for prices and credits =====
 // Read by the Stripe routes (via src/lib/credits.ts) and by every pricing UI.
 // Subscription prices must match the Stripe Price objects behind STRIPE_PRICE_*.

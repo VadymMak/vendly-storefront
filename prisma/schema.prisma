@@ -416,3 +416,14 @@ model StripeEvent {
   type        String
   processedAt DateTime @default(now())
 }
+
+// Successful sign-ups per hashed client IP — anti multi-account abuse (PROMPT-236).
+// ipHash = HMAC-SHA256(ip, AUTH_SECRET); rows older than 30 days are purged on each sign-up.
+model RegistrationAttempt {
+  id        String   @id @default(cuid())
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+  @@index([createdAt])
+}

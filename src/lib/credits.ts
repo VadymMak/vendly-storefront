@@ -10,7 +10,7 @@ export type ReelMode = keyof typeof REEL_CREDIT_COST;
 
 // Superuser emails read from SUPERUSER_EMAILS env var (comma-separated).
 // Set in .env.local — never hardcode in source (public repo).
-function getSuperuserEmails(): Set<string> {
+export function getSuperuserEmails(): Set<string> {
   const raw = process.env.SUPERUSER_EMAILS ?? '';
   return new Set(
     raw.split(',').map(e => e.trim().toLowerCase()).filter(e => e.includes('@')),

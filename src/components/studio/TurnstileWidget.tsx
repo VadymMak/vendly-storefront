@@ -5,6 +5,12 @@ import { useEffect, useRef, useCallback } from 'react';
 interface TurnstileWidgetProps {
   onVerify: (token: string) => void;
   action?: string;
+  /** Runtime site key (server-read env); falls back to the build-time NEXT_PUBLIC_ key */
+  siteKey?: string;
+  size?: 'invisible' | 'normal' | 'flexible' | 'compact';
+  /** Script failed to load or the challenge errored */
+  onError?: () => void;
+  onExpire?: () => void;
 }
 
 declare global {
@@ -18,7 +24,10 @@ declare global {
   }
 }
 
-export default function TurnstileWidget({ onVerify, action = 'generate' }: TurnstileWidgetProps) {
+export default function TurnstileWidget({
+  onVerify, action = 'generate', siteKey, size = 'invisible', onError, onExpire,
+}: TurnstileWidgetProps) {
+  const sitekey      = siteKey ?? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef  = useRef<string | null>(null);
 
@@ -28,15 +37,18 @@ export default function TurnstileWidget({ onVerify, action = 'generate' }: Turns
       window.turnstile.remove(widgetIdRef.current);
     }
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey:          process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
-      callback:         onVerify,
+      sitekey,
+      callback:           onVerify,
+      'error-callback':   onError,
+      'expired-callback': onExpire,
       action,
-      size:             'invisible',
-      'refresh-expired': 'auto',
+      size,
+      'refresh-expired':  'auto',
     });
-  }, [onVerify, action]);
+  }, [sitekey, onVerify, onError, onExpire, action, size]);
 
   useEffect(() => {
+    if (!sitekey) return;
     if (window.turnstile) {
       renderWidget();
       return;
@@ -45,6 +57,7 @@ export default function TurnstileWidget({ onVerify, action = 'generate' }: Turns
     const script  = document.createElement('script');
     script.src    = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
     script.async  = true;
+    script.onerror = () => onError?.();
     window.onTurnstileLoad = renderWidget;
     document.head.appendChild(script);
 
@@ -53,12 +66,10 @@ export default function TurnstileWidget({ onVerify, action = 'generate' }: Turns
         window.turnstile.remove(widgetIdRef.current);
       }
     };
-  }, [renderWidget]);
+  }, [sitekey, renderWidget, onError]);
 
-  // Skip rendering in development without keys
-  if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
-    return null;
-  }
+  // Not configured (e.g. development without keys) — render nothing
+  if (!sitekey) return null;
 
   return <div ref={containerRef} />;
 }

@@ -5,11 +5,13 @@ import { db } from '@/lib/db';
 import { getSuperuserEmails } from '@/lib/credits';
 import { isDisposableEmail } from '@/lib/disposable-emails';
 import { getClientIp, hashIp, isRegistrationLimited, recordRegistration } from '@/lib/registration-guard';
+import { verifyTurnstileFailOpen } from '@/lib/turnstile';
 
 const registerSchema = z.object({
   email: z.email(),
   password: z.string().min(8),
   name: z.string().min(1).optional(),
+  turnstileToken: z.string().max(4096).optional(),
 });
 
 export async function POST(request: Request) {
@@ -30,6 +32,13 @@ export async function POST(request: Request) {
     const ip = getClientIp(request);
     const ipHash = ip ? hashIp(ip) : null;
     if (!ipHash) console.warn('[register] No client IP header — per-IP limit skipped');
+
+    if (!isSuperuser && !(await verifyTurnstileFailOpen(data.turnstileToken, ip))) {
+      return NextResponse.json(
+        { error: 'Security check failed. Please refresh the page and try again.' },
+        { status: 403 },
+      );
+    }
 
     if (!isSuperuser && ipHash && await isRegistrationLimited(ipHash)) {
       return NextResponse.json(

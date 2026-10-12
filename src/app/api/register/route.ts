@@ -14,6 +14,13 @@ const registerSchema = z.object({
   turnstileToken: z.string().max(4096).optional(),
 });
 
+function invalidDataMessage(error: z.ZodError): string {
+  const field = error.issues[0]?.path[0];
+  if (field === 'email') return 'Please enter a valid email address.';
+  if (field === 'password') return 'Password must be at least 8 characters.';
+  return 'Invalid registration data. Please check the form and try again.';
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -53,7 +60,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { error: 'Používateľ s týmto emailom už existuje' },
+        { error: 'A user with this email already exists.' },
         { status: 409 },
       );
     }
@@ -80,12 +87,12 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Neplatné údaje', details: error.issues },
+        { error: invalidDataMessage(error), details: error.issues },
         { status: 400 },
       );
     }
     return NextResponse.json(
-      { error: 'Interná chyba servera' },
+      { error: 'Something went wrong on our side. Please try again later.' },
       { status: 500 },
     );
   }

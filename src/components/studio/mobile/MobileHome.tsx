@@ -61,6 +61,12 @@ export function MobileHome({ userId: _userId }: Props) {
                       alt={item.prompt || ''}
                       loading="lazy"
                       className="h-full w-full object-cover"
+                      // Old jobs may still point at expired provider URLs — show a plain tile, not alt text
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.style.display = 'none';
+                        target.parentElement?.classList.add('bg-white/[0.06]');
+                      }}
                     />
                   </Link>
                 ))}

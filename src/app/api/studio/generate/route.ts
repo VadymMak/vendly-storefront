@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { translatePromptToEnglish } from '@/lib/studio/translate-prompt';
 import { STYLE_CHIPS } from '@/lib/studio/constants';
 import { fetchAllowedImage, isAllowedImageUrl, MAX_INPUT_PIXELS } from '@/lib/studio/safe-fetch';
+import { persistBufferToBlob } from '@/lib/persist-to-blob';
 
 export const maxDuration = 120;
 
@@ -94,7 +95,7 @@ async function processBuffer(
   targetH:    number | undefined,
   format:     'webp' | 'png' | 'jpeg',
   prefix:     string,
-): Promise<Response> {
+): Promise<{ response: Response; buffer: Buffer; contentType: string }> {
   const arrBuf: ArrayBuffer = await fetch(imageUrl).then(r => r.arrayBuffer());
   const buf  = Buffer.from(arrBuf);
   const pipe = sharp(buf);
@@ -120,13 +121,14 @@ async function processBuffer(
     ? `${prefix}-${targetW}x${targetH}-${Date.now()}.${ext}`
     : `${prefix}-${Date.now()}.${ext}`;
 
-  return new Response(new Uint8Array(out), {
+  const response = new Response(new Uint8Array(out), {
     headers: {
       'Content-Type':        ct,
       'Content-Disposition': `inline; filename="${name}"`,
       'Cache-Control':       'no-store',
     },
   });
+  return { response, buffer: out, contentType: ct };
 }
 
 export async function POST(request: Request) {
@@ -316,7 +318,7 @@ export async function POST(request: Request) {
         metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length },
       });
 
-      const response = await processBuffer(result.url, targetW, targetH, outputFormat, alias);
+      const { response, buffer: outBuffer, contentType: outType } = await processBuffer(result.url, targetW, targetH, outputFormat, alias);
       response.headers.set('X-Model-Alias', alias);
       response.headers.set('X-Model-Provider', model.provider);
       response.headers.set('X-Model-Name', model.displayName);
@@ -324,10 +326,15 @@ export async function POST(request: Request) {
       response.headers.set('X-Generation-Mode', 'text_create');
       response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name, X-Output-Url, X-Generation-Mode');
 
-      // Fire-and-forget: persist to StudioJob so it appears in My Work
-      const capturedUrl = result.url;
-      createJob({
-        userId:       session.user.id,
+      // Fire-and-forget: store the image we just served in Blob (provider URLs expire), then
+      // record the StudioJob so it appears in My Work. Falls back to the provider URL.
+      const providerUrl = result.url;
+      const jobUserId = session.user.id;
+      persistBufferToBlob(outBuffer, outType, 'generate').catch((err) => {
+        console.error('[studio/generate] Blob persist failed, keeping provider URL:', err);
+        return providerUrl;
+      }).then((capturedUrl) => createJob({
+        userId:       jobUserId,
         predictionId: `img:${alias}:${Date.now()}`,
         type:         'image',
         creditType:   model.byokOnly ? undefined : 'image',
@@ -344,7 +351,7 @@ export async function POST(request: Request) {
           where: { id: jobId },
           data:  { status: 'succeeded', outputUrl: capturedUrl },
         });
-      }).catch((err) => {
+      })).catch((err) => {
         console.error('[studio/generate] Failed to save to StudioJob:', err);
       });
 
@@ -463,7 +470,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
       metadata:   { aspect_ratio, outputFormat, promptLength: prompt.length, generationMode: 'photo_transform' },
     });
 
-    const response = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias);
+    const { response, buffer: outBuffer, contentType: outType } = await processBuffer(result.url, p.targetW, p.targetH, outputFormat, alias);
     response.headers.set('X-Model-Alias', alias);
     response.headers.set('X-Model-Provider', model.provider);
     response.headers.set('X-Model-Name', model.displayName);
@@ -471,9 +478,12 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
     response.headers.set('X-Generation-Mode', 'photo_transform');
     response.headers.set('Access-Control-Expose-Headers', 'X-Model-Alias, X-Model-Provider, X-Model-Name, X-Output-Url, X-Generation-Mode');
 
-    // Fire-and-forget: persist to StudioJob so it appears in My Work
-    const capturedUrl = result.url;
-    createJob({
+    // Fire-and-forget: store the served image in Blob (provider URLs expire), then record it
+    const providerUrl = result.url;
+    persistBufferToBlob(outBuffer, outType, 'generate').catch((err) => {
+      console.error('[studio/generate] Blob persist failed, keeping provider URL:', err);
+      return providerUrl;
+    }).then((capturedUrl) => createJob({
       userId,
       predictionId: `img:${alias}:${Date.now()}`,
       type:         'image',
@@ -493,7 +503,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
         where: { id: jobId },
         data:  { status: 'succeeded', outputUrl: capturedUrl },
       });
-    }).catch((err) => {
+    })).catch((err) => {
       console.error('[studio/generate] Failed to save img2img StudioJob:', err);
     });
 

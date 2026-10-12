@@ -11,6 +11,7 @@ import { grokAspectRatioFor } from '@/lib/xai-client';
 import { resolveApiKey } from '@/lib/studio/resolve';
 import { logUsage } from '@/lib/studio/usage-logger';
 import { createJob } from '@/lib/studio-jobs';
+import { persistToBlob } from '@/lib/persist-to-blob';
 import { db } from '@/lib/db';
 
 export const maxDuration = 60;
@@ -139,9 +140,10 @@ export async function POST(req: Request) {
       metadata:   { promptLength: prompt.length },
     });
 
-    const capturedUrl = result.url;
-    createJob({
-      userId:       session.user.id,
+    // Fire-and-forget: copy the provider result to Blob (provider URLs expire), then record
+    // the StudioJob; persistToBlob falls back to the provider URL on any failure
+    persistToBlob(result.url, 'edit').then((capturedUrl) => createJob({
+      userId,
       predictionId: `img:${modelAlias}:${Date.now()}`,
       type:         'ai-edit',
       creditType:   model.byokOnly ? undefined : 'image',
@@ -158,7 +160,7 @@ export async function POST(req: Request) {
         where: { id: jobId },
         data:  { status: 'succeeded', outputUrl: capturedUrl },
       });
-    }).catch((err) => {
+    })).catch((err) => {
       console.error('[studio/edit] Failed to save to StudioJob:', err);
     });
 

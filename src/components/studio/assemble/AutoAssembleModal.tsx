@@ -5,7 +5,8 @@ import { useStudioStore } from '@/lib/studio/store';
 import { ASSEMBLY_TEMPLATES, type AssemblyTemplate } from '@/lib/auto-assembler/templates';
 import { detectBeats } from '@/lib/auto-assembler/beat-detector';
 import { solveTimeline, type ClipSource } from '@/lib/auto-assembler/timeline-solver';
-import { useBrandKitStore } from '@/lib/studio/brand-kit';
+import { toAssemblerBrandKit } from '@/lib/studio/brand-kit';
+import { useBrandKit } from '@/hooks/useBrandKit';
 import { saveMediaBlob } from '@/lib/studio/media-db';
 
 type AspectRatio = '9:16' | '4:5' | '1:1' | '16:9';
@@ -81,7 +82,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
   const musicDataUrl      = useStudioStore(s => s.musicDataUrl);
   const musicName         = useStudioStore(s => s.musicName);
   const setMusic          = useStudioStore(s => s.setMusic);
-  const brand             = useBrandKitStore();
+  const { brandKit, exists: brandExists, save: saveBrand } = useBrandKit();
 
   const [step, setStep]                         = useState<WizardStep>(1);
   const [selectedTemplate, setSelectedTemplate] = useState<AssemblyTemplate | null>(null);
@@ -98,10 +99,10 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
   const [detectedBpm, setDetectedBpm]           = useState<number | null>(null);
 
   // Inline brand editing for step 2 — local state to prevent focus loss on re-render
-  const [localBrandName, setLocalBrandName] = useState(brand.businessName);
-  const [localCta, setLocalCta]             = useState(brand.defaultCta);
-  const [inlinePrimary, setInlinePrimary]   = useState(brand.primaryColor);
-  const [inlineAccent, setInlineAccent]     = useState(brand.accentColor);
+  const [localBrandName, setLocalBrandName] = useState(brandKit?.businessName ?? '');
+  const [localCta, setLocalCta]             = useState(brandKit?.ctaText ?? '');
+  const [inlinePrimary, setInlinePrimary]   = useState(brandKit?.colorPrimary ?? '#16a34a');
+  const [inlineAccent, setInlineAccent]     = useState(brandKit?.colorText ?? '#FFFFFF');
   const [brandSectionOpen, setBrandSectionOpen] = useState(false);
 
   const audioInputRef  = useRef<HTMLInputElement>(null);
@@ -110,16 +111,17 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
   const brandNameRef   = useRef<HTMLInputElement>(null);
   const ctaRef         = useRef<HTMLInputElement>(null);
 
-  // Sync local brand fields from store when step 2 opens
+  // Sync local brand fields from the saved Brand Kit when step 2 opens (or once it has loaded)
+  const brandLoaded = brandKit !== null;
   useEffect(() => {
-    if (step === 2) {
-      setLocalBrandName(brand.businessName);
-      setLocalCta(brand.defaultCta);
-      setInlinePrimary(brand.primaryColor);
-      setInlineAccent(brand.accentColor);
+    if (step === 2 && brandKit) {
+      setLocalBrandName(brandKit.businessName);
+      setLocalCta(brandKit.ctaText);
+      setInlinePrimary(brandKit.colorPrimary);
+      setInlineAccent(brandKit.colorText);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [step, brandLoaded]);
 
   // Revoke preview blob URLs on unmount
   useEffect(() => {
@@ -212,14 +214,16 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
       return;
     }
 
-    // Flush local brand edits to store before generating
-    if (localBrandName !== brand.businessName || localCta !== brand.defaultCta ||
-        inlinePrimary !== brand.primaryColor || inlineAccent !== brand.accentColor) {
-      brand.updateBrand({
+    // Flush local brand edits to the Brand Kit before generating
+    const brandEdited = brandKit !== null && (
+      localBrandName !== brandKit.businessName || localCta !== brandKit.ctaText ||
+      inlinePrimary !== brandKit.colorPrimary || inlineAccent !== brandKit.colorText);
+    if (brandEdited) {
+      void saveBrand({
         businessName: localBrandName,
-        defaultCta: localCta,
-        primaryColor: inlinePrimary,
-        accentColor: inlineAccent,
+        ctaText:      localCta,
+        colorPrimary: inlinePrimary,
+        colorText:    inlineAccent,
       });
     }
 
@@ -246,7 +250,16 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
 
       setPhase('building');
 
-      const activeBrand = brand.isConfigured ? brand : null;
+      // Use the edits just made even if the save above is still in flight
+      const activeBrand = brandKit && (brandExists || brandEdited) && brandKit.enabled
+        ? toAssemblerBrandKit({
+          ...brandKit,
+          businessName: localBrandName,
+          ctaText:      localCta,
+          colorPrimary: inlinePrimary,
+          colorText:    inlineAccent,
+        })
+        : null;
 
       const { videoClips, textClips } = solveTimeline({
         clips,
@@ -486,7 +499,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
                     brandNameRef.current?.setSelectionRange(pos, pos);
                   });
                 }}
-                onBlur={e => brand.updateBrand({ businessName: e.target.value })}
+                onBlur={e => void saveBrand({ businessName: e.target.value })}
                 placeholder="Business name"
                 className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
               />
@@ -496,15 +509,15 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
                   type="color"
                   value={inlinePrimary}
                   onChange={e => setInlinePrimary(e.target.value)}
-                  onBlur={e => brand.updateBrand({ primaryColor: e.target.value })}
+                  onBlur={e => void saveBrand({ colorPrimary: e.target.value })}
                   className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
                 />
-                <span className="w-14 text-[10px] text-gray-600">Accent</span>
+                <span className="w-14 text-[10px] text-gray-600">Text</span>
                 <input
                   type="color"
                   value={inlineAccent}
                   onChange={e => setInlineAccent(e.target.value)}
-                  onBlur={e => brand.updateBrand({ accentColor: e.target.value })}
+                  onBlur={e => void saveBrand({ colorText: e.target.value })}
                   className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
                 />
               </div>
@@ -521,7 +534,7 @@ export function AutoAssembleModal({ onClose, onExport, onAspectRatio }: Props) {
                     ctaRef.current?.setSelectionRange(pos, pos);
                   });
                 }}
-                onBlur={e => brand.updateBrand({ defaultCta: e.target.value })}
+                onBlur={e => void saveBrand({ ctaText: e.target.value })}
                 placeholder="CTA text (e.g. Order Now)"
                 className="w-full rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
               />

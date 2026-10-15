@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { PROVIDER_HELP, getProviderHelp } from '@/lib/studio/provider-help';
 import { ProviderHelpTooltip } from './ProviderHelpTooltip';
 
@@ -13,6 +15,7 @@ interface Props {
 interface KeyRecord { provider: string; keyHint: string }
 
 export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
+  const tSettings = useTranslations('settings');
   const [falKey, setFalKey]             = useState('');
   const [fluxKey, setFluxKey]           = useState('');
   const [xaiKey, setXaiKey]             = useState('');
@@ -274,6 +277,20 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
               <span className="text-gray-400">Email</span>
               <span className="text-white">{userEmail}</span>
             </div>
+          </div>
+        </section>
+
+        {/* My Brand */}
+        <section className="space-y-2">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500">{tSettings('myBrand')}</h2>
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm text-gray-400">{tSettings('brandKit.sectionDesc')}</p>
+            <Link
+              href="/studio/settings/brand"
+              className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              {tSettings('brandKit.openBrand')} →
+            </Link>
           </div>
         </section>
 

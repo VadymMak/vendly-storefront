@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { del, put } from '@/lib/storage';
+import { del, put, readLocalUpload } from '@/lib/storage';
 import { BRAND_KIT_DEFAULTS, BRAND_KIT_LIMITS } from '@/lib/constants';
 import { extractBrandColors } from '@/lib/studio/brand-utils';
 import type { BrandColors } from '@/lib/types';
@@ -95,4 +95,22 @@ export async function POST(req: Request) {
   if (existing?.logoUrl && existing.logoUrl !== logoUrl) void del(existing.logoUrl).catch(() => {});
 
   return NextResponse.json({ success: true, logoUrl, suggestedColors });
+}
+
+// GET — re-suggest colors from the current logo ("Reset to logo colors")
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const kit = await db.brandKit.findUnique({ where: { userId: session.user.id }, select: { logoUrl: true } });
+  if (!kit?.logoUrl) return NextResponse.json({ error: 'No logo uploaded' }, { status: 404 });
+
+  try {
+    const logo = await readLocalUpload(kit.logoUrl, BRAND_KIT_LIMITS.logoMaxBytes);
+    const suggestedColors = logo ? await extractBrandColors(logo.buffer) : null;
+    if (!suggestedColors) return NextResponse.json({ error: 'Could not read logo colors' }, { status: 422 });
+    return NextResponse.json({ suggestedColors });
+  } catch {
+    return NextResponse.json({ error: 'Could not read logo colors' }, { status: 422 });
+  }
 }

@@ -1,35 +1,47 @@
 'use client';
 
-import { useRef } from 'react';
-import { useBrandKitStore } from '@/lib/studio/brand-kit';
-
-const POPULAR_FONTS = [
-  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald',
-  'Raleway', 'Poppins', 'Nunito', 'Playfair Display', 'Merriweather',
-  'Source Sans Pro', 'Ubuntu', 'PT Sans', 'Noto Sans', 'Rubik',
-  'Work Sans', 'DM Sans', 'Outfit', 'Plus Jakarta Sans',
-];
+import { useRef, useState } from 'react';
+import Link from 'next/link';
+import { useBrandKit } from '@/hooks/useBrandKit';
+import { BRAND_KIT_DEFAULTS, BRAND_KIT_LIMITS, FONT_PRESETS } from '@/lib/constants';
+import type { BrandKitData, BrandKitSaveInput, FontPreset } from '@/lib/types';
 
 const COLOR_PRESETS = {
   primary:   ['#16a34a', '#2563eb', '#7c3aed', '#dc2626', '#ea580c', '#0891b2'],
   secondary: ['#0f172a', '#1e293b', '#111827', '#18181b', '#1c1917', '#0c0a09'],
-  accent:    ['#f59e0b', '#f97316', '#ec4899', '#10b981', '#06b6d4', '#8b5cf6'],
+  text:      ['#FFFFFF', '#f59e0b', '#f97316', '#ec4899', '#10b981', '#06b6d4'],
 };
 
+const HEX = /^#[0-9A-Fa-f]{6}$/;
+
 export function BrandKitPanel() {
-  const brand      = useBrandKitStore();
+  const { brandKit, save, uploadLogo, error } = useBrandKit();
   const logoRef    = useRef<HTMLInputElement>(null);
+  // Local draft so typing doesn't PUT on every keystroke — fields commit on blur
+  const [brand, setBrand] = useState<BrandKitData>(brandKit ?? BRAND_KIT_DEFAULTS);
+  const [synced, setSynced] = useState(brandKit);
+  if (brandKit !== synced) {
+    setSynced(brandKit);
+    if (brandKit) setBrand(brandKit);
+  }
+
+  function update(partial: Partial<BrandKitData>) {
+    setBrand(b => ({ ...b, ...partial }));
+  }
+
+  function commit(partial: BrandKitSaveInput) {
+    void save(partial);
+  }
 
   function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (file.size > 200 * 1024) {
-      alert('Logo must be under 200 KB');
+    if (file.size > BRAND_KIT_LIMITS.logoMaxBytes) {
+      alert('Logo must be under 5 MB');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => brand.setLogo(reader.result as string);
-    reader.readAsDataURL(file);
+    void uploadLogo(file);
   }
 
   return (
@@ -41,7 +53,8 @@ export function BrandKitPanel() {
         <input
           type="text"
           value={brand.businessName}
-          onChange={e => brand.updateBrand({ businessName: e.target.value })}
+          onChange={e => update({ businessName: e.target.value })}
+          onBlur={e => commit({ businessName: e.target.value })}
           placeholder="My Business"
           className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
         />
@@ -51,10 +64,10 @@ export function BrandKitPanel() {
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Logo</div>
         <div className="flex items-center gap-2">
-          {brand.logoDataUrl ? (
+          {brand.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={brand.logoDataUrl}
+              src={brand.logoUrl}
               alt="Logo"
               className="h-10 w-10 rounded border border-white/10 object-contain bg-white/5"
             />
@@ -67,19 +80,19 @@ export function BrandKitPanel() {
             onClick={() => logoRef.current?.click()}
             className="rounded border border-white/10 px-2 py-1 text-xs text-gray-400 hover:border-white/20 hover:text-white"
           >
-            {brand.logoDataUrl ? 'Change' : 'Upload'}
+            {brand.logoUrl ? 'Change' : 'Upload'}
           </button>
-          {brand.logoDataUrl && (
+          {brand.logoUrl && (
             <button
-              onClick={() => brand.setLogo(null)}
+              onClick={() => commit({ logoUrl: null })}
               className="text-xs text-gray-600 hover:text-red-400"
             >
               ✕
             </button>
           )}
-          <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+          <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
         </div>
-        <div className="mt-1 text-[9px] text-gray-700">Max 200 KB</div>
+        <div className="mt-1 text-[9px] text-gray-700">PNG, JPEG, WebP or SVG · max 5 MB</div>
       </div>
 
       {/* Colors */}
@@ -87,9 +100,9 @@ export function BrandKitPanel() {
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Colors</div>
         {(
           [
-            { key: 'primaryColor' as const, label: 'Primary', presets: COLOR_PRESETS.primary },
-            { key: 'secondaryColor' as const, label: 'Secondary', presets: COLOR_PRESETS.secondary },
-            { key: 'accentColor' as const, label: 'Accent', presets: COLOR_PRESETS.accent },
+            { key: 'colorPrimary' as const, label: 'Primary', presets: COLOR_PRESETS.primary },
+            { key: 'colorSecondary' as const, label: 'Secondary', presets: COLOR_PRESETS.secondary },
+            { key: 'colorText' as const, label: 'Text', presets: COLOR_PRESETS.text },
           ] as const
         ).map(({ key, label, presets }) => (
           <div key={key} className="mb-2">
@@ -98,7 +111,8 @@ export function BrandKitPanel() {
               <input
                 type="color"
                 value={brand[key]}
-                onChange={e => brand.updateBrand({ [key]: e.target.value })}
+                onChange={e => update({ [key]: e.target.value })}
+                onBlur={e => commit({ [key]: e.target.value })}
                 className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
                 title={label}
               />
@@ -107,8 +121,9 @@ export function BrandKitPanel() {
                 value={brand[key]}
                 onChange={e => {
                   const v = e.target.value;
-                  if (/^#[0-9a-fA-F]{0,6}$/.test(v)) brand.updateBrand({ [key]: v });
+                  if (/^#[0-9a-fA-F]{0,6}$/.test(v)) update({ [key]: v });
                 }}
+                onBlur={e => { if (HEX.test(e.target.value)) commit({ [key]: e.target.value }); }}
                 className="w-20 rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-white outline-none focus:ring-1 focus:ring-green-600/40"
               />
             </div>
@@ -116,7 +131,7 @@ export function BrandKitPanel() {
               {presets.map(c => (
                 <button
                   key={c}
-                  onClick={() => brand.updateBrand({ [key]: c })}
+                  onClick={() => { update({ [key]: c }); commit({ [key]: c }); }}
                   className="h-4 w-4 rounded border transition-transform hover:scale-110"
                   style={{ backgroundColor: c, borderColor: brand[key] === c ? '#fff' : 'transparent' }}
                   title={c}
@@ -131,12 +146,16 @@ export function BrandKitPanel() {
       <div>
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Font</div>
         <select
-          value={brand.fontFamily}
-          onChange={e => brand.updateBrand({ fontFamily: e.target.value })}
+          value={brand.fontPreset}
+          onChange={e => {
+            const fontPreset = e.target.value as FontPreset;
+            update({ fontPreset });
+            commit({ fontPreset });
+          }}
           className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-green-600/60"
         >
-          {POPULAR_FONTS.map(f => (
-            <option key={f} value={f}>{f}</option>
+          {FONT_PRESETS.map(f => (
+            <option key={f.id} value={f.id}>{f.label} · {f.fontFamily}</option>
           ))}
         </select>
       </div>
@@ -146,8 +165,9 @@ export function BrandKitPanel() {
         <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Default CTA</div>
         <input
           type="text"
-          value={brand.defaultCta}
-          onChange={e => brand.updateBrand({ defaultCta: e.target.value })}
+          value={brand.ctaText}
+          onChange={e => update({ ctaText: e.target.value })}
+          onBlur={e => commit({ ctaText: e.target.value })}
           placeholder="Learn More"
           className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
         />
@@ -155,25 +175,26 @@ export function BrandKitPanel() {
 
       {/* Contact info */}
       <div>
-        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Contact / Website</div>
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-500">Instagram</div>
         <input
           type="text"
-          value={brand.contactInfo}
-          onChange={e => brand.updateBrand({ contactInfo: e.target.value })}
-          placeholder="www.mybusiness.com"
+          value={brand.instagramHandle}
+          onChange={e => update({ instagramHandle: e.target.value })}
+          onBlur={e => commit({ instagramHandle: e.target.value })}
+          placeholder="@yourbusiness"
           className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none placeholder:text-gray-700 focus:ring-1 focus:ring-green-600/60"
         />
       </div>
 
-      {/* Clear */}
-      {brand.isConfigured && (
-        <button
-          onClick={brand.clearBrand}
-          className="mt-1 rounded border border-white/10 py-1.5 text-xs text-gray-500 hover:border-white/20 hover:text-gray-300"
-        >
-          Reset Brand Kit
-        </button>
-      )}
+      {error && <p className="text-[10px] text-red-400">{error}</p>}
+
+      {/* Full settings (watermark, presets, master toggle) */}
+      <Link
+        href="/studio/settings/brand"
+        className="mt-1 rounded border border-white/10 py-1.5 text-center text-xs text-gray-500 hover:border-white/20 hover:text-gray-300"
+      >
+        All brand settings →
+      </Link>
     </div>
   );
 }

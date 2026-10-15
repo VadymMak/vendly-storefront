@@ -985,10 +985,11 @@ export const STUDIO_CREDIT_PACKS: StudioCreditPack[] = [
 
 // ── Brand Kit (PROMPT-252) ────────────────────────────────────────────────────
 
+/** cssStack is for in-app previews: only Playfair is self-hosted (next/font), the others fall back. */
 export const FONT_PRESETS = [
-  { id: 'modern',  label: 'Modern',  fontFamily: 'Montserrat' },
-  { id: 'elegant', label: 'Elegant', fontFamily: 'Playfair Display' },
-  { id: 'bold',    label: 'Bold',    fontFamily: 'Inter' },
+  { id: 'modern',  label: 'Modern',  fontFamily: 'Montserrat',       cssStack: "Montserrat, var(--font-geist-sans), sans-serif", weight: 600 },
+  { id: 'elegant', label: 'Elegant', fontFamily: 'Playfair Display', cssStack: 'var(--font-playfair), "Playfair Display", serif',  weight: 600 },
+  { id: 'bold',    label: 'Bold',    fontFamily: 'Inter',            cssStack: 'Inter, var(--font-geist-sans), sans-serif',        weight: 800 },
 ] as const;
 
 export const SUBTITLE_PRESETS = [
@@ -1028,6 +1029,12 @@ export const BRAND_KIT_DEFAULTS: BrandKitData = {
   watermarkScale:    0.10,
   enabled:           true,
 };
+
+/** Settings-form slider ranges (the API accepts a wider range). */
+export const BRAND_KIT_SLIDERS = {
+  opacity: { min: 0.05, max: 0.40, step: 0.05 },
+  scale:   { min: 0.05, max: 0.25, step: 0.01 },
+} as const;
 
 export const BRAND_KIT_LIMITS = {
   logoMaxBytes:      5 * 1024 * 1024,

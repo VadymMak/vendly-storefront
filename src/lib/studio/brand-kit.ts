@@ -1,5 +1,13 @@
+/**
+ * @deprecated PROMPT-253: the Brand Kit lives in the database now — use `useBrandKit()` from
+ * `@/hooks/useBrandKit` (GET/PUT /api/studio/brand-kit). This localStorage store is no longer read by
+ * any component; `useBrandKit` imports it once and keeps the key as a backup. The `BrandKit` type and
+ * `toAssemblerBrandKit` stay: the Auto-Assemble timeline solver still consumes this shape.
+ */
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { FONT_PRESETS } from '@/lib/constants';
+import type { BrandKitData } from '@/lib/types';
 
 export interface BrandKit {
   businessName: string;
@@ -30,6 +38,7 @@ const DEFAULT_BRAND: BrandKit = {
   contactInfo: '',
 };
 
+/** @deprecated use `useBrandKit()` from `@/hooks/useBrandKit` */
 export const useBrandKitStore = create<BrandKitStore>()(
   persist(
     (set) => ({
@@ -54,3 +63,18 @@ export const useBrandKitStore = create<BrandKitStore>()(
     }
   )
 );
+
+/** Database Brand Kit → the shape the Auto-Assemble timeline solver reads. */
+export function toAssemblerBrandKit(data: BrandKitData): BrandKit {
+  return {
+    businessName:   data.businessName,
+    logoDataUrl:    data.logoUrl,
+    primaryColor:   data.colorPrimary,
+    secondaryColor: data.colorSecondary,
+    // The solver colors the CTA text with accentColor
+    accentColor:    data.colorText,
+    fontFamily:     FONT_PRESETS.find(p => p.id === data.fontPreset)?.fontFamily ?? 'Inter',
+    defaultCta:     data.ctaText,
+    contactInfo:    data.instagramHandle ? `@${data.instagramHandle}` : '',
+  };
+}

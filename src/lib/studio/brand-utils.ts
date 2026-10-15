@@ -155,11 +155,14 @@ export async function applyBrandWatermark(imageBuffer: Buffer, options: BrandWat
   const left = options.position.endsWith('right') ? right : zone.sides;
   const top  = options.position.startsWith('bottom') ? bottom : zone.top;
 
-  return sharp(imageBuffer)
-    .composite([{
-      input: overlay,
-      left: Math.min(Math.max(0, left), Math.max(0, meta.width - info.width)),
-      top:  Math.min(Math.max(0, top), Math.max(0, meta.height - info.height)),
-    }])
-    .toBuffer();
+  const composited = sharp(imageBuffer).composite([{
+    input: overlay,
+    left: Math.min(Math.max(0, left), Math.max(0, meta.width - info.width)),
+    top:  Math.min(Math.max(0, top), Math.max(0, meta.height - info.height)),
+  }]);
+
+  // sharp keeps the input format but re-encodes lossy ones at its default q80 — set quality explicitly
+  if (meta.format === 'jpeg') return composited.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+  if (meta.format === 'webp') return composited.webp({ quality: 90 }).toBuffer();
+  return composited.toBuffer();
 }

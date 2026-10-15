@@ -798,6 +798,14 @@ export interface BrandKitData {
   enabled: boolean;
 }
 
+/** PUT /api/studio/brand-kit body — the logo can only be removed here, never set (that's POST /logo). */
+export type BrandKitSaveInput = Partial<Omit<BrandKitData, 'logoUrl'>> & { logoUrl?: null };
+
+export interface BrandLogoUploadResult {
+  logoUrl: string;
+  suggestedColors: BrandColors;
+}
+
 export interface BrandColors {
   primary: string;
   secondary: string;

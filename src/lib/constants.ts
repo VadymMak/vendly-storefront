@@ -985,11 +985,15 @@ export const STUDIO_CREDIT_PACKS: StudioCreditPack[] = [
 
 // ── Brand Kit (PROMPT-252) ────────────────────────────────────────────────────
 
-/** cssStack is for in-app previews: only Playfair is self-hosted (next/font), the others fall back. */
+/**
+ * fontFamily = the font reel-service renders with (installed in /usr/local/share/fonts/google, see
+ * reel-service src/pipeline/brand.js FONT_MAP). cssStack is for in-app previews only — these fonts
+ * aren't loaded in the web app, so the preview falls back to the site font.
+ */
 export const FONT_PRESETS = [
-  { id: 'modern',  label: 'Modern',  fontFamily: 'Montserrat',       cssStack: "Montserrat, var(--font-geist-sans), sans-serif", weight: 600 },
-  { id: 'elegant', label: 'Elegant', fontFamily: 'Playfair Display', cssStack: 'var(--font-playfair), "Playfair Display", serif',  weight: 600 },
-  { id: 'bold',    label: 'Bold',    fontFamily: 'Inter',            cssStack: 'Inter, var(--font-geist-sans), sans-serif',        weight: 800 },
+  { id: 'modern',  label: 'Modern',  fontFamily: 'Manrope', cssStack: "Manrope, var(--font-geist-sans), sans-serif",   weight: 600, description: 'Clean, geometric' },
+  { id: 'elegant', label: 'Elegant', fontFamily: 'Raleway', cssStack: "'Raleway', var(--font-geist-sans), sans-serif", weight: 500, description: 'Light, feminine' },
+  { id: 'bold',    label: 'Bold',    fontFamily: 'Anton',   cssStack: "'Anton', var(--font-geist-sans), sans-serif",   weight: 400, description: 'Heavy, bold' },
 ] as const;
 
 export const SUBTITLE_PRESETS = [

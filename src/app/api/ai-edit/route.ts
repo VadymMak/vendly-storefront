@@ -132,15 +132,6 @@ export async function POST(req: Request) {
   }
 
   // ── Flux Kontext Pro path (default) ───────────────────────────────────────────
-  // Atomically reserve credit before calling the AI provider (prevents TOCTOU race)
-  const consume = await consumeCredits(session.user.id, 'image');
-  if (!consume.success) {
-    return NextResponse.json(
-      { error: consume.reason, needsUpgrade: true },
-      { status: 403 },
-    );
-  }
-
   const keyRecord = await db.userApiKey.findUnique({
     where: { userId_provider: { userId: session.user.id, provider: 'replicate' } },
   });
@@ -156,6 +147,16 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: 'Replicate API key required. Add it in Settings → API Keys.' },
       { status: 400 },
+    );
+  }
+
+  // Atomically reserve credit before calling the AI provider (prevents TOCTOU race).
+  // Done after the key check, so a request that can't reach the provider never charges.
+  const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+  if (!consume.success) {
+    return NextResponse.json(
+      { error: consume.reason, needsUpgrade: true },
+      { status: 403 },
     );
   }
 
@@ -188,14 +189,15 @@ export async function POST(req: Request) {
       },
     );
 
+    // Throw (not return) so the catch below refunds the reserved credit
     if (output === null || output === undefined) {
-      return NextResponse.json({ error: 'AI edit produced no output' }, { status: 500 });
+      throw new Error('AI edit produced no output');
     }
 
     const imageUrl = extractUrl(output);
 
     if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined' || !imageUrl.startsWith('http')) {
-      return NextResponse.json({ error: 'AI edit returned invalid image URL' }, { status: 500 });
+      throw new Error('AI edit returned invalid image URL');
     }
 
     return NextResponse.json({ url: imageUrl });

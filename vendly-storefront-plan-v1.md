@@ -246,3 +246,27 @@
 - [x] KB docs corrected + re-ingested
 - [ ] Email verification — blocked: Resend domain vendshop.shop is "failed" (DNS). Fix DNS, then build verification
 - [ ] Desktop label "Change or remove something · 2 cr" vs inpaint charging 1 — pick one
+
+## 6. AI Studio — Creative Edit & Brand Kit (2026-10-15)
+
+### PROMPT-251 — Creative Edit ✅
+- [x] `edit-grok-creative`: photo + free prompt → Grok Imagine 2.0 /edits, 2k, 2 credits, prompt sent as-is
+- [x] Mobile `/studio/m/creative`, desktop Creative Edit card + editor, ratio chips auto / 9:16 / 3:4 / 1:1
+- [x] EXIF rotation in `/api/studio/edit` and `/api/studio/upload`; spam-check limit 4000 chars
+- [x] `/api/ai-edit`: Grok branch charges credits; Kontext branch charges only after the key check, refunds empty output
+- [ ] Quality check with real phone photos (RU prompts, 9:16) vs Grok Chat
+
+### PROMPT-252 / 253 — Brand Kit ✅
+- [x] `BrandKit` table (raw SQL `20261015_brand_kit`), GET/PUT `/api/studio/brand-kit`, logo upload + color extraction
+- [x] Settings UI: mobile `/studio/m/settings/brand` (account menu), desktop `/studio/settings/brand`, live preview
+- [x] Assemble panel + Auto-Assemble read the API; one-time import of the old localStorage Brand Kit
+- [ ] Manual test of the settings screens (upload, save, reload, migration)
+
+### PROMPT-254 — Reel Builder branding ✅
+- [x] Next proxy sends the Brand Kit; reel CTA fields prefill from it
+- [x] reel-service `src/pipeline/brand.js`: branded CTA pill, business name on shot 1, logo watermark in the master (not in git — backup `~/reel-service-backups/2026-10-15-pre254/`)
+- [ ] End-to-end reel with and without a Brand Kit
+- [ ] Load Manrope / Raleway / Anton in the web app so the settings preview matches the reel
+
+### PROMPT-255 — Font names vs Chrome auto-translate ✅
+- [x] `translate="no"` on font names: FontPicker, mobile TextStylePanel, Brand Kit preset chips, Assemble Brand Kit select

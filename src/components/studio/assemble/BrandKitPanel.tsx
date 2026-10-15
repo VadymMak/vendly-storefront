@@ -155,7 +155,7 @@ export function BrandKitPanel() {
           className="w-full rounded bg-white/10 px-2 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-green-600/60"
         >
           {FONT_PRESETS.map(f => (
-            <option key={f.id} value={f.id}>{f.label} · {f.fontFamily}</option>
+            <option key={f.id} value={f.id} translate="no">{f.label} · {f.fontFamily}</option>
           ))}
         </select>
       </div>

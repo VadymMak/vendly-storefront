@@ -47,9 +47,11 @@ function FontItem({ entry, selected, onSelect }: FontItemProps) {
           : 'text-gray-100 hover:bg-white/8 hover:text-white',
       ].join(' ')}
     >
-      <span className="truncate">{entry.family}</span>
+      {/* Font names are proper nouns — keep Chrome auto-translate off them */}
+      <span className="truncate" translate="no">{entry.family}</span>
       <span
         className="ml-2 shrink-0 text-[15px] leading-none text-gray-300"
+        translate="no"
         style={{ fontFamily: loaded ? `'${entry.family}', sans-serif` : 'inherit' }}
       >
         {loading && !loaded ? (
@@ -82,7 +84,7 @@ function CustomFontItem({ family, displayName, selected, onSelect }: CustomFontI
           : 'text-gray-100 hover:bg-white/8 hover:text-white',
       ].join(' ')}
     >
-      <span className="truncate">{displayName}</span>
+      <span className="truncate" translate="no">{displayName}</span>
       <span
         className="ml-2 shrink-0 text-[15px] leading-none text-gray-300"
         style={{ fontFamily: `'${family}', sans-serif` }}

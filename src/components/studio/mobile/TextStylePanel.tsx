@@ -98,6 +98,7 @@ export function TextStylePanel({ layer, onChange, onDelete }: Props) {
           <button
             key={font}
             onClick={() => handleFontSelect(font)}
+            translate="no"
             className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
               layer.fontFamily === font
                 ? 'border-green-500 bg-green-500/10 text-green-400'

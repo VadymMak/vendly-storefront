@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { consumeCredits, refundCredits, REEL_CREDIT_COST, type ReelMode } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
+import { getUserBrandKit } from '@/lib/studio/brand-utils';
 
 const REEL_SERVICE_URL = 'http://127.0.0.1:3010';
 
@@ -62,10 +63,27 @@ export async function POST(request: Request) {
 
   let jobId: string | undefined;
   try {
+    // Brand Kit (null when not set up or switched off). reel-service fills empty CTA lines from it,
+    // brands the CTA shot and opening shot, and adds the logo watermark.
+    const brandKit = await getUserBrandKit(userId);
+    const brandPayload = brandKit ? {
+      businessName:      brandKit.businessName || undefined,
+      ctaText:           brandKit.ctaText || undefined,
+      colorPrimary:      brandKit.colorPrimary,
+      colorSecondary:    brandKit.colorSecondary,
+      colorText:         brandKit.colorText,
+      fontPreset:        brandKit.fontPreset,
+      logoUrl:           brandKit.logoUrl ?? undefined,
+      watermarkEnabled:  brandKit.watermarkEnabled,
+      watermarkPosition: brandKit.watermarkPosition,
+      watermarkOpacity:  brandKit.watermarkOpacity,
+      watermarkScale:    brandKit.watermarkScale,
+    } : undefined;
+
     const response = await fetch(`${REEL_SERVICE_URL}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos, mode, cta1, cta2, userId, musicTrackId: musicTrackId || 'warm-cafe' }),
+      body: JSON.stringify({ photos, mode, cta1, cta2, userId, musicTrackId: musicTrackId || 'warm-cafe', brandKit: brandPayload }),
     });
 
     const data = await response.json();

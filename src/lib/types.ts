@@ -773,3 +773,40 @@ export interface StudioCreditPack {
   videos:   number;
   popular?: boolean;
 }
+
+// ── Brand Kit (PROMPT-252) ────────────────────────────────────────────────────
+
+export type FontPreset = 'modern' | 'elegant' | 'bold';
+export type SubtitlePreset = 'clean' | 'bold' | 'elegant';
+export type WatermarkPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+
+/** Brand Kit as the API returns it — colors always filled (defaults when unset). */
+export interface BrandKitData {
+  businessName: string;
+  logoUrl: string | null;
+  instagramHandle: string;
+  colorPrimary: string;
+  colorSecondary: string;
+  colorText: string;
+  fontPreset: FontPreset;
+  subtitlePreset: SubtitlePreset;
+  ctaText: string;
+  watermarkEnabled: boolean;
+  watermarkPosition: WatermarkPosition;
+  watermarkOpacity: number;
+  watermarkScale: number;
+  enabled: boolean;
+}
+
+export interface BrandColors {
+  primary: string;
+  secondary: string;
+  text: string;
+}
+
+/** Pixel margins kept clear of platform UI, measured on a 1080×1920 frame. */
+export interface SafeZone {
+  top: number;
+  bottom: number;
+  sides: number;
+}

@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule, StudioCreditPack } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule, StudioCreditPack, BrandKitData, SafeZone } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -982,3 +982,58 @@ export const STUDIO_CREDIT_PACKS: StudioCreditPack[] = [
   { id: 'creator', name: 'Creator Pack', priceEur: 10, images: 150, videos: 8,  popular: true },
   { id: 'pro',     name: 'Pro Pack',     priceEur: 20, images: 400, videos: 20 },
 ];
+
+// ── Brand Kit (PROMPT-252) ────────────────────────────────────────────────────
+
+export const FONT_PRESETS = [
+  { id: 'modern',  label: 'Modern',  fontFamily: 'Montserrat' },
+  { id: 'elegant', label: 'Elegant', fontFamily: 'Playfair Display' },
+  { id: 'bold',    label: 'Bold',    fontFamily: 'Inter' },
+] as const;
+
+export const SUBTITLE_PRESETS = [
+  { id: 'clean',   label: 'Clean',   description: 'White text, subtle shadow' },
+  { id: 'bold',    label: 'Bold',    description: 'Large text, dark background' },
+  { id: 'elegant', label: 'Elegant', description: 'Serif font, animated fade' },
+] as const;
+
+export const WATERMARK_POSITIONS = [
+  { id: 'bottom-right', label: 'Bottom Right' },
+  { id: 'bottom-left',  label: 'Bottom Left' },
+  { id: 'top-right',    label: 'Top Right' },
+  { id: 'top-left',     label: 'Top Left' },
+] as const;
+
+/** Instagram Stories/Reels UI margins at 1080×1920 (username bar, action buttons, edges). */
+export const INSTAGRAM_SAFE_ZONES: SafeZone = {
+  top:    270,
+  bottom: 380,
+  sides:  65,
+};
+
+/** What GET /api/studio/brand-kit returns before the user has set anything up. */
+export const BRAND_KIT_DEFAULTS: BrandKitData = {
+  businessName:      '',
+  logoUrl:           null,
+  instagramHandle:   '',
+  colorPrimary:      '#16a34a', // Vendly green
+  colorSecondary:    '#f0fdf4',
+  colorText:         '#FFFFFF',
+  fontPreset:        'modern',
+  subtitlePreset:    'clean',
+  ctaText:           '',
+  watermarkEnabled:  true,
+  watermarkPosition: 'bottom-right',
+  watermarkOpacity:  0.15,
+  watermarkScale:    0.10,
+  enabled:           true,
+};
+
+export const BRAND_KIT_LIMITS = {
+  logoMaxBytes:      5 * 1024 * 1024,
+  logoMaxSide:       512,
+  businessNameMax:   80,
+  ctaTextMax:        40,
+  watermarkScaleMin: 0.05,
+  watermarkScaleMax: 0.25,
+} as const;

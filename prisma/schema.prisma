@@ -32,6 +32,7 @@ model User {
   studioUsageLogs     StudioUsageLog[]
   apiKeys             UserApiKey[]
   passwordResetTokens PasswordResetToken[]
+  brandKit            BrandKit?
 }
 
 model UserApiKey {
@@ -444,4 +445,36 @@ model PasswordResetToken {
 
   @@index([userId, createdAt])
   @@index([requestIpHash, createdAt])
+}
+
+/// PROMPT-252: per-user branding applied to studio outputs (watermark, colors, presets).
+/// Created by prisma/migrations/20261015_brand_kit/migration.sql — this project can't `prisma db push`.
+model BrandKit {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  businessName    String?
+  logoUrl         String?
+  instagramHandle String?
+
+  colorPrimary   String?
+  colorSecondary String?
+  colorText      String?
+
+  fontPreset     String @default("modern")
+  subtitlePreset String @default("clean")
+
+  ctaText String?
+
+  watermarkEnabled  Boolean @default(true)
+  watermarkPosition String  @default("bottom-right")
+  watermarkOpacity  Float   @default(0.15)
+  watermarkScale    Float   @default(0.10)
+
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

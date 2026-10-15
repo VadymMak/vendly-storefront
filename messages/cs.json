@@ -1508,7 +1508,9 @@
       "placeInSceneDesc": "Produkty v kontextu",
       "moreTools": "Další nástroje",
       "createReel": "Vytvořit Reel",
-      "createReelDesc": "Video ze 2–5 fotek"
+      "createReelDesc": "Video ze 2–5 fotek",
+      "creativeEdit": "Kreativní úprava",
+      "creativeEditDesc": "Přeměňte svou fotku vlastním promptem"
     },
     "format": {
       "title": "Vytvořit příspěvek",
@@ -1891,5 +1893,39 @@
       "getCredits": "Získat kredity",
       "improve": "Vylepšit foto"
     }
+  },
+  "creativeEdit": {
+    "title": "Kreativní úprava",
+    "subtitle": "Přeměňte svou fotku vlastním promptem",
+    "promptLabel": "Váš nápad",
+    "placeholder": "Popište scénu, styl, osvětlení... Buďte kreativní!",
+    "example1": "Postav tuto osobu na střechu při západu slunce, zlatá hodinka, filmové světlo, malá hloubka ostrosti",
+    "example2": "Postav ji na eskalátor v metru, záběr shora, motion blur, editorial fashion fotografie",
+    "ratioLabel": "Formát",
+    "ratioAuto": "Jako fotka",
+    "ratioStory": "9:16 Stories",
+    "ratioFeed": "3:4 Feed",
+    "ratioSquare": "1:1",
+    "create": "Vytvořit · {count} kredity",
+    "processing": "Vytváříme obrázek...",
+    "processingHint": "Obvykle trvá asi 15 sekund",
+    "original": "Originál",
+    "result": "Výsledek",
+    "done": "Obrázek je hotový",
+    "doneDesc": "Porovnejte s originálem, pak uložte nebo sdílejte",
+    "moderation": "AI nedokázala zpracovat tuto fotku nebo prompt. Zkuste to popsat jinak nebo použijte jinou fotku.",
+    "error": "Něco se pokazilo. Zkuste to znovu.",
+    "noCredits": "Nedostatek kreditů",
+    "editPrompt": "Upravit prompt",
+    "newPhoto": "Nová fotka",
+    "save": "Uložit",
+    "share": "Sdílet",
+    "shareTitle": "Moje kreativní úprava",
+    "addText": "Přidat text",
+    "editText": "Upravit text",
+    "removeText": "Odstranit text",
+    "back": "Zpět",
+    "keep": "Ponechat výsledek",
+    "changePhoto": "Změnit fotku"
   }
 }

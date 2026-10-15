@@ -527,7 +527,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
       const fd = new FormData();
       fd.append('image', uploadedImage);
       fd.append('prompt', enhancePrompt);
-      // default → edit-kontext (Flux Kontext Pro); override only if needed
+      // Presets stay on the default edit-kontext (Flux Kontext Pro); a free-form prompt is a
+      // creative transform, which Kontext pulls back toward the original scene — send it to Grok
+      if (!preset) fd.append('modelAlias', 'edit-grok-creative');
 
       const res = await fetch('/api/studio/edit', { method: 'POST', body: fd });
       if (!res.ok) {

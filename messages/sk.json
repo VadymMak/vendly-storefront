@@ -1508,7 +1508,9 @@
       "placeInSceneDesc": "Produkty v kontexte",
       "moreTools": "Ďalšie nástroje",
       "createReel": "Vytvoriť Reel",
-      "createReelDesc": "Video z 2–5 fotiek"
+      "createReelDesc": "Video z 2–5 fotiek",
+      "creativeEdit": "Kreatívna úprava",
+      "creativeEditDesc": "Premeňte svoju fotku vlastným promptom"
     },
     "format": {
       "title": "Vytvoriť príspevok",
@@ -1882,5 +1884,39 @@
       "getCredits": "Získať kredity",
       "improve": "Vylepšiť foto"
     }
+  },
+  "creativeEdit": {
+    "title": "Kreatívna úprava",
+    "subtitle": "Premeňte svoju fotku vlastným promptom",
+    "promptLabel": "Váš nápad",
+    "placeholder": "Opíšte scénu, štýl, osvetlenie... Buďte kreatívni!",
+    "example1": "Postav túto osobu na strechu pri západe slnka, zlatá hodinka, filmové svetlo, malá hĺbka ostrosti",
+    "example2": "Postav ju na eskalátor v metre, záber zhora, motion blur, editorial fashion fotografia",
+    "ratioLabel": "Formát",
+    "ratioAuto": "Ako fotka",
+    "ratioStory": "9:16 Stories",
+    "ratioFeed": "3:4 Feed",
+    "ratioSquare": "1:1",
+    "create": "Vytvoriť · {count} kredity",
+    "processing": "Vytvárame obrázok...",
+    "processingHint": "Zvyčajne trvá asi 15 sekúnd",
+    "original": "Originál",
+    "result": "Výsledok",
+    "done": "Obrázok je hotový",
+    "doneDesc": "Porovnajte s originálom, potom uložte alebo zdieľajte",
+    "moderation": "AI nedokázala spracovať túto fotku alebo prompt. Skúste to opísať inak alebo použite inú fotku.",
+    "error": "Niečo sa pokazilo. Skúste to znova.",
+    "noCredits": "Nedostatok kreditov",
+    "editPrompt": "Upraviť prompt",
+    "newPhoto": "Nová fotka",
+    "save": "Uložiť",
+    "share": "Zdieľať",
+    "shareTitle": "Moja kreatívna úprava",
+    "addText": "Pridať text",
+    "editText": "Upraviť text",
+    "removeText": "Odstrániť text",
+    "back": "Späť",
+    "keep": "Ponechať výsledok",
+    "changePhoto": "Zmeniť fotku"
   }
 }

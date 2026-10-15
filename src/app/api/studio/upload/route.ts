@@ -58,19 +58,21 @@ export async function POST(req: NextRequest) {
       if (isPngWithAlpha) {
         // Preserve alpha channel — keep as PNG (WebP lossy can degrade transparency edges)
         finalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT)
+          .rotate() // re-encoding drops EXIF — bake the orientation into the pixels first
           .resize(DISPLAY_MAX_SIDE, DISPLAY_MAX_SIDE, { fit: 'inside', withoutEnlargement: true })
           .png({ compressionLevel: 8 })
           .toBuffer());
         contentType = 'image/png';
         ext = 'png';
         if (isOversized) {
-          originalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT).png({ compressionLevel: 8 }).toBuffer());
+          originalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT).rotate().png({ compressionLevel: 8 }).toBuffer());
           originalContentType = 'image/png';
           originalExt = 'png';
         }
       } else {
         // Non-transparent images → WebP (smaller, faster)
         finalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT)
+          .rotate() // re-encoding drops EXIF — bake the orientation into the pixels first
           .resize(DISPLAY_MAX_SIDE, DISPLAY_MAX_SIDE, { fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 88 })
           .toBuffer());
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
         if (isOversized) {
           // Re-encode rather than store the raw upload — strips EXIF (GPS) from the public blob
           originalBuffer = Buffer.from(await sharp(buffer, SHARP_INPUT)
+            .rotate()
             .jpeg({ quality: 95, mozjpeg: true, chromaSubsampling: '4:4:4' })
             .toBuffer());
           originalContentType = 'image/jpeg';

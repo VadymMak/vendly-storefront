@@ -628,6 +628,14 @@ export interface ProcessingOverlayProps {
 export type EnhancementCategory = 'food' | 'product' | 'portrait' | 'general';
 export type EnhancementIntensity = 'natural' | 'professional' | 'bold';
 
+/** Output ratios offered by Creative Edit — the subset of xAI's edit enum that fits social formats. */
+export type CreativeAspectRatio = 'auto' | '9:16' | '3:4' | '1:1';
+
+/** Outcome of a Creative Edit request — errors are codes so each UI can show its own translated text. */
+export type CreativeEditResult =
+  | { ok: true; url: string }
+  | { ok: false; code: 'content_moderation' | 'no_credits' | 'failed'; message?: string };
+
 export interface SharpEnhanceParams {
   brightness: number;
   saturation: number;

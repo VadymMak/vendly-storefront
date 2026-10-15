@@ -47,6 +47,9 @@ export async function POST(req: Request) {
   // Accept modelAlias (new) or provider (legacy); no modelAlias → edit-kontext (Flux)
   const modelAlias = (formData.get('modelAlias') as string | null)
     ?? (formData.get('provider') === 'grok' ? 'edit-grok' : 'edit-kontext');
+  // Output ratio chosen by the user (Creative Edit); 'auto' or absent → follow the photo
+  const rawAspectRatio = formData.get('aspectRatio');
+  const requestedRatio = typeof rawAspectRatio === 'string' ? rawAspectRatio : null;
 
   if (!file)   return NextResponse.json({ error: 'No image provided' }, { status: 400 });
   if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
@@ -69,6 +72,9 @@ export async function POST(req: Request) {
   const model = getModel(modelAlias);
   if (!model || model.operation !== 'edit') {
     return NextResponse.json({ error: `Unknown edit model: ${modelAlias}` }, { status: 400 });
+  }
+  if (requestedRatio && !model.supportedRatios?.includes(requestedRatio)) {
+    return NextResponse.json({ error: `Unsupported aspect ratio: ${requestedRatio}` }, { status: 400 });
   }
   // Check provider supports edit
   const provider = getProvider(model.provider);
@@ -108,17 +114,24 @@ export async function POST(req: Request) {
     // Resize + upload image to blob storage
     const bytes   = await file.arrayBuffer();
     const maxSize = model.maxInputSize ?? 1024;
-    const { data: resized, info } = await sharp(Buffer.from(bytes))
-      .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
-      .png()
+    // A 2048px phone photo is 5–8 MB as PNG and ~1 MB as JPEG; Creative Edit has no alpha to keep
+    const asJpeg  = modelAlias === 'edit-grok-creative';
+    const pipeline = sharp(Buffer.from(bytes))
+      .rotate() // apply EXIF orientation — phone photos otherwise reach the provider sideways
+      .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true });
+    const { data: resized, info } = await (asJpeg ? pipeline.jpeg({ quality: 92 }) : pipeline.png())
       .toBuffer({ resolveWithObject: true });
-    // Tell Grok the input's shape so it doesn't fall back to its default ratio
-    const aspectRatio = model.provider === 'xai' ? grokAspectRatioFor(info.width, info.height) : undefined;
+    // Tell Grok the output shape: the user's pick, else the input's own so it doesn't fall back to its default ratio
+    const aspectRatio = model.provider !== 'xai'
+      ? undefined
+      : requestedRatio && requestedRatio !== 'auto'
+        ? requestedRatio
+        : grokAspectRatioFor(info.width, info.height);
 
     const blob = await put(
-      `studio/ai-edit/${session.user.id}/${Date.now()}.png`,
+      `studio/ai-edit/${session.user.id}/${Date.now()}.${asJpeg ? 'jpg' : 'png'}`,
       resized,
-      { access: 'public', contentType: 'image/png' },
+      { access: 'public', contentType: asJpeg ? 'image/jpeg' : 'image/png' },
     );
     inputBlobUrl = blob.url;
 
@@ -157,6 +170,7 @@ export async function POST(req: Request) {
         provider:  model.provider,
         // Always written (null when unknown) — key presence marks edits made after source tracking existed
         sourceUrl,
+        aspectRatio: requestedRatio ?? 'auto',
       },
     }).then(async (jobId) => {
       await db.studioJob.update({
@@ -186,6 +200,13 @@ export async function POST(req: Request) {
       errorMessage: msg,
     });
     console.error(`[studio/edit][${modelAlias}]`, err);
+    // Provider moderation is the user's to fix (other photo/prompt) — say so instead of "try again"
+    if (msg.toLowerCase().includes('moderation')) {
+      return NextResponse.json(
+        { error: 'The AI provider blocked this photo or prompt. Try rephrasing it or use another photo.', code: 'content_moderation' },
+        { status: 422 },
+      );
+    }
     return NextResponse.json({ error: 'Image editing failed. Please try again.' }, { status: 500 });
   } finally {
     if (inputBlobUrl) void discardBlobs([inputBlobUrl]);

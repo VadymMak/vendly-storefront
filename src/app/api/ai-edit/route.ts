@@ -9,6 +9,7 @@ import { consumeCredits, refundCredits, getOrCreateCredits } from '@/lib/credits
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { grokEdit } from '@/lib/xai-client';
+import { MODEL_CATALOG } from '@/lib/studio/config';
 
 export const maxDuration = 60;
 
@@ -92,6 +93,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Atomically reserve credits before the paid call — the platform XAI_API_KEY fallback
+    // above is ours to pay for; consumeCredits skips the charge for BYOK (byok_creator) users
+    const grokCost = MODEL_CATALOG['edit-grok'].creditCost;
+    const grokConsume = await consumeCredits(session.user.id, 'image', grokCost, 'xai');
+    if (!grokConsume.success) {
+      return NextResponse.json(
+        { error: grokConsume.reason, needsUpgrade: true },
+        { status: 403 },
+      );
+    }
+
     try {
       const bytes = await file.arrayBuffer();
       const resized = await sharp(Buffer.from(bytes))
@@ -108,6 +120,9 @@ export async function POST(req: Request) {
       const imageUrl = await grokEdit(xaiKey, blob.url, prompt);
       return NextResponse.json({ url: imageUrl });
     } catch (err) {
+      if (!grokConsume.byok) {
+        await refundCredits(session.user.id, 'image', grokConsume.fromBonus ?? 0, grokConsume.fromMonthly ?? 0);
+      }
       console.error('[ai-edit grok]', err);
       return NextResponse.json(
         { error: err instanceof Error ? err.message : 'Grok edit failed' },

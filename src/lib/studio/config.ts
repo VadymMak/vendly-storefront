@@ -258,6 +258,23 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     maxInputSize:   2048,
     enabled: true,
   },
+  // Creative Edit: photo + the user's own prompt, sent as-is (no wrapper, no translation)
+  'edit-grok-creative': {
+    displayName:    'Creative Edit (Grok)',
+    provider:       'xai',
+    modelId:        'grok-imagine-image-2.0',
+    operation:      'edit',
+    tier:           'quality',
+    costPerCall:    0.08, // xAI bills the input image as well as the 2k output
+    creditCost:     2,
+    creditType:     'image',
+    apiKeyProvider: 'xai',
+    envKeyName:     'XAI_API_KEY',
+    byokOnly:       false,
+    maxInputSize:   2048,
+    supportedRatios: ['auto', '9:16', '3:4', '1:1'],
+    enabled: true,
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

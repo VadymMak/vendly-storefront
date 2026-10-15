@@ -1,5 +1,5 @@
 import { getVideoCreditCost } from '@/lib/studio/config';
-import type { EnhancementPreset, EnhancementIntensity, SharpEnhanceParams } from '@/lib/types';
+import type { EnhancementPreset, EnhancementIntensity, SharpEnhanceParams, CreativeAspectRatio } from '@/lib/types';
 
 export const PRESET_MAP = {
   og:      { label: 'OG Image',     display: '1200 × 630',  aspect_ratio: '16:9', megapixels: '1',    target_width: 1200, target_height: 630  },
@@ -409,3 +409,13 @@ export const PLATFORM_VIDEO_PRESETS = [
 ] as const;
 
 export type PlatformVideoPresetId = typeof PLATFORM_VIDEO_PRESETS[number]['id'];
+
+// ── Creative Edit ─────────────────────────────────────────────────────────────
+
+/** Ratio chips for Creative Edit; labelKey lives in the `creativeEdit` message namespace. */
+export const CREATIVE_ASPECT_RATIOS: { id: CreativeAspectRatio; labelKey: 'ratioAuto' | 'ratioStory' | 'ratioFeed' | 'ratioSquare' }[] = [
+  { id: 'auto', labelKey: 'ratioAuto' },
+  { id: '9:16', labelKey: 'ratioStory' },
+  { id: '3:4',  labelKey: 'ratioFeed' },
+  { id: '1:1',  labelKey: 'ratioSquare' },
+];

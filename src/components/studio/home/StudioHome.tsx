@@ -8,12 +8,13 @@ import {
   type OutputFormat, type PlatformImagePresetId, type StyleChipId,
   type PresetKey, PRESET_MAP,
 } from '@/lib/studio/constants';
-import { type ModelTier } from '@/lib/studio/config';
+import { type ModelTier, MODEL_CATALOG } from '@/lib/studio/config';
 import CreditPackModal from '@/components/studio/CreditPackModal';
 import PricingModal from '@/components/studio/PricingModal';
 import { InpaintEditor } from '@/components/studio/editors/InpaintEditor';
 import { PlaceProductsEditor } from '@/components/studio/editors/PlaceProductsEditor';
 import { ImproveEditor } from '@/components/studio/editors/ImproveEditor';
+import { CreativeEditEditor } from '@/components/studio/editors/CreativeEditEditor';
 import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
 import { AnimateEditor } from '@/components/studio/editors/AnimateEditor';
@@ -26,7 +27,7 @@ import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
 // ── Quick tool config ─────────────────────────────────────────────────────────
 
 interface QuickTool {
-  id: 'generate-image' | 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products' | 'generate-video';
+  id: 'generate-image' | 'improve' | 'creative-edit' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products' | 'generate-video';
   label: string;
   description: string;
   credits: string;
@@ -50,6 +51,13 @@ const QUICK_TOOLS: QuickTool[] = [
     description: 'Enhance lighting, clarity, and detail',
     credits: '2 credits',
     iconSvg: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z',
+  },
+  {
+    id: 'creative-edit',
+    label: 'Creative Edit',
+    description: 'Photo + your prompt → new scene',
+    credits: creditLabel(MODEL_CATALOG['edit-grok-creative'].creditCost),
+    iconSvg: 'M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5',
   },
   {
     id: 'remove-bg',
@@ -137,7 +145,7 @@ export function StudioHome({ userId: _userId }: Props) {
 
   // ── Active editor state ─────────────────────────────────────────────────────
   const [activeEditor, setActiveEditor] = useState<{
-    tool: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint';
+    tool: 'improve' | 'creative-edit' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint';
     imageUrl: string;
     imageFile: File;
   } | null>(null);
@@ -339,7 +347,7 @@ export function StudioHome({ userId: _userId }: Props) {
       } else {
         editorBlobUrlsRef.current.add(url);
         setActiveEditor({
-          tool: pendingIntent as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
+          tool: pendingIntent as 'improve' | 'creative-edit' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
           imageUrl: url,
           imageFile: file,
         });
@@ -367,7 +375,7 @@ export function StudioHome({ userId: _userId }: Props) {
       } else {
         editorBlobUrlsRef.current.add(url);
         setActiveEditor({
-          tool: pendingIntent as 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
+          tool: pendingIntent as 'improve' | 'creative-edit' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint',
           imageUrl: url,
           imageFile: file,
         });
@@ -416,7 +424,7 @@ export function StudioHome({ userId: _userId }: Props) {
     router.push('/studio/assemble');
   }
 
-  function handleInlineToolSelect(toolId: 'improve' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products') {
+  function handleInlineToolSelect(toolId: 'improve' | 'creative-edit' | 'remove-bg' | 'upscale' | 'animate' | 'inpaint' | 'place-products') {
     if (!uploadedFile) return;
     if (toolId === 'place-products') {
       setPlaceProductsBgUrl(uploadedFile.url);
@@ -1414,6 +1422,7 @@ export function StudioHome({ userId: _userId }: Props) {
                 {/* Tool options grid */}
                 <div className="grid grid-cols-2 gap-2">
                   {([
+                    { id: 'creative-edit' as const,  label: 'Creative edit — your own prompt', credits: creditLabel(MODEL_CATALOG['edit-grok-creative'].creditCost), icon: 'M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5' },
                     { id: 'improve' as const,        label: 'Improve quality',          credits: '0–1 cr', icon: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z' },
                     { id: 'remove-bg' as const,      label: 'Remove background',        credits: '1 cr', icon: 'M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12' },
                     { id: 'upscale' as const,        label: 'Make larger & sharper',    credits: '1 cr', icon: 'M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7' },
@@ -1424,7 +1433,7 @@ export function StudioHome({ userId: _userId }: Props) {
                     <button
                       key={tool.id}
                       onClick={() => handleInlineToolSelect(tool.id)}
-                      className="flex items-center gap-2.5 p-2.5 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all text-left"
+                      className={`flex items-center gap-2.5 p-2.5 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-green-500/30 transition-all text-left ${tool.id === 'creative-edit' ? 'col-span-2' : ''}`}
                     >
                       <div className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center shrink-0">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400" aria-hidden="true">
@@ -1488,7 +1497,7 @@ export function StudioHome({ userId: _userId }: Props) {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Explore tools
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
             {QUICK_TOOLS.map(tool => (
               <button
                 key={tool.id}
@@ -1696,6 +1705,18 @@ export function StudioHome({ userId: _userId }: Props) {
           onAccept={(resultUrl) => {
             setActiveEditor(null);
             handleEditorResult(resultUrl, '[Enhanced] Improve', 'grok-edit', 'improve', activeEditor.imageUrl);
+          }}
+          onClose={() => closeEditor()}
+        />
+      )}
+
+      {activeEditor?.tool === 'creative-edit' && (
+        <CreativeEditEditor
+          imageUrl={activeEditor.imageUrl}
+          imageFile={activeEditor.imageFile}
+          onAccept={(resultUrl, creativePrompt) => {
+            setActiveEditor(null);
+            handleEditorResult(resultUrl, `[Creative] ${creativePrompt}`, 'grok-creative', undefined, activeEditor.imageUrl);
           }}
           onClose={() => closeEditor()}
         />

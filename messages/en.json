@@ -1508,7 +1508,9 @@
       "placeInSceneDesc": "Products in context",
       "moreTools": "More tools",
       "createReel": "Create Reel",
-      "createReelDesc": "Video from 2–5 photos"
+      "createReelDesc": "Video from 2–5 photos",
+      "creativeEdit": "Creative Edit",
+      "creativeEditDesc": "Transform your photo with your own prompt"
     },
     "format": {
       "title": "Create Post",
@@ -1891,5 +1893,39 @@
       "getCredits": "Get credits",
       "improve": "Improve photo"
     }
+  },
+  "creativeEdit": {
+    "title": "Creative Edit",
+    "subtitle": "Transform your photo with your own prompt",
+    "promptLabel": "Your idea",
+    "placeholder": "Describe the scene, style, lighting... Be creative!",
+    "example1": "Place this person on a rooftop at sunset, golden hour, cinematic lighting, shallow depth of field",
+    "example2": "Put her on a metro escalator, shot from a high angle, motion blur, editorial fashion photography",
+    "ratioLabel": "Format",
+    "ratioAuto": "Like photo",
+    "ratioStory": "9:16 Stories",
+    "ratioFeed": "3:4 Feed",
+    "ratioSquare": "1:1",
+    "create": "Create · {count} credits",
+    "processing": "Creating your image...",
+    "processingHint": "Usually takes about 15 seconds",
+    "original": "Original",
+    "result": "Result",
+    "done": "Your image is ready",
+    "doneDesc": "Compare with the original, then save or share it",
+    "moderation": "The AI couldn't process this photo or prompt. Try describing it differently or use another photo.",
+    "error": "Something went wrong. Please try again.",
+    "noCredits": "Not enough credits",
+    "editPrompt": "Edit prompt",
+    "newPhoto": "New photo",
+    "save": "Save",
+    "share": "Share",
+    "shareTitle": "My creative edit",
+    "addText": "Add text",
+    "editText": "Edit text",
+    "removeText": "Remove text",
+    "back": "Back",
+    "keep": "Keep result",
+    "changePhoto": "Change photo"
   }
 }

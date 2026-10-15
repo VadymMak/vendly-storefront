@@ -16,7 +16,7 @@ export function isAbusivePrompt(prompt: string): boolean {
   if (!prompt || typeof prompt !== 'string') return true;
   if (isGibberish(prompt)) return true;
   if (prompt.trim().length < 3) return true;
-  if (prompt.length > 2000) return true;
+  if (prompt.length > 4000) return true;
   if (/(.)\1{10,}/.test(prompt)) return true;
   return false;
 }

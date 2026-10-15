@@ -1508,7 +1508,9 @@
       "placeInSceneDesc": "Produkte im Kontext",
       "moreTools": "Mehr Werkzeuge",
       "createReel": "Reel erstellen",
-      "createReelDesc": "Video aus 2–5 Fotos"
+      "createReelDesc": "Video aus 2–5 Fotos",
+      "creativeEdit": "Kreative Bearbeitung",
+      "creativeEditDesc": "Verwandle dein Foto mit einem eigenen Prompt"
     },
     "format": {
       "title": "Beitrag erstellen",
@@ -1891,5 +1893,39 @@
       "getCredits": "Credits holen",
       "improve": "Foto verbessern"
     }
+  },
+  "creativeEdit": {
+    "title": "Kreative Bearbeitung",
+    "subtitle": "Verwandle dein Foto mit einem eigenen Prompt",
+    "promptLabel": "Deine Idee",
+    "placeholder": "Beschreibe die Szene, den Stil, die Beleuchtung... Sei kreativ!",
+    "example1": "Stell diese Person bei Sonnenuntergang auf eine Dachterrasse, goldene Stunde, cineastisches Licht, geringe Schärfentiefe",
+    "example2": "Stell sie auf eine U-Bahn-Rolltreppe, von oben fotografiert, Motion Blur, Editorial-Fashion-Fotografie",
+    "ratioLabel": "Format",
+    "ratioAuto": "Wie Foto",
+    "ratioStory": "9:16 Stories",
+    "ratioFeed": "3:4 Feed",
+    "ratioSquare": "1:1",
+    "create": "Erstellen · {count} Credits",
+    "processing": "Dein Bild wird erstellt...",
+    "processingHint": "Dauert meist etwa 15 Sekunden",
+    "original": "Original",
+    "result": "Ergebnis",
+    "done": "Dein Bild ist fertig",
+    "doneDesc": "Vergleiche es mit dem Original und speichere oder teile es",
+    "moderation": "Die KI konnte dieses Foto oder diesen Prompt nicht verarbeiten. Formuliere es anders oder nimm ein anderes Foto.",
+    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "noCredits": "Nicht genug Credits",
+    "editPrompt": "Prompt bearbeiten",
+    "newPhoto": "Neues Foto",
+    "save": "Speichern",
+    "share": "Teilen",
+    "shareTitle": "Meine kreative Bearbeitung",
+    "addText": "Text hinzufügen",
+    "editText": "Text bearbeiten",
+    "removeText": "Text entfernen",
+    "back": "Zurück",
+    "keep": "Ergebnis behalten",
+    "changePhoto": "Foto ändern"
   }
 }

@@ -284,3 +284,9 @@
 - [x] `/api/reel/generate` validates and forwards `ctaFont` / `ctaFontSize`; reel-service `sanitizeCtaStyle` → branded CTA and default CTA (size = main line, top line ×4/3)
 - [x] i18n `ctaFont` / `ctaSize` for en/ru/uk/cs/sk/de
 - [ ] Manual test: reel with phone photo; reel with each font, with and without Brand Kit
+
+### PROMPT-258 — Reel CTA uses the existing font / color pickers ✅
+- [x] Reel screen: Assemble `FontPicker` (FONT_CATALOG) + `ColorPicker` replace the PROMPT-257 preset chips; size slider kept (no shared size component exists)
+- [x] `/api/reel/generate` forwards `ctaFontFamily`, `ctaFontSize`, `ctaColor` (color only when picked — Brand Kit contrast rules stay otherwise)
+- [x] reel-service: family checked against `fc-list`, not installed → Manrope; color on both CTA variants (backup `~/reel-service-backups/2026-10-16-pre258/`)
+- [ ] Only ~9 catalog families are installed on the server — most picks render as Manrope until more fonts are installed in /usr/local/share/fonts/google/

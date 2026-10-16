@@ -70,14 +70,16 @@ export function ReelGenerating() {
       let cta1 = '';
       let cta2 = '';
       let musicTrackId = 'warm-cafe';
-      let ctaFont: string | undefined;
+      let ctaFontFamily: string | undefined;
       let ctaFontSize: number | undefined;
+      let ctaColor: string | undefined;
       try {
         mode = sessionStorage.getItem('reel-mode') ?? 'images';
         cta1 = sessionStorage.getItem('reel-cta1') ?? '';
         cta2 = sessionStorage.getItem('reel-cta2') ?? '';
         musicTrackId = sessionStorage.getItem('reel-musicTrackId') ?? 'warm-cafe';
-        ctaFont = sessionStorage.getItem('reel-ctaFont') ?? undefined;
+        ctaFontFamily = sessionStorage.getItem('reel-ctaFont') ?? undefined;
+        ctaColor = sessionStorage.getItem('reel-ctaColor') ?? undefined;
         const size = Number(sessionStorage.getItem('reel-ctaFontSize'));
         ctaFontSize = size > 0 ? size : undefined;
       } catch {}
@@ -99,8 +101,9 @@ export function ReelGenerating() {
           cta1,
           cta2,
           musicTrackId,
-          ctaFont,
+          ctaFontFamily,
           ctaFontSize,
+          ctaColor,
         }),
       });
 

@@ -1807,8 +1807,9 @@
       "ctaDefault2": "Замовити зараз →",
       "ctaLine1": "Заголовок",
       "ctaLine2": "Заклик до дії",
-      "ctaFont": "Стиль шрифту",
-      "ctaSize": "Розмір"
+      "ctaFont": "Шрифт",
+      "ctaSize": "Розмір",
+      "ctaColor": "Колір тексту"
     },
     "removeBgEditor": {
       "title": "Видалити фон",

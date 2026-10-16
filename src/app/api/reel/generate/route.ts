@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { consumeCredits, refundCredits, REEL_CREDIT_COST, type ReelMode } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { getUserBrandKit } from '@/lib/studio/brand-utils';
-import { FONT_PRESETS, REEL_CTA_FONT_SIZE } from '@/lib/constants';
+import { REEL_CTA_FONT_SIZE } from '@/lib/constants';
 
 const REEL_SERVICE_URL = 'http://127.0.0.1:3010';
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   let body: {
     photos?: unknown; mode?: unknown; cta1?: unknown; cta2?: unknown; musicTrackId?: unknown;
-    ctaFont?: unknown; ctaFontSize?: unknown;
+    ctaFontFamily?: unknown; ctaFontSize?: unknown; ctaColor?: unknown;
   };
   try {
     body = await request.json();
@@ -34,8 +34,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
   const { photos, cta1, cta2, musicTrackId } = body;
-  // Per-reel CTA style — overrides the Brand Kit font; undefined keeps reel-service defaults
-  const ctaFont = FONT_PRESETS.find((p) => p.id === body.ctaFont)?.id;
+  // Per-reel CTA style — overrides the Brand Kit; undefined keeps reel-service defaults.
+  // Any family name is passed on: reel-service renders it if installed, else falls back to Manrope.
+  const ctaFontFamily = typeof body.ctaFontFamily === 'string' && /^[\w .-]{1,64}$/.test(body.ctaFontFamily)
+    ? body.ctaFontFamily
+    : undefined;
+  // ColorPicker may add an alpha byte (#RRGGBBAA) — the reel text is opaque
+  const ctaColor = typeof body.ctaColor === 'string' && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(body.ctaColor)
+    ? body.ctaColor.slice(0, 7)
+    : undefined;
   const ctaFontSize = typeof body.ctaFontSize === 'number' && Number.isFinite(body.ctaFontSize)
     ? Math.min(Math.max(Math.round(body.ctaFontSize), REEL_CTA_FONT_SIZE.min), REEL_CTA_FONT_SIZE.max)
     : undefined;
@@ -95,7 +102,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         photos, mode, cta1, cta2, userId,
         musicTrackId: musicTrackId || 'warm-cafe',
-        ctaFont, ctaFontSize,
+        ctaFontFamily, ctaFontSize, ctaColor,
         brandKit: brandPayload,
       }),
     });

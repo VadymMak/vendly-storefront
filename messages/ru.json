@@ -1840,7 +1840,8 @@
       "ctaPreviewClose": "Закрыть предпросмотр",
       "uploadProgress": "Загрузка {done}/{total}...",
       "uploadPartial": "Загружено {done} из {total} фото",
-      "cyrillicWarning": "Шрифт не поддерживает кириллицу"
+      "cyrillicWarning": "Шрифт не поддерживает кириллицу",
+      "checkPhotos": "Проверить фото"
     },
     "removeBgEditor": {
       "title": "Удалить фон",

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { compressImage } from '@/lib/studio/compress-image';
 import { MAX_REEL_PHOTOS, isPhonePhoto, readPhonePhotos, readReelPhotos, reelPhotoFromWork, writePhonePhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
@@ -16,6 +16,7 @@ type View = Filter | `select-${ReelSource}`;
 const PAGE_SIZE = 30;
 // Phone multi-select uploads in flight at once — keeps the upload route and slow mobile links unclogged
 const PHONE_UPLOAD_CONCURRENCY = 3;
+const SELECT_MODE_PATH = '/studio/m/library';
 const FILTERS: { id: Filter; key: 'filterAll' | 'filterImages' | 'filterVideos' }[] = [
   { id: 'all', key: 'filterAll' },
   { id: 'image', key: 'filterImages' },
@@ -57,8 +58,14 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
   const t = useTranslations('mobile.library');
   const tReel = useTranslations('mobile.reel');
   const router = useRouter();
+  // Also read the live URL: enterSelectMode adds ?select=1 with replaceState, and Back restores this
+  // page from Next's client cache — rendered with the props of the URL as it was before that
+  const searchParams = useSearchParams();
+  const startInSelect = initialSelect || searchParams.get('select') === '1';
   const [filter, setFilter] = useState<Filter>('all');
-  const [selectMode, setSelectMode] = useState(initialSelect);
+  const [selectMode, setSelectMode] = useState(startInSelect);
+  // Frozen at mount — entering select mode later changes the URL but must not re-restore
+  const [restoreOnMount] = useState(startInSelect);
   const [source, setSource] = useState<ReelSource>('library');
   // Keyed by id and kept across source tabs — the grid only holds the current tab's items
   const [selected, setSelected] = useState<Map<string, ReelPhoto>>(() => new Map());
@@ -100,13 +107,13 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
   // Back from Quality Check "+": keep what is already in the reel (sessionStorage is client-only).
   // Selected phone photos join the phone grid too — the count must match what the tabs show.
   useEffect(() => {
-    const restored = initialSelect ? readReelPhotos() : [];
-    if (initialSelect) setSelected(new Map(restored.map((p) => [p.id, p])));
+    const restored = restoreOnMount ? readReelPhotos() : [];
+    if (restoreOnMount) setSelected(new Map(restored.map((p) => [p.id, p])));
     const stored = readPhonePhotos();
     const missing = restored.filter((p) => isPhonePhoto(p) && !stored.some((s) => s.id === p.id));
     setPhonePhotos([...stored, ...missing]);
     setPhonePhotosRestored(true);
-  }, [initialSelect]);
+  }, [restoreOnMount]);
 
   useEffect(() => {
     if (phonePhotosRestored) writePhonePhotos(phonePhotos);
@@ -123,9 +130,17 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
     });
   }
 
+  // The URL mirrors select mode, so Back from Quality Check (header or system) lands here in select
+  // mode and the mount restore brings the selection back. Next syncs native history calls.
+  function enterSelectMode() {
+    setSelectMode(true);
+    window.history.replaceState(null, '', `${SELECT_MODE_PATH}?select=1`);
+  }
+
   function exitSelectMode() {
     setSelectMode(false);
     setSelected(new Map());
+    window.history.replaceState(null, '', SELECT_MODE_PATH);
   }
 
   function toggleSelected(item: StudioWorkItem) {
@@ -200,7 +215,8 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
 
   function handleCreateReel() {
     writeReelPhotos([...selected.values()]);
-    router.push('/studio/m/reel/check');
+    // Tells Quality Check that the previous history entry is this picker (its Back = history back)
+    router.push('/studio/m/reel/check?from=library');
   }
 
   async function loadMore() {
@@ -244,7 +260,7 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
           </Link>
           <h1 className="flex-1 text-base font-semibold text-white">{t('title')}</h1>
           <button
-            onClick={() => setSelectMode(true)}
+            onClick={enterSelectMode}
             className="min-h-11 rounded-full px-4 text-sm font-medium text-green-400 active:bg-white/[0.06]"
           >
             {tReel('select')}
@@ -468,7 +484,7 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
             onClick={handleCreateReel}
             className="flex min-h-11 w-full items-center justify-center rounded-xl bg-green-600 py-3 text-base font-semibold text-white active:bg-green-700"
           >
-            {tReel('createReel')}
+            {tReel('checkPhotos')}
           </button>
         </div>
       )}

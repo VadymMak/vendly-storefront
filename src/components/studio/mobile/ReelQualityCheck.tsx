@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
@@ -167,6 +166,15 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
   }, []);
 
+  // Back to the photo picker (header, "+", empty state). Coming from the picker its history entry is
+  // right behind us, so go back like the system button does — pushing it again would grow the stack
+  // library→check→library→… Entered elsewhere (Result "Use in Reel", reload): replace with the picker.
+  function goToSelection() {
+    const fromLibrary = new URLSearchParams(window.location.search).get('from') === 'library';
+    if (fromLibrary && window.history.length > 1) router.back();
+    else router.replace('/studio/m/library?select=1');
+  }
+
   function update(next: ReelPhoto[]) {
     setPhotos(next);
     writeReelPhotos(next);
@@ -234,12 +242,12 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     return (
       <div className="flex flex-col items-center gap-4 px-8 py-16 text-center">
         <p className="text-base font-semibold text-white">{t('emptyCheck')}</p>
-        <Link
-          href="/studio/m/library?select=1"
+        <button
+          onClick={goToSelection}
           className="flex min-h-11 items-center rounded-2xl bg-green-600 px-6 text-sm font-semibold text-white active:bg-green-700"
         >
           {t('pickPhotos')}
-        </Link>
+        </button>
       </div>
     );
   }
@@ -286,7 +294,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <button
-          onClick={() => router.push('/studio/m/library')}
+          onClick={goToSelection}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.06] text-gray-400"
           aria-label={t('back')}
         >
@@ -373,15 +381,15 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           );
         })}
         {photos.length < MAX_REEL_PHOTOS && (
-          <Link
-            href="/studio/m/library?select=1"
+          <button
+            onClick={goToSelection}
             aria-label={t('addMore')}
             className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-white/20 text-gray-400 active:bg-white/[0.06]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </Link>
+          </button>
         )}
       </div>
       )}

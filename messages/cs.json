@@ -1840,7 +1840,8 @@
       "ctaPreviewClose": "Zavřít náhled",
       "uploadProgress": "Nahrávání {done}/{total}...",
       "uploadPartial": "Nahráno {done} z {total} fotek",
-      "cyrillicWarning": "Písmo nepodporuje cyrilici"
+      "cyrillicWarning": "Písmo nepodporuje cyrilici",
+      "checkPhotos": "Zkontrolovat fotky"
     },
     "removeBgEditor": {
       "title": "Odstranit pozadí",

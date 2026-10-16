@@ -1840,7 +1840,8 @@
       "ctaPreviewClose": "Close preview",
       "uploadProgress": "Uploading {done}/{total}...",
       "uploadPartial": "Uploaded {done} of {total} photos",
-      "cyrillicWarning": "This font doesn't support Cyrillic"
+      "cyrillicWarning": "This font doesn't support Cyrillic",
+      "checkPhotos": "Check photos"
     },
     "removeBgEditor": {
       "title": "Remove Background",

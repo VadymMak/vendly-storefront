@@ -1827,7 +1827,8 @@
       "musicTitle": "Музика",
       "noMusic": "Без музики",
       "selectPhotosHint": "Виберіть 2–5 фото для Reel",
-      "tapToSeeScores": "Натисніть, щоб побачити оцінки"
+      "tapToSeeScores": "Натисніть, щоб побачити оцінки",
+      "checkPhotos": "Перевірити фото"
     },
     "removeBgEditor": {
       "title": "Видалити фон",

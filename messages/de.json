@@ -1840,7 +1840,8 @@
       "ctaPreviewClose": "Vorschau schließen",
       "uploadProgress": "Hochladen {done}/{total}...",
       "uploadPartial": "{done} von {total} Fotos hochgeladen",
-      "cyrillicWarning": "Schrift unterstützt kein Kyrillisch"
+      "cyrillicWarning": "Schrift unterstützt kein Kyrillisch",
+      "checkPhotos": "Fotos prüfen"
     },
     "removeBgEditor": {
       "title": "Hintergrund entfernen",

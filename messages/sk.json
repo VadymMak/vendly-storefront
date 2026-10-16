@@ -1831,7 +1831,8 @@
       "ctaPreviewClose": "Zavrieť náhľad",
       "uploadProgress": "Nahrávanie {done}/{total}...",
       "uploadPartial": "Nahraných {done} z {total} fotiek",
-      "cyrillicWarning": "Písmo nepodporuje cyriliku"
+      "cyrillicWarning": "Písmo nepodporuje cyriliku",
+      "checkPhotos": "Skontrolovať fotky"
     },
     "removeBgEditor": {
       "title": "Odstrániť pozadie",

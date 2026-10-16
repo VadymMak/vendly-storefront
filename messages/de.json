@@ -1526,7 +1526,13 @@
       "continue": "Weiter",
       "example1": "Gemütliches Café mit warmem Morgenlicht und frischem Gebäck auf dem Tisch",
       "example2": "Latte Art in einer Keramiktasse auf einem Holztisch, von oben fotografiert",
-      "example3": "Handgemachte Lavendelkerzen auf Leinenstoff, weiches Tageslicht"
+      "example3": "Handgemachte Lavendelkerzen auf Leinenstoff, weiches Tageslicht",
+      "editLabel": "Was sollen wir ändern? (optional)",
+      "editPlaceholder": "z. B. mach es heller, wärmeres Licht...",
+      "editExample1": "Mach es heller und lebendiger",
+      "editExample2": "Wärmeres Abendlicht",
+      "editExample3": "Weichere Schatten, hellere Farben",
+      "rewriteHint": "Der Text ist als Fotobearbeitung formuliert — beschreiben Sie stattdessen das Bild, das Sie erstellen möchten."
     },
     "style": {
       "title": "Stil wählen",

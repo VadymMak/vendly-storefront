@@ -1526,7 +1526,13 @@
       "continue": "Pokračovať",
       "example1": "Útulná kaviareň s teplým ranným svetlom a čerstvým pečivom na stole",
       "example2": "Latte art v keramickej šálke na drevenom stole, pohľad zhora",
-      "example3": "Ručne robené levanduľové sviečky na ľanovej látke, mäkké denné svetlo"
+      "example3": "Ručne robené levanduľové sviečky na ľanovej látke, mäkké denné svetlo",
+      "editLabel": "Čo zmeniť? (voliteľné)",
+      "editPlaceholder": "napr. urob to svetlejšie, teplejšie svetlo...",
+      "editExample1": "Urob to svetlejšie a živšie",
+      "editExample2": "Teplejšie večerné svetlo",
+      "editExample3": "Jemnejšie tiene, jasnejšie farby",
+      "rewriteHint": "Text je napísaný ako úprava fotky — popíšte obrázok, ktorý chcete vytvoriť."
     },
     "style": {
       "title": "Vyberte štýl",

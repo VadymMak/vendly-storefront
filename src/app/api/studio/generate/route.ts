@@ -56,7 +56,23 @@ const IMG2IMG_STYLE_PREFIX: Record<string, string> = {
 // ("cozy café, warm atmosphere") restate what the photo already shows, so they are dropped.
 // Bare "warm"/"cool" are left out because they are usually adjectives in scene descriptions.
 // Lookarounds instead of \b: JS \b is ASCII-only, so it never matches around Cyrillic.
-const IMG2IMG_ACTION_WORDS = /(?<!\p{L})(make|add|remove|change|replace|clean|brighten|darken|sharpen|blur|soften|crop|lighter|brighter|darker|warmer|cooler|fix|improve|increase|decrease|reduce|lift|boost|сделай|убери|добавь|измени|замени|почисти|ярче|темнее|теплее|холоднее|убрать|очистить|удалить|улучшить|усилить|зроби|прибери|додай|зміни|заміни|почисть|яскравіше|темніше|тепліше|холодніше|прибрати|видалити|покращити|посилити)(?!\p{L})/iu;
+// German, Czech and Slovak comparatives/verbs inflect, so those are stems with a short suffix.
+// German endings are listed explicitly so place names like "Hellerau" don't match.
+const DE_END = '(?:e|en|er|es|em|n|t)?';
+const IMG2IMG_ACTION_WORDS = new RegExp('(?<!\\p{L})(' + [
+  // EN
+  'make|add|remove|change|replace|clean|brighten|darken|sharpen|blur|soften|crop|lighter|brighter|darker|warmer|cooler|fix|improve|increase|decrease|reduce|lift|boost',
+  // RU
+  'сделай|убери|добавь|измени|замени|почисти|ярче|темнее|теплее|холоднее|убрать|очистить|удалить|улучшить|усилить',
+  // UK
+  'зроби|прибери|додай|зміни|заміни|почисть|яскравіше|темніше|тепліше|холодніше|прибрати|видалити|покращити|посилити',
+  // DE
+  'mach|mache|machen|heller' + DE_END + '|dunkler' + DE_END + '|wärmer' + DE_END + '|kühler' + DE_END + '|entfern' + DE_END + '|füge|hinzufügen|änder' + DE_END + '|ersetz' + DE_END + '|verbesser' + DE_END + '|aufhell' + DE_END + '|schärfer' + DE_END,
+  // CS
+  'udělej|udělat|přidej|přidat|změň|změnit|nahraď|vyčisti|vylepši|vylepšit|zesvětli|zesvětlit|ztmav\\p{L}{0,2}|světlejš\\p{L}{0,2}|jasnějš\\p{L}{0,2}|teplejš\\p{L}{0,2}|chladnějš\\p{L}{0,2}|tmavš\\p{L}{0,2}|odstraň|odstranit',
+  // SK
+  'urob|urobiť|pridaj|pridať|zmeň|zmeniť|nahraď|vyčisti|vylepši|vylepšiť|zosvetli|zosvetliť|svetlejš\\p{L}{0,2}|jasnejš\\p{L}{0,2}|teplejš\\p{L}{0,2}|chladnejš\\p{L}{0,2}|odstráň|odstrániť',
+].join('|') + ')(?!\\p{L})', 'iu');
 
 /** Closest ratio the model accepts, e.g. 4:5 → 3:4 for Kontext (which has no 4:5). */
 function closestRatio(requested: string, supported: string[]): string {
@@ -146,8 +162,11 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const prompt = body.prompt?.trim();
-  if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+  // Mobile wizard with a photo: the text is an optional edit instruction, the style preset alone is
+  // a complete request. Styles without a text-to-image prefix ('none', 'reference') then send ''.
+  const isPhotoTransform = Boolean(body.reference_image && body.style_id);
+  const prompt = body.prompt?.trim() ?? '';
+  if (!prompt && !isPhotoTransform) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
 
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
@@ -180,7 +199,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
-  if (isAbusivePrompt(prompt)) {
+  if (prompt && isAbusivePrompt(prompt)) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
@@ -218,6 +237,13 @@ export async function POST(request: Request) {
     // Kontext unavailable (no key / disabled) — fall through to text-to-image. The client
     // sees X-Generation-Mode: text_create and does not show a before/after comparison.
     console.warn('[studio/generate] reference_image present but Kontext unavailable, falling back to text-to-image');
+    // Nothing to create from without the photo edit
+    if (!prompt) {
+      return NextResponse.json(
+        { error: 'Photo transformation failed. Please try again.', code: 'transform_failed' },
+        { status: 503 },
+      );
+    }
   }
 
   // ── Resolve model alias ────────────────────────────────────────────────────

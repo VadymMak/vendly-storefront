@@ -1526,7 +1526,13 @@
       "continue": "Continue",
       "example1": "Cozy café interior with warm morning light and fresh pastries on the table",
       "example2": "Latte art in a ceramic cup on a wooden table, top-down shot",
-      "example3": "Handmade lavender candles on a linen cloth, soft natural light"
+      "example3": "Handmade lavender candles on a linen cloth, soft natural light",
+      "editLabel": "What should we change? (optional)",
+      "editPlaceholder": "e.g. make it brighter, warmer evening light...",
+      "editExample1": "Make it brighter and more vivid",
+      "editExample2": "Warmer evening light",
+      "editExample3": "Softer shadows, brighter colors",
+      "rewriteHint": "Your text was written as an edit — describe the image you want to create instead."
     },
     "style": {
       "title": "Choose a style",

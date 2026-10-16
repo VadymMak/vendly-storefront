@@ -1526,7 +1526,13 @@
       "continue": "Pokračovat",
       "example1": "Útulná kavárna s teplým ranním světlem a čerstvým pečivem na stole",
       "example2": "Latte art v keramickém šálku na dřevěném stole, pohled shora",
-      "example3": "Ručně vyráběné levandulové svíčky na lněné látce, měkké denní světlo"
+      "example3": "Ručně vyráběné levandulové svíčky na lněné látce, měkké denní světlo",
+      "editLabel": "Co změnit? (volitelné)",
+      "editPlaceholder": "např. udělej to světlejší, teplejší světlo...",
+      "editExample1": "Udělej to světlejší a živější",
+      "editExample2": "Teplejší večerní světlo",
+      "editExample3": "Jemnější stíny, jasnější barvy",
+      "rewriteHint": "Text je napsaný jako úprava fotky — popište obrázek, který chcete vytvořit."
     },
     "style": {
       "title": "Vyberte styl",

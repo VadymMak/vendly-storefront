@@ -25,7 +25,6 @@ const DEFAULT_STYLE_ID = 'social';
 export function InputStep({ onContinue, onBack, presetId, onPresetChange, initialDescription, initialReferenceImageUrl, initialStyleId }: Props) {
   const t = useTranslations('mobile.input');
   const tStyle = useTranslations('mobile.style');
-  const EXAMPLES = [t('example1'), t('example2'), t('example3')];
   const searchParams = useSearchParams();
   // ?prompt= comes from "Make a Story" on the result screen — start from the original description
   const [description, setDescription] = useState(() => initialDescription || (searchParams.get('prompt') ?? ''));
@@ -39,14 +38,24 @@ export function InputStep({ onContinue, onBack, presetId, onPresetChange, initia
     initialStyleId && (initialStyleId !== 'reference' || initialReferenceImageUrl) ? initialStyleId : DEFAULT_STYLE_ID,
   );
 
+  // With a photo the text is an optional edit instruction ("make it brighter"), not a scene to create
+  const hasPhoto = !!referenceImageUrl;
+  const EXAMPLES = hasPhoto
+    ? [t('editExample1'), t('editExample2'), t('editExample3')]
+    : [t('example1'), t('example2'), t('example3')];
+  // Edit text left behind after removing the photo would become a text-to-image prompt
+  const [showRewriteHint, setShowRewriteHint] = useState(false);
+
   function clearReference() {
     setReferenceImageUrl(undefined);
     if (styleId === 'reference') setStyleId(DEFAULT_STYLE_ID);
+    if (description.trim()) setShowRewriteHint(true);
   }
   const [exampleIndex, setExampleIndex] = useState(0);
 
   const handleTranscript = useCallback((text: string) => {
     setDescription((prev) => (prev ? `${prev} ${text}` : text));
+    setShowRewriteHint(false);
   }, []);
 
   function nextExample() {
@@ -55,10 +64,12 @@ export function InputStep({ onContinue, onBack, presetId, onPresetChange, initia
 
   function fillExample() {
     setDescription(EXAMPLES[exampleIndex]);
+    setShowRewriteHint(false);
     nextExample();
   }
 
-  const canContinue = description.trim().length >= 3;
+  const textLength = description.trim().length;
+  const canContinue = hasPhoto ? textLength === 0 || textLength >= 3 : textLength >= 3;
 
   return (
     <div className="flex flex-col" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
@@ -92,12 +103,15 @@ export function InputStep({ onContinue, onBack, presetId, onPresetChange, initia
 
         {/* Description */}
         <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{t('describeLabel')}</p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">{hasPhoto ? t('editLabel') : t('describeLabel')}</p>
+          {showRewriteHint && !hasPhoto && (
+            <p role="status" className="mb-2 text-xs text-amber-400">{t('rewriteHint')}</p>
+          )}
           <div className="relative">
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('describePlaceholder')}
+              onChange={(e) => { setDescription(e.target.value); setShowRewriteHint(false); }}
+              placeholder={hasPhoto ? t('editPlaceholder') : t('describePlaceholder')}
               rows={4}
               className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] p-4 pr-14 text-sm text-white placeholder-gray-600 focus:border-green-500/50 focus:outline-none"
             />

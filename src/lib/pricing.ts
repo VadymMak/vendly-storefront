@@ -43,7 +43,7 @@ const ROWS: Record<OperationId, CostRow> = {
   // Editing
   'kontext-edit':  img('Kontext edit', 2),     // also the photo transform in studio/generate
   'creative-edit': img('Creative Edit', 2),
-  'ai-style':      img('AI Style', 1),         // Improve's AI finish; the base presets are free
+  'ai-style':      img('AI Style', 2),         // Improve's AI finish (Grok 2k); the base presets are free
   'inpaint':       img('Change or remove', 2),
   'remove-bg':     img('Remove background', 1),
   'upscale':       img('Upscale', 1),          // /api/enhance-image: upscale, SUPIR, face enhance

@@ -90,10 +90,9 @@ export async function checkCredits(
   const credits = await getOrCreateCredits(userId);
   const userPlan = (credits.planType || 'free') as string;
 
-  // Check if user has BYOK key for this provider
-  const hasByokKey = provider
-    ? await hasUserApiKey(userId, provider)
-    : await hasAnyApiKey(userId);
+  // BYOK only for the provider the route actually calls with the user's key. No provider named =
+  // the route runs on platform keys → credits (a saved Anthropic key must not unlock Kling video).
+  const hasByokKey = provider ? await hasUserApiKey(userId, provider) : false;
 
   // ONLY byok_creator gets unlimited bypass — Starter/Pro always use credits
   if (hasByokKey && userPlan === 'byok_creator') {
@@ -148,9 +147,7 @@ export async function deductCredit(
 
   // Check BYOK status + plan
   const userPlan = (credits.planType || 'free') as string;
-  const isByok = provider
-    ? await hasUserApiKey(userId, provider)
-    : await hasAnyApiKey(userId);
+  const isByok = provider ? await hasUserApiKey(userId, provider) : false;
 
   // ONLY byok_creator skips credit deduction — Starter/Pro always deduct
   if (isByok && userPlan === 'byok_creator') {
@@ -218,9 +215,8 @@ export async function consumeCredits(
   const credits = await getOrCreateCredits(userId);
   const userPlan = (credits.planType || 'free') as string;
 
-  const isByok = allowByok && (provider
-    ? await hasUserApiKey(userId, provider)
-    : await hasAnyApiKey(userId));
+  // Same rule as checkCredits: no provider named → platform keys → charged
+  const isByok = allowByok && provider ? await hasUserApiKey(userId, provider) : false;
 
   if (isByok && userPlan === 'byok_creator') {
     await db.studioCredits.update({

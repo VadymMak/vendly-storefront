@@ -1264,6 +1264,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
         onClose={() => setShowPricing(false)}
         currentPlan={creditStatus?.plan}
         onBuyCredits={() => { setShowPricing(false); setCreditPackReason('credits'); setShowCreditPack(true); }}
+        isSuperuser={creditStatus?.superuser}
       />
 
       {/* ── Checkout / subscription success toast ─────────────────────────── */}

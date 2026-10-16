@@ -46,7 +46,7 @@ export const SKILL_CREDITS = `Credit System:
 - Free plan: ${PLAN_CREDITS.free.images} image credits/month, ${PLAN_CREDITS.free.videos} video credits.
 - Starter (€${STUDIO_PLAN_PRICES_EUR.starter}/mo): ${PLAN_CREDITS.starter.images} image + ${PLAN_CREDITS.starter.videos} video credits.
 - Pro (€${STUDIO_PLAN_PRICES_EUR.pro}/mo): ${PLAN_CREDITS.pro.images} image + ${PLAN_CREDITS.pro.videos} video credits.
-- BYOK Creator (€${STUDIO_PLAN_PRICES_EUR.byok_creator}/mo): unlimited generation with the user's own API keys, 0 credits charged. On other plans own keys do not skip credits.
+- Own API keys (BYOK) are not offered to customers — do not suggest them; all generation uses credits.
 - Reels: photo reel ${REEL_CREDIT_COST.images.amount} image credits, AI video reel ${REEL_CREDIT_COST.video.amount} video credits — on every plan, BYOK included.
 - One-time credit packs (never expire): ${PACKS_LINE}.`;
 

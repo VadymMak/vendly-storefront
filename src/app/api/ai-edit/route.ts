@@ -152,7 +152,9 @@ export async function POST(req: Request) {
 
   // Atomically reserve credit before calling the AI provider (prevents TOCTOU race).
   // Done after the key check, so a request that can't reach the provider never charges.
-  const consume = await consumeCredits(session.user.id, 'image', 1, 'replicate');
+  // Same cost as the catalog's Kontext model (and the Creative Edit / desktop labels)
+  const kontextCost = MODEL_CATALOG['edit-kontext'].creditCost;
+  const consume = await consumeCredits(session.user.id, 'image', kontextCost, 'replicate');
   if (!consume.success) {
     return NextResponse.json(
       { error: consume.reason, needsUpgrade: true },

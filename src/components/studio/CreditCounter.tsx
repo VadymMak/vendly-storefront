@@ -87,6 +87,7 @@ export default function CreditCounter() {
           onClose={() => setShowPricing(false)}
           currentPlan={status.plan}
           onBuyCredits={() => setShowPacks(true)}
+          isSuperuser={status.superuser}
         />
       </>
     );
@@ -150,6 +151,7 @@ export default function CreditCounter() {
         onClose={() => setShowPricing(false)}
         currentPlan={status.plan}
         onBuyCredits={() => setShowPacks(true)}
+        isSuperuser={status.superuser}
       />
     </>
   );

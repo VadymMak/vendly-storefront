@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR, reelsForCredits } from '@/lib/constants';
+import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR, SUPERUSER_ONLY_PLANS, reelsForCredits } from '@/lib/constants';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   currentPlan?: string;
   onBuyCredits?: () => void;
+  /** Superusers also see the superuser-only plans (BYOK) */
+  isSuperuser?: boolean;
 }
 
 type PlanKey = 'starter' | 'pro' | 'byok_creator';
@@ -24,14 +26,14 @@ function getPlanDisplay(key: PlanKey) {
       const { images, videos } = PLAN_CREDITS.starter;
       return {
         name: 'Starter', price,
-        features: [`${images} images/month`, `${videos} video credits/month`, reelLine(images, videos), 'Best & HD quality tiers', 'Own API keys supported'],
+        features: [`${images} images/month`, `${videos} video credits/month`, reelLine(images, videos), 'Best & HD quality tiers'],
       };
     }
     case 'pro': {
       const { images, videos } = PLAN_CREDITS.pro;
       return {
         name: 'Pro', price,
-        features: [`${images} images/month`, `${videos} video credits/month`, reelLine(images, videos), 'Best & HD quality tiers', 'Priority generation queue', 'Own API keys supported'],
+        features: [`${images} images/month`, `${videos} video credits/month`, reelLine(images, videos), 'Best & HD quality tiers', 'Priority generation queue'],
       };
     }
     case 'byok_creator': return {
@@ -48,8 +50,10 @@ const PLANS: { key: PlanKey; popular?: boolean }[] = [
   { key: 'byok_creator' },
 ];
 
-export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredits }: Props) {
+export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredits, isSuperuser = false }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
+  // Superuser-only plans stay visible to superusers and to anyone already on one (to manage it)
+  const plans = PLANS.filter(({ key }) => !SUPERUSER_ONLY_PLANS.has(key) || isSuperuser || currentPlan === key);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -115,8 +119,8 @@ export default function PricingModal({ isOpen, onClose, currentPlan, onBuyCredit
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PLANS.map(({ key, popular }) => {
+        <div className={`grid grid-cols-1 gap-4 ${plans.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          {plans.map(({ key, popular }) => {
             const plan = getPlanDisplay(key);
             const isCurrent = currentPlan === key;
 

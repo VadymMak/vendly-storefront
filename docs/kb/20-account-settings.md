@@ -24,9 +24,6 @@ Each link works once. You can request up to 3 links per hour. No email? Check yo
 
 Access settings from the gear icon in Studio or go to Studio → Settings.
 
-### API Keys
-Add your own provider API keys for BYOK usage. See the BYOK guide for details.
-
 ### Subscription Management
 - View your current plan
 - Upgrade or downgrade

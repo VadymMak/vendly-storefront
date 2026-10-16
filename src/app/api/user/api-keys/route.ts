@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { encrypt } from '@/lib/encryption';
+import { isSuperuser } from '@/lib/credits';
 import { z } from 'zod/v4';
 
 const KEY_PREFIXES: Record<string, string> = {
@@ -34,6 +35,10 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Own API keys (BYOK) are superuser-only; listing / deleting keys saved earlier still works
+  if (!(await isSuperuser(session.user.id))) {
+    return NextResponse.json({ error: 'Own API keys are not available on your plan' }, { status: 403 });
+  }
 
   const body = await request.json();
   const data = saveSchema.parse(body);

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { PLAN_CREDITS, STUDIO_CREDIT_PACKS, STUDIO_PLAN_PRICES_EUR, REEL_CREDIT_COST, reelsForCredits } from '@/lib/constants';
+import { PLAN_CREDITS, STUDIO_CREDIT_PACKS, STUDIO_PLAN_PRICES_EUR, REEL_CREDIT_COST, SUPERUSER_ONLY_PLANS, reelsForCredits } from '@/lib/constants';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -88,7 +88,9 @@ const TOOL_ROWS = [
 
 // ── FAQ items ──────────────────────────────────────────────────────────────────
 
-const FAQ_KEYS = ['howCredits', 'runOut', 'freePlan', 'byok', 'compare'] as const;
+// BYOK is superuser-only (SUPERUSER_ONLY_PLANS) — this public page neither sells nor explains it
+const SHOW_BYOK = !SUPERUSER_ONLY_PLANS.has('byok_creator');
+const FAQ_KEYS = (['howCredits', 'runOut', 'freePlan', 'byok', 'compare'] as const).filter((k) => SHOW_BYOK || k !== 'byok');
 
 // ── Cell renderer ──────────────────────────────────────────────────────────────
 
@@ -320,6 +322,7 @@ export default function StudioPricingPage() {
       </section>
 
       {/* ── BYOK section ────────────────────────────────────────────────────── */}
+      {SHOW_BYOK && (
       <section className="py-16 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-8 text-center sm:flex-row sm:text-left">
@@ -342,6 +345,7 @@ export default function StudioPricingPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── FAQ ─────────────────────────────────────────────────────────────── */}
       <section className="bg-[var(--color-bg-alt)] py-16 sm:py-24">

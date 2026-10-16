@@ -937,6 +937,13 @@ export const STUDIO_PLAN_PRICES_EUR = {
   byok_creator: 7,
 } as const;
 
+/**
+ * Plans kept for superusers only (PROMPT-264): BYOK is too technical for our customers. They stay in
+ * the data and in Stripe (existing subscriptions keep working) but no public UI offers them and
+ * /api/studio/subscribe rejects them for everyone else.
+ */
+export const SUPERUSER_ONLY_PLANS: ReadonlySet<keyof typeof STUDIO_PLAN_PRICES_EUR> = new Set(['byok_creator']);
+
 // Credit allowances per plan (monthly reset values)
 export const PLAN_CREDITS = {
   free:         { images: 5,   videos: 0  },

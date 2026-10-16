@@ -1,8 +1,27 @@
 import { put } from '@/lib/storage';
 import type { ToolName, MediaAttachment, SessionContext } from './types';
 import { getUserApiKey } from './get-user-key';
-import { consumeCredits } from '@/lib/credits';
+import { consumeCredits, refundCredits, type CreditType } from '@/lib/credits';
 import { fetchAllowedImage, SafeFetchError } from './safe-fetch';
+
+/**
+ * Reserve credits right before a paid provider call (after all input checks), so a failed call can
+ * be refunded — `refund()` puts them back into the buckets they came from. No user = nothing charged.
+ */
+async function reserveCredits(
+  userId: string | undefined, type: CreditType, amount: number,
+): Promise<{ error: string } | { refund: () => Promise<void> }> {
+  if (!userId) return { refund: async () => {} };
+  const consume = await consumeCredits(userId, type, amount);
+  if (!consume.success) return { error: consume.reason ?? 'Insufficient credits' };
+  return {
+    refund: async () => {
+      if (consume.fromBonus || consume.fromMonthly) {
+        await refundCredits(userId, type, consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      }
+    },
+  };
+}
 
 interface ToolResult {
   media?: MediaAttachment;
@@ -567,67 +586,70 @@ async function executeGenerateCharacter(
       return { error: 'REPLICATE_API_TOKEN not configured' };
     }
 
-    if (userId) {
-      const consume = await consumeCredits(userId, 'image', 1);
-      if (!consume.success) {
-        return { error: consume.reason ?? 'Insufficient credits' };
-      }
-    }
+    const reserved = await reserveCredits(userId, 'image', 1);
+    if ('error' in reserved) return { error: reserved.error };
 
-    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Token ${REPLICATE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        version: context.loraModel.includes(':') ? context.loraModel.split(':')[1] : context.loraModel,
-        input: {
-          prompt: loraPrompt,
-          num_inference_steps: 28,
-          guidance_scale: 3.5,
-          width: 1024,
-          height: 1024,
-          num_outputs: 1,
+    try {
+      const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Token ${REPLICATE_API_KEY}`,
         },
-      }),
-    });
-
-    if (!createRes.ok) {
-      const err = await createRes.json().catch(() => ({ detail: 'LoRA generation failed' })) as { detail?: string };
-      return { error: err.detail || 'LoRA generation failed' };
-    }
-
-    const prediction = await createRes.json() as { id: string; status: string; output?: string[]; error?: string };
-
-    // Poll until done (max 120s)
-    let result = prediction;
-    let attempts = 0;
-    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < 60) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
-        headers: { Authorization: `Token ${REPLICATE_API_KEY}` },
+        body: JSON.stringify({
+          version: context.loraModel.includes(':') ? context.loraModel.split(':')[1] : context.loraModel,
+          input: {
+            prompt: loraPrompt,
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            width: 1024,
+            height: 1024,
+            num_outputs: 1,
+          },
+        }),
       });
-      result = await pollRes.json() as typeof result;
-      attempts++;
+
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({ detail: 'LoRA generation failed' })) as { detail?: string };
+        await reserved.refund();
+        return { error: err.detail || 'LoRA generation failed' };
+      }
+
+      const prediction = await createRes.json() as { id: string; status: string; output?: string[]; error?: string };
+
+      // Poll until done (max 120s)
+      let result = prediction;
+      let attempts = 0;
+      while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < 60) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
+          headers: { Authorization: `Token ${REPLICATE_API_KEY}` },
+        });
+        result = await pollRes.json() as typeof result;
+        attempts++;
+      }
+
+      if (result.status === 'failed' || !result.output?.[0]) {
+        await reserved.refund();
+        return { error: result.error || 'LoRA generation timed out or failed' };
+      }
+
+      const imageUrl = result.output[0];
+      const imgRes = await fetch(imageUrl);
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      const contentType = imgRes.headers.get('content-type') || 'image/webp';
+      const ext = contentType.includes('png') ? 'png' : contentType.includes('jpeg') ? 'jpg' : 'webp';
+
+      const blob = await put(`studio/lora/${Date.now()}.${ext}`, buffer, { access: 'public', contentType });
+
+      return {
+        media: { type: 'image', url: blob.url },
+        message: `Scene generated with LoRA face (${triggerWord})`,
+      };
+    } catch (err) {
+      await reserved.refund();
+      throw err;
     }
-
-    if (result.status === 'failed' || !result.output?.[0]) {
-      return { error: result.error || 'LoRA generation timed out or failed' };
-    }
-
-    const imageUrl = result.output[0];
-    const imgRes = await fetch(imageUrl);
-    const buffer = Buffer.from(await imgRes.arrayBuffer());
-    const contentType = imgRes.headers.get('content-type') || 'image/webp';
-    const ext = contentType.includes('png') ? 'png' : contentType.includes('jpeg') ? 'jpg' : 'webp';
-
-    const blob = await put(`studio/lora/${Date.now()}.${ext}`, buffer, { access: 'public', contentType });
-
-    return {
-      media: { type: 'image', url: blob.url },
-      message: `Scene generated with LoRA face (${triggerWord})`,
-    };
   }
 
   // Fallback: existing PuLID / Brain character generation
@@ -688,13 +710,6 @@ async function executeTalkingAvatar(
   _cookieHeader: string,
   userId?: string,
 ): Promise<ToolResult> {
-  if (userId) {
-    const consume = await consumeCredits(userId, 'video', 1);
-    if (!consume.success) {
-      return { error: consume.reason ?? 'Insufficient credits' };
-    }
-  }
-
   const audioUrl = (params.audio_url as string) || context.lastAudioUrl;
   if (!audioUrl) {
     return {
@@ -731,22 +746,34 @@ async function executeTalkingAvatar(
 
   console.log(`[talking_avatar] ${modeLabel}`);
 
-  const res = await fetch(`${BASE_URL}/api/brain/lip-sync`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-brain-api-key': BRAIN_API_KEY,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  // Charged only now that the inputs are valid — refunded below if lip sync fails
+  const reserved = await reserveCredits(userId, 'video', 1);
+  if ('error' in reserved) return { error: reserved.error };
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/brain/lip-sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-brain-api-key': BRAIN_API_KEY,
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (err) {
+    await reserved.refund();
+    throw err;
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Lip sync failed' })) as { error?: string };
+    await reserved.refund();
     return { error: err.error || 'Lip sync failed' };
   }
 
-  const data = await res.json() as { url?: string; error?: string; mode?: string };
+  const data = await res.json().catch(() => ({})) as { url?: string; error?: string; mode?: string };
   if (!data.url) {
+    await reserved.refund();
     return { error: data.error || 'No video URL returned' };
   }
 
@@ -765,13 +792,6 @@ async function executeVoiceover(
   _cookieHeader: string,
   userId?: string,
 ): Promise<ToolResult> {
-  if (userId) {
-    const consume = await consumeCredits(userId, 'image', 1);
-    if (!consume.success) {
-      return { error: consume.reason ?? 'Insufficient credits' };
-    }
-  }
-
   const text = params.text as string;
   if (!text) {
     return {
@@ -796,29 +816,41 @@ async function executeVoiceover(
     }
   }
 
-  const res = await fetch(`${BASE_URL}/api/brain/voiceover`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-brain-api-key': BRAIN_API_KEY,
-    },
-    body: JSON.stringify({
-      text,
-      voice_id:             (params.voice_id as string)  || 'adam',
-      language:             (params.language as string)  || 'en',
-      elevenlabs_api_key:   elevenlabsKey,
-      stability:            Number(params.stability)     || 0.5,
-      similarity_boost:     Number(params.similarity_boost) || 0.75,
-    }),
-  });
+  // Charged only now that the inputs are valid — refunded below if the voiceover fails
+  const reserved = await reserveCredits(userId, 'image', 1);
+  if ('error' in reserved) return { error: reserved.error };
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/brain/voiceover`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-brain-api-key': BRAIN_API_KEY,
+      },
+      body: JSON.stringify({
+        text,
+        voice_id:             (params.voice_id as string)  || 'adam',
+        language:             (params.language as string)  || 'en',
+        elevenlabs_api_key:   elevenlabsKey,
+        stability:            Number(params.stability)     || 0.5,
+        similarity_boost:     Number(params.similarity_boost) || 0.75,
+      }),
+    });
+  } catch (err) {
+    await reserved.refund();
+    throw err;
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Voiceover failed' })) as { error?: string };
+    await reserved.refund();
     return { error: err.error || 'Voiceover failed' };
   }
 
-  const data = await res.json() as { url?: string; characters?: number; error?: string };
+  const data = await res.json().catch(() => ({})) as { url?: string; characters?: number; error?: string };
   if (!data.url) {
+    await reserved.refund();
     return { error: data.error || 'No audio URL returned' };
   }
 

@@ -61,7 +61,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Please enter a valid description' }, { status: 400 });
   }
 
-  const creditCheck = await checkCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose);
+  // BYOK only when the user's own xAI key (used below) pays
+  const creditCheck = await checkCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose, 'xai');
   if (!creditCheck.allowed) {
     return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
   }
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
   }
 
   // Atomic reserve BEFORE the paid provider call — refunded below if it fails
-  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose);
+  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.sceneCompose, 'xai');
   if (!consume.success) {
     return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
   }

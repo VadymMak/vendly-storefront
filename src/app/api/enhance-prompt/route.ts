@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
+import { getOrCreateCredits } from '@/lib/credits';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 
 // ── Video skill system prompts (mirrors TestVideoClient) ──────────────────────
 
@@ -40,6 +42,14 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Free to the user but paid by us (Anthropic) — capped per plan, superusers bypass
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.enhancePrompt;
+  const limit    = RATE_LIMITS.enhancePrompt[planType] ?? RATE_LIMITS.enhancePrompt.free;
+  if (!(await checkRateLimitWithBypass(`enhance-prompt:${session.user.id}`, limit, session.user.id))) {
+    return NextResponse.json({ error: 'Too many prompt enhancements. Please try again later.' }, { status: 429 });
   }
 
   let body: EnhanceBody;

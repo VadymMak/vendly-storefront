@@ -41,7 +41,7 @@ There are two types of credits:
 | Photo reel (images mode) | 2 image credits |
 | AI video reel (video mode) | 5 video credits |
 
-Reels are charged when generation starts. If a reel fails, the credits are returned automatically. Reels always use credits, also on the BYOK Creator plan.
+Reels are charged when generation starts. If a reel fails, the credits are returned automatically. Reels always use credits.
 
 ## Monthly Allowances
 
@@ -50,7 +50,6 @@ Reels are charged when generation starts. If a reel fails, the credits are retur
 | Free | 5/month | 0 |
 | Starter (€9) | 100/month | 20/month |
 | Pro (€19) | 300/month | 60/month |
-| BYOK Creator (€7) | Unlimited with own keys | Unlimited with own keys |
 
 ## Credit Deduction Priority
 

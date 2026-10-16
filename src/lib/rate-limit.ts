@@ -84,10 +84,25 @@ export const RATE_LIMITS = {
   },
   register:   { maxRequests: 2, windowMs: 24 * 60 * 60 * 1000 },
   buyCredits: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
+  // Help bot — gpt-4o on the platform key, no credit cost, so the hourly cap is the only brake
   kbChat: {
-    free:         { maxRequests: 10,  windowMs: 60_000 },
-    starter:      { maxRequests: 30,  windowMs: 60_000 },
-    pro:          { maxRequests: 60,  windowMs: 60_000 },
-    byok_creator: { maxRequests: 120, windowMs: 60_000 },
+    free:         { maxRequests: 3,  windowMs: 60 * 60 * 1000 },
+    starter:      { maxRequests: 20, windowMs: 60 * 60 * 1000 },
+    pro:          { maxRequests: 50, windowMs: 60 * 60 * 1000 },
+    byok_creator: { maxRequests: 50, windowMs: 60 * 60 * 1000 },
+  },
+  // Prompt enhancer — Claude on the platform key (users' own key only on the video-skill path)
+  enhancePrompt: {
+    free:         { maxRequests: 5,  windowMs: 60 * 60 * 1000 },
+    starter:      { maxRequests: 20, windowMs: 60 * 60 * 1000 },
+    pro:          { maxRequests: 50, windowMs: 60 * 60 * 1000 },
+    byok_creator: { maxRequests: 50, windowMs: 60 * 60 * 1000 },
+  },
+  // Studio chat agent — each message runs the agent model; its tools charge credits separately
+  studioChat: {
+    free:         { maxRequests: 5,   windowMs: 60 * 60 * 1000 },
+    starter:      { maxRequests: 30,  windowMs: 60 * 60 * 1000 },
+    pro:          { maxRequests: 100, windowMs: 60 * 60 * 1000 },
+    byok_creator: { maxRequests: 100, windowMs: 60 * 60 * 1000 },
   },
 } as const;

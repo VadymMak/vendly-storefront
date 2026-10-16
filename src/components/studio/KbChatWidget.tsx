@@ -478,13 +478,20 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
         {error && (
           <div className="flex justify-start">
             <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-[13px] text-red-400">
-              Something went wrong.{' '}
-              <button
-                onClick={() => sendMessage()}
-                className="underline hover:text-red-300"
-              >
-                Try again
-              </button>
+              {/* Hourly question limit (429) — retrying right away would fail again */}
+              {/too many/i.test(error.message) ? (
+                error.message
+              ) : (
+                <>
+                  Something went wrong.{' '}
+                  <button
+                    onClick={() => sendMessage()}
+                    className="underline hover:text-red-300"
+                  >
+                    Try again
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -151,8 +151,11 @@ export async function POST(request: Request) {
   const credits  = await getOrCreateCredits(session.user.id);
   const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.generateImage;
 
-  // Credit check first — clear message beats a rate-limit error for exhausted users
-  const quickCreditCheck = await checkCredits(session.user.id, 'image');
+  // Credit check first — clear message beats a rate-limit error for exhausted users. The model (and
+  // so the BYOK provider) isn't known yet: byok_creator users get the real check at the reserve below.
+  const quickCreditCheck = planType === 'byok_creator'
+    ? { allowed: true, byok: true, reason: undefined }
+    : await checkCredits(session.user.id, 'image');
   if (!quickCreditCheck.allowed) {
     return NextResponse.json({ error: quickCreditCheck.reason, needsUpgrade: true }, { status: 403 });
   }

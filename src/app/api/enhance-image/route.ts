@@ -100,7 +100,8 @@ export async function POST(req: Request) {
   }
 
   // ── Credit check (atomic — reserves before AI call to prevent TOCTOU race) ───
-  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.upscale);
+  // BYOK only when the user's own Replicate key (used below) pays
+  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.upscale, 'replicate');
   if (!consume.success) {
     return NextResponse.json(
       { error: consume.reason, needsUpgrade: true },

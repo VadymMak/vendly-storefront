@@ -62,7 +62,8 @@ export async function POST(req: Request) {
   if (!replicateKey) return NextResponse.json({ error: 'Replicate API key not configured' }, { status: 500 });
 
   // ── Credit check (atomic — reserves before AI call to prevent TOCTOU race) ───
-  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg);
+  // BYOK only when the user's own Replicate key (used below) pays
+  const consume = await consumeCredits(session.user.id, 'image', CREDIT_COSTS.removeBg, 'replicate');
   if (!consume.success) {
     return NextResponse.json(
       { error: consume.reason, needsUpgrade: true },

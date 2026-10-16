@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
-import { SUBSCRIPTION_PLANS, getOrCreateCredits } from '@/lib/credits';
+import { SUBSCRIPTION_PLANS, getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { SUPERUSER_ONLY_PLANS } from '@/lib/constants';
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
     plan = body.plan as keyof typeof SUBSCRIPTION_PLANS;
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  // BYOK is not a public plan any more — only superusers can still subscribe to it
+  if (SUPERUSER_ONLY_PLANS.has(plan) && !(await isSuperuser(session.user.id))) {
+    return NextResponse.json({ error: 'Plan not available' }, { status: 403 });
   }
 
   const planConfig = SUBSCRIPTION_PLANS[plan];

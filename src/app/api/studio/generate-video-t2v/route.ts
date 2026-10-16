@@ -81,9 +81,11 @@ export async function POST(request: Request) {
     availableVideoCredits,
   });
 
-  // Credit check — skip for free trial and superusers/byok
+  // Credit check — skip for free trial and superusers/byok. BYOK only on the fal route (user's fal key);
+  // Grok video always runs on the platform xAI key, so it is always charged.
+  const byokProvider = route.provider === 'fal-t2v' ? 'fal' : undefined;
   if (route.creditCost > 0) {
-    const creditCheck = await checkCredits(userId, 'video', route.creditCost);
+    const creditCheck = await checkCredits(userId, 'video', route.creditCost, byokProvider);
     if (!creditCheck.allowed) {
       return NextResponse.json({ error: creditCheck.reason, needsUpgrade: true }, { status: 403 });
     }
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
   // Reserve credits atomically BEFORE the paid provider call (free trial / 0-cost routes
   // skip it); refunded below if no job starts, and by refreshJobStatus if the job fails
   const consume = route.creditCost > 0
-    ? await consumeCredits(userId, 'video', route.creditCost)
+    ? await consumeCredits(userId, 'video', route.creditCost, byokProvider)
     : { success: true, byok: true, fromBonus: 0, fromMonthly: 0, reason: undefined };
   if (!consume.success) {
     return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });

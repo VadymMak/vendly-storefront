@@ -30,8 +30,9 @@ VendShop is operated from the EU and complies with GDPR:
 - We never see or store your card number
 - Secure checkout with SSL/TLS encryption
 
-## BYOK Security
+## Stored API Keys
 
+Own API keys are not offered to customers. Keys saved earlier:
 - API keys are encrypted before storage
 - Keys are never logged or exposed in API responses
 - You can delete your keys anytime

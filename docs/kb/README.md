@@ -18,7 +18,7 @@ This directory contains the documentation for the RAG chatbot's knowledge base.
 | 10 | place-products.md | Scene composition, AI Blend | 3 |
 | 11 | scene-compose.md | Multi-image AI composition | 2 |
 | 12 | quick-filters.md | CSS filters | 2 |
-| 13 | byok-api-keys.md | BYOK, providers, setup | 4 |
+| 13 | byok-api-keys.md | Own API keys are not offered | 3 |
 | 14 | credits-system.md | Credit mechanics, deduction, reset | 4 |
 | 15 | troubleshooting.md | Error messages, solutions | 6 |
 | 16 | rate-limits.md | Rate limits by plan | 2 |

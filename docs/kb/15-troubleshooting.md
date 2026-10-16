@@ -62,12 +62,11 @@
 
 ## "API key not configured" / "Add it in Settings → API Keys"
 
-**Cause:** You're trying to use a model that requires an API key, and neither you nor the platform has one configured for that provider.
+**Cause:** The AI provider behind this model is temporarily not configured on VendShop's side.
 
 **Solutions:**
-1. Add your own API key in Studio → Settings → API Keys
-2. Try a different model/tier that doesn't require that provider
-3. Contact support if you believe the platform should have this key
+1. Try a different model/tier
+2. Contact support so we can fix it
 
 ## Video generation takes too long
 

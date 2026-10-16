@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
   const userId  = session.user.id;
   const ip      = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const credits = await getOrCreateCredits(userId);
-  const planType = (credits.planType || 'free') as 'free' | 'starter' | 'pro';
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.kbChat;
 
-  if (!(await checkRateLimitWithBypass(`kbc:${ip}:${userId}`, RATE_LIMITS.kbChat[planType], userId))) {
-    return new Response('Too many requests', { status: 429 });
+  if (!(await checkRateLimitWithBypass(`kbc:${ip}:${userId}`, RATE_LIMITS.kbChat[planType] ?? RATE_LIMITS.kbChat.free, userId))) {
+    return new Response('Too many questions for now — please try again in an hour.', { status: 429 });
   }
 
   const cookieHeader = req.headers.get('cookie') ?? '';
@@ -301,9 +301,9 @@ export async function POST(req: NextRequest) {
           return {
             available: credits.byokEnabled || superuser,
             plan: credits.planType,
-            note: credits.byokEnabled
+            note: credits.byokEnabled || superuser
               ? 'BYOK is enabled — you can generate with your own API keys.'
-              : 'BYOK Creator plan (€7/mo) unlocks unlimited generation with your own API keys.',
+              : 'Own API keys are not available on public plans — generation uses credits from your plan or a credit pack.',
           };
         }
 

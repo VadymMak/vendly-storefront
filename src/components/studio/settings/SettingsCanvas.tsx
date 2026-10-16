@@ -27,7 +27,6 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
   const [hints, setHints]               = useState<Record<string, string>>({});
   const [isSaving, setIsSaving]         = useState(false);
   const [saveMsg, setSaveMsg]           = useState<{ ok: boolean; text: string } | null>(null);
-  const [apiKeysOpen, setApiKeysOpen]   = useState(false);
 
   useEffect(() => {
     fetch('/api/user/api-keys')
@@ -340,23 +339,7 @@ export function SettingsCanvas({ userEmail, isSuperuser, planType }: Props) {
           </section>
         )}
 
-        {/* API Keys — paid users: collapsible */}
-        {!isSuperuser && isPaid && (
-          <section className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setApiKeysOpen(o => !o)}
-              className="flex w-full items-center justify-between"
-            >
-              <div>
-                <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500 text-left">Advanced Settings</h2>
-                <p className="text-xs text-gray-600 text-left">Connect your own AI accounts for premium model access</p>
-              </div>
-              <span className="text-gray-500 text-xs ml-4">{apiKeysOpen ? '▲' : '▼'}</span>
-            </button>
-            {apiKeysOpen && apiKeysForm}
-          </section>
-        )}
+        {/* Own API keys (BYOK) are superuser-only since PROMPT-264 — no keys section for anyone else */}
 
         {/* API Keys — free users: upgrade prompt */}
         {!isSuperuser && !isPaid && (

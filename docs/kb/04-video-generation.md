@@ -78,5 +78,5 @@ Animate Video costs 5 video credits per generation.
 
 ## Requirements
 
-- Video generation requires a paid plan (Starter, Pro, or BYOK Creator) or a credit pack with video credits
+- Video generation requires a paid plan (Starter or Pro) or a credit pack with video credits
 - Free plan users cannot generate videos without purchasing credits

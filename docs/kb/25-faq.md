@@ -45,8 +45,8 @@ Images: 3-15 seconds depending on quality tier. Videos: 30-120 seconds depending
 ### Can I generate videos?
 Yes, but video credits are required. Free plan has no video credits. Upgrade to Starter (€9/month — 20 video credits) or Pro (€19/month — 60 video credits), or buy a credit pack.
 
-### What's BYOK?
-BYOK (Bring Your Own Key) lets you use your own API keys from AI providers (Replicate, xAI, fal.ai, BFL). The BYOK Creator plan (€7/month) gives you unlimited usage with your own keys.
+### Can I use my own API keys (BYOK)?
+No — own API keys are not offered. All plans run on VendShop's AI with monthly credits; buy a credit pack if you need more.
 
 ### Why did my generation fail?
 Common reasons: prompt too short/long, rate limit exceeded, temporary provider issue. See the Troubleshooting guide for detailed solutions.

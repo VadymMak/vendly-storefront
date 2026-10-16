@@ -16,7 +16,6 @@ VendShop AI Studio offers 4 plans:
 - 20 video credits per month
 - All quality tiers (Quick, Best, HD)
 - Up to 50 photo reels or 4 AI video reels per month
-- Own API keys (BYOK) supported
 - Best for: regular content creation
 
 ### Pro Plan — €19/month
@@ -25,18 +24,9 @@ VendShop AI Studio offers 4 plans:
 - All quality tiers (Quick, Best, HD)
 - Up to 150 photo reels or 12 AI video reels per month
 - Priority queue
-- Own API keys (BYOK) supported
 - Best for: heavy content production
 
-### BYOK Creator — €7/month
-- Unlimited usage with your own API keys (for the providers you added keys for)
-- No credit deductions on those tools (you pay providers directly)
-- Reels still use credits — they run on VendShop's own AI keys, so buy a credit pack for reels
-- All models unlocked
-- Priority queue
-- Best for: developers and power users who have their own API keys
-
-Note: on Starter and Pro, adding your own API keys does not skip credits — only the BYOK Creator plan does.
+Own API keys (BYOK) are not offered — every plan works with VendShop's AI and credits, nothing to set up.
 
 ## Credit Packs (One-Time Purchase)
 

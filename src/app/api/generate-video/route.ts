@@ -60,8 +60,8 @@ export async function POST(request: Request) {
 
   // ── Credit check — fast fail; the atomic reserve happens right before the provider call ─
   const creditAmount = getVideoCreditCost('vid-animate', body.duration ?? 5);
-  // Don't bind to specific provider — any BYOK key counts for byok_creator bypass
-  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount);
+  // fal is tried first — BYOK only when the user's own fal key pays for it (then no platform fallback below)
+  const creditCheck  = await checkCredits(session.user.id, 'video', creditAmount, 'fal');
   if (!creditCheck.allowed) {
     return NextResponse.json(
       { error: creditCheck.reason, needsUpgrade: true },
@@ -101,9 +101,10 @@ export async function POST(request: Request) {
   const falKey = falKeyRecord
     ? decrypt(falKeyRecord.encryptedKey)
     : (process.env.FAL_KEY ?? '');
+  // A BYOK (uncharged) run must not fall back to the platform Replicate token
   const replicateKey = replicateKeyRecord
     ? decrypt(replicateKeyRecord.encryptedKey)
-    : (process.env.REPLICATE_API_TOKEN ?? '');
+    : creditCheck.byok ? '' : (process.env.REPLICATE_API_TOKEN ?? '');
 
   // Superusers MUST use their own BYOK key — never platform key
   const userIsSuperuser = await isSuperuser(session.user.id);
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
   const userId = session.user.id;
   const consume = creditCheck.byok
     ? { success: true, byok: true, fromBonus: 0, fromMonthly: 0, reason: undefined }
-    : await consumeCredits(userId, 'video', creditAmount);
+    : await consumeCredits(userId, 'video', creditAmount, 'fal');
   if (!consume.success) {
     return NextResponse.json({ error: consume.reason, needsUpgrade: true }, { status: 403 });
   }

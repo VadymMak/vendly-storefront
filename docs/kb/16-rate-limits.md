@@ -13,6 +13,9 @@ Rate limits prevent abuse and ensure fair usage for all users. Each plan has dif
 | AI Edit / Improve | 5/hour | 30/hour | 80/hour |
 | Enhance Image | 5/hour | 30/hour | 80/hour |
 | Remove Background | 5/hour | 30/hour | 80/hour |
+| Prompt Enhancer | 5/hour | 20/hour | 50/hour |
+| Studio Chat messages | 5/hour | 30/hour | 100/hour |
+| Help chat questions | 3/hour | 20/hour | 50/hour |
 | Registration | 2/24 hours | 2/24 hours | 2/24 hours |
 | Buy Credits | 5/hour | 5/hour | 5/hour |
 
@@ -26,6 +29,3 @@ Wait a few minutes and try again. Rate limits reset on an hourly rolling window.
 
 Upgrade to a higher plan. Pro plan users get 80 generations per hour for most operations, which is more than enough for most workflows.
 
-## BYOK Creator plan
-
-BYOK Creator plan users also have rate limits (same as Pro tier), but since they use their own API keys, provider-side limits may also apply.

@@ -6,7 +6,8 @@ import { buildLearningContext, formatLearningContext } from '@/lib/studio/learni
 import { getComboPreset } from '@/lib/studio/prompt-library';
 import type { ComboStep } from '@/lib/studio/prompt-library';
 import { executeCombo } from '@/lib/studio/combo-executor';
-import { isSuperuser } from '@/lib/credits';
+import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
+import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { getBrainStudioContext, saveToBrainAsync } from '@/lib/studio/brain-client';
 import type { ChatMessage, SessionContext, MediaAttachment } from '@/lib/studio/types';
 import { FACE_REGISTRY } from '@/lib/studio/face-registry';
@@ -96,6 +97,14 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Every message runs the agent model on platform keys — capped per plan, superusers bypass
+  const credits  = await getOrCreateCredits(session.user.id);
+  const planType = (credits.planType || 'free') as keyof typeof RATE_LIMITS.studioChat;
+  const limit    = RATE_LIMITS.studioChat[planType] ?? RATE_LIMITS.studioChat.free;
+  if (!(await checkRateLimitWithBypass(`studio-chat:${session.user.id}`, limit, session.user.id))) {
+    return NextResponse.json({ error: 'Too many messages. Please try again later.' }, { status: 429 });
   }
 
   try {

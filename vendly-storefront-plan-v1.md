@@ -270,3 +270,10 @@
 
 ### PROMPT-255 — Font names vs Chrome auto-translate ✅
 - [x] `translate="no"` on font names: FontPicker, mobile TextStylePanel, Brand Kit preset chips, Assemble Brand Kit select
+
+### PROMPT-256 — Phone gallery upload in Reel photo picker ✅
+- [x] MobileLibrary select mode: third source tab "From phone" (upload area + grid of this session's uploads)
+- [x] Floating "+" on every source tab → compressImage → `/api/studio/upload`; upload auto-selected while under `MAX_REEL_PHOTOS`
+- [x] Phone photos are `source: 'gallery'`, `operation: 'upload'`, id `phone-<ts>`; kept in component state only
+- [x] i18n keys in mobile.reel for en/ru/uk/cs/sk/de
+- [ ] Manual test on a phone: upload from each tab, mixed AI + phone selection → Quality Check → Generate

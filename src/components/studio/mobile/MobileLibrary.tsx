@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { compressImage } from '@/lib/studio/compress-image';
 import { MAX_REEL_PHOTOS, readReelPhotos, reelPhotoFromWork, writeReelPhotos } from '@/lib/studio/mobile/reel';
 import type { ReelPhoto, StudioWorkItem, StudioWorkPage } from '@/lib/types';
 
 type Filter = 'all' | 'image' | 'video';
-// Reel select mode browses images only, from AI results or from the user's own photos
-type ReelSource = 'library' | 'gallery';
+// Reel select mode browses images only: AI results, the user's own photos, or fresh uploads from the phone
+type ReelSource = 'library' | 'gallery' | 'phone';
 type View = Filter | `select-${ReelSource}`;
 
 const PAGE_SIZE = 30;
@@ -19,9 +20,10 @@ const FILTERS: { id: Filter; key: 'filterAll' | 'filterImages' | 'filterVideos' 
   { id: 'video', key: 'filterVideos' },
 ];
 
-const SOURCES: { id: ReelSource; key: 'sourceLibrary' | 'sourceGallery' }[] = [
+const SOURCES: { id: ReelSource; key: 'sourceLibrary' | 'sourceGallery' | 'sourcePhone' }[] = [
   { id: 'library', key: 'sourceLibrary' },
   { id: 'gallery', key: 'sourceGallery' },
+  { id: 'phone', key: 'sourcePhone' },
 ];
 
 async function fetchWork(view: View, cursor?: string): Promise<StudioWorkPage> {
@@ -65,6 +67,11 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
   const [reloadKey, setReloadKey] = useState(0);
   // Items whose media failed to load (expired blob, deleted file) — dropped from the grid
   const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
+  // Phone uploads live in component state only — the reel flow is a single session
+  const [phonePhotos, setPhonePhotos] = useState<ReelPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const loading = loaded?.filter !== view;
   const visibleItems = loaded ? loaded.items.filter((item) => !brokenIds.has(item.id)) : [];
 
@@ -73,6 +80,8 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
   }
 
   useEffect(() => {
+    // The phone tab has nothing to fetch
+    if (view === 'select-phone') return;
     let cancelled = false;
     fetchWork(view)
       .then((d) => { if (!cancelled) setLoaded({ filter: view, items: d.items, nextCursor: d.nextCursor, error: false }); })
@@ -95,9 +104,53 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
     setSelected((prev) => {
       const next = new Map(prev);
       if (next.has(item.id)) next.delete(item.id);
-      else if (next.size < MAX_REEL_PHOTOS) next.set(item.id, reelPhotoFromWork(item, source));
+      else if (next.size < MAX_REEL_PHOTOS) next.set(item.id, reelPhotoFromWork(item, source === 'phone' ? 'gallery' : source));
       return next;
     });
+  }
+
+  function togglePhonePhoto(photo: ReelPhoto) {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      if (next.has(photo.id)) next.delete(photo.id);
+      else if (next.size < MAX_REEL_PHOTOS) next.set(photo.id, photo);
+      return next;
+    });
+  }
+
+  async function handlePhoneUpload(file: File) {
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.append('image', compressed);
+      const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });
+      if (!res.ok) {
+        if (res.status === 401) { setUploadError(tReel('sessionExpired')); return; }
+        throw new Error(`upload ${res.status}`);
+      }
+      const data = await res.json() as { url: string; originalUrl?: string };
+      // Treated as the user's own photo ('gallery') so Quality Check handles it like "My photos"
+      const photo: ReelPhoto = {
+        id: `phone-${Date.now()}`,
+        url: data.url,
+        originalUrl: data.originalUrl,
+        operation: 'upload',
+        generationMode: null,
+        source: 'gallery',
+      };
+      setPhonePhotos((prev) => [photo, ...prev]);
+      // Auto-select while the reel has room
+      setSelected((prev) => {
+        if (prev.size >= MAX_REEL_PHOTOS) return prev;
+        return new Map(prev).set(photo.id, photo);
+      });
+    } catch {
+      setUploadError(tReel('uploadFailed'));
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleCreateReel() {
@@ -197,7 +250,48 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
         </div>
       )}
 
-      {loading ? (
+      {selectMode && source === 'phone' ? (
+        <div className="px-4 pb-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || selected.size >= MAX_REEL_PHOTOS}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/20 bg-white/[0.04] py-6 text-sm text-gray-300 active:bg-white/[0.08] disabled:opacity-50"
+          >
+            {uploading ? (
+              <>
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
+                {tReel('uploading')}
+              </>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                {tReel('uploadFromGallery')}
+              </>
+            )}
+          </button>
+          {uploadError && <p className="mt-2 text-center text-xs text-red-400">{uploadError}</p>}
+
+          {phonePhotos.length > 0 && (
+            <div className="-mx-4 mt-3 grid grid-cols-3 gap-0.5">
+              {phonePhotos.map((photo) => (
+                <SelectableTile
+                  key={photo.id}
+                  url={photo.url}
+                  label={t('imageLabel')}
+                  selected={selected.has(photo.id)}
+                  disabled={!selected.has(photo.id) && selected.size >= MAX_REEL_PHOTOS}
+                  onToggle={() => togglePhonePhoto(photo)}
+                  onBroken={() => setPhonePhotos((prev) => prev.filter((p) => p.id !== photo.id))}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : loading ? (
         <div className="grid grid-cols-3 gap-0.5" aria-busy="true">
           {Array.from({ length: 9 }, (_, i) => (
             <div key={i} className="aspect-square animate-pulse bg-white/[0.06]" />
@@ -248,7 +342,7 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
               ) : selectMode ? (
                 <SelectableTile
                   key={item.id}
-                  item={item}
+                  url={item.url}
                   label={t('imageLabel')}
                   selected={selected.has(item.id)}
                   disabled={!selected.has(item.id) && selected.size >= MAX_REEL_PHOTOS}
@@ -284,6 +378,38 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
         </>
       )}
 
+      {/* Upload from phone on every source tab — sits above the Reel bar when it is shown */}
+      {selectMode && (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading || selected.size >= MAX_REEL_PHOTOS}
+          className={`fixed right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-green-600 shadow-lg active:bg-green-700 disabled:opacity-50 ${
+            selected.size > 0 ? 'bottom-[calc(11.5rem+env(safe-area-inset-bottom))]' : 'bottom-[calc(5rem+env(safe-area-inset-bottom))]'
+          }`}
+          aria-label={tReel('uploadFromGallery')}
+        >
+          {uploading ? (
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          )}
+        </button>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (f) void handlePhoneUpload(f);
+        }}
+      />
+
       {/* Reel bar sits above the bottom nav (4rem + safe area) */}
       {selectMode && selected.size > 0 && (
         <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t border-white/10 bg-[#0a0a0f]/95 p-4 backdrop-blur-md">
@@ -303,7 +429,7 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
 }
 
 interface SelectableTileProps {
-  item: StudioWorkItem;
+  url: string;
   label: string;
   selected: boolean;
   /** Reel is full — only selected tiles can be toggled */
@@ -312,7 +438,7 @@ interface SelectableTileProps {
   onBroken: () => void;
 }
 
-function SelectableTile({ item, label, selected, disabled, onToggle, onBroken }: SelectableTileProps) {
+function SelectableTile({ url, label, selected, disabled, onToggle, onBroken }: SelectableTileProps) {
   return (
     <button
       onClick={onToggle}
@@ -321,7 +447,7 @@ function SelectableTile({ item, label, selected, disabled, onToggle, onBroken }:
       className="relative aspect-square overflow-hidden bg-white/[0.04] disabled:opacity-40"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={item.url} alt={label} loading="lazy" onError={onBroken} className={`h-full w-full object-cover transition-transform ${selected ? 'scale-90 rounded-lg' : ''}`} />
+      <img src={url} alt={label} loading="lazy" onError={onBroken} className={`h-full w-full object-cover transition-transform ${selected ? 'scale-90 rounded-lg' : ''}`} />
       <span
         className={`absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
           selected ? 'border-green-500 bg-green-500 text-white' : 'border-white/80 bg-black/30'

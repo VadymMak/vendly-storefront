@@ -16,95 +16,119 @@ function getTouchDistance(t1: Touch | React.Touch, t2: Touch | React.Touch): num
   return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 }
 
-export function DraggableTextLayer({ layer, isSelected, onSelect, onMove, onScale, containerRef }: Props) {
-  const layerRef = useRef<HTMLDivElement>(null);
+interface LayerGestureOptions {
+  /** Center of the layer in % (0–100) of the container */
+  x: number;
+  y: number;
+  scale: number;
+  isSelected: boolean;
+  onSelect: () => void;
+  onMove: (x: number, y: number) => void;
+  onScale: (scale: number) => void;
+  /** The layer element — its bottom-right corner is the resize handle once selected */
+  layerRef: React.RefObject<Element | null>;
+  containerRef: React.RefObject<Element | null>;
+}
 
-  function handleTouchStart(e: React.TouchEvent) {
-    e.stopPropagation();
-    onSelect();
+/**
+ * Touch gestures of a text layer, started from its onTouchStart: 1-finger drag (position in % of the
+ * container), 2-finger pinch or the selected layer's bottom-right corner to scale (0.3–4.0). Shared by
+ * the text overlay editor and the Reel CTA preview.
+ */
+export function startLayerGesture(e: React.TouchEvent, { x, y, scale, isSelected, onSelect, onMove, onScale, layerRef, containerRef }: LayerGestureOptions) {
+  e.stopPropagation();
+  onSelect();
 
-    // --- PINCH (2 fingers) ---
-    if (e.touches.length === 2) {
-      const initialDist = getTouchDistance(e.touches[0], e.touches[1]);
-      const initialScale = layer.scale ?? 1;
+  // --- PINCH (2 fingers) ---
+  if (e.touches.length === 2) {
+    const initialDist = getTouchDistance(e.touches[0], e.touches[1]);
+    const initialScale = scale;
 
-      function handlePinchMove(ev: TouchEvent) {
+    function handlePinchMove(ev: TouchEvent) {
+      ev.preventDefault();
+      if (ev.touches.length < 2) return;
+      const ratio = getTouchDistance(ev.touches[0], ev.touches[1]) / initialDist;
+      onScale(Math.max(0.3, Math.min(4.0, initialScale * ratio)));
+    }
+
+    function handlePinchEnd() {
+      document.removeEventListener('touchmove', handlePinchMove);
+      document.removeEventListener('touchend', handlePinchEnd);
+    }
+
+    document.addEventListener('touchmove', handlePinchMove, { passive: false });
+    document.addEventListener('touchend', handlePinchEnd);
+    return;
+  }
+
+  // --- CORNER DRAG or plain DRAG (1 finger) ---
+  const touch = e.touches[0];
+  const layerEl = layerRef.current;
+
+  if (isSelected && layerEl) {
+    const rect = layerEl.getBoundingClientRect();
+    const HANDLE_SIZE = 28;
+    const isCorner =
+      touch.clientX >= rect.right - HANDLE_SIZE &&
+      touch.clientY >= rect.bottom - HANDLE_SIZE;
+
+    if (isCorner) {
+      const initialDist = Math.hypot(touch.clientX - rect.left, touch.clientY - rect.top);
+      const initialScale = scale;
+
+      function handleCornerMove(ev: TouchEvent) {
         ev.preventDefault();
-        if (ev.touches.length < 2) return;
-        const ratio = getTouchDistance(ev.touches[0], ev.touches[1]) / initialDist;
+        const t = ev.touches[0];
+        const currentDist = Math.hypot(t.clientX - rect.left, t.clientY - rect.top);
+        const ratio = currentDist / initialDist;
         onScale(Math.max(0.3, Math.min(4.0, initialScale * ratio)));
       }
 
-      function handlePinchEnd() {
-        document.removeEventListener('touchmove', handlePinchMove);
-        document.removeEventListener('touchend', handlePinchEnd);
+      function handleCornerEnd() {
+        document.removeEventListener('touchmove', handleCornerMove);
+        document.removeEventListener('touchend', handleCornerEnd);
       }
 
-      document.addEventListener('touchmove', handlePinchMove, { passive: false });
-      document.addEventListener('touchend', handlePinchEnd);
+      document.addEventListener('touchmove', handleCornerMove, { passive: false });
+      document.addEventListener('touchend', handleCornerEnd);
       return;
     }
+  }
 
-    // --- CORNER DRAG or plain DRAG (1 finger) ---
-    const touch = e.touches[0];
-    const layerEl = layerRef.current;
+  // --- DRAG (1 finger, not corner) ---
+  const startX = touch.clientX;
+  const startY = touch.clientY;
+  const origX = x;
+  const origY = y;
 
-    if (isSelected && layerEl) {
-      const rect = layerEl.getBoundingClientRect();
-      const HANDLE_SIZE = 28;
-      const isCorner =
-        touch.clientX >= rect.right - HANDLE_SIZE &&
-        touch.clientY >= rect.bottom - HANDLE_SIZE;
+  function handleTouchMove(ev: TouchEvent) {
+    ev.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const dx = ev.touches[0].clientX - startX;
+    const dy = ev.touches[0].clientY - startY;
+    onMove(
+      Math.max(0, Math.min(100, origX + (dx / rect.width) * 100)),
+      Math.max(0, Math.min(100, origY + (dy / rect.height) * 100)),
+    );
+  }
 
-      if (isCorner) {
-        const initialDist = Math.hypot(touch.clientX - rect.left, touch.clientY - rect.top);
-        const initialScale = layer.scale ?? 1;
+  function handleTouchEnd() {
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchEnd);
+  }
 
-        function handleCornerMove(ev: TouchEvent) {
-          ev.preventDefault();
-          const t = ev.touches[0];
-          const currentDist = Math.hypot(t.clientX - rect.left, t.clientY - rect.top);
-          const ratio = currentDist / initialDist;
-          onScale(Math.max(0.3, Math.min(4.0, initialScale * ratio)));
-        }
+  document.addEventListener('touchmove', handleTouchMove, { passive: false });
+  document.addEventListener('touchend', handleTouchEnd);
+}
 
-        function handleCornerEnd() {
-          document.removeEventListener('touchmove', handleCornerMove);
-          document.removeEventListener('touchend', handleCornerEnd);
-        }
-
-        document.addEventListener('touchmove', handleCornerMove, { passive: false });
-        document.addEventListener('touchend', handleCornerEnd);
-        return;
-      }
-    }
-
-    // --- DRAG (1 finger, not corner) ---
-    const startX = touch.clientX;
-    const startY = touch.clientY;
-    const origX = layer.x;
-    const origY = layer.y;
-
-    function handleTouchMove(ev: TouchEvent) {
-      ev.preventDefault();
-      const container = containerRef.current;
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
-      const dx = ev.touches[0].clientX - startX;
-      const dy = ev.touches[0].clientY - startY;
-      onMove(
-        Math.max(0, Math.min(100, origX + (dx / rect.width) * 100)),
-        Math.max(0, Math.min(100, origY + (dy / rect.height) * 100)),
-      );
-    }
-
-    function handleTouchEnd() {
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    }
-
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
+export function DraggableTextLayer({ layer, isSelected, onSelect, onMove, onScale, containerRef }: Props) {
+  const layerRef = useRef<HTMLDivElement>(null);
+  function handleTouchStart(e: React.TouchEvent) {
+    startLayerGesture(e, {
+      x: layer.x, y: layer.y, scale: layer.scale ?? 1, isSelected, onSelect, onMove, onScale, layerRef, containerRef,
+    });
   }
 
   const displayText =

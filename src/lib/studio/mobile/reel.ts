@@ -1,4 +1,5 @@
-import type { ReelPhoto, ReelPhotoStatus, StudioWorkItem } from '@/lib/types';
+import type { ReelCtaLayout, ReelCtaLinePlacement, ReelPhoto, ReelPhotoStatus, StudioWorkItem } from '@/lib/types';
+import { REEL_CTA_LAYOUT } from '@/lib/constants';
 
 /** Reel Creator holds at most this many photos */
 export const MAX_REEL_PHOTOS = 5;
@@ -49,6 +50,46 @@ export function writePhonePhotos(photos: ReelPhoto[]): void {
     sessionStorage.setItem(PHONE_STORAGE_KEY, JSON.stringify(photos.slice(0, MAX_PHONE_PHOTOS)));
   } catch {
     // ignore — uploads then last only until the library unmounts
+  }
+}
+
+const CTA_LAYOUT_STORAGE_KEY = 'reel-ctaLayout';
+
+/** Valid lines of an untrusted ctaLayout (sessionStorage / request body): x, y 0–1, scale clamped */
+export function sanitizeCtaLayout(raw: unknown): ReelCtaLayout {
+  const out: ReelCtaLayout = {};
+  if (!raw || typeof raw !== 'object') return out;
+  const { min, max } = REEL_CTA_LAYOUT.placementScale;
+  for (const key of ['line1', 'line2'] as const) {
+    const v = (raw as Record<string, unknown>)[key] as Partial<Record<keyof ReelCtaLinePlacement, unknown>> | undefined;
+    if (!v || typeof v !== 'object') continue;
+    const { x, y, scale } = v;
+    if (![x, y, scale].every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
+    const r = (n: number) => Math.round(n * 10000) / 10000;
+    out[key] = {
+      x: r(Math.min(Math.max(x as number, 0), 1)),
+      y: r(Math.min(Math.max(y as number, 0), 1)),
+      scale: r(Math.min(Math.max(scale as number, min), max)),
+    };
+  }
+  return out;
+}
+
+export function readCtaLayout(): ReelCtaLayout {
+  try {
+    const raw = sessionStorage.getItem(CTA_LAYOUT_STORAGE_KEY);
+    return raw ? sanitizeCtaLayout(JSON.parse(raw)) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeCtaLayout(layout: ReelCtaLayout): void {
+  try {
+    if (layout.line1 || layout.line2) sessionStorage.setItem(CTA_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+    else sessionStorage.removeItem(CTA_LAYOUT_STORAGE_KEY);
+  } catch {
+    // ignore — the layout then lasts until the page unmounts
   }
 }
 

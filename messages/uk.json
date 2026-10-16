@@ -1833,7 +1833,9 @@
       "ctaMotion": "Рух",
       "ctaMotionNone": "Без руху",
       "ctaMotionSubtle": "Легкий",
-      "ctaMotionMedium": "Середній"
+      "ctaMotionMedium": "Середній",
+      "ctaPreviewHint": "Перетягніть текст, щоб зсунути; зведіть пальці або потягніть за кут, щоб змінити розмір",
+      "ctaPreviewReset": "Скинути положення"
     },
     "removeBgEditor": {
       "title": "Видалити фон",

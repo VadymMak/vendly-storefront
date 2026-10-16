@@ -1846,7 +1846,9 @@
       "ctaMotion": "Motion",
       "ctaMotionNone": "Static",
       "ctaMotionSubtle": "Subtle",
-      "ctaMotionMedium": "Medium"
+      "ctaMotionMedium": "Medium",
+      "ctaPreviewHint": "Drag text to move it, pinch or use the corner to resize",
+      "ctaPreviewReset": "Reset position"
     },
     "removeBgEditor": {
       "title": "Remove Background",

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { readReelPhotos } from '@/lib/studio/mobile/reel';
+import { readCtaLayout, readReelPhotos } from '@/lib/studio/mobile/reel';
 import type { MusicTrack } from '@/lib/types';
 import MusicBottomSheet from './MusicBottomSheet';
 import { notifyCreditsChanged } from '@/lib/studio/credits-events';
@@ -111,6 +111,7 @@ export function ReelGenerating() {
           ctaColor,
           ctaDuration,
           ctaMotion,
+          ctaLayout: readCtaLayout(),
         }),
       });
 

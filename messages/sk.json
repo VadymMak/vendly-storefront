@@ -1837,7 +1837,9 @@
       "ctaMotion": "Pohyb",
       "ctaMotionNone": "Statický",
       "ctaMotionSubtle": "Jemný",
-      "ctaMotionMedium": "Stredný"
+      "ctaMotionMedium": "Stredný",
+      "ctaPreviewHint": "Potiahnutím text posuniete, stiahnutím prstov alebo rohom zmeníte veľkosť",
+      "ctaPreviewReset": "Obnoviť polohu"
     },
     "removeBgEditor": {
       "title": "Odstrániť pozadie",

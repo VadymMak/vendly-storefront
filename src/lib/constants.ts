@@ -1048,6 +1048,10 @@ export const REEL_CTA_LAYOUT = {
     bottomScrimHeight: 820, pillMaxWidth: 620, pillPaddingX: 88, pillHeightRatio: 1.9, pillBottom: 1500,
   },
   logo: { sides: 65, top: 270, bottom: 380 },
+  /** Custom placement (ctaLayout): baseline = center + size × 0.35; text stays `edgeMargin` inside the frame */
+  baselineOffset: 0.35,
+  edgeMargin: 20,
+  placementScale: { min: 0.3, max: 4 },
   /** brand.js FONT_MAP / resolveCtaFont: weight per Brand Kit family, 700 for any other family */
   weights: { Manrope: 700, Raleway: 600, Anton: 400 } as Record<string, number>,
   defaultWeight: 700,

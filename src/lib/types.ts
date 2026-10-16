@@ -729,6 +729,19 @@ export interface ReelPhoto {
 /** Phase 1 heuristic: green = AI-finished, yellow = Improve would help, red = replace (unused until appeal scoring) */
 export type ReelPhotoStatus = 'green' | 'yellow' | 'red';
 
+/** A CTA line moved/resized on the Reel preview: center as a fraction (0–1) of the 1080×1920 frame, scale × the CTA size */
+export interface ReelCtaLinePlacement {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+/** Custom CTA placement — a missing line keeps reel-service's default position and size */
+export interface ReelCtaLayout {
+  line1?: ReelCtaLinePlacement;
+  line2?: ReelCtaLinePlacement;
+}
+
 /** Zoom on the reel's CTA shot — none = static, subtle = the original near-static push, medium = stronger */
 export type ReelCtaMotion = 'none' | 'subtle' | 'medium';
 

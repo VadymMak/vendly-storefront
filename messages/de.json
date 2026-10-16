@@ -1846,7 +1846,9 @@
       "ctaMotion": "Bewegung",
       "ctaMotionNone": "Statisch",
       "ctaMotionSubtle": "Dezent",
-      "ctaMotionMedium": "Mittel"
+      "ctaMotionMedium": "Mittel",
+      "ctaPreviewHint": "Text ziehen zum Verschieben, mit zwei Fingern oder der Ecke die Größe ändern",
+      "ctaPreviewReset": "Position zurücksetzen"
     },
     "removeBgEditor": {
       "title": "Hintergrund entfernen",

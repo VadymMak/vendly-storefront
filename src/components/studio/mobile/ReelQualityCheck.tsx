@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
-import type { BrandKitData, ReelCtaMotion, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
+import { MAX_REEL_PHOTOS, assessReelPhoto, readCtaLayout, readReelPhotos, writeCtaLayout, writeReelPhotos } from '@/lib/studio/mobile/reel';
+import type { BrandKitData, ReelCtaLayout, ReelCtaLinePlacement, ReelCtaMotion, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
 import { DEFAULT_REEL_CTA_MOTION, FONT_PRESETS, MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS, REEL_CTA_DURATION, REEL_CTA_FONT_SIZE, REEL_CTA_LAYOUT, REEL_CTA_MOTIONS } from '@/lib/constants';
 import { loadGoogleFont } from '@/lib/fonts/font-loader';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
 import { ColorSwatches, FontChips, SizeStepper } from './TextStylePanel';
+import { startLayerGesture } from './DraggableTextLayer';
 import { useBrandKit } from '@/hooks/useBrandKit';
 
 const STATUS_STYLE: Record<ReelPhotoStatus, { tile: string; dot: string; label: 'statusGood' | 'statusImprove' | 'statusWeak'; hint: 'hintGood' | 'hintImprove' | 'hintWeak' }> = {
@@ -105,6 +106,16 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const ctaFontFamily = pickedFont ?? fontChips[0];
   const [ctaFontSize, setCtaFontSize] = useState<number>(REEL_CTA_FONT_SIZE.default);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // Lines moved / resized on the preview — kept for the session (this screen renders client-only)
+  const [ctaLayout, setCtaLayout] = useState<ReelCtaLayout>(readCtaLayout);
+  useEffect(() => { writeCtaLayout(ctaLayout); }, [ctaLayout]);
+  // The preview owns a history entry, so the phone's Back closes it instead of leaving the page
+  useEffect(() => {
+    if (!previewOpen) return;
+    const onPop = () => setPreviewOpen(false);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [previewOpen]);
   // How long the CTA shot stays on screen and how much it zooms (reel-service CTA_DURATION / CTA_MOTION)
   const [ctaDuration, setCtaDuration] = useState<number>(REEL_CTA_DURATION.default);
   const [ctaMotion, setCtaMotion] = useState<ReelCtaMotion>(DEFAULT_REEL_CTA_MOTION);
@@ -182,6 +193,18 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     const fromLibrary = new URLSearchParams(window.location.search).get('from') === 'library';
     if (fromLibrary && window.history.length > 1) router.back();
     else router.replace('/studio/m/library?select=1');
+  }
+
+  function openPreview() {
+    // State-only entry (no URL) — Next copies its router state onto it, so Back restores this page
+    window.history.pushState({ ctaPreview: true }, '');
+    setPreviewOpen(true);
+  }
+
+  // ✕ / Escape pop our entry too — popstate then closes the overlay, like the phone's Back
+  function closePreview() {
+    if ((window.history.state as { ctaPreview?: boolean } | null)?.ctaPreview) window.history.back();
+    else setPreviewOpen(false);
   }
 
   function update(next: ReelPhoto[]) {
@@ -297,7 +320,9 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           fontSize={ctaFontSize}
           pickedColor={pickedColor}
           brand={brand}
-          onClose={() => setPreviewOpen(false)}
+          layout={ctaLayout}
+          onLayoutChange={setCtaLayout}
+          onClose={closePreview}
         />
       )}
       {/* Header */}
@@ -568,7 +593,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
         </div>
 
         <button
-          onClick={() => setPreviewOpen(true)}
+          onClick={openPreview}
           className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-gray-200 active:bg-white/10"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -640,18 +665,67 @@ interface CtaPreviewProps {
   /** Only an explicit pick overrides the Brand Kit / default colors, as in reel-service */
   pickedColor: string | null;
   brand: BrandKitData | null;
+  /** Lines the user moved / resized here; a missing line sits where reel-service puts it by default */
+  layout: ReelCtaLayout;
+  onLayoutChange: (layout: ReelCtaLayout) => void;
   onClose: () => void;
+}
+
+type CtaLineKey = 'line1' | 'line2';
+
+interface CtaLineGroupProps {
+  /** Center in % of the frame, as startLayerGesture expects */
+  x: number;
+  y: number;
+  scale: number;
+  /** Touch target / selection frame in frame units */
+  box: { x: number; y: number; w: number; h: number };
+  isSelected: boolean;
+  onSelect: () => void;
+  onMove: (x: number, y: number) => void;
+  onScale: (scale: number) => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}
+
+/** One CTA line on the preview — a text overlay layer's drag / pinch / corner-resize in SVG */
+function CtaLineGroup({ x, y, scale, box, isSelected, onSelect, onMove, onScale, containerRef, children }: CtaLineGroupProps) {
+  const ref = useRef<SVGGElement>(null);
+  function handleTouchStart(e: React.TouchEvent) {
+    startLayerGesture(e, { x, y, scale, isSelected, onSelect, onMove, onScale, layerRef: ref, containerRef });
+  }
+  return (
+    <g ref={ref} onTouchStart={handleTouchStart} style={{ touchAction: 'none', cursor: 'grab' }}>
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={16} fill="transparent"
+        stroke={isSelected ? '#22c55e' : 'none'} strokeWidth={4} strokeDasharray="14 10" />
+      {children}
+      {isSelected && <circle cx={box.x + box.w} cy={box.y + box.h} r={26} fill="#22c55e" stroke="white" strokeWidth={4} />}
+    </g>
+  );
+}
+
+interface PlacedLine {
+  size: number;
+  width: number;
+  /** Center in frame units (1080×1920) */
+  cx: number;
+  cy: number;
+  scale: number;
 }
 
 /**
  * Approximate last reel frame: the same SVG overlay reel-service draws (REEL_CTA_LAYOUT) over the
  * best-scored photo. The real reel crops/outpaints the hero photo and animates it, so it can differ.
+ * Both lines can be dragged / pinched like text overlay layers (startLayerGesture); reel-service
+ * applies the result (ctaLayout) with the same placement maths as placeLine below.
  */
-function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, pickedColor, brand, onClose }: CtaPreviewProps) {
+function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, pickedColor, brand, layout, onLayoutChange, onClose }: CtaPreviewProps) {
   const t = useTranslations('mobile.reel');
   const L = REEL_CTA_LAYOUT;
   const face1 = ctaFace(fontFamily, line1);
   const face2 = ctaFace(fontFamily, line2);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<CtaLineKey | null>(null);
   // Re-measure once the faces are loaded — the canvas measures a fallback font before that
   const [fontsReady, setFontsReady] = useState(0);
   useEffect(() => {
@@ -668,23 +742,51 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
   }, [onClose]);
 
   const max1 = Math.round(fontSize * L.line1Ratio);
-  const layout = useMemo(() => {
+  const placed = useMemo(() => {
     void fontsReady;
-    if (!brand) {
-      const P = L.plain;
-      return {
-        t1: line1 ? fitLine(line1, max1, face1, P.spacing1, P.maxWidth) : null,
-        t2: line2 ? fitLine(line2, fontSize, face2, P.spacing2, P.maxWidth) : null,
-      };
-    }
+    const P = L.plain;
     const B = L.branded;
-    return {
-      t1: line1 ? fitLine(line1, max1, face1, B.spacing1, B.line1MaxWidth) : null,
-      t2: line2 ? fitLine(line2, fontSize, face2, 0, B.pillMaxWidth) : null,
-    };
-  }, [brand, line1, line2, max1, fontSize, face1, face2, fontsReady, L]);
+    /**
+     * Default: reel-service's fixed spot (center = baseline − size × 0.35, or the pill's center).
+     * Custom: center from the layout, size × scale, shrunk to fit the room left to the nearer edge.
+     */
+    function placeLine(
+      key: CtaLineKey, text: string, max: number, face: { family: string; weight: number },
+      spacing: number, maxWidth: number, padX: number, defaultCenterY: (size: number) => number,
+    ): PlacedLine | null {
+      if (!text) return null;
+      const custom = layout[key];
+      if (!custom) {
+        const fit = fitLine(text, max, face, spacing, maxWidth);
+        return { ...fit, cx: L.width / 2, cy: defaultCenterY(fit.size), scale: 1 };
+      }
+      const cx = custom.x * L.width;
+      const room = 2 * Math.min(cx, L.width - cx) - padX - 2 * L.edgeMargin;
+      const fit = fitLine(text, Math.round(max * custom.scale), face, spacing, Math.max(1, Math.min(maxWidth, room)));
+      return { ...fit, cx, cy: custom.y * L.height, scale: custom.scale };
+    }
+    const off = L.baselineOffset;
+    return brand
+      ? {
+          l1: placeLine('line1', line1, max1, face1, B.spacing1, B.line1MaxWidth, 0, (sz) => B.line1Y - sz * off),
+          l2: placeLine('line2', line2, fontSize, face2, 0, B.pillMaxWidth, B.pillPaddingX,
+            (sz) => B.pillBottom - Math.round(sz * B.pillHeightRatio) / 2),
+        }
+      : {
+          l1: placeLine('line1', line1, max1, face1, P.spacing1, P.maxWidth, 0, (sz) => P.line1Y - sz * off),
+          l2: placeLine('line2', line2, fontSize, face2, P.spacing2, P.maxWidth, 0, (sz) => P.line2Y - sz * off),
+        };
+  }, [brand, line1, line2, max1, fontSize, face1, face2, fontsReady, layout, L]);
 
-  const { t1, t2 } = layout;
+  const { l1, l2 } = placed;
+
+  function setPlacement(key: CtaLineKey, line: PlacedLine, change: Partial<ReelCtaLinePlacement>) {
+    onLayoutChange({
+      ...layout,
+      [key]: { x: line.cx / L.width, y: line.cy / L.height, scale: line.scale, ...change },
+    });
+  }
+
   const shadow = (
     <filter id="ctaShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="2" dy="2" stdDeviation="5" floodColor="rgba(0,0,0,0.85)" />
@@ -693,6 +795,32 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
   const fontAttrs = (f: { family: string; weight: number }) => ({
     fontFamily: `'${f.family}', Arial, Helvetica, sans-serif`,
     fontWeight: f.weight,
+  });
+  const baseline = (line: PlacedLine) => Math.round(line.cy + line.size * L.baselineOffset);
+
+  // A draggable / resizable line: same gestures as a text overlay layer
+  function group(key: CtaLineKey, line: PlacedLine, box: { x: number; y: number; w: number; h: number }, content: ReactNode) {
+    return (
+      <CtaLineGroup
+        key={key}
+        x={(line.cx / L.width) * 100}
+        y={(line.cy / L.height) * 100}
+        scale={line.scale}
+        box={box}
+        isSelected={selected === key}
+        onSelect={() => setSelected(key)}
+        onMove={(x, y) => setPlacement(key, line, { x: x / 100, y: y / 100 })}
+        onScale={(scale) => setPlacement(key, line, {
+          scale: Math.min(Math.max(scale, L.placementScale.min), L.placementScale.max),
+        })}
+        containerRef={frameRef}
+      >
+        {content}
+      </CtaLineGroup>
+    );
+  }
+  const textBox = (line: PlacedLine) => ({
+    x: line.cx - line.width / 2 - 24, y: line.cy - line.size * 0.75, w: line.width + 48, h: line.size * 1.5,
   });
 
   let overlay: ReactNode;
@@ -713,14 +841,14 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
         </defs>
         <rect x="0" y="0" width={L.width} height={P.topScrimHeight} fill="url(#ctaTopScrim)" />
         <rect x="0" y={P.bottomScrimY} width={L.width} height={L.height - P.bottomScrimY} fill="url(#ctaBottomScrim)" />
-        {t1 && (
-          <text x={L.width / 2} y={P.line1Y} {...fontAttrs(face1)} fontSize={t1.size} fill={pickedColor ?? 'white'}
+        {l1 && group('line1', l1, textBox(l1), (
+          <text x={l1.cx} y={baseline(l1)} {...fontAttrs(face1)} fontSize={l1.size} fill={pickedColor ?? 'white'}
             textAnchor="middle" filter="url(#ctaShadow)" letterSpacing={P.spacing1}>{line1}</text>
-        )}
-        {t2 && (
-          <text x={L.width / 2} y={P.line2Y} {...fontAttrs(face2)} fontSize={t2.size} fill={pickedColor ?? 'rgba(255,255,255,0.95)'}
+        ))}
+        {l2 && group('line2', l2, textBox(l2), (
+          <text x={l2.cx} y={baseline(l2)} {...fontAttrs(face2)} fontSize={l2.size} fill={pickedColor ?? 'rgba(255,255,255,0.95)'}
             textAnchor="middle" filter="url(#ctaShadow)" letterSpacing={P.spacing2}>{line2}</text>
-        )}
+        ))}
       </>
     );
   } else {
@@ -730,9 +858,8 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
     const textColor = pickedColor ?? hexOr(brand.colorText, '#FFFFFF');
     // A dark brand text color would vanish on the top scrim — reel-service uses white there
     const topColor = pickedColor ?? (luminance(textColor) > 0.5 ? textColor : '#FFFFFF');
-    const pillH = t2 ? Math.round(t2.size * B.pillHeightRatio) : 0;
-    const pillW = t2 ? t2.width + B.pillPaddingX : 0;
-    const pillY = B.pillBottom - pillH;
+    const pillH = l2 ? Math.round(l2.size * B.pillHeightRatio) : 0;
+    const pillW = l2 ? l2.width + B.pillPaddingX : 0;
     overlay = (
       <>
         <defs>
@@ -746,19 +873,20 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
           </linearGradient>
           {shadow}
         </defs>
-        {t1 && <rect x="0" y="0" width={L.width} height={B.line1Y + B.topScrimExtra} fill="url(#ctaTopScrim)" />}
+        {l1 && <rect x="0" y="0" width={L.width} height={B.line1Y + B.topScrimExtra} fill="url(#ctaTopScrim)" />}
         <rect x="0" y={L.height - B.bottomScrimHeight} width={L.width} height={B.bottomScrimHeight} fill="url(#ctaBottomScrim)" />
-        {t1 && (
-          <text x={L.width / 2} y={B.line1Y} {...fontAttrs(face1)} fontSize={t1.size} fill={topColor}
+        {l1 && group('line1', l1, textBox(l1), (
+          <text x={l1.cx} y={baseline(l1)} {...fontAttrs(face1)} fontSize={l1.size} fill={topColor}
             textAnchor="middle" filter="url(#ctaShadow)" letterSpacing={B.spacing1}>{line1}</text>
-        )}
-        {t2 && (
+        ))}
+        {l2 && group('line2', l2,
+          { x: l2.cx - pillW / 2 - 8, y: l2.cy - pillH / 2 - 8, w: pillW + 16, h: pillH + 16 }, (
           <>
-            <rect x={(L.width - pillW) / 2} y={pillY} width={pillW} height={pillH} rx={pillH / 2} fill={primary} filter="url(#ctaShadow)" />
-            <text x={L.width / 2} y={Math.round(pillY + pillH / 2 + t2.size * 0.35)} {...fontAttrs(face2)} fontSize={t2.size}
+            <rect x={l2.cx - pillW / 2} y={l2.cy - pillH / 2} width={pillW} height={pillH} rx={pillH / 2} fill={primary} filter="url(#ctaShadow)" />
+            <text x={l2.cx} y={baseline(l2)} {...fontAttrs(face2)} fontSize={l2.size}
               fill={textColor} textAnchor="middle">{line2}</text>
           </>
-        )}
+        ))}
       </>
     );
   }
@@ -774,6 +902,7 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
     [logoPos.endsWith('left') ? 'left' : 'right']: `${(L.logo.sides / L.width) * 100}%`,
     [logoPos.startsWith('top') ? 'top' : 'bottom']: `${((logoPos.startsWith('top') ? L.logo.top : L.logo.bottom) / L.height) * 100}%`,
   };
+  const customised = Boolean(layout.line1 || layout.line2);
 
   return (
     <div
@@ -793,18 +922,35 @@ function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, picke
         </svg>
       </button>
       <div
+        ref={frameRef}
         className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl"
-        style={{ height: 'min(78dvh, calc((100vw - 2rem) * 16 / 9))' }}
+        style={{ height: 'min(74dvh, calc((100vw - 2rem) * 16 / 9))' }}
         translate="no"
       >
-        <svg viewBox={`0 0 ${L.width} ${L.height}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <svg
+          viewBox={`0 0 ${L.width} ${L.height}`}
+          className="absolute inset-0 h-full w-full"
+          role="img"
+          aria-label={t('ctaPreview')}
+          style={{ touchAction: 'none' }}
+          // Lines stop propagation — a touch that reaches the frame itself deselects
+          onTouchStart={() => setSelected(null)}
+        >
           <image href={photoUrl} x="0" y="0" width={L.width} height={L.height} preserveAspectRatio="xMidYMid slice" />
           {overlay}
         </svg>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {logo && <img src={logo} alt="" className="absolute h-auto" style={logoStyle} />}
+        {logo && <img src={logo} alt="" className="pointer-events-none absolute h-auto" style={logoStyle} />}
       </div>
-      <p className="mt-3 text-xs text-gray-400">{t('ctaPreviewApprox')}</p>
+      <p className="mt-3 text-center text-xs text-gray-400">{t('ctaPreviewHint')}</p>
+      <div className="mt-1 flex items-center gap-3 text-xs">
+        <span className="text-gray-500">{t('ctaPreviewApprox')}</span>
+        {customised && (
+          <button onClick={() => { setSelected(null); onLayoutChange({}); }} className="min-h-9 px-2 font-medium text-green-400 active:text-green-300">
+            {t('ctaPreviewReset')}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { getUserBrandKit } from '@/lib/studio/brand-utils';
 import { REEL_CTA_DURATION, REEL_CTA_FONT_SIZE, REEL_CTA_MOTIONS } from '@/lib/constants';
 import type { ReelCtaMotion } from '@/lib/types';
+import { sanitizeCtaLayout } from '@/lib/studio/mobile/reel';
 
 const REEL_SERVICE_URL = 'http://127.0.0.1:3010';
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
 
   let body: {
     photos?: unknown; mode?: unknown; cta1?: unknown; cta2?: unknown; musicTrackId?: unknown;
-    ctaFontFamily?: unknown; ctaFontSize?: unknown; ctaColor?: unknown; ctaDuration?: unknown; ctaMotion?: unknown;
+    ctaFontFamily?: unknown; ctaFontSize?: unknown; ctaColor?: unknown; ctaDuration?: unknown; ctaMotion?: unknown; ctaLayout?: unknown;
   };
   try {
     body = await request.json();
@@ -52,6 +53,9 @@ export async function POST(request: Request) {
     ? Math.min(Math.max(body.ctaDuration, REEL_CTA_DURATION.min), REEL_CTA_DURATION.max)
     : undefined;
   const ctaMotion = REEL_CTA_MOTIONS.find((m): m is ReelCtaMotion => m === body.ctaMotion);
+  // Lines moved / resized on the CTA preview (fractions of the frame); empty → default positions
+  const layout = sanitizeCtaLayout(body.ctaLayout);
+  const ctaLayout = layout.line1 || layout.line2 ? layout : undefined;
 
   const mode = body.mode ?? 'images';
   if (mode !== 'images' && mode !== 'video') {
@@ -108,7 +112,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         photos, mode, cta1, cta2, userId,
         musicTrackId: musicTrackId || 'warm-cafe',
-        ctaFontFamily, ctaFontSize, ctaColor, ctaDuration, ctaMotion,
+        ctaFontFamily, ctaFontSize, ctaColor, ctaDuration, ctaMotion, ctaLayout,
         brandKit: brandPayload,
       }),
     });

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { compressImage } from '@/lib/studio/compress-image';
-import { MAX_REEL_PHOTOS, readReelPhotos, reelPhotoFromWork, writeReelPhotos } from '@/lib/studio/mobile/reel';
+import { MAX_REEL_PHOTOS, isPhonePhoto, readPhonePhotos, readReelPhotos, reelPhotoFromWork, writePhonePhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
 import type { ReelPhoto, StudioWorkItem, StudioWorkPage } from '@/lib/types';
 
 type Filter = 'all' | 'image' | 'video';
@@ -69,8 +69,11 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
   const [reloadKey, setReloadKey] = useState(0);
   // Items whose media failed to load (expired blob, deleted file) — dropped from the grid
   const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
-  // Phone uploads live in component state only — the reel flow is a single session
+  // Phone uploads aren't studio jobs, so no other tab lists them — kept in sessionStorage (restored
+  // on mount) so they're still on the phone tab after Quality Check "+" or back-navigation
   const [phonePhotos, setPhonePhotos] = useState<ReelPhoto[]>([]);
+  // Nothing is written back until the stored list has been read — or the first render would wipe it
+  const [phonePhotosRestored, setPhonePhotosRestored] = useState(false);
   // Multi-select batch: photos picked and photos finished (ok or failed) — count 0 = idle
   const [uploadCount, setUploadCount] = useState(0);
   const [uploadDone, setUploadDone] = useState(0);
@@ -94,11 +97,31 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
     return () => { cancelled = true; };
   }, [view, reloadKey]);
 
-  // Back from Quality Check "+": keep what is already in the reel (sessionStorage is client-only)
+  // Back from Quality Check "+": keep what is already in the reel (sessionStorage is client-only).
+  // Selected phone photos join the phone grid too — the count must match what the tabs show.
   useEffect(() => {
-    if (!initialSelect) return;
-    setSelected(new Map(readReelPhotos().map((p) => [p.id, p])));
+    const restored = initialSelect ? readReelPhotos() : [];
+    if (initialSelect) setSelected(new Map(restored.map((p) => [p.id, p])));
+    const stored = readPhonePhotos();
+    const missing = restored.filter((p) => isPhonePhoto(p) && !stored.some((s) => s.id === p.id));
+    setPhonePhotos([...stored, ...missing]);
+    setPhonePhotosRestored(true);
   }, [initialSelect]);
+
+  useEffect(() => {
+    if (phonePhotosRestored) writePhonePhotos(phonePhotos);
+  }, [phonePhotos, phonePhotosRestored]);
+
+  // A phone photo whose file is gone leaves the grid and the selection together
+  function dropPhonePhoto(id: string) {
+    setPhonePhotos((prev) => prev.filter((p) => p.id !== id));
+    setSelected((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }
 
   function exitSelectMode() {
     setSelectMode(false);
@@ -307,7 +330,7 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
                   selected={selected.has(photo.id)}
                   disabled={!selected.has(photo.id) && selected.size >= MAX_REEL_PHOTOS}
                   onToggle={() => togglePhonePhoto(photo)}
-                  onBroken={() => setPhonePhotos((prev) => prev.filter((p) => p.id !== photo.id))}
+                  onBroken={() => dropPhonePhoto(photo.id)}
                 />
               ))}
             </div>

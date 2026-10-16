@@ -5,37 +5,37 @@
 ### Flux Schnell (Quick Tier)
 - **Speed:** ~3 seconds
 - **Quality:** Good for drafts and quick iterations
-- **Cost:** 1 credit
+- **Cost:** {{cost:image-quick}}
 - **Providers:** fal.ai (primary), Replicate (fallback)
 
 ### FLUX.2 Dev (Best Tier)
 - **Speed:** ~8 seconds
 - **Quality:** High quality, good for final content
-- **Cost:** 2 credits
+- **Cost:** {{cost:image-best}}
 - **Providers:** fal.ai (primary), Replicate (fallback)
 
 ### Grok Imagine (Best Tier)
 - **Speed:** ~5-10 seconds
 - **Quality:** Good quality
-- **Cost:** 2 image credits
+- **Cost:** {{cost:image-best}}
 - **Provider:** xAI
 - Used as automatic fallback in Best tier
 
 ### FLUX.2 Pro (HD Tier)
 - **Speed:** ~15 seconds
 - **Quality:** Highest quality, best for print and professional use
-- **Cost:** 3 credits
+- **Cost:** {{cost:image-hd}}
 - **Provider:** BFL (Black Forest Labs)
 
 ## Image Editing Models
 
 ### Flux Kontext Pro
-- **Cost:** 2 credits
+- **Cost:** {{cost:kontext-edit}}
 - **Providers:** fal.ai, Replicate
 - Best for precise edits with text instructions
 
 ### Grok Edit
-- **Cost:** 1 image credit (used for AI Style in Improve Photo)
+- **Cost:** {{cost:ai-style}} (used for AI Style in Improve Photo)
 - **Provider:** xAI
 - Good for general improvements and edits
 
@@ -43,13 +43,14 @@
 
 ### Grok Video 1.5
 - **Provider:** xAI
-- **Cost:** 4 / 8 / 12 video credits for 5s / 10s / 15s
+- **Cost:** {{credits:video-quick-5s}} / {{credits:video-quick-10s}} / {{credits:video-quick-15s}} video credits for 5s / 10s / 15s
 - Text-to-video generation
 - Supports 5s, 10s, and 15s videos
 
 ### Kling 3.0
 - **Provider:** fal.ai
-- Image-to-video (animation)
+- Image-to-video (Animate) — {{cost:video-animate-5s}}
+- Text-to-video, Best tier — {{credits:video-best-5s}} / {{credits:video-best-10s}} / {{credits:video-best-15s}} video credits for 5s / 10s / 15s
 - High quality motion
 
 ## Other Models
@@ -62,12 +63,12 @@
 ### Remove-bg (lucataco)
 - **Provider:** Replicate
 - Background removal
-- 1 credit
+- {{cost:remove-bg}}
 
 ### Flux Fill Pro (Inpaint)
 - **Provider:** Replicate
 - Object removal and replacement
-- 2 credits
+- {{cost:inpaint}}
 
 ## Automatic Fallback
 

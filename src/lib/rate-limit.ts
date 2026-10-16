@@ -1,4 +1,5 @@
-import { isSuperuser } from './credits';
+import { getOrCreateCredits, isSuperuser } from './credits';
+import { FLAT_RATE_LIMITS, RATE_LIMIT_TABLE, RATE_LIMIT_WINDOW_MS, REEL_RATE_LIMIT, type RateLimitConfig as PlanLimits } from './pricing';
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -38,71 +39,45 @@ setInterval(() => {
   }
 }, 60_000);
 
-// Per-route limits by plan (requests per hour unless noted)
+// Per-route limits by plan — built from RATE_LIMIT_TABLE in src/lib/pricing.ts (edit numbers there)
+function perPlan(cfg: PlanLimits) {
+  const windowMs = RATE_LIMIT_WINDOW_MS[cfg.unit];
+  return {
+    free:         { maxRequests: cfg.free,         windowMs },
+    starter:      { maxRequests: cfg.starter,      windowMs },
+    pro:          { maxRequests: cfg.pro,          windowMs },
+    byok_creator: { maxRequests: cfg.byok_creator, windowMs },
+  };
+}
+
+const T = RATE_LIMIT_TABLE;
+const flat = (l: { max: number; unit: PlanLimits['unit'] }) => ({ maxRequests: l.max, windowMs: RATE_LIMIT_WINDOW_MS[l.unit] });
+
 export const RATE_LIMITS = {
-  generateImage: {
-    free:         { maxRequests: 5,   windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 30,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 80,  windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 200, windowMs: 60 * 60 * 1000 },
-  },
-  generateVideo: {
-    free:         { maxRequests: 1,  windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 3,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 10, windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 50, windowMs: 60 * 60 * 1000 },
-  },
-  aiEdit: {
-    free:         { maxRequests: 5,   windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 30,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 80,  windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 200, windowMs: 60 * 60 * 1000 },
-  },
-  enhanceImage: {
-    free:         { maxRequests: 5,   windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 30,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 80,  windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 200, windowMs: 60 * 60 * 1000 },
-  },
-  removeBg: {
-    free:         { maxRequests: 5,   windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 30,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 80,  windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 200, windowMs: 60 * 60 * 1000 },
-  },
+  generateImage: perPlan(T.generateImage),
+  generateVideo: perPlan(T.generateVideo),
+  aiEdit:        perPlan(T.aiEdit),
+  enhanceImage:  perPlan(T.enhanceImage),
+  removeBg:      perPlan(T.removeBg),
   // Cheap local Sharp ops (format convert, resize) — limit protects CPU/RAM, not credits
-  imageTools: {
-    free:         { maxRequests: 60,   windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 200,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 400,  windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 1000, windowMs: 60 * 60 * 1000 },
-  },
-  // Per user, all plans — credits are the real cap, this stops bursts against FAL/Kling
+  imageTools:    perPlan(T.imageTools),
   reel: {
-    hourly: { maxRequests: 10, windowMs: 60 * 60 * 1000 },
-    daily:  { maxRequests: 30, windowMs: 24 * 60 * 60 * 1000 },
+    hourly: { maxRequests: REEL_RATE_LIMIT.hourly, windowMs: RATE_LIMIT_WINDOW_MS.hour },
+    daily:  { maxRequests: REEL_RATE_LIMIT.daily,  windowMs: RATE_LIMIT_WINDOW_MS.day },
   },
-  register:   { maxRequests: 2, windowMs: 24 * 60 * 60 * 1000 },
-  buyCredits: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
-  // Help bot — gpt-4o on the platform key, no credit cost, so the hourly cap is the only brake
-  kbChat: {
-    free:         { maxRequests: 3,  windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 20, windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 50, windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 50, windowMs: 60 * 60 * 1000 },
-  },
-  // Prompt enhancer — Claude on the platform key (users' own key only on the video-skill path)
-  enhancePrompt: {
-    free:         { maxRequests: 5,  windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 20, windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 50, windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 50, windowMs: 60 * 60 * 1000 },
-  },
-  // Studio chat agent — each message runs the agent model; its tools charge credits separately
-  studioChat: {
-    free:         { maxRequests: 5,   windowMs: 60 * 60 * 1000 },
-    starter:      { maxRequests: 30,  windowMs: 60 * 60 * 1000 },
-    pro:          { maxRequests: 100, windowMs: 60 * 60 * 1000 },
-    byok_creator: { maxRequests: 100, windowMs: 60 * 60 * 1000 },
-  },
+  register:      flat(FLAT_RATE_LIMITS.register),
+  buyCredits:    flat(FLAT_RATE_LIMITS.buyCredits),
+  kbChat:        perPlan(T.kbChat),
+  enhancePrompt: perPlan(T.enhancePrompt),
+  studioChat:    perPlan(T.studioChat),
 } as const;
+
+type PlanBucket = { [K in keyof typeof RATE_LIMITS]: (typeof RATE_LIMITS)[K] extends { free: unknown } ? K : never }[keyof typeof RATE_LIMITS];
+
+/** Per-plan limit of one bucket for this user (superusers bypass); `key` should be unique per route */
+export async function checkPlanRateLimit(bucket: PlanBucket, key: string, userId: string): Promise<boolean> {
+  const credits = await getOrCreateCredits(userId);
+  const limits = RATE_LIMITS[bucket];
+  const plan = (credits.planType || 'free') as keyof typeof limits;
+  return checkRateLimitWithBypass(`${key}:${userId}`, limits[plan] ?? limits.free, userId);
+}

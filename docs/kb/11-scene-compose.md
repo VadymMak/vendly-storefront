@@ -13,7 +13,7 @@ Combine up to 5 images into a single scene using AI. Unlike Place Products (manu
 
 ## Credits
 
-2 image credits per composition.
+{{cost:scene-compose}} per composition.
 
 ## When to use Scene Compose vs Place Products
 
@@ -23,7 +23,7 @@ Combine up to 5 images into a single scene using AI. Unlike Place Products (manu
 | Images | 1-5 source images | Unlimited cutouts |
 | Result | AI-generated scene | Manual composite + AI Blend |
 | Best for | Quick creative compositions | Precise product placements |
-| Credits | 2 credits | Free + 1 for AI Blend |
+| Credits | {{cost:scene-compose}} | Free + {{cost:ai-blend}} for AI Blend |
 
 ## Tips
 

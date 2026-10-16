@@ -1848,7 +1848,9 @@
       "ctaMotionSubtle": "Лёгкое",
       "ctaMotionMedium": "Среднее",
       "ctaPreviewHint": "Перетащите текст, чтобы сдвинуть; сведите пальцы или потяните за угол, чтобы изменить размер",
-      "ctaPreviewReset": "Сбросить положение"
+      "ctaPreviewReset": "Сбросить положение",
+      "reelCreditsImage": "{count, plural, one {# кредит} few {# кредита} many {# кредитов} other {# кредита}}",
+      "reelCreditsVideo": "{count, plural, one {# видеокредит} few {# видеокредита} many {# видеокредитов} other {# видеокредита}}"
     },
     "removeBgEditor": {
       "title": "Удалить фон",

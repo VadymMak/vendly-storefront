@@ -1,7 +1,8 @@
 import { put } from '@/lib/storage';
 import type { ToolName, MediaAttachment, SessionContext } from './types';
 import { getUserApiKey } from './get-user-key';
-import { consumeCredits, refundCredits, type CreditType } from '@/lib/credits';
+import { consumeCredits, refundCredits } from '@/lib/credits';
+import { operationCharge, type OperationId } from '@/lib/pricing';
 import { fetchAllowedImage, SafeFetchError } from './safe-fetch';
 
 /**
@@ -9,9 +10,10 @@ import { fetchAllowedImage, SafeFetchError } from './safe-fetch';
  * be refunded — `refund()` puts them back into the buckets they came from. No user = nothing charged.
  */
 async function reserveCredits(
-  userId: string | undefined, type: CreditType, amount: number,
+  userId: string | undefined, opId: OperationId,
 ): Promise<{ error: string } | { refund: () => Promise<void> }> {
   if (!userId) return { refund: async () => {} };
+  const { type, amount } = operationCharge(opId);
   const consume = await consumeCredits(userId, type, amount);
   if (!consume.success) return { error: consume.reason ?? 'Insufficient credits' };
   return {
@@ -154,7 +156,7 @@ export async function executeTool(
       case 'remove_background':
         return await executeRemoveBg(context, cookieHeader);
       case 'transform_image':
-        return await executeTransformImage(params, context, cookieHeader);
+        return await executeTransformImage(params, context, cookieHeader, userId);
       case 'write_caption':
         return await executeWriteCaption(params);
       case 'write_script':
@@ -513,6 +515,7 @@ async function executeTransformImage(
   params: Record<string, string | number | boolean>,
   context: SessionContext,
   _cookieHeader: string,
+  userId?: string,
 ): Promise<ToolResult> {
   if (!context.lastImageUrl) {
     return { error: 'No image in context. Please upload or generate an image first.' };
@@ -539,14 +542,25 @@ async function executeTransformImage(
   if (params.fit_mode) formData.append('fit_mode', String(params.fit_mode));
   if (params.crop) formData.append('crop', String(params.crop));
 
-  const res = await fetch(`${BRAIN_URL}/api/transform-image`, { method: 'POST', body: formData });
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error('[tool-executor] transform_image failed:', res.status, errorText);
-    return { error: `Transform failed: ${res.statusText}` };
-  }
+  // Charged only now that the input image is loaded — refunded below if the transform fails
+  const reserved = await reserveCredits(userId, 'chat-transform-image');
+  if ('error' in reserved) return { error: reserved.error };
 
-  const resultBuffer = Buffer.from(await res.arrayBuffer());
+  let res: Response;
+  let resultBuffer: Buffer;
+  try {
+    res = await fetch(`${BRAIN_URL}/api/transform-image`, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('[tool-executor] transform_image failed:', res.status, errorText);
+      await reserved.refund();
+      return { error: `Transform failed: ${res.statusText}` };
+    }
+    resultBuffer = Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    await reserved.refund();
+    throw err;
+  }
   const resultContentType = res.headers.get('content-type') || 'image/webp';
   const ext = resultContentType.includes('png') ? 'png' : resultContentType.includes('jpeg') ? 'jpg' : 'webp';
 
@@ -586,7 +600,7 @@ async function executeGenerateCharacter(
       return { error: 'REPLICATE_API_TOKEN not configured' };
     }
 
-    const reserved = await reserveCredits(userId, 'image', 1);
+    const reserved = await reserveCredits(userId, 'chat-lora-character');
     if ('error' in reserved) return { error: reserved.error };
 
     try {
@@ -674,27 +688,39 @@ async function executeGenerateCharacter(
     return { error: 'Brain API key not configured' };
   }
 
-  const res = await fetch(`${BASE_URL}/api/brain/generate-character`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-brain-api-key': BRAIN_API_KEY,
-    },
-    body: JSON.stringify({
-      prompt,
-      reference_image: referenceImage,
-      style: (params.style as string) || 'photorealistic',
-      aspect_ratio: (params.aspect_ratio as string) || '1:1',
-    }),
-  });
+  // Charged only now that the inputs are valid — refunded below if generation fails
+  const reserved = await reserveCredits(userId, 'chat-generate-character');
+  if ('error' in reserved) return { error: reserved.error };
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/brain/generate-character`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-brain-api-key': BRAIN_API_KEY,
+      },
+      body: JSON.stringify({
+        prompt,
+        reference_image: referenceImage,
+        style: (params.style as string) || 'photorealistic',
+        aspect_ratio: (params.aspect_ratio as string) || '1:1',
+      }),
+    });
+  } catch (err) {
+    await reserved.refund();
+    throw err;
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Character generation failed' })) as { error?: string };
+    await reserved.refund();
     return { error: err.error || 'Character generation failed' };
   }
 
-  const data = await res.json() as { url?: string; error?: string };
+  const data = await res.json().catch(() => ({})) as { url?: string; error?: string };
   if (!data.url) {
+    await reserved.refund();
     return { error: data.error || 'No image URL returned' };
   }
 
@@ -747,7 +773,7 @@ async function executeTalkingAvatar(
   console.log(`[talking_avatar] ${modeLabel}`);
 
   // Charged only now that the inputs are valid — refunded below if lip sync fails
-  const reserved = await reserveCredits(userId, 'video', 1);
+  const reserved = await reserveCredits(userId, 'talking-avatar');
   if ('error' in reserved) return { error: reserved.error };
 
   let res: Response;
@@ -817,7 +843,7 @@ async function executeVoiceover(
   }
 
   // Charged only now that the inputs are valid — refunded below if the voiceover fails
-  const reserved = await reserveCredits(userId, 'image', 1);
+  const reserved = await reserveCredits(userId, 'voiceover');
   if ('error' in reserved) return { error: reserved.error };
 
   let res: Response;

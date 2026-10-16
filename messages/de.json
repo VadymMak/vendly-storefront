@@ -1848,7 +1848,9 @@
       "ctaMotionSubtle": "Dezent",
       "ctaMotionMedium": "Mittel",
       "ctaPreviewHint": "Text ziehen zum Verschieben, mit zwei Fingern oder der Ecke die Größe ändern",
-      "ctaPreviewReset": "Position zurücksetzen"
+      "ctaPreviewReset": "Position zurücksetzen",
+      "reelCreditsImage": "{count, plural, one {# Credit} other {# Credits}}",
+      "reelCreditsVideo": "{count, plural, one {# Video-Credit} other {# Video-Credits}}"
     },
     "removeBgEditor": {
       "title": "Hintergrund entfernen",

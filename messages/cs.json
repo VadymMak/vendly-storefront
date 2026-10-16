@@ -1848,7 +1848,9 @@
       "ctaMotionSubtle": "Jemný",
       "ctaMotionMedium": "Střední",
       "ctaPreviewHint": "Přetažením text posunete, sevřením prstů nebo rohem změníte velikost",
-      "ctaPreviewReset": "Obnovit polohu"
+      "ctaPreviewReset": "Obnovit polohu",
+      "reelCreditsImage": "{count, plural, one {# kredit} few {# kredity} many {# kreditu} other {# kreditů}}",
+      "reelCreditsVideo": "{count, plural, one {# video kredit} few {# video kredity} many {# video kreditu} other {# video kreditů}}"
     },
     "removeBgEditor": {
       "title": "Odstranit pozadí",

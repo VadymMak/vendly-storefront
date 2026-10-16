@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { operationCharge } from '@/lib/pricing';
 import { readCtaLayout, readReelPhotos } from '@/lib/studio/mobile/reel';
 import type { MusicTrack } from '@/lib/types';
 import MusicBottomSheet from './MusicBottomSheet';
@@ -40,6 +41,11 @@ const STEP_KEY_MAP: Record<string, string> = {
 
 export function ReelGenerating() {
   const t = useTranslations('mobile.reel');
+  // Credits this reel costs (REEL_CREDIT_COST via the pricing table)
+  const reelCreditsLabel = (mode?: string) => {
+    const { type, amount } = operationCharge(mode === 'video' ? 'reel-video' : 'reel-image');
+    return t(type === 'video' ? 'reelCreditsVideo' : 'reelCreditsImage', { count: amount });
+  };
   const router = useRouter();
   const [phase, setPhase] = useState<'starting' | 'generating' | 'done' | 'error'>('starting');
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
@@ -255,16 +261,15 @@ export function ReelGenerating() {
         </div>
         <p className="mb-1 text-lg font-medium text-white">{stepLabel}</p>
         <p className="text-sm text-gray-400">{timeEst}</p>
-        {(jobStatus?.cost ?? 0) > 0 && (
-          <p className="mt-4 text-xs text-gray-500">{t('reelCost', { cost: `$${(jobStatus!.cost).toFixed(2)}` })}</p>
-        )}
+        {/* What the user pays (credits), never our provider cost */}
+        <p className="mt-4 text-xs text-gray-500">{t('reelCost', { cost: reelCreditsLabel(jobStatus?.mode) })}</p>
       </div>
     );
   }
 
   // ── Done ──────────────────────────────────────────────────────────────
   if (phase === 'done' && jobStatus?.result) {
-    const { videoUrl, duration, totalCost, shotCount } = jobStatus.result;
+    const { videoUrl, duration, shotCount } = jobStatus.result;
     const currentTrack = musicTracks.find(t => t.id === currentTrackId);
 
     return (
@@ -285,7 +290,7 @@ export function ReelGenerating() {
 
         {/* Stats */}
         <p className="mt-3 px-4 text-sm text-gray-400">
-          {duration.toFixed(1)}s · {shotCount} shots · ${totalCost.toFixed(2)}
+          {duration.toFixed(1)}s · {shotCount} shots · {reelCreditsLabel(jobStatus.mode)}
         </p>
 
         {/* Music section */}

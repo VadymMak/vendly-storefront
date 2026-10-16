@@ -386,14 +386,14 @@ export const SUBSCRIPTION_PLANS = {
     price: STUDIO_PLAN_PRICES_EUR.starter,
     priceId: process.env.STRIPE_PRICE_STARTER!,
     credits: PLAN_CREDITS.starter,
-    features: [`${PLAN_CREDITS.starter.images} images/month`, `${PLAN_CREDITS.starter.videos} video credits/month`, 'Best & HD quality', 'Own API keys'],
+    features: [`${PLAN_CREDITS.starter.images} images/month`, `${PLAN_CREDITS.starter.videos} video credits/month`, 'Best & HD quality'],
   },
   pro: {
     name: 'Pro',
     price: STUDIO_PLAN_PRICES_EUR.pro,
     priceId: process.env.STRIPE_PRICE_PRO!,
     credits: PLAN_CREDITS.pro,
-    features: [`${PLAN_CREDITS.pro.images} images/month`, `${PLAN_CREDITS.pro.videos} video credits/month`, 'Best & HD quality', 'Priority queue', 'Own API keys'],
+    features: [`${PLAN_CREDITS.pro.images} images/month`, `${PLAN_CREDITS.pro.videos} video credits/month`, 'Best & HD quality', 'Priority queue'],
   },
   byok_creator: {
     name: 'BYOK Creator',

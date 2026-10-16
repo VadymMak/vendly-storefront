@@ -14,7 +14,7 @@ Paint over any area of an image to change or remove objects. The AI fills the pa
 
 ## Credits
 
-2 image credits per inpaint operation.
+{{cost:inpaint}} per inpaint operation.
 
 ## Two modes
 

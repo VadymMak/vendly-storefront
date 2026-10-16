@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, useMemo, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
+import { OPERATION_COSTS, getCreditLabel, getCreditLabelLong } from '@/lib/pricing';
 import { useRouter } from 'next/navigation';
 import { useStudioStore, type MediaItem } from '@/lib/studio/store';
 import {
@@ -41,7 +42,7 @@ const QUICK_TOOLS: QuickTool[] = [
     id: 'generate-image',
     label: 'Generate Image',
     description: 'Create from a text prompt',
-    credits: 'from 1 credit',
+    credits: `from ${getCreditLabelLong('image-quick')}`,
     iconSvg: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z',
     noImage: true,
   },
@@ -49,7 +50,7 @@ const QUICK_TOOLS: QuickTool[] = [
     id: 'improve',
     label: 'Improve Photo',
     description: 'Enhance lighting, clarity, and detail',
-    credits: '2 credits',
+    credits: `free–${getCreditLabelLong('ai-style')}`, // base presets free, AI Style paid
     iconSvg: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z',
   },
   {
@@ -77,7 +78,7 @@ const QUICK_TOOLS: QuickTool[] = [
     id: 'animate',
     label: 'Animate Video',
     description: 'Turn image into short video',
-    credits: '5 credits',
+    credits: getCreditLabelLong('video-animate-5s'),
     iconSvg: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z',
   },
   {
@@ -98,7 +99,7 @@ const QUICK_TOOLS: QuickTool[] = [
     id: 'generate-video',
     label: 'Generate Video',
     description: 'Text-to-video with Grok AI',
-    credits: '8 credits',
+    credits: `from ${getCreditLabelLong('video-quick-5s')}`,
     iconSvg: 'M23 7l-7 5 7 5V7zM1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1V5z',
     noImage: true,
   },
@@ -272,9 +273,9 @@ export function StudioHome({ userId: _userId }: Props) {
   }, []);
 
   const TIERS: { id: ModelTier; label: string; desc: string; credits: number; eta: string }[] = [
-    { id: 'fast',    label: 'Quick', desc: 'Fast draft',      credits: 1, eta: '~3s'  },
-    { id: 'quality', label: 'Best',  desc: 'Recommended',     credits: 2, eta: '~8s'  },
-    { id: 'premium', label: 'HD',    desc: 'Highest detail',  credits: 3, eta: '~15s' },
+    { id: 'fast',    label: 'Quick', desc: 'Fast draft',     credits: OPERATION_COSTS['image-quick'].imageCredits, eta: '~3s'  },
+    { id: 'quality', label: 'Best',  desc: 'Recommended',    credits: OPERATION_COSTS['image-best'].imageCredits,  eta: '~8s'  },
+    { id: 'premium', label: 'HD',    desc: 'Highest detail', credits: OPERATION_COSTS['image-hd'].imageCredits,    eta: '~15s' },
   ];
 
   const activeTierCredits = TIERS.find(t => t.id === selectedTier)?.credits ?? 1;
@@ -1423,11 +1424,11 @@ export function StudioHome({ userId: _userId }: Props) {
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     { id: 'creative-edit' as const,  label: 'Creative edit — your own prompt', credits: creditLabel(MODEL_CATALOG['edit-grok-creative'].creditCost), icon: 'M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5' },
-                    { id: 'improve' as const,        label: 'Improve quality',          credits: '0–1 cr', icon: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z' },
-                    { id: 'remove-bg' as const,      label: 'Remove background',        credits: '1 cr', icon: 'M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12' },
-                    { id: 'upscale' as const,        label: 'Make larger & sharper',    credits: '1 cr', icon: 'M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7' },
-                    { id: 'animate' as const,        label: 'Animate this photo',        credits: '5 cr', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
-                    { id: 'inpaint' as const,        label: 'Change or remove something', credits: '2 cr', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' },
+                    { id: 'improve' as const,        label: 'Improve quality',          credits: `0–${getCreditLabel('ai-style')}`, icon: 'M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z' },
+                    { id: 'remove-bg' as const,      label: 'Remove background',        credits: getCreditLabel('remove-bg'), icon: 'M6 6a3 3 0 100-6 3 3 0 000 6zM6 18a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12' },
+                    { id: 'upscale' as const,        label: 'Make larger & sharper',    credits: getCreditLabel('upscale'), icon: 'M15 3l6 0 0 6M9 21l-6 0 0-6M21 3l-7 7M3 21l7-7' },
+                    { id: 'animate' as const,        label: 'Animate this photo',        credits: getCreditLabel('video-animate-5s'), icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+                    { id: 'inpaint' as const,        label: 'Change or remove something', credits: getCreditLabel('inpaint'), icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' },
                     { id: 'place-products' as const, label: 'Put in a new scene',        credits: 'Free', icon: 'M3 3h18v18H3zM15 9a4 4 0 11-8 0 4 4 0 018 0zM3 21l6-6' },
                   ]).map(tool => (
                     <button

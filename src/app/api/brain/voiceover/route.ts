@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@/lib/storage';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits } from '@/lib/credits';
+import { operationCharge } from '@/lib/pricing';
+
+const CHARGE = operationCharge('voiceover');
 
 const BRAIN_API_KEY = process.env.BRAIN_API_KEY || '';
 
@@ -49,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (userId) {
-      const creditCheck = await checkCredits(userId, 'image', 1);
+      const creditCheck = await checkCredits(userId, CHARGE.type, CHARGE.amount);
       if (!creditCheck.allowed) {
         return NextResponse.json({ error: creditCheck.reason ?? 'Insufficient credits' }, { status: 402 });
       }
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (userId) {
-      await consumeCredits(userId, 'image', 1);
+      await consumeCredits(userId, CHARGE.type, CHARGE.amount);
     }
 
     return NextResponse.json({

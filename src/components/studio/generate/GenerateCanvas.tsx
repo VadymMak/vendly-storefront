@@ -22,6 +22,10 @@ import { RemoveBgEditor } from '@/components/studio/editors/RemoveBgEditor';
 import { UpscaleEditor } from '@/components/studio/editors/UpscaleEditor';
 import { AnimateEditor } from '@/components/studio/editors/AnimateEditor';
 import { CREDIT_COSTS, creditLabel } from '@/lib/constants';
+import { OPERATION_COSTS, getCreditLabelLong } from '@/lib/pricing';
+
+// Improve: the base presets are free, the AI Style finish costs credits
+const IMPROVE_LABEL = `free–${getCreditLabelLong('ai-style')}`;
 
 interface Props {
   userId: string;
@@ -420,9 +424,9 @@ export function GenerateCanvas({ userId: _userId }: Props) {
   [platformFilter]);
 
   const TIERS: { id: ModelTier; label: string; desc: string; credits: number; eta: string }[] = [
-    { id: 'fast',    label: 'Quick', desc: 'Fast draft',     credits: 1, eta: '~3s'  },
-    { id: 'quality', label: 'Best',  desc: 'Recommended',   credits: 2, eta: '~8s'  },
-    { id: 'premium', label: 'HD',    desc: 'Highest detail', credits: 3, eta: '~15s' },
+    { id: 'fast',    label: 'Quick', desc: 'Fast draft',     credits: OPERATION_COSTS['image-quick'].imageCredits, eta: '~3s'  },
+    { id: 'quality', label: 'Best',  desc: 'Recommended',    credits: OPERATION_COSTS['image-best'].imageCredits,  eta: '~8s'  },
+    { id: 'premium', label: 'HD',    desc: 'Highest detail', credits: OPERATION_COSTS['image-hd'].imageCredits,    eta: '~15s' },
   ];
 
   const hasPaidCredits = creditStatus
@@ -1090,7 +1094,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
               <p className="text-center text-sm text-gray-400">What would you like to do?</p>
 
               <div className="mx-auto grid max-w-2xl grid-cols-4 gap-3">
-                <ActionButton icon="sparkle"  label="Improve"        sublabel="2 credits" onClick={() => {
+                <ActionButton icon="sparkle"  label="Improve"        sublabel={IMPROVE_LABEL} onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'improve', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
@@ -1100,7 +1104,7 @@ export function GenerateCanvas({ userId: _userId }: Props) {
                     setActiveEditor({ tool: 'inpaint', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }
                 }} disabled={!!processingTask} />
-                <ActionButton icon="video"    label="Animate"        sublabel="5 credits" onClick={() => {
+                <ActionButton icon="video"    label="Animate"        sublabel={getCreditLabelLong('video-animate-5s')} onClick={() => {
                   if (uploadedPreview && uploadedImage) {
                     setActiveEditor({ tool: 'animate', imageUrl: uploadedPreview, imageFile: uploadedImage });
                   }

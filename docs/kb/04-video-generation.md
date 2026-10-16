@@ -15,11 +15,13 @@ Create videos from text descriptions using Grok Video 1.5 by xAI.
 
 ### Duration and Credits
 
-| Duration | Label | Credits | Estimated Time |
-|----------|-------|---------|----------------|
-| 5 seconds | Quick | 8 credits | ~30 seconds |
-| 10 seconds | Social | 16 credits | ~60 seconds |
-| 15 seconds | Premium | 25 credits | ~90 seconds |
+| Duration | Quick (Grok) | Best (Kling) | Estimated Time |
+|----------|--------------|--------------|----------------|
+| 5 seconds | {{cost:video-quick-5s}} | {{cost:video-best-5s}} | ~30 seconds (Quick) |
+| 10 seconds | {{cost:video-quick-10s}} | {{cost:video-best-10s}} | ~60 seconds (Quick) |
+| 15 seconds | {{cost:video-quick-15s}} | {{cost:video-best-15s}} | ~90 seconds (Quick) |
+
+Best quality takes about 2–5 minutes.
 
 ### Aspect Ratios
 
@@ -74,7 +76,7 @@ Motion intensity can be set from 0 to 10.
 
 ### Credits
 
-Animate Video costs 5 video credits per generation.
+Animate Video costs {{cost:video-animate-5s}} per generation.
 
 ## Requirements
 

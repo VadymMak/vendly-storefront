@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { getCreditLabelLong } from '@/lib/pricing';
 import { useStudioStore } from '@/lib/studio/store';
 import { useHistoryStore } from '@/lib/studio/history';
 import {
@@ -2617,7 +2618,7 @@ export function AssembleCanvas({ userId: _userId }: Props) {
                     onClick={() => void handleAutoCaptions()}
                     className="w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500 transition-colors"
                   >
-                    Generate Captions (1 credit)
+                    Generate Captions ({getCreditLabelLong('transcribe')})
                   </button>
                   <p className="mt-2 text-center text-[10px] text-slate-500">
                     Ctrl+Z to undo all captions at once

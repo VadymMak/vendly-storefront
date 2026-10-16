@@ -47,3 +47,7 @@ These files are processed by the RAG ingestion script (`scripts/ingest-kb.ts`) w
 When you add or modify a file:
 1. Run `pnpm run ingest-kb` to re-process changed files
 2. The script uses file checksums to skip unchanged files
+
+## Credit costs
+
+Never type a credit cost in these docs. Write `{{cost:<operation>}}` ("2 image credits") or `{{credits:<operation>}}` ("2") — `scripts/ingest-kb.ts` fills them from `src/lib/pricing.ts` (`OPERATION_COSTS`), and an unknown operation id fails the ingest.

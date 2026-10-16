@@ -278,7 +278,7 @@ export async function POST(request: Request) {
   let lastError = 'Generation failed';
 
   for (const { alias, model, apiKey } of candidates) {
-    const creditCost = model.creditCost ?? 1;
+    const creditCost = model.creditCost;
     // Atomically reserve credit BEFORE calling the provider (prevents TOCTOU race)
     let consume: { success: boolean; reason?: string; byok?: boolean; fromBonus?: number; fromMonthly?: number } = { success: true, byok: true };
     if (!model.byokOnly) {
@@ -409,7 +409,7 @@ async function generatePhotoTransform(p: PhotoTransformParams): Promise<Response
   const { userId, model, apiKey, prompt, styleId, referenceImage, outputFormat } = p;
   const alias = 'fal-kontext';
 
-  const creditCost = model.creditCost ?? 2;
+  const creditCost = model.creditCost;
   // Atomically reserve credit BEFORE calling the provider (prevents TOCTOU race)
   let consume: { success: boolean; reason?: string; byok?: boolean; fromBonus?: number; fromMonthly?: number } = { success: true, byok: true };
   if (!model.byokOnly) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
 
@@ -10,8 +10,9 @@ export async function POST(
   console.log('[leads/checkout] Starting...');
 
   try {
-    const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Admin only — any logged-in user could otherwise create a payment link for any lead
+    const guard = await requireAdmin();
+    if (guard instanceof NextResponse) return guard;
 
     const { id } = await params;
 

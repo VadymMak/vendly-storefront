@@ -17,9 +17,9 @@ Generate professional images from text descriptions. Describe what you want and 
 
 | Tier | Label | Credits | Speed | Best for |
 |------|-------|---------|-------|----------|
-| Fast | Quick | 1 credit | ~3 seconds | Quick drafts, iteration |
-| Quality | Best | 2 credits | ~8 seconds | Final content, social media |
-| Premium | HD | 3 credits | ~15 seconds | Print, high-resolution needs |
+| Fast | Quick | {{cost:image-quick}} | ~3 seconds | Quick drafts, iteration |
+| Quality | Best | {{cost:image-best}} | ~8 seconds | Final content, social media |
+| Premium | HD | {{cost:image-hd}} | ~15 seconds | Print, high-resolution needs |
 
 **Note:** Free plan users can only use Quick tier unless they have purchased bonus credits.
 
@@ -70,4 +70,4 @@ If one model is unavailable, the system automatically falls back to the next ava
 
 ## Grok Imagine
 
-Grok Imagine by xAI is part of the Best quality tier and costs 2 image credits, like the other Best models. The system may use it automatically as a fallback.
+Grok Imagine by xAI is part of the Best quality tier and costs {{cost:image-best}}, like the other Best models. The system may use it automatically as a fallback.

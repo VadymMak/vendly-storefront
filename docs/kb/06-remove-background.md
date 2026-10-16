@@ -13,7 +13,7 @@ Instantly remove the background from any image, creating a clean cutout with tra
 
 ## Credits
 
-1 image credit per removal.
+{{cost:remove-bg}} per removal.
 
 ## Best for
 

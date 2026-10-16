@@ -8,12 +8,13 @@ import { hybridSearch } from '@/lib/kb/search';
 import { trackKbGap, saveKbInteractionToBrain } from '@/lib/kb/learning';
 import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
+import { OPERATION_COSTS } from '@/lib/pricing';
 import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR } from '@/lib/constants';
 import { getBrainStudioContext } from '@/lib/studio/brain-client';
 import { executeTool } from '@/lib/studio/tool-executor';
 import type { SessionContext } from '@/lib/studio/types';
 import { getToolsForPage } from '@/lib/studio/chat-tools';
-import { MODEL_CATALOG, getVideoCreditCost } from '@/lib/studio/config';
+import { getVideoCreditCost } from '@/lib/studio/config';
 import {
   SKILL_CORE,
   SKILL_GENERATION,
@@ -194,9 +195,9 @@ export async function POST(req: NextRequest) {
         lastReset: credits.lastReset.toISOString(),
         isSuperuser: superuser,
         costReference: {
-          image_quick:    MODEL_CATALOG['fal-schnell']?.creditCost ?? 1,
-          image_best:     MODEL_CATALOG['fal-dev']?.creditCost ?? 2,
-          image_hd:       MODEL_CATALOG['img-premium']?.creditCost ?? 3,
+          image_quick:    OPERATION_COSTS['image-quick'].imageCredits,
+          image_best:     OPERATION_COSTS['image-best'].imageCredits,
+          image_hd:       OPERATION_COSTS['image-hd'].imageCredits,
           video_quick_5s: getVideoCreditCost('vid-quick', 5),
           video_quick_10s: getVideoCreditCost('vid-quick', 10),
           video_quick_15s: getVideoCreditCost('vid-quick', 15),
@@ -204,9 +205,9 @@ export async function POST(req: NextRequest) {
           video_best_10s: getVideoCreditCost('vid-best', 10),
           video_best_15s: getVideoCreditCost('vid-best', 15),
           animate:        getVideoCreditCost('vid-animate', 5),
-          remove_bg:      1,
-          upscale:        1,
-          auto_caption:   1,
+          remove_bg:      OPERATION_COSTS['remove-bg'].imageCredits,
+          upscale:        OPERATION_COSTS['upscale'].imageCredits,
+          auto_caption:   OPERATION_COSTS['transcribe'].imageCredits,
         },
       }),
     }),

@@ -1848,7 +1848,9 @@
       "ctaMotionSubtle": "Subtle",
       "ctaMotionMedium": "Medium",
       "ctaPreviewHint": "Drag text to move it, pinch or use the corner to resize",
-      "ctaPreviewReset": "Reset position"
+      "ctaPreviewReset": "Reset position",
+      "reelCreditsImage": "{count, plural, one {# credit} other {# credits}}",
+      "reelCreditsVideo": "{count, plural, one {# video credit} other {# video credits}}"
     },
     "removeBgEditor": {
       "title": "Remove Background",

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { checkPlanRateLimit } from '@/lib/rate-limit';
 import { localPathnameFromUrl } from '@/lib/storage';
 import { isSuperuser, getOrCreateCredits, consumeCredits, refundCredits } from '@/lib/credits';
+import { getCreditLabelLong, operationCharge } from '@/lib/pricing';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const TRANSCRIBE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -25,6 +27,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Paid provider call — same per-plan cap as the other editors (aiEdit), own bucket per route
+  if (!(await checkPlanRateLimit('aiEdit', 'transcribe', session.user.id))) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
   if (!OPENAI_API_KEY) {
     return NextResponse.json({ error: 'Transcription service not configured' }, { status: 500 });
   }
@@ -37,7 +44,7 @@ export async function POST(req: NextRequest) {
     const totalImages = credits.monthlyImages + credits.bonusImages;
     if (totalImages <= 0 && !credits.byokEnabled) {
       return NextResponse.json(
-        { error: 'No credits remaining. Auto-captions cost 1 image credit.' },
+        { error: `No credits remaining. Auto-captions cost ${getCreditLabelLong('transcribe')}.` },
         { status: 402 },
       );
     }
@@ -102,7 +109,8 @@ export async function POST(req: NextRequest) {
 
     // Atomically reserve the credit BEFORE the paid Whisper call — refunded below on failure
     if (!superuser) {
-      consume = await consumeCredits(userId, 'image', 1);
+      const { type, amount } = operationCharge('transcribe');
+      consume = await consumeCredits(userId, type, amount);
       if (!consume.success) {
         return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
       }

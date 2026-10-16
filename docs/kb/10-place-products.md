@@ -25,25 +25,25 @@ Drag and drop cutouts onto a background. You can:
 
 This stage is completely free — no credits needed.
 
-### Stage 2 — AI Blend (1 credit)
+### Stage 2 — AI Blend ({{cost:ai-blend}})
 After positioning your products, click AI Blend. The AI:
 - Harmonizes the edges between objects and background
 - Matches lighting and shadows
 - Creates smooth, natural-looking transitions
 - Makes the composition look like a single photo
 
-AI Blend costs 1 image credit.
+AI Blend costs {{cost:ai-blend}}.
 
 ## Workflow Example
 
 1. Take a photo of your product
-2. Use Remove Background to get a clean cutout (1 credit)
-3. Generate a beautiful background with Image Generation (1-3 credits)
+2. Use Remove Background to get a clean cutout ({{cost:remove-bg}})
+3. Generate a beautiful background with Image Generation ({{credits:image-quick}}–{{credits:image-hd}} image credits)
 4. Open Place Products, add background + cutout
 5. Position your product perfectly
-6. Hit AI Blend for seamless result (1 credit)
+6. Hit AI Blend for seamless result ({{cost:ai-blend}})
 
-Total: 3-5 credits for a professional product scene.
+Total: Remove Background + one generated image + AI Blend for a professional product scene.
 
 ## Tips
 

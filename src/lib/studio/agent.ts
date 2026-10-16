@@ -1,6 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { toolsToSystemPrompt } from './tools';
 import type { AgentState, ChatMessage, MovieScene, SessionContext, ToolName } from './types';
+import { getCreditLabelLong } from '@/lib/pricing';
+
+// Upscale cost quoted in the prompt — from the pricing table
+const UPSCALE_COST = getCreditLabelLong('upscale');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -587,7 +591,7 @@ IMAGE PROCESSING — TOOL SELECTION GUIDE:
 QUALITY CHECK (before transform_image with a social preset):
   Triggers: user says "bad quality", "blurry", "small image", "low res", or image context suggests it's small/compressed.
   → Ask (in user's language): "This image might benefit from AI enhancement first. Should I:
-    1) Enhance quality first, then fit for [platform]? (costs 1 credit + free)
+    1) Enhance quality first, then fit for [platform]? (costs ${UPSCALE_COST} + free)
     2) Just fit as-is? (free)"
   If user says "1" / "enhance first" / "yes improve" → see MULTI-STEP COMBO below.
   If user says "2" / "just fit" → run transform_image only.
@@ -596,7 +600,7 @@ MULTI-STEP COMBO:
   Trigger: user says "enhance and fit", "upscale and prepare", "make it look professional for [platform]":
     Step 1 → upscale (tool: upscale, costs credits) — wait for job to complete
     Step 2 → transform_image with requested preset (free)
-    Message after Step 2: "✅ Enhanced [old_res]→4x → fitted for [Platform] [WxH]. Step 1 used 1 credit, Step 2 was free."
+    Message after Step 2: "✅ Enhanced [old_res]→4x → fitted for [Platform] [WxH]. Step 1 used ${UPSCALE_COST}, Step 2 was free."
 
   Trigger: "make this photo ready for [platform]" (no explicit enhance request):
     → Check if image seems low quality → if yes, suggest QUALITY CHECK above
@@ -608,7 +612,7 @@ COST TRANSPARENCY (always include in response when using tools):
   - transform_image = FREE
   - remove_background = uses credits (AI)
   - edit_image = uses credits (AI)
-  Format: "Step 1: AI Enhancement (1 credit) → Step 2: Instagram fit (free)"
+  Format: "Step 1: AI Enhancement (${UPSCALE_COST}) → Step 2: Instagram fit (free)"
   Respond in the user's language.
 
 For generate_image, ALWAYS enhance the user's prompt to be professional and detailed. Add: lighting, composition, style, quality keywords. The enhanced prompt should be in English.

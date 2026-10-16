@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 import { put } from '@/lib/storage';
 import { auth } from '@/lib/auth';
+import { checkPlanRateLimit } from '@/lib/rate-limit';
 import { createJob } from '@/lib/studio-jobs';
 import { db } from '@/lib/db';
 import { checkCredits, consumeCredits, refundCredits } from '@/lib/credits';
@@ -21,6 +22,11 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Paid provider call — same per-plan cap as the other editors (aiEdit), own bucket per route
+  if (!(await checkPlanRateLimit('aiEdit', 'studio-rbg', session.user.id))) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
   const creditCheck = await checkCredits(session.user.id, 'image', CREDIT_COSTS.removeBg, 'replicate');

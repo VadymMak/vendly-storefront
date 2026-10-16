@@ -13,7 +13,7 @@ Increase the resolution of any image up to 4x using AI upscaling. Makes small or
 
 ## Credits
 
-1 image credit per upscale.
+{{cost:upscale}} per upscale.
 
 ## When to use
 

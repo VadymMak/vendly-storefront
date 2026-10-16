@@ -162,7 +162,7 @@ export async function POST(req: Request) {
         predictionId: `supir:${Date.now()}`,
         type:         'upscale',
         creditType:   'image',
-        creditAmount: 1,
+        creditAmount: CREDIT_COSTS.upscale,
         metadata:     { modelUsed: 'topazlabs/image-upscale', provider: 'replicate' },
       }).then(async (jobId) => {
         await db.studioJob.update({
@@ -232,7 +232,7 @@ export async function POST(req: Request) {
       predictionId: `upscale:${Date.now()}`,
       type:         'upscale',
       creditType:   'image',
-      creditAmount: 1,
+      creditAmount: CREDIT_COSTS.upscale,
       metadata:     { modelUsed: 'nightmareai/real-esrgan', provider: 'replicate' },
     }).then(async (jobId) => {
       await db.studioJob.update({

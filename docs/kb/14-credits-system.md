@@ -11,18 +11,21 @@ There are two types of credits:
 ### Image Tools
 | Tool | Credits |
 |------|---------|
-| Generate Image (Quick) | 1 image credit |
-| Generate Image (Best) | 2 image credits |
-| Generate Image (HD) | 3 image credits |
-| Grok Imagine | 2 image credits |
+| Generate Image (Quick) | {{cost:image-quick}} |
+| Generate Image (Best) | {{cost:image-best}} |
+| Generate Image (HD) | {{cost:image-hd}} |
+| Grok Imagine | {{cost:image-best}} |
 | Improve Photo — basic presets | Free |
-| Improve Photo — AI Style (Grok) | 1 image credit |
-| AI Edit (Flux Kontext) | 2 image credits |
-| Remove Background | 1 image credit |
-| Upscale HD | 1 image credit |
-| Edit & Replace (Inpaint) | 2 image credits |
-| AI Blend | 1 image credit |
-| Scene Compose | 1 image credit |
+| Improve Photo — AI Style (Grok) | {{cost:ai-style}} |
+| Creative Edit (your own prompt) | {{cost:creative-edit}} |
+| AI Edit (Flux Kontext) | {{cost:kontext-edit}} |
+| Remove Background | {{cost:remove-bg}} |
+| Upscale HD | {{cost:upscale}} |
+| Edit & Replace (Inpaint) | {{cost:inpaint}} |
+| AI Blend | {{cost:ai-blend}} |
+| Scene Compose | {{cost:scene-compose}} |
+| Generate from reference image | {{cost:reference-generate}} |
+| Auto-captions (video subtitles) | {{cost:transcribe}} |
 | Auto Split | Free |
 | Place Products (manual) | Free |
 | Quick Filters | Free |
@@ -30,16 +33,16 @@ There are two types of credits:
 ### Video Tools
 | Tool | Credits |
 |------|---------|
-| Generate Video — Quick (Grok) 5s / 10s / 15s | 4 / 8 / 12 video credits |
-| Generate Video — Best (Kling) 5s / 10s / 15s | 10 / 18 / 28 video credits |
-| Animate (Image-to-Video) | 5 video credits |
-| Animate from text — start frame (generated first) | 1 image credit (free with your own Replicate key) |
+| Generate Video — Quick (Grok) 5s / 10s / 15s | {{credits:video-quick-5s}} / {{credits:video-quick-10s}} / {{credits:video-quick-15s}} video credits |
+| Generate Video — Best (Kling) 5s / 10s / 15s | {{credits:video-best-5s}} / {{credits:video-best-10s}} / {{credits:video-best-15s}} video credits |
+| Animate (Image-to-Video) | {{cost:video-animate-5s}} |
+| Animate from text — start frame (generated first) | {{cost:start-frame}} |
 
 ### Reels
 | Reel type | Credits |
 |------|---------|
-| Photo reel (images mode) | 2 image credits |
-| AI video reel (video mode) | 5 video credits |
+| Photo reel (images mode) | {{cost:reel-image}} |
+| AI video reel (video mode) | {{cost:reel-video}} |
 
 Reels are charged when generation starts. If a reel fails, the credits are returned automatically. Reels always use credits.
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { OPERATION_COSTS, getCreditLabelLong } from '@/lib/pricing';
 import { MOTION_PRESETS, SIZE_PRESETS, PLATFORM_IMAGE_PRESETS, type MotionPresetId } from '@/lib/studio/constants';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
@@ -124,7 +125,7 @@ function AnimateSettingsPanel({
       <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
         <p className="text-xs text-gray-500">
           AI video generation creates realistic motion from your image.
-          Processing takes 30–60 seconds. Each video costs 5 credits.
+          Processing takes 30–60 seconds. Each video costs {getCreditLabelLong('video-animate-5s')}.
         </p>
       </div>
     </div>
@@ -228,11 +229,11 @@ export function AnimateEditor({
   return (
     <EditorShell
       title="Animate image"
-      creditCost={5}
+      creditCost={OPERATION_COSTS['video-animate-5s'].videoCredits}
       status={status}
       onBack={onClose}
       primaryAction={{
-        label: isResultReady ? 'Keep result' : 'Create video · 5 credits',
+        label: isResultReady ? 'Keep result' : `Create video · ${getCreditLabelLong('video-animate-5s')}`,
         onClick: isResultReady ? () => onAccept(videoUrl, usedPrompt) : () => void handleAnimate(),
         disabled: status === 'processing',
         loading: status === 'processing',

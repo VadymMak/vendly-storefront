@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { OPERATION_COSTS } from '@/lib/pricing';
 import type { EditorStatus } from '@/lib/types';
 import { EditorShell } from './shared/EditorShell';
 import {
@@ -58,8 +59,8 @@ export function GenerateVideoEditor({
 
   const durObj    = VIDEO_DURATIONS.find(d => d.seconds === duration);
   const creditCost = quality === 'best'
-    ? (durObj?.bestCredits  ?? 10)
-    : (durObj?.quickCredits ?? 4);
+    ? (durObj?.bestCredits  ?? OPERATION_COSTS['video-best-5s'].videoCredits)
+    : (durObj?.quickCredits ?? OPERATION_COSTS['video-quick-5s'].videoCredits);
 
   async function handleGenerate() {
     if (!hasVideoCredits) { onNeedCredits(); return; }

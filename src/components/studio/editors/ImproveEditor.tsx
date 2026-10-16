@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { getCreditLabelLong } from '@/lib/pricing';
 import type { EditorStatus, EnhancementIntensity } from '@/lib/types';
 import { ENHANCEMENT_PRESETS } from '@/lib/studio/constants';
-import { MODEL_CATALOG } from '@/lib/studio/config';
 import { EditorShell } from './shared/EditorShell';
 import { BeforeAfterSlider } from './shared/BeforeAfterSlider';
 import { ProcessingOverlay } from './shared/ProcessingOverlay';
@@ -108,7 +108,7 @@ function EnhancedSidebar({
               AI processing...
             </span>
           ) : (
-            `✨ AI Style · ${MODEL_CATALOG['edit-grok'].creditCost} credit`
+            `✨ AI Style · ${getCreditLabelLong('ai-style')}`
           )}
         </button>
       </div>

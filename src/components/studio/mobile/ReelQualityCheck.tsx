@@ -7,6 +7,7 @@ import { MAX_REEL_PHOTOS, assessReelPhoto, readCtaLayout, readReelPhotos, writeC
 import type { BrandKitData, ReelCtaLayout, ReelCtaLinePlacement, ReelCtaMotion, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
 import { DEFAULT_REEL_CTA_MOTION, FONT_PRESETS, MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS, REEL_CTA_DURATION, REEL_CTA_FONT_SIZE, REEL_CTA_LAYOUT, REEL_CTA_MOTIONS } from '@/lib/constants';
 import { loadGoogleFont } from '@/lib/fonts/font-loader';
+import { operationCharge } from '@/lib/pricing';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
 import { ColorSwatches, FontChips, SizeStepper } from './TextStylePanel';
 import { startLayerGesture } from './DraggableTextLayer';
@@ -490,7 +491,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
             >
               <span className="mb-0.5 text-base" aria-hidden="true">🖼️</span>
               {t('modeImages')}
-              <span className="mt-0.5 text-[10px] text-gray-500">~$0.08–0.12</span>
+              <span className="mt-0.5 text-[10px] text-gray-500">{t('reelCreditsImage', { count: operationCharge('reel-image').amount })}</span>
             </button>
             <button
               onClick={() => setReelMode('video')}
@@ -502,7 +503,7 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
             >
               <span className="mb-0.5 text-base" aria-hidden="true">🎬</span>
               {t('modeVideo')}
-              <span className="mt-0.5 text-[10px] text-gray-500">~$0.40–0.55</span>
+              <span className="mt-0.5 text-[10px] text-gray-500">{t('reelCreditsVideo', { count: operationCharge('reel-video').amount })}</span>
             </button>
           </div>
         </div>

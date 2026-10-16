@@ -1,3 +1,6 @@
+// Credit costs come from the pricing table — never type a number here
+import { OPERATION_COSTS, videoCreditsByDuration } from '@/lib/pricing';
+
 // ── Provider abstraction types ────────────────────────────────────────────────
 
 export interface ImageGenerateRequest {
@@ -62,7 +65,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'fast',
     costPerCall:    0.003,
-    creditCost:     1,
+    creditCost:     OPERATION_COSTS['image-quick'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'replicate',
     envKeyName:     'REPLICATE_API_TOKEN',
@@ -76,7 +79,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'quality',
     costPerCall:    0.03,
-    creditCost:     2,
+    creditCost:     OPERATION_COSTS['image-best'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'replicate',
     envKeyName:     'REPLICATE_API_TOKEN',
@@ -90,7 +93,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'premium',
     costPerCall:    0.03,
-    creditCost:     3,
+    creditCost:     OPERATION_COSTS['image-hd'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'bfl',
     envKeyName:     'BFL_API_KEY',
@@ -104,7 +107,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'quality',
     costPerCall:    0.0,
-    creditCost:     2,    // platform XAI_API_KEY — xAI bills per image
+    creditCost:     OPERATION_COSTS['image-best'].imageCredits,    // platform XAI_API_KEY — xAI bills per image
     creditType:     'image',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',
@@ -119,7 +122,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'fast',
     costPerCall:    0.003,
-    creditCost:     1,
+    creditCost:     OPERATION_COSTS['image-quick'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'replicate',
     envKeyName:     'REPLICATE_API_TOKEN',
@@ -134,7 +137,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'fast',
     costPerCall:    0.003,
-    creditCost:     1,
+    creditCost:     OPERATION_COSTS['image-quick'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
@@ -148,7 +151,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'generate',
     tier:           'quality',
     costPerCall:    0.012,
-    creditCost:     1,
+    creditCost:     OPERATION_COSTS['image-best'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
@@ -164,7 +167,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'edit',
     tier:           'quality',
     costPerCall:    0.04,
-    creditCost:     2,
+    creditCost:     OPERATION_COSTS['kontext-edit'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
@@ -182,13 +185,13 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'video',
     tier:           'fast',
     costPerCall:    0.40,
-    creditCost:     4,
+    creditCost:     OPERATION_COSTS['video-quick-5s'].videoCredits,
     creditType:     'video',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',
     supportedDurations:    [5, 10, 15],
     supportedAspectRatios: ['16:9', '9:16', '1:1'],
-    creditsByDuration:     { 5: 4, 10: 8, 15: 12 },
+    creditsByDuration:     videoCreditsByDuration('quick'),
     estimatedTimeByDuration: { 5: '~30s', 10: '~60s', 15: '~90s' },
     enabled: true,
   },
@@ -199,13 +202,13 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'video',
     tier:           'quality',
     costPerCall:    0.50,
-    creditCost:     10,
+    creditCost:     OPERATION_COSTS['video-best-5s'].videoCredits,
     creditType:     'video',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
     supportedDurations:    [5, 10, 15],
     supportedAspectRatios: ['16:9', '9:16', '1:1'],
-    creditsByDuration:     { 5: 10, 10: 18, 15: 28 },
+    creditsByDuration:     videoCreditsByDuration('best'),
     estimatedTimeByDuration: { 5: '~2min', 10: '~3min', 15: '~5min' },
     enabled: true,
   },
@@ -218,13 +221,13 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'video',
     tier:           'quality',
     costPerCall:    0.30,
-    creditCost:     5,
+    creditCost:     OPERATION_COSTS['video-animate-5s'].videoCredits,
     creditType:     'video',
     apiKeyProvider: 'fal',
     envKeyName:     'FAL_KEY',
     supportedDurations:    [5, 10],
     supportedAspectRatios: ['16:9', '9:16', '1:1'],
-    creditsByDuration:     { 5: 5, 10: 5 },
+    creditsByDuration:     videoCreditsByDuration('animate'),
     enabled: true,
   },
 
@@ -236,7 +239,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'edit',
     tier:           'quality',
     costPerCall:    0.03,
-    creditCost:     2,
+    creditCost:     OPERATION_COSTS['kontext-edit'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'replicate',
     envKeyName:     'REPLICATE_API_TOKEN',
@@ -250,7 +253,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'edit',
     tier:           'quality',
     costPerCall:    0.04, // xAI list price per image
-    creditCost:     1,    // AI Style finish in Improve
+    creditCost:     OPERATION_COSTS['ai-style'].imageCredits,    // AI Style finish in Improve
     creditType:     'image',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',
@@ -266,7 +269,7 @@ export const MODEL_CATALOG: Record<string, ModelEntry> = {
     operation:      'edit',
     tier:           'quality',
     costPerCall:    0.08, // xAI bills the input image as well as the 2k output
-    creditCost:     2,
+    creditCost:     OPERATION_COSTS['creative-edit'].imageCredits,
     creditType:     'image',
     apiKeyProvider: 'xai',
     envKeyName:     'XAI_API_KEY',
@@ -330,9 +333,9 @@ export const TIER_ROUTES: Record<ModelTier, TierRoute[]> = {
 };
 
 export const TIER_INFO: Record<ModelTier, { label: string; description: string; creditCost: number; estimatedSeconds: string }> = {
-  fast:    { label: 'Quick', description: 'Fast draft',     creditCost: 1, estimatedSeconds: '~3s'  },
-  quality: { label: 'Best',  description: 'Recommended',   creditCost: 2, estimatedSeconds: '~8s'  },
-  premium: { label: 'HD',    description: 'Highest detail', creditCost: 3, estimatedSeconds: '~15s' },
+  fast:    { label: 'Quick', description: 'Fast draft',     creditCost: OPERATION_COSTS['image-quick'].imageCredits, estimatedSeconds: '~3s'  },
+  quality: { label: 'Best',  description: 'Recommended',   creditCost: OPERATION_COSTS['image-best'].imageCredits,  estimatedSeconds: '~8s'  },
+  premium: { label: 'HD',    description: 'Highest detail', creditCost: OPERATION_COSTS['image-hd'].imageCredits,    estimatedSeconds: '~15s' },
 };
 
 // ── Video tier routing ────────────────────────────────────────────────────────

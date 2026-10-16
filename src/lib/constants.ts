@@ -1,4 +1,5 @@
 import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule, StudioCreditPack, BrandKitData, SafeZone, ReelCtaMotion } from './types';
+import { OPERATION_COSTS, operationCharge } from './pricing';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -952,23 +953,23 @@ export const PLAN_CREDITS = {
   byok_creator: { images: 0,   videos: 0  },
 } as const;
 
-// Reel cost per mode. Reels run on the platform FAL_KEY in reel-service, so BYOK never makes them free.
+// Reel cost per mode (from src/lib/pricing.ts). Reels run on the platform FAL_KEY in reel-service,
+// so BYOK never makes them free.
 export const REEL_CREDIT_COST = {
-  images: { type: 'image', amount: 2 }, // outpaint only, ≤ $0.04
-  video:  { type: 'video', amount: 5 }, // Kling 5s ≈ $0.35 + outpaint
+  images: operationCharge('reel-image'), // outpaint only, ≤ $0.04
+  video:  operationCharge('reel-video'), // Kling 5s ≈ $0.35 + outpaint
 } as const;
 
-// Credit cost of single-purpose editor operations (image credits). Text-to-image and
-// video models are priced per model in src/lib/studio/config.ts (creditCost), not here.
-// Routes and editor labels must read these values instead of hardcoding numbers.
+// Credit cost of single-purpose editor operations (image credits) — a view of src/lib/pricing.ts
+// kept for existing callers. Routes and editor labels must read these values, never a literal.
 export const CREDIT_COSTS = {
-  inpaint:               2,
-  removeBg:              1,
-  upscale:               1, // /api/enhance-image (chat upscale and face_enhance too)
-  aiBlend:               1,
-  sceneCompose:          1,
-  generateWithReference: 1,
-  startFrame:            1, // Animate text→video start frame (Flux Schnell)
+  inpaint:               OPERATION_COSTS['inpaint'].imageCredits,
+  removeBg:              OPERATION_COSTS['remove-bg'].imageCredits,
+  upscale:               OPERATION_COSTS['upscale'].imageCredits, // /api/enhance-image (chat upscale and face_enhance too)
+  aiBlend:               OPERATION_COSTS['ai-blend'].imageCredits,
+  sceneCompose:          OPERATION_COSTS['scene-compose'].imageCredits,
+  generateWithReference: OPERATION_COSTS['reference-generate'].imageCredits,
+  startFrame:            OPERATION_COSTS['start-frame'].imageCredits, // Animate text→video start frame
 } as const;
 
 export type CreditOperation = keyof typeof CREDIT_COSTS;

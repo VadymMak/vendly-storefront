@@ -1828,7 +1828,12 @@
       "noMusic": "Без музики",
       "selectPhotosHint": "Виберіть 2–5 фото для Reel",
       "tapToSeeScores": "Натисніть, щоб побачити оцінки",
-      "checkPhotos": "Перевірити фото"
+      "checkPhotos": "Перевірити фото",
+      "ctaDuration": "Тривалість",
+      "ctaMotion": "Рух",
+      "ctaMotionNone": "Без руху",
+      "ctaMotionSubtle": "Легкий",
+      "ctaMotionMedium": "Середній"
     },
     "removeBgEditor": {
       "title": "Видалити фон",

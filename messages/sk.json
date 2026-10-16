@@ -1832,7 +1832,12 @@
       "uploadProgress": "Nahrávanie {done}/{total}...",
       "uploadPartial": "Nahraných {done} z {total} fotiek",
       "cyrillicWarning": "Písmo nepodporuje cyriliku",
-      "checkPhotos": "Skontrolovať fotky"
+      "checkPhotos": "Skontrolovať fotky",
+      "ctaDuration": "Dĺžka",
+      "ctaMotion": "Pohyb",
+      "ctaMotionNone": "Statický",
+      "ctaMotionSubtle": "Jemný",
+      "ctaMotionMedium": "Stredný"
     },
     "removeBgEditor": {
       "title": "Odstrániť pozadie",

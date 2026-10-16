@@ -1841,7 +1841,12 @@
       "uploadProgress": "Загрузка {done}/{total}...",
       "uploadPartial": "Загружено {done} из {total} фото",
       "cyrillicWarning": "Шрифт не поддерживает кириллицу",
-      "checkPhotos": "Проверить фото"
+      "checkPhotos": "Проверить фото",
+      "ctaDuration": "Длительность",
+      "ctaMotion": "Движение",
+      "ctaMotionNone": "Без движения",
+      "ctaMotionSubtle": "Лёгкое",
+      "ctaMotionMedium": "Среднее"
     },
     "removeBgEditor": {
       "title": "Удалить фон",

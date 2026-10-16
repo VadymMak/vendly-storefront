@@ -1841,7 +1841,12 @@
       "uploadProgress": "Uploading {done}/{total}...",
       "uploadPartial": "Uploaded {done} of {total} photos",
       "cyrillicWarning": "This font doesn't support Cyrillic",
-      "checkPhotos": "Check photos"
+      "checkPhotos": "Check photos",
+      "ctaDuration": "Duration",
+      "ctaMotion": "Motion",
+      "ctaMotionNone": "Static",
+      "ctaMotionSubtle": "Subtle",
+      "ctaMotionMedium": "Medium"
     },
     "removeBgEditor": {
       "title": "Remove Background",

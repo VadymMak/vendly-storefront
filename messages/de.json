@@ -1841,7 +1841,12 @@
       "uploadProgress": "Hochladen {done}/{total}...",
       "uploadPartial": "{done} von {total} Fotos hochgeladen",
       "cyrillicWarning": "Schrift unterstützt kein Kyrillisch",
-      "checkPhotos": "Fotos prüfen"
+      "checkPhotos": "Fotos prüfen",
+      "ctaDuration": "Dauer",
+      "ctaMotion": "Bewegung",
+      "ctaMotionNone": "Statisch",
+      "ctaMotionSubtle": "Dezent",
+      "ctaMotionMedium": "Mittel"
     },
     "removeBgEditor": {
       "title": "Hintergrund entfernen",

@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSPro
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
-import type { BrandKitData, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
-import { FONT_PRESETS, MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS, REEL_CTA_FONT_SIZE, REEL_CTA_LAYOUT } from '@/lib/constants';
+import type { BrandKitData, ReelCtaMotion, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
+import { DEFAULT_REEL_CTA_MOTION, FONT_PRESETS, MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS, REEL_CTA_DURATION, REEL_CTA_FONT_SIZE, REEL_CTA_LAYOUT, REEL_CTA_MOTIONS } from '@/lib/constants';
 import { loadGoogleFont } from '@/lib/fonts/font-loader';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
 import { ColorSwatches, FontChips, SizeStepper } from './TextStylePanel';
@@ -24,6 +24,12 @@ const CYRILLIC = /[\u0400-\u04FF]/;
 // CTA inputs are ~335px wide, the reel frame 1080px — the live preview scales the reel size down
 const INPUT_PREVIEW_SCALE = 0.31;
 const INPUT_PREVIEW_MIN_PX = 11;
+
+const CTA_MOTION_LABELS: Record<ReelCtaMotion, 'ctaMotionNone' | 'ctaMotionSubtle' | 'ctaMotionMedium'> = {
+  none: 'ctaMotionNone',
+  subtle: 'ctaMotionSubtle',
+  medium: 'ctaMotionMedium',
+};
 
 /** Family and weight reel-service draws a CTA line with (Cyrillic swaps a few families) */
 function ctaFace(family: string, text: string): { family: string; weight: number } {
@@ -99,6 +105,9 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const ctaFontFamily = pickedFont ?? fontChips[0];
   const [ctaFontSize, setCtaFontSize] = useState<number>(REEL_CTA_FONT_SIZE.default);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // How long the CTA shot stays on screen and how much it zooms (reel-service CTA_DURATION / CTA_MOTION)
+  const [ctaDuration, setCtaDuration] = useState<number>(REEL_CTA_DURATION.default);
+  const [ctaMotion, setCtaMotion] = useState<ReelCtaMotion>(DEFAULT_REEL_CTA_MOTION);
   // Only an explicit pick is sent — reel-service keeps its Brand Kit contrast rules otherwise
   const [pickedColor, setPickedColor] = useState<string | null>(null);
   const ctaColor = pickedColor ?? brand?.colorText ?? '#FFFFFF';
@@ -524,6 +533,38 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           </div>
           <p className="text-xs text-gray-500">{t('ctaColor')}</p>
           <ColorSwatches value={ctaColor} onChange={setPickedColor} colors={MOBILE_TEXT_COLORS} />
+          <div className="flex min-h-11 items-center gap-3 pb-2">
+            <span className="w-16 text-xs text-gray-500">{t('ctaDuration')}</span>
+            <SizeStepper
+              value={ctaDuration}
+              // Tenths — repeated ±0.1 would otherwise drift to 3.2999999
+              onChange={(v) => setCtaDuration(Math.round(v * 10) / 10)}
+              min={REEL_CTA_DURATION.min}
+              max={REEL_CTA_DURATION.max}
+              step={REEL_CTA_DURATION.step}
+              suffix={<span className="text-xs text-gray-500">s</span>}
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="w-16 shrink-0 text-xs text-gray-500">{t('ctaMotion')}</span>
+            <div className="flex flex-1 gap-2" role="radiogroup" aria-label={t('ctaMotion')}>
+              {REEL_CTA_MOTIONS.map((motion) => (
+                <button
+                  key={motion}
+                  role="radio"
+                  aria-checked={ctaMotion === motion}
+                  onClick={() => setCtaMotion(motion)}
+                  className={`min-h-9 flex-1 rounded-lg border px-2 text-xs transition-colors ${
+                    ctaMotion === motion
+                      ? 'border-green-500 bg-green-500/10 text-green-400'
+                      : 'border-white/10 bg-white/[0.04] text-gray-300'
+                  }`}
+                >
+                  {t(CTA_MOTION_LABELS[motion])}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <button
@@ -544,6 +585,8 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
               sessionStorage.setItem('reel-cta2', cta2.trim());
               sessionStorage.setItem('reel-ctaFont', ctaFontFamily);
               sessionStorage.setItem('reel-ctaFontSize', String(ctaFontSize));
+              sessionStorage.setItem('reel-ctaDuration', String(ctaDuration));
+              sessionStorage.setItem('reel-ctaMotion', ctaMotion);
               if (pickedColor) sessionStorage.setItem('reel-ctaColor', pickedColor);
               else sessionStorage.removeItem('reel-ctaColor');
               const preferredMusic = localStorage.getItem('reel-preferred-music') || 'warm-cafe';

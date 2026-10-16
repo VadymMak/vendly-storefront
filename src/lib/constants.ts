@@ -1,4 +1,4 @@
-import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule, StudioCreditPack, BrandKitData, SafeZone } from './types';
+import type { BusinessType, PricingPlan, FaqItem, HowItWorksStep, NavItem, Feature, ColorSchemeTokens, QuickBadgeDefinition, WeekSchedule, OrderAcceptanceSchedule, Testimonial, PackagePlan, PortfolioItem, CompetitorRow, ProcessStep, IncludedFeature, TemplateItem, CreateBusinessType, CreateHoursSchedule, StudioCreditPack, BrandKitData, SafeZone, ReelCtaMotion } from './types';
 
 export const SITE_NAME = 'VendShop';
 export const SITE_URL = 'https://vendshop.shop';
@@ -998,6 +998,13 @@ export const FONT_PRESETS = [
 
 /** Reel CTA size stepper (px at 1080 wide) — sets the main CTA line; reel-service clamps to the same range */
 export const REEL_CTA_FONT_SIZE = { min: 24, max: 72, step: 2, default: 48 } as const;
+
+/** Reel CTA shot length in seconds — reel-service select.js CTA_DURATION clamps to the same range */
+export const REEL_CTA_DURATION = { min: 2.5, max: 4.5, step: 0.1, default: 3.3 } as const;
+
+/** Reel CTA motion presets (reel-service select.js CTA_MOTION); subtle is the original look */
+export const REEL_CTA_MOTIONS: readonly ReelCtaMotion[] = ['none', 'subtle', 'medium'];
+export const DEFAULT_REEL_CTA_MOTION: ReelCtaMotion = 'subtle';
 
 /**
  * Font chips of the mobile text controls (text overlays, Reel CTA). All are installed on the reel

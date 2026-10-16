@@ -4,7 +4,8 @@ import { db } from '@/lib/db';
 import { consumeCredits, refundCredits, REEL_CREDIT_COST, type ReelMode } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { getUserBrandKit } from '@/lib/studio/brand-utils';
-import { REEL_CTA_FONT_SIZE } from '@/lib/constants';
+import { REEL_CTA_DURATION, REEL_CTA_FONT_SIZE, REEL_CTA_MOTIONS } from '@/lib/constants';
+import type { ReelCtaMotion } from '@/lib/types';
 
 const REEL_SERVICE_URL = 'http://127.0.0.1:3010';
 
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
 
   let body: {
     photos?: unknown; mode?: unknown; cta1?: unknown; cta2?: unknown; musicTrackId?: unknown;
-    ctaFontFamily?: unknown; ctaFontSize?: unknown; ctaColor?: unknown;
+    ctaFontFamily?: unknown; ctaFontSize?: unknown; ctaColor?: unknown; ctaDuration?: unknown; ctaMotion?: unknown;
   };
   try {
     body = await request.json();
@@ -46,6 +47,11 @@ export async function POST(request: Request) {
   const ctaFontSize = typeof body.ctaFontSize === 'number' && Number.isFinite(body.ctaFontSize)
     ? Math.min(Math.max(Math.round(body.ctaFontSize), REEL_CTA_FONT_SIZE.min), REEL_CTA_FONT_SIZE.max)
     : undefined;
+  // CTA shot length (s) + motion — undefined keeps reel-service's 3.30s / subtle (it clamps again)
+  const ctaDuration = typeof body.ctaDuration === 'number' && Number.isFinite(body.ctaDuration)
+    ? Math.min(Math.max(body.ctaDuration, REEL_CTA_DURATION.min), REEL_CTA_DURATION.max)
+    : undefined;
+  const ctaMotion = REEL_CTA_MOTIONS.find((m): m is ReelCtaMotion => m === body.ctaMotion);
 
   const mode = body.mode ?? 'images';
   if (mode !== 'images' && mode !== 'video') {
@@ -102,7 +108,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         photos, mode, cta1, cta2, userId,
         musicTrackId: musicTrackId || 'warm-cafe',
-        ctaFontFamily, ctaFontSize, ctaColor,
+        ctaFontFamily, ctaFontSize, ctaColor, ctaDuration, ctaMotion,
         brandKit: brandPayload,
       }),
     });

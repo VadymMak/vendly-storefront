@@ -729,6 +729,9 @@ export interface ReelPhoto {
 /** Phase 1 heuristic: green = AI-finished, yellow = Improve would help, red = replace (unused until appeal scoring) */
 export type ReelPhotoStatus = 'green' | 'yellow' | 'red';
 
+/** Zoom on the reel's CTA shot — none = static, subtle = the original near-static push, medium = stronger */
+export type ReelCtaMotion = 'none' | 'subtle' | 'medium';
+
 /** One image from POST /api/reel/score (reel-service appeal scoring). `error` set = this image could not be scored */
 export interface ReelScoreResult {
   imageId: string | null;

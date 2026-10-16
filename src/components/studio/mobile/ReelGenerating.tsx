@@ -73,6 +73,8 @@ export function ReelGenerating() {
       let ctaFontFamily: string | undefined;
       let ctaFontSize: number | undefined;
       let ctaColor: string | undefined;
+      let ctaDuration: number | undefined;
+      let ctaMotion: string | undefined;
       try {
         mode = sessionStorage.getItem('reel-mode') ?? 'images';
         cta1 = sessionStorage.getItem('reel-cta1') ?? '';
@@ -82,6 +84,9 @@ export function ReelGenerating() {
         ctaColor = sessionStorage.getItem('reel-ctaColor') ?? undefined;
         const size = Number(sessionStorage.getItem('reel-ctaFontSize'));
         ctaFontSize = size > 0 ? size : undefined;
+        const duration = Number(sessionStorage.getItem('reel-ctaDuration'));
+        ctaDuration = duration > 0 ? duration : undefined;
+        ctaMotion = sessionStorage.getItem('reel-ctaMotion') ?? undefined;
       } catch {}
 
       setCurrentTrackId(musicTrackId);
@@ -104,6 +109,8 @@ export function ReelGenerating() {
           ctaFontFamily,
           ctaFontSize,
           ctaColor,
+          ctaDuration,
+          ctaMotion,
         }),
       });
 

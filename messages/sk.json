@@ -1825,7 +1825,13 @@
       "tapToSeeScores": "Ťuknite pre skóre",
       "createAnother": "Vytvoriť ďalší Reel",
       "backToGallery": "Späť do galérie",
-      "selectPhotosHint": "Vyberte 2–5 fotiek pre Reel"
+      "selectPhotosHint": "Vyberte 2–5 fotiek pre Reel",
+      "ctaPreview": "Náhľad",
+      "ctaPreviewApprox": "Približný náhľad",
+      "ctaPreviewClose": "Zavrieť náhľad",
+      "uploadProgress": "Nahrávanie {done}/{total}...",
+      "uploadPartial": "Nahraných {done} z {total} fotiek",
+      "cyrillicWarning": "Písmo nepodporuje cyriliku"
     },
     "removeBgEditor": {
       "title": "Odstrániť pozadie",

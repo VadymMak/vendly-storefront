@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
-import type { ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
-import { FONT_PRESETS, REEL_CTA_FONT_SIZE } from '@/lib/constants';
-import { FontPicker } from '@/components/studio/assemble/FontPicker';
-import { ColorPicker } from '@/components/studio/assemble/ColorPicker';
+import type { BrandKitData, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
+import { FONT_PRESETS, MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS, REEL_CTA_FONT_SIZE, REEL_CTA_LAYOUT } from '@/lib/constants';
+import { loadGoogleFont } from '@/lib/fonts/font-loader';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
+import { ColorSwatches, FontChips, SizeStepper } from './TextStylePanel';
 import { useBrandKit } from '@/hooks/useBrandKit';
 
 const STATUS_STYLE: Record<ReelPhotoStatus, { tile: string; dot: string; label: 'statusGood' | 'statusImprove' | 'statusWeak'; hint: 'hintGood' | 'hintImprove' | 'hintWeak' }> = {
@@ -19,6 +19,19 @@ const STATUS_STYLE: Record<ReelPhotoStatus, { tile: string; dot: string; label: 
 };
 
 const noopSubscribe = () => () => {};
+
+// Same test as reel-service brand.js
+const CYRILLIC = /[\u0400-\u04FF]/;
+// CTA inputs are ~335px wide, the reel frame 1080px — the live preview scales the reel size down
+const INPUT_PREVIEW_SCALE = 0.31;
+const INPUT_PREVIEW_MIN_PX = 11;
+
+/** Family and weight reel-service draws a CTA line with (Cyrillic swaps a few families) */
+function ctaFace(family: string, text: string): { family: string; weight: number } {
+  const swap = REEL_CTA_LAYOUT.cyrillicFallback[family];
+  if (swap && CYRILLIC.test(text)) return swap;
+  return { family, weight: REEL_CTA_LAYOUT.weights[family] ?? REEL_CTA_LAYOUT.defaultWeight };
+}
 
 // How long the first yellow photo stays highlighted before the Improve sheet opens
 const IMPROVE_HIGHLIGHT_MS = 700;
@@ -76,12 +89,17 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const [cta2, setCta2] = useState(defaultCta2);
   const [userEditedCta1, setUserEditedCta1] = useState(false);
   const [userEditedCta2, setUserEditedCta2] = useState(false);
-  // CTA font and color follow the Brand Kit (it loads async) until the user picks one here
+  // CTA font and color follow the Brand Kit (it loads async) until the user picks one here.
+  // The Brand Kit font leads the chips when it isn't one of the mobile fonts already.
+  const brandFont = FONT_PRESETS.find((p) => p.id === brand?.fontPreset)?.fontFamily;
+  const fontChips = useMemo(() => {
+    const families: string[] = MOBILE_TEXT_FONTS.map((f) => f.family);
+    return brandFont && !families.includes(brandFont) ? [brandFont, ...families] : families;
+  }, [brandFont]);
   const [pickedFont, setPickedFont] = useState<string | null>(null);
-  const ctaFontFamily = pickedFont
-    ?? FONT_PRESETS.find((p) => p.id === brand?.fontPreset)?.fontFamily
-    ?? FONT_PRESETS[0].fontFamily;
+  const ctaFontFamily = pickedFont ?? fontChips[0];
   const [ctaFontSize, setCtaFontSize] = useState<number>(REEL_CTA_FONT_SIZE.default);
+  const [previewOpen, setPreviewOpen] = useState(false);
   // Only an explicit pick is sent — reel-service keeps its Brand Kit contrast rules otherwise
   const [pickedColor, setPickedColor] = useState<string | null>(null);
   const ctaColor = pickedColor ?? brand?.colorText ?? '#FFFFFF';
@@ -92,6 +110,13 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     if (!userEditedCta1) setCta1(defaultCta1);
     if (!userEditedCta2) setCta2(defaultCta2);
   }
+  // Faces the styled CTA inputs need — the chips load only the picked family, not a Cyrillic swap
+  useEffect(() => {
+    for (const text of [cta1 || defaultCta1, cta2 || defaultCta2]) {
+      const face = ctaFace(ctaFontFamily, text);
+      loadGoogleFont(face.family, face.weight).catch(() => {});
+    }
+  }, [ctaFontFamily, cta1, cta2, defaultCta1, defaultCta2]);
   const [scoresExpanded, setScoresExpanded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -229,9 +254,35 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
     ? Array.from(selectedIds).filter((id) => allImproveIds.includes(id))
     : allImproveIds;
   const scoreUnavailable = photos.some((p) => p.url in scores && !scoreOf(p));
+  const cyrillicUnsupported = CYRILLIC.test(`${cta1}${cta2}`)
+    && MOBILE_TEXT_FONTS.some((f) => f.family === ctaFontFamily && !f.cyrillic);
+  // reel-service puts the CTA on its hero photo — the best-scored one is the closest guess
+  const heroPhoto = photos.reduce((best, p) => ((scoreOf(p)?.score ?? -1) > (scoreOf(best)?.score ?? -1) ? p : best), photos[0]);
+
+  function inputStyle(text: string, reelSize: number): CSSProperties {
+    const face = ctaFace(ctaFontFamily, text);
+    return {
+      fontFamily: `"${face.family}", sans-serif`,
+      fontWeight: face.weight,
+      color: ctaColor,
+      fontSize: `${Math.max(INPUT_PREVIEW_MIN_PX, reelSize * INPUT_PREVIEW_SCALE)}px`,
+    };
+  }
 
   return (
     <div className="flex flex-col pb-6" style={{ animation: 'wizardSlideRight 0.3s ease-out' }}>
+      {previewOpen && (
+        <CtaPreviewOverlay
+          photoUrl={heroPhoto.url}
+          line1={cta1.trim() || defaultCta1}
+          line2={cta2.trim() || defaultCta2}
+          fontFamily={ctaFontFamily}
+          fontSize={ctaFontSize}
+          pickedColor={pickedColor}
+          brand={brand}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <button
@@ -418,13 +469,16 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
         <div className="space-y-2">
           <p className="text-xs text-gray-400">{t('ctaTitle')}</p>
           <p className="text-[11px] text-gray-600">{t('ctaHint')}</p>
+          {/* Styled like the reel draws them — line 1 is 4/3 of the chosen size there */}
           <input
             value={cta1}
             onChange={(e) => { setCta1(e.target.value); setUserEditedCta1(true); }}
             placeholder={defaultCta1}
             aria-label={t('ctaLine1')}
             maxLength={30}
-            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/50"
+            translate="no"
+            style={inputStyle(cta1 || defaultCta1, ctaFontSize * REEL_CTA_LAYOUT.line1Ratio)}
+            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-white placeholder-gray-500 outline-none focus:border-green-500/50"
           />
           <input
             value={cta2}
@@ -432,29 +486,47 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
             placeholder={defaultCta2}
             aria-label={t('ctaLine2')}
             maxLength={30}
-            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/50"
+            translate="no"
+            style={inputStyle(cta2 || defaultCta2, ctaFontSize)}
+            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-white placeholder-gray-500 outline-none focus:border-green-500/50"
           />
         </div>
 
-        {/* CTA font, size and color — the same pickers as the Assemble text editor */}
-        <div className="space-y-2">
+        {/* CTA font, size and color — the mobile text controls (TextStylePanel) */}
+        <div className="space-y-1">
           <p className="text-xs text-gray-400">{t('ctaFont')}</p>
-          <FontPicker value={ctaFontFamily} onChange={setPickedFont} />
-          <label className="flex min-h-11 items-center gap-3">
+          <FontChips
+            value={ctaFontFamily}
+            onChange={setPickedFont}
+            fonts={fontChips}
+            weight={REEL_CTA_LAYOUT.weights[ctaFontFamily] ?? REEL_CTA_LAYOUT.defaultWeight}
+          />
+          {cyrillicUnsupported && (
+            <p className="pb-2 text-xs text-yellow-400/90" role="status">{t('cyrillicWarning')}</p>
+          )}
+          <div className="flex min-h-11 items-center gap-3 pb-2">
             <span className="w-16 text-xs text-gray-500">{t('ctaSize')}</span>
-            <input
-              type="range"
+            <SizeStepper
+              value={ctaFontSize}
+              onChange={setCtaFontSize}
               min={REEL_CTA_FONT_SIZE.min}
               max={REEL_CTA_FONT_SIZE.max}
               step={REEL_CTA_FONT_SIZE.step}
-              value={ctaFontSize}
-              onChange={(e) => setCtaFontSize(Number(e.target.value))}
-              className="flex-1 accent-green-500"
             />
-            <span className="w-8 text-right text-xs text-gray-400 tabular-nums">{ctaFontSize}</span>
-          </label>
-          <ColorPicker label={t('ctaColor')} value={ctaColor} onChange={setPickedColor} />
+          </div>
+          <p className="text-xs text-gray-500">{t('ctaColor')}</p>
+          <ColorSwatches value={ctaColor} onChange={setPickedColor} colors={MOBILE_TEXT_COLORS} />
         </div>
+
+        <button
+          onClick={() => setPreviewOpen(true)}
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-medium text-gray-200 active:bg-white/10"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+          </svg>
+          {t('ctaPreview')}
+        </button>
 
         <button
           onClick={() => {
@@ -480,6 +552,208 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           {t('createReel')}
         </button>
       </div>
+    </div>
+  );
+}
+
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+
+const HEX = /^#[0-9A-Fa-f]{6}$/;
+function hexOr(value: string | null | undefined, fallback: string): string {
+  return value && HEX.test(value) ? value : fallback;
+}
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+/** reel-service fit(): the size ≤ max (≥ minSize) at which the line fits maxWidth, and its width */
+function fitLine(text: string, max: number, face: { family: string; weight: number }, spacing: number, maxWidth: number) {
+  measureCtx ??= document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return { size: max, width: maxWidth };
+  measureCtx.font = `${face.weight} ${max}px "${face.family}", Arial, sans-serif`;
+  const width = measureCtx.measureText(text).width + spacing * Math.max(0, text.length - 1);
+  if (width <= maxWidth) return { size: max, width };
+  const size = Math.max(REEL_CTA_LAYOUT.minSize, Math.floor(max * maxWidth / width));
+  return { size, width: Math.min(maxWidth, Math.round(width * size / max)) };
+}
+
+interface CtaPreviewProps {
+  photoUrl: string;
+  line1: string;
+  line2: string;
+  fontFamily: string;
+  /** Main CTA line in px at 1080 wide */
+  fontSize: number;
+  /** Only an explicit pick overrides the Brand Kit / default colors, as in reel-service */
+  pickedColor: string | null;
+  brand: BrandKitData | null;
+  onClose: () => void;
+}
+
+/**
+ * Approximate last reel frame: the same SVG overlay reel-service draws (REEL_CTA_LAYOUT) over the
+ * best-scored photo. The real reel crops/outpaints the hero photo and animates it, so it can differ.
+ */
+function CtaPreviewOverlay({ photoUrl, line1, line2, fontFamily, fontSize, pickedColor, brand, onClose }: CtaPreviewProps) {
+  const t = useTranslations('mobile.reel');
+  const L = REEL_CTA_LAYOUT;
+  const face1 = ctaFace(fontFamily, line1);
+  const face2 = ctaFace(fontFamily, line2);
+  // Re-measure once the faces are loaded — the canvas measures a fallback font before that
+  const [fontsReady, setFontsReady] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([loadGoogleFont(face1.family, face1.weight), loadGoogleFont(face2.family, face2.weight)])
+      .then(() => { if (!cancelled) setFontsReady((n) => n + 1); });
+    return () => { cancelled = true; };
+  }, [face1.family, face1.weight, face2.family, face2.weight]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const max1 = Math.round(fontSize * L.line1Ratio);
+  const layout = useMemo(() => {
+    void fontsReady;
+    if (!brand) {
+      const P = L.plain;
+      return {
+        t1: line1 ? fitLine(line1, max1, face1, P.spacing1, P.maxWidth) : null,
+        t2: line2 ? fitLine(line2, fontSize, face2, P.spacing2, P.maxWidth) : null,
+      };
+    }
+    const B = L.branded;
+    return {
+      t1: line1 ? fitLine(line1, max1, face1, B.spacing1, B.line1MaxWidth) : null,
+      t2: line2 ? fitLine(line2, fontSize, face2, 0, B.pillMaxWidth) : null,
+    };
+  }, [brand, line1, line2, max1, fontSize, face1, face2, fontsReady, L]);
+
+  const { t1, t2 } = layout;
+  const shadow = (
+    <filter id="ctaShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="5" floodColor="rgba(0,0,0,0.85)" />
+    </filter>
+  );
+  const fontAttrs = (f: { family: string; weight: number }) => ({
+    fontFamily: `'${f.family}', Arial, Helvetica, sans-serif`,
+    fontWeight: f.weight,
+  });
+
+  let overlay: ReactNode;
+  if (!brand) {
+    const P = L.plain;
+    overlay = (
+      <>
+        <defs>
+          <linearGradient id="ctaTopScrim" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="black" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="black" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="ctaBottomScrim" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="black" stopOpacity="0" />
+            <stop offset="100%" stopColor="black" stopOpacity="0.70" />
+          </linearGradient>
+          {shadow}
+        </defs>
+        <rect x="0" y="0" width={L.width} height={P.topScrimHeight} fill="url(#ctaTopScrim)" />
+        <rect x="0" y={P.bottomScrimY} width={L.width} height={L.height - P.bottomScrimY} fill="url(#ctaBottomScrim)" />
+        {t1 && (
+          <text x={L.width / 2} y={P.line1Y} {...fontAttrs(face1)} fontSize={t1.size} fill={pickedColor ?? 'white'}
+            textAnchor="middle" filter="url(#ctaShadow)" letterSpacing={P.spacing1}>{line1}</text>
+        )}
+        {t2 && (
+          <text x={L.width / 2} y={P.line2Y} {...fontAttrs(face2)} fontSize={t2.size} fill={pickedColor ?? 'rgba(255,255,255,0.95)'}
+            textAnchor="middle" filter="url(#ctaShadow)" letterSpacing={P.spacing2}>{line2}</text>
+        )}
+      </>
+    );
+  } else {
+    const B = L.branded;
+    const primary = hexOr(brand.colorPrimary, '#16A34A');
+    const secondary = hexOr(brand.colorSecondary, '#000000');
+    const textColor = pickedColor ?? hexOr(brand.colorText, '#FFFFFF');
+    // A dark brand text color would vanish on the top scrim — reel-service uses white there
+    const topColor = pickedColor ?? (luminance(textColor) > 0.5 ? textColor : '#FFFFFF');
+    const pillH = t2 ? Math.round(t2.size * B.pillHeightRatio) : 0;
+    const pillW = t2 ? t2.width + B.pillPaddingX : 0;
+    const pillY = B.pillBottom - pillH;
+    overlay = (
+      <>
+        <defs>
+          <linearGradient id="ctaTopScrim" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="black" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="black" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="ctaBottomScrim" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={secondary} stopOpacity="0" />
+            <stop offset="100%" stopColor={secondary} stopOpacity="0.55" />
+          </linearGradient>
+          {shadow}
+        </defs>
+        {t1 && <rect x="0" y="0" width={L.width} height={B.line1Y + B.topScrimExtra} fill="url(#ctaTopScrim)" />}
+        <rect x="0" y={L.height - B.bottomScrimHeight} width={L.width} height={B.bottomScrimHeight} fill="url(#ctaBottomScrim)" />
+        {t1 && (
+          <text x={L.width / 2} y={B.line1Y} {...fontAttrs(face1)} fontSize={t1.size} fill={topColor}
+            textAnchor="middle" filter="url(#ctaShadow)" letterSpacing={B.spacing1}>{line1}</text>
+        )}
+        {t2 && (
+          <>
+            <rect x={(L.width - pillW) / 2} y={pillY} width={pillW} height={pillH} rx={pillH / 2} fill={primary} filter="url(#ctaShadow)" />
+            <text x={L.width / 2} y={Math.round(pillY + pillH / 2 + t2.size * 0.35)} {...fontAttrs(face2)} fontSize={t2.size}
+              fill={textColor} textAnchor="middle">{line2}</text>
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Logo watermark (brand.js overlayLogoWatermark) — same clamps as reel-service
+  const logo = brand?.watermarkEnabled && brand.logoUrl ? brand.logoUrl : null;
+  const logoScale = Math.min(Math.max(Number(brand?.watermarkScale) || 0.10, 0.05), 0.25);
+  const logoOpacity = Math.min(Math.max(Number(brand?.watermarkOpacity) || 0.15, 0), 1);
+  const logoPos = brand?.watermarkPosition ?? 'bottom-right';
+  const logoStyle: CSSProperties = {
+    width: `${logoScale * 100}%`,
+    opacity: logoOpacity,
+    [logoPos.endsWith('left') ? 'left' : 'right']: `${(L.logo.sides / L.width) * 100}%`,
+    [logoPos.startsWith('top') ? 'top' : 'bottom']: `${((logoPos.startsWith('top') ? L.logo.top : L.logo.bottom) / L.height) * 100}%`,
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/95 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('ctaPreview')}
+      style={{ animation: 'fade-in 0.2s ease-out' }}
+    >
+      <button
+        onClick={onClose}
+        aria-label={t('ctaPreviewClose')}
+        className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <div
+        className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-2xl"
+        style={{ height: 'min(78dvh, calc((100vw - 2rem) * 16 / 9))' }}
+        translate="no"
+      >
+        <svg viewBox={`0 0 ${L.width} ${L.height}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
+          <image href={photoUrl} x="0" y="0" width={L.width} height={L.height} preserveAspectRatio="xMidYMid slice" />
+          {overlay}
+        </svg>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {logo && <img src={logo} alt="" className="absolute h-auto" style={logoStyle} />}
+      </div>
+      <p className="mt-3 text-xs text-gray-400">{t('ctaPreviewApprox')}</p>
     </div>
   );
 }

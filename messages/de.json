@@ -1834,7 +1834,13 @@
       "tapToSeeScores": "Tippen für Bewertungen",
       "createAnother": "Weiteres Reel erstellen",
       "backToGallery": "Zurück zur Galerie",
-      "selectPhotosHint": "Wählen Sie 2–5 Fotos für Ihr Reel"
+      "selectPhotosHint": "Wählen Sie 2–5 Fotos für Ihr Reel",
+      "ctaPreview": "Vorschau",
+      "ctaPreviewApprox": "Ungefähre Vorschau",
+      "ctaPreviewClose": "Vorschau schließen",
+      "uploadProgress": "Hochladen {done}/{total}...",
+      "uploadPartial": "{done} von {total} Fotos hochgeladen",
+      "cyrillicWarning": "Schrift unterstützt kein Kyrillisch"
     },
     "removeBgEditor": {
       "title": "Hintergrund entfernen",

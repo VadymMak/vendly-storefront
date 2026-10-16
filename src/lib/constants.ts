@@ -996,8 +996,57 @@ export const FONT_PRESETS = [
   { id: 'bold',    label: 'Bold',    fontFamily: 'Anton',   cssStack: "'Anton', var(--font-geist-sans), sans-serif",   weight: 400, description: 'Heavy, bold' },
 ] as const;
 
-/** Reel CTA size slider (px at 1080 wide) — sets the main CTA line; reel-service clamps to the same range */
+/** Reel CTA size stepper (px at 1080 wide) — sets the main CTA line; reel-service clamps to the same range */
 export const REEL_CTA_FONT_SIZE = { min: 24, max: 72, step: 2, default: 48 } as const;
+
+/**
+ * Font chips of the mobile text controls (text overlays, Reel CTA). All are installed on the reel
+ * server too. `cyrillic: false` = the Google family has no Cyrillic subset (checked 2026-10-16).
+ */
+export const MOBILE_TEXT_FONTS = [
+  { family: 'Inter',            cyrillic: true },
+  { family: 'Montserrat',       cyrillic: true },
+  { family: 'Roboto',           cyrillic: true },
+  { family: 'Oswald',           cyrillic: true },
+  { family: 'Playfair Display', cyrillic: true },
+  { family: 'Pacifico',         cyrillic: true },
+  { family: 'Bebas Neue',       cyrillic: false },
+  { family: 'DM Sans',          cyrillic: false },
+] as const;
+
+/** Color swatches of the mobile text controls */
+export const MOBILE_TEXT_COLORS = [
+  '#FFFFFF', '#000000', '#FF3B30', '#FFCC00',
+  '#34C759', '#007AFF', '#FF9500', '#AF52DE',
+] as const;
+
+/**
+ * Reel CTA frame as reel-service draws it (1080×1920 SVG overlay on the hero shot), copied from
+ * ~/reel-service/src/pipeline/ffmpeg.js overlayScrimAndCta (no Brand Kit) and brand.js
+ * overlayBrandedCta / overlayLogoWatermark (Brand Kit) on 2026-10-16. reel-service is not in git —
+ * if its layout changes, update these by hand. Y values are text baselines.
+ */
+export const REEL_CTA_LAYOUT = {
+  width: 1080,
+  height: 1920,
+  /** Line 1 is drawn at size × 4/3; both lines shrink to fit, never below minSize, never wrap */
+  line1Ratio: 4 / 3,
+  minSize: 28,
+  plain: {
+    line1Y: 210, line2Y: 1590, maxWidth: 980, spacing1: 3, spacing2: 1,
+    topScrimHeight: 280, bottomScrimY: 1500,
+  },
+  branded: {
+    line1Y: 360, line1MaxWidth: 960, spacing1: 2, topScrimExtra: 120,
+    bottomScrimHeight: 820, pillMaxWidth: 620, pillPaddingX: 88, pillHeightRatio: 1.9, pillBottom: 1500,
+  },
+  logo: { sides: 65, top: 270, bottom: 380 },
+  /** brand.js FONT_MAP / resolveCtaFont: weight per Brand Kit family, 700 for any other family */
+  weights: { Manrope: 700, Raleway: 600, Anton: 400 } as Record<string, number>,
+  defaultWeight: 700,
+  /** Families reel-service swaps for Cyrillic text (Anton has no Cyrillic) */
+  cyrillicFallback: { Anton: { family: 'Fira Sans', weight: 800 } } as Record<string, { family: string; weight: number }>,
+} as const;
 
 export const SUBTITLE_PRESETS = [
   { id: 'clean',   label: 'Clean',   description: 'White text, subtle shadow' },

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { loadGoogleFont } from '@/lib/fonts/font-loader';
+import { MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS } from '@/lib/constants';
 import type { MobileTextLayer } from '@/lib/types';
 
 interface Props {
@@ -11,43 +12,133 @@ interface Props {
   onDelete: () => void;
 }
 
-const MOBILE_FONTS = [
-  'Inter',
-  'Montserrat',
-  'Roboto',
-  'Oswald',
-  'Playfair Display',
-  'Pacifico',
-  'Bebas Neue',
-  'DM Sans',
-] as const;
+const MOBILE_FONT_FAMILIES = MOBILE_TEXT_FONTS.map((f) => f.family);
 
-const COLOR_PRESETS = [
-  '#FFFFFF', '#000000', '#FF3B30', '#FFCC00',
-  '#34C759', '#007AFF', '#FF9500', '#AF52DE',
-];
+interface FontChipsProps {
+  value: string;
+  /** Called once the family is loaded at `weight` (or failed to load) */
+  onChange: (family: string) => void;
+  fonts: readonly string[];
+  /** Weight the picked font is used at */
+  weight?: number;
+}
+
+/** Horizontal row of font chips, each label drawn in its own typeface once loaded */
+export function FontChips({ value, onChange, fonts, weight = 400 }: FontChipsProps) {
+  const [loadedFonts, setLoadedFonts] = useState<Set<string>>(new Set());
+
+  // Load every chip's face so the row previews the fonts, and the current one at its weight
+  useEffect(() => {
+    for (const family of fonts) {
+      loadGoogleFont(family, 400)
+        .then(() => setLoadedFonts((prev) => new Set(prev).add(family)))
+        .catch(() => {});
+    }
+  }, [fonts]);
+  useEffect(() => {
+    if (value) loadGoogleFont(value, weight).catch(() => {});
+  }, [value, weight]);
+
+  async function handleSelect(family: string) {
+    try {
+      await loadGoogleFont(family, weight);
+      setLoadedFonts((prev) => new Set(prev).add(family));
+    } catch {}
+    onChange(family);
+  }
+
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
+      {fonts.map((font) => (
+        <button
+          key={font}
+          onClick={() => handleSelect(font)}
+          translate="no"
+          aria-pressed={value === font}
+          className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+            value === font
+              ? 'border-green-500 bg-green-500/10 text-green-400'
+              : 'border-white/10 bg-white/[0.04] text-gray-300'
+          }`}
+          style={loadedFonts.has(font) ? { fontFamily: `"${font}", sans-serif` } : undefined}
+        >
+          {font}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface ColorSwatchesProps {
+  value: string;
+  onChange: (color: string) => void;
+  colors: readonly string[];
+}
+
+/** Row of preset color circles plus the native color input */
+export function ColorSwatches({ value, onChange, colors }: ColorSwatchesProps) {
+  return (
+    <div className="flex items-center gap-2 pb-3">
+      {colors.map((color) => (
+        <button
+          key={color}
+          onClick={() => onChange(color)}
+          className={`h-7 w-7 shrink-0 rounded-full border-2 transition-transform active:scale-90 ${
+            value.toUpperCase() === color.toUpperCase() ? 'border-white scale-110' : 'border-transparent'
+          }`}
+          style={{ backgroundColor: color }}
+          aria-label={color}
+        />
+      ))}
+      <label className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/[0.04] text-base">
+        🎨
+        <input
+          type="color"
+          value={value.toLowerCase()}
+          onChange={(e) => onChange(e.target.value)}
+          className="sr-only"
+        />
+      </label>
+    </div>
+  );
+}
+
+interface SizeStepperProps {
+  value: number;
+  onChange: (size: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  /** Shown after the number (e.g. the pinch scale of a text layer) */
+  suffix?: ReactNode;
+}
+
+/** − value + stepper */
+export function SizeStepper({ value, onChange, min, max, step, suffix }: SizeStepperProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => onChange(Math.max(min, value - step))}
+        disabled={value <= min}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white active:bg-white/[0.12] disabled:opacity-40"
+      >
+        −
+      </button>
+      <span className="w-8 text-center text-sm font-medium text-white tabular-nums">{value}</span>
+      {suffix}
+      <button
+        onClick={() => onChange(Math.min(max, value + step))}
+        disabled={value >= max}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white active:bg-white/[0.12] disabled:opacity-40"
+      >
+        +
+      </button>
+    </div>
+  );
+}
 
 export function TextStylePanel({ layer, onChange, onDelete }: Props) {
   const t = useTranslations('mobile.textEditor');
-  const [loadedFonts, setLoadedFonts] = useState<Set<string>>(new Set(['Inter']));
-
-  // Pre-load the current font when the panel opens
-  useEffect(() => {
-    const w = layer.fontWeight === 'bold' ? 700 : 400;
-    loadGoogleFont(layer.fontFamily, w)
-      .then(() => setLoadedFonts(prev => new Set(prev).add(layer.fontFamily)))
-      .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleFontSelect(family: string) {
-    const w = layer.fontWeight === 'bold' ? 700 : 400;
-    try {
-      await loadGoogleFont(family, w);
-      setLoadedFonts(prev => new Set(prev).add(family));
-    } catch {}
-    onChange({ fontFamily: family });
-  }
-
   async function handleBoldToggle() {
     const next = layer.fontWeight === 'bold' ? 'normal' : 'bold';
     if (next === 'bold') {
@@ -93,45 +184,26 @@ export function TextStylePanel({ layer, onChange, onDelete }: Props) {
       </div>
 
       {/* Font picker */}
-      <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
-        {MOBILE_FONTS.map((font) => (
-          <button
-            key={font}
-            onClick={() => handleFontSelect(font)}
-            translate="no"
-            className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-              layer.fontFamily === font
-                ? 'border-green-500 bg-green-500/10 text-green-400'
-                : 'border-white/10 bg-white/[0.04] text-gray-300'
-            }`}
-            style={loadedFonts.has(font) ? { fontFamily: `"${font}", sans-serif` } : undefined}
-          >
-            {font}
-          </button>
-        ))}
-      </div>
+      <FontChips
+        value={layer.fontFamily}
+        onChange={(fontFamily) => onChange({ fontFamily })}
+        fonts={MOBILE_FONT_FAMILIES}
+        weight={layer.fontWeight === 'bold' ? 700 : 400}
+      />
 
       {/* Size + Bold row */}
       <div className="flex items-center gap-4 pb-3">
         <span className="text-xs text-gray-500">{t('size')}</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onChange({ fontSize: Math.max(14, layer.fontSize - 2) })}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white active:bg-white/[0.12]"
-          >
-            −
-          </button>
-          <span className="w-8 text-center text-sm font-medium text-white">{layer.fontSize}</span>
-          {(layer.scale ?? 1) !== 1 && (
+        <SizeStepper
+          value={layer.fontSize}
+          onChange={(fontSize) => onChange({ fontSize })}
+          min={14}
+          max={72}
+          step={2}
+          suffix={(layer.scale ?? 1) !== 1 && (
             <span className="text-[10px] text-gray-500">×{(layer.scale ?? 1).toFixed(1)}</span>
           )}
-          <button
-            onClick={() => onChange({ fontSize: Math.min(72, layer.fontSize + 2) })}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white active:bg-white/[0.12]"
-          >
-            +
-          </button>
-        </div>
+        />
 
         <button
           onClick={handleBoldToggle}
@@ -164,28 +236,7 @@ export function TextStylePanel({ layer, onChange, onDelete }: Props) {
       </div>
 
       {/* Color presets */}
-      <div className="flex items-center gap-2 pb-3">
-        {COLOR_PRESETS.map((color) => (
-          <button
-            key={color}
-            onClick={() => onChange({ color })}
-            className={`h-7 w-7 shrink-0 rounded-full border-2 transition-transform active:scale-90 ${
-              layer.color === color ? 'border-white scale-110' : 'border-transparent'
-            }`}
-            style={{ backgroundColor: color }}
-            aria-label={color}
-          />
-        ))}
-        <label className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/[0.04] text-base">
-          🎨
-          <input
-            type="color"
-            value={layer.color}
-            onChange={(e) => onChange({ color: e.target.value })}
-            className="sr-only"
-          />
-        </label>
-      </div>
+      <ColorSwatches value={layer.color} onChange={(color) => onChange({ color })} colors={MOBILE_TEXT_COLORS} />
 
       {/* Delete */}
       <div className="flex justify-end pb-2">

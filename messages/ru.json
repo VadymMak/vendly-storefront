@@ -1834,7 +1834,13 @@
       "tapToSeeScores": "Нажмите для оценок",
       "createAnother": "Создать другой Reel",
       "backToGallery": "Назад в галерею",
-      "selectPhotosHint": "Выберите 2–5 фото для Reel"
+      "selectPhotosHint": "Выберите 2–5 фото для Reel",
+      "ctaPreview": "Предпросмотр",
+      "ctaPreviewApprox": "Примерный вид",
+      "ctaPreviewClose": "Закрыть предпросмотр",
+      "uploadProgress": "Загрузка {done}/{total}...",
+      "uploadPartial": "Загружено {done} из {total} фото",
+      "cyrillicWarning": "Шрифт не поддерживает кириллицу"
     },
     "removeBgEditor": {
       "title": "Удалить фон",

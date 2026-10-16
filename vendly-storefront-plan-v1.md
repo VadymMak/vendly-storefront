@@ -289,4 +289,13 @@
 - [x] Reel screen: Assemble `FontPicker` (FONT_CATALOG) + `ColorPicker` replace the PROMPT-257 preset chips; size slider kept (no shared size component exists)
 - [x] `/api/reel/generate` forwards `ctaFontFamily`, `ctaFontSize`, `ctaColor` (color only when picked — Brand Kit contrast rules stay otherwise)
 - [x] reel-service: family checked against `fc-list`, not installed → Manrope; color on both CTA variants (backup `~/reel-service-backups/2026-10-16-pre258/`)
-- [ ] Only ~9 catalog families are installed on the server — most picks render as Manrope until more fonts are installed in /usr/local/share/fonts/google/
+- [x] All 71 FONT_CATALOG families installed in /usr/local/share/fonts/google/ (2026-10-16, reel-service restarted after)
+
+### PROMPT-259 — Reel multi-select upload + mobile font controls + CTA preview ✅
+- [x] MobileLibrary: phone picker `multiple`, capped to the reel's free slots; queue with 3 uploads in flight, `crypto.randomUUID()` ids, "Uploading 2/4" progress, partial-failure / session-expired message
+- [x] TextStylePanel: `FontChips` / `ColorSwatches` / `SizeStepper` extracted in the same file, TextStylePanel uses them; font + color lists moved to `MOBILE_TEXT_FONTS` / `MOBILE_TEXT_COLORS` in constants.ts
+- [x] Reel CTA: chips (Brand Kit font first when it isn't one of the 8), −/+ stepper 24–72, swatches; CTA inputs styled live (font, weight, color, size ×0.31, line 1 ×4/3); Cyrillic warning for Bebas Neue / DM Sans
+- [x] CTA preview overlay: same SVG layout as reel-service (`REEL_CTA_LAYOUT`, copied from brand.js / ffmpeg.js) — plain top/bottom lines or Brand Kit pill + logo watermark, shrink-to-fit, on the best-scored photo, labelled approximate
+- [x] font-loader: registers every unicode-range subset Google returns (only the first — cyrillic-ext / latin-ext — was loaded, so all Google-font previews fell back)
+- [x] i18n: 6 new mobile.reel keys × 6 locales; 12 missing uk mobile.reel keys added
+- [ ] Manual test on phone: multi-select 4 photos; preview with and without Brand Kit; text overlay editor on Creative Edit / Result / Improve; Assemble FontPicker

@@ -17,16 +17,25 @@ export async function loadGoogleFont(family: string, weight: number = 400): Prom
       if (!res.ok) throw new Error(`Font CSS fetch failed: ${res.status}`);
       const css = await res.text();
 
-      // Extract first woff2 URL from CSS (Google Fonts returns woff2 for modern browsers)
-      const match = css.match(/url\(['"]?([^'")\s]+\.woff2)['"]?\)/);
-      if (!match) throw new Error(`No woff2 URL in CSS for ${family}`);
-
-      const face = new FontFace(family, `url(${match[1]})`, {
-        weight: String(weight),
-        style: 'normal',
+      // Google splits a family into one @font-face per script subset (cyrillic-ext, cyrillic, …,
+      // latin-ext, latin), each with its own unicode-range — register them all, or only the first
+      // subset's glyphs exist and Latin/Cyrillic text silently falls back to another font.
+      const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].flatMap(([, block]) => {
+        const src = block.match(/url\(['"]?([^'")\s]+\.woff2)['"]?\)/)?.[1];
+        if (!src) return [];
+        const unicodeRange = block.match(/unicode-range:\s*([^;]+);/)?.[1].trim();
+        return [new FontFace(family, `url(${src})`, {
+          weight: String(weight),
+          style: 'normal',
+          ...(unicodeRange ? { unicodeRange } : {}),
+        })];
       });
-      await face.load();
-      document.fonts.add(face);
+      if (faces.length === 0) throw new Error(`No woff2 URL in CSS for ${family}`);
+      faces.forEach((face) => document.fonts.add(face));
+
+      // Fetch the Latin and Cyrillic files now; other subsets download only when a page uses them
+      const loaded = await document.fonts.load(`${weight} 16px "${family}"`, 'AaZzЖжЯя');
+      if (loaded.length === 0) throw new Error(`No Latin/Cyrillic face for ${family}`);
       loadedFonts.add(key);
     } catch (err) {
       console.warn('[font-loader] Failed to load:', family, err);

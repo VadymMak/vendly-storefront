@@ -14,6 +14,8 @@ type ReelSource = 'library' | 'gallery' | 'phone';
 type View = Filter | `select-${ReelSource}`;
 
 const PAGE_SIZE = 30;
+// Phone multi-select uploads in flight at once — keeps the upload route and slow mobile links unclogged
+const PHONE_UPLOAD_CONCURRENCY = 3;
 const FILTERS: { id: Filter; key: 'filterAll' | 'filterImages' | 'filterVideos' }[] = [
   { id: 'all', key: 'filterAll' },
   { id: 'image', key: 'filterImages' },
@@ -69,7 +71,10 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
   const [brokenIds, setBrokenIds] = useState<Set<string>>(() => new Set());
   // Phone uploads live in component state only — the reel flow is a single session
   const [phonePhotos, setPhonePhotos] = useState<ReelPhoto[]>([]);
-  const [uploading, setUploading] = useState(false);
+  // Multi-select batch: photos picked and photos finished (ok or failed) — count 0 = idle
+  const [uploadCount, setUploadCount] = useState(0);
+  const [uploadDone, setUploadDone] = useState(0);
+  const uploading = uploadCount > 0;
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loading = loaded?.filter !== view;
@@ -118,39 +123,56 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
     });
   }
 
-  async function handlePhoneUpload(file: File) {
-    setUploading(true);
+  /** Uploads one photo and auto-selects it while the reel has room. Throws on failure. */
+  async function uploadPhonePhoto(file: File) {
+    const compressed = await compressImage(file);
+    const fd = new FormData();
+    fd.append('image', compressed);
+    const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(res.status === 401 ? 'unauthorized' : `upload ${res.status}`);
+    const data = await res.json() as { url: string; originalUrl?: string };
+    // Treated as the user's own photo ('gallery') so Quality Check handles it like "My photos"
+    const photo: ReelPhoto = {
+      id: `phone-${crypto.randomUUID()}`,
+      url: data.url,
+      originalUrl: data.originalUrl,
+      operation: 'upload',
+      generationMode: null,
+      source: 'gallery',
+    };
+    setPhonePhotos((prev) => [photo, ...prev]);
+    setSelected((prev) => {
+      if (prev.size >= MAX_REEL_PHOTOS) return prev;
+      return new Map(prev).set(photo.id, photo);
+    });
+  }
+
+  // Multi-select from the phone: at most PHONE_UPLOAD_CONCURRENCY uploads in flight
+  async function handlePhoneUploads(files: File[]) {
+    setUploadCount(files.length);
+    setUploadDone(0);
     setUploadError(null);
-    try {
-      const compressed = await compressImage(file);
-      const fd = new FormData();
-      fd.append('image', compressed);
-      const res = await fetch('/api/studio/upload', { method: 'POST', body: fd });
-      if (!res.ok) {
-        if (res.status === 401) { setUploadError(tReel('sessionExpired')); return; }
-        throw new Error(`upload ${res.status}`);
+    const queue = [...files];
+    let failed = 0;
+    let sessionExpired = false;
+    const workers = Array.from({ length: Math.min(PHONE_UPLOAD_CONCURRENCY, queue.length) }, async () => {
+      while (queue.length > 0 && !sessionExpired) {
+        const file = queue.shift()!;
+        try {
+          await uploadPhonePhoto(file);
+        } catch (e) {
+          failed += 1;
+          // Every remaining upload would fail the same way
+          if (e instanceof Error && e.message === 'unauthorized') sessionExpired = true;
+        }
+        setUploadDone((n) => n + 1);
       }
-      const data = await res.json() as { url: string; originalUrl?: string };
-      // Treated as the user's own photo ('gallery') so Quality Check handles it like "My photos"
-      const photo: ReelPhoto = {
-        id: `phone-${Date.now()}`,
-        url: data.url,
-        originalUrl: data.originalUrl,
-        operation: 'upload',
-        generationMode: null,
-        source: 'gallery',
-      };
-      setPhonePhotos((prev) => [photo, ...prev]);
-      // Auto-select while the reel has room
-      setSelected((prev) => {
-        if (prev.size >= MAX_REEL_PHOTOS) return prev;
-        return new Map(prev).set(photo.id, photo);
-      });
-    } catch {
-      setUploadError(tReel('uploadFailed'));
-    } finally {
-      setUploading(false);
-    }
+    });
+    await Promise.all(workers);
+    if (sessionExpired) setUploadError(tReel('sessionExpired'));
+    else if (failed === files.length) setUploadError(tReel('uploadFailed'));
+    else if (failed > 0) setUploadError(tReel('uploadPartial', { done: files.length - failed, total: files.length }));
+    setUploadCount(0);
   }
 
   function handleCreateReel() {
@@ -260,7 +282,7 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
             {uploading ? (
               <>
                 <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-green-500" />
-                {tReel('uploading')}
+                {tReel('uploadProgress', { done: uploadDone, total: uploadCount })}
               </>
             ) : (
               <>
@@ -402,11 +424,14 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const f = e.target.files?.[0];
+          const files = Array.from(e.target.files ?? []);
           e.target.value = '';
-          if (f) void handlePhoneUpload(f);
+          // Only as many as the reel still has room for — extra picks are dropped
+          const toUpload = files.slice(0, Math.max(0, MAX_REEL_PHOTOS - selected.size));
+          if (toUpload.length > 0) void handlePhoneUploads(toUpload);
         }}
       />
 

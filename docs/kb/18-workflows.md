@@ -3,21 +3,21 @@
 ## Create a Product Photo for E-commerce
 
 **Goal:** Professional product image on a clean background
-**Credits:** 2-4 credits
+**Credits:** {{sum:image-quick}}–{{sum:image-best+ai-style}} credits
 
-1. **Generate Image** (1-2 credits): "professional product photo of [your product], white studio background, soft lighting, e-commerce style" → use Product style preset, Square 1:1 size
-2. **Improve Photo** (free; AI Style 1 credit, optional): If the lighting or quality needs enhancement
+1. **Generate Image** ({{credits:image-quick}}–{{credits:image-best}} credits): "professional product photo of [your product], white studio background, soft lighting, e-commerce style" → use Product style preset, Square 1:1 size
+2. **Improve Photo** (free; AI Style {{cost:ai-style}}, optional): If the lighting or quality needs enhancement
 
 **Alternative workflow:**
 1. Take a photo of your product with your phone
-2. **Remove Background** (1 credit): Get a clean cutout
+2. **Remove Background** ({{cost:remove-bg}}): Get a clean cutout
 3. **Place Products** (free): Put the cutout on a generated background
-4. **AI Blend** (1 credit): Make it look natural
+4. **AI Blend** ({{cost:ai-blend}}): Make it look natural
 
 ## Create a Promo Post
 
 **Goal:** A ready-to-post image for your feed or story (Instagram, Facebook, TikTok)
-**Credits:** 1 credit from a text description, 2 credits when you start from your own photo
+**Credits:** {{cost:image-quick}} from a text description, {{cost:kontext-edit}} when you start from your own photo
 
 1. On the mobile Studio home, tap **Promo Post**
 2. Optional: take or pick a photo — the AI keeps your product and builds the ad around it
@@ -31,7 +31,7 @@ A Promo Post is a still image. For a short video made from several photos, use *
 ## Remove a Background on Mobile
 
 **Goal:** A clean cut-out of your product (transparent PNG)
-**Credits:** 1 credit
+**Credits:** {{cost:remove-bg}}
 
 1. On the mobile Studio home, tap **Remove Background**
 2. Take or pick a photo
@@ -42,7 +42,7 @@ A Promo Post is a still image. For a short video made from several photos, use *
 ## Upscale a Photo on Mobile
 
 **Goal:** A larger, sharper version of a photo (4×)
-**Credits:** 1 credit
+**Credits:** {{cost:upscale}}
 
 1. On the mobile Studio home, tap **Upscale**
 2. Take or pick a photo — you see its current size and the size after upscaling
@@ -52,55 +52,55 @@ A Promo Post is a still image. For a short video made from several photos, use *
 ## Create a Video for TikTok/Reels
 
 **Goal:** Short promotional video
-**Credits:** 4-28 video credits (depends on quality and length)
+**Credits:** {{credits:video-quick-5s}}–{{credits:video-best-15s}} video credits (depends on quality and length)
 
 1. **Generate Video**: Write a dynamic scene description
 2. Choose 9:16 Portrait aspect ratio
-3. Choose 5s (8 credits) for quick content or 10s (16 credits) for detailed
+3. Choose 5s ({{cost:video-quick-5s}} on Quick) for quick content or 10s ({{cost:video-quick-10s}} on Quick) for detailed
 4. Download and upload to TikTok/Instagram
 
 ## Create a Menu Board Photo
 
 **Goal:** Appetizing food photography for menu
-**Credits:** 2-3 credits
+**Credits:** {{sum:image-best}}–{{sum:image-hd+upscale}} credits
 
 1. **Generate Image**: "appetizing photo of [dish name], overhead shot, rustic wooden table, natural lighting" → Food style preset
 2. Use Best or HD quality for print use
-3. **Upscale** if needed for large format printing (1 credit)
+3. **Upscale** if needed for large format printing ({{cost:upscale}})
 
 ## Create a Before/After Edit
 
 **Goal:** Show transformation using AI editing
-**Credits:** 2-4 credits
+**Credits:** free–{{cost:ai-style}}
 
 1. Upload your "before" photo
-2. **Improve Photo** (free; AI Style 1 credit): Select an enhancement preset
+2. **Improve Photo** (free; AI Style {{cost:ai-style}}): Select an enhancement preset
 3. Save both versions for comparison content
 
 ## Remove Unwanted Objects from a Photo
 
 **Goal:** Clean up a photo
-**Credits:** 2 credits
+**Credits:** {{cost:inpaint}}
 
 1. Upload the photo with unwanted objects
-2. **Edit & Replace (Inpaint)** (2 credits): Paint over the object, leave prompt empty
+2. **Edit & Replace (Inpaint)** ({{cost:inpaint}}): Paint over the object, leave prompt empty
 3. The AI fills the area with a natural background
 
 ## Create a Multi-Product Scene
 
 **Goal:** Multiple products in one beautiful scene
-**Credits:** 3-5 credits
+**Credits:** {{cost:remove-bg}} per product + {{credits:image-quick}}–{{credits:image-best}} for the background + {{cost:ai-blend}}
 
 1. Upload photos of each product
-2. **Remove Background** on each (1 credit each)
-3. **Generate Image** for the background scene (1-2 credits)
+2. **Remove Background** on each ({{cost:remove-bg}} each)
+3. **Generate Image** for the background scene ({{credits:image-quick}}–{{credits:image-best}} credits)
 4. **Place Products**: Arrange all cutouts on the background (free)
-5. **AI Blend**: Make it seamless (1 credit)
+5. **AI Blend**: Make it seamless ({{cost:ai-blend}})
 
 ## Animate a Product Photo
 
 **Goal:** Turn a still photo into a short video
-**Credits:** 5 video credits
+**Credits:** {{cost:video-animate-5s}}
 
 1. Select a high-quality product photo
 2. **Animate Video**: Choose a motion preset (Product Showcase for orbit, Food for subtle zoom)

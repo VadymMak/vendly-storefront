@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { VideoSkill } from '@/lib/types';
+import { getCreditLabelLong } from '@/lib/pricing';
 import CreditPackModal from '@/components/studio/CreditPackModal';
 import { useStudioStore } from '@/lib/studio/store';
 import { AccordionSection } from '@/components/studio/AccordionSection';
@@ -694,7 +695,9 @@ export function AnimateCanvas({ userId: _userId }: Props) {
                 <p className="font-medium text-gray-300">
                   {startImageUrl ? 'Add a motion prompt and click Animate' : 'Choose a start frame and describe the motion'}
                 </p>
-                <p className="mt-1 text-sm text-gray-500">Cost: ~$0.30–0.60 per generation</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Cost: {getCreditLabelLong('video-animate-5s')}{startImageUrl ? '' : ` + ${getCreditLabelLong('start-frame')} for the start frame`}
+                </p>
               </div>
             </div>
           )}

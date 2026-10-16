@@ -48,4 +48,4 @@ After generation:
 2. Choose your preferred format (WebP, PNG, or JPEG)
 3. The image downloads at the resolution specified by your size preset
 
-For higher resolution, use Upscale HD (1 credit) to boost up to 4x.
+For higher resolution, use Upscale HD ({{cost:upscale}}) to boost up to 4x.

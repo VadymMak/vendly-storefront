@@ -5,11 +5,11 @@
 **Challenge:** Professional food photography costs €200-500 per session and becomes outdated when the menu changes.
 
 **How Studio helps:**
-- Generate appetizing food photos for every dish (1-2 credits each)
+- Generate appetizing food photos for every dish ({{credits:image-quick}}–{{credits:image-best}} credits each)
 - Create seasonal menu images instantly
 - Generate interior photos for Google Business profile
 - Create promotional images for events and specials
-- Make short food videos for social media (8 credits)
+- Make short food videos for social media (from {{cost:video-quick-5s}})
 
 **Recommended workflow:**
 1. Generate Image → Food style preset → Best quality
@@ -46,10 +46,10 @@
 **Challenge:** Product photography for every SKU is expensive and time-consuming.
 
 **How Studio helps:**
-- Generate product photos from descriptions (1-2 credits)
-- Remove background from phone photos (1 credit)
-- Create product scenes with Place Products (free + 1 credit for AI Blend)
-- Upscale small images for website use (1 credit)
+- Generate product photos from descriptions ({{credits:image-quick}}–{{credits:image-best}} credits)
+- Remove background from phone photos ({{cost:remove-bg}})
+- Create product scenes with Place Products (free + {{cost:ai-blend}} for AI Blend)
+- Upscale small images for website use ({{cost:upscale}})
 - Create promotional banners and social content
 
 **Recommended workflow:**

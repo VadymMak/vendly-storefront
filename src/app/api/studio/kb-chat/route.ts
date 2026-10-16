@@ -8,7 +8,7 @@ import { hybridSearch } from '@/lib/kb/search';
 import { trackKbGap, saveKbInteractionToBrain } from '@/lib/kb/learning';
 import { getOrCreateCredits, isSuperuser } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
-import { OPERATION_COSTS } from '@/lib/pricing';
+import { OPERATION_COSTS, getCreditLabelLong, videoCreditsByDuration, type VideoCostFamily } from '@/lib/pricing';
 import { PLAN_CREDITS, STUDIO_PLAN_PRICES_EUR } from '@/lib/constants';
 import { getBrainStudioContext } from '@/lib/studio/brain-client';
 import { executeTool } from '@/lib/studio/tool-executor';
@@ -25,6 +25,10 @@ import {
   PAGE_CAPABILITIES,
 } from '@/lib/studio/chat-skills';
 import { NextRequest } from 'next/server';
+
+// "5s=4cr, 10s=8cr, 15s=12cr" from the pricing table
+const videoCostLine = (family: VideoCostFamily) =>
+  Object.entries(videoCreditsByDuration(family)).map(([sec, cr]) => `${sec}s=${cr}cr`).join(', ');
 
 
 function extractTextFromMessage(msg: UIMessage): string {
@@ -434,7 +438,7 @@ export async function POST(req: NextRequest) {
     }),
 
     generate_video_from_text: tool({
-      description: 'Generate a video from a text description (text-to-video). No image needed. Two quality tiers: Quick (~30s, cheaper) and Best (~2-5 min, higher quality). Cost depends on duration and quality: Quick 5s=4cr, 10s=8cr, 15s=12cr; Best 5s=10cr, 10s=18cr, 15s=28cr. ALWAYS call getUserCredits first, tell the user the cost, and WAIT for their confirmation before calling this tool.',
+      description: `Generate a video from a text description (text-to-video). No image needed. Two quality tiers: Quick (~30s, cheaper) and Best (~2-5 min, higher quality). Cost depends on duration and quality: Quick ${videoCostLine('quick')}; Best ${videoCostLine('best')}. ALWAYS call getUserCredits first, tell the user the cost, and WAIT for their confirmation before calling this tool.`,
       inputSchema: z.object({
         prompt: z.string().describe('Scene description, e.g. "A coffee cup on a wooden table, steam rising, warm morning light"'),
         duration: z.enum(['5', '10', '15']).default('10').describe('Video duration in seconds'),
@@ -585,7 +589,7 @@ export async function POST(req: NextRequest) {
     }),
 
     auto_caption: tool({
-      description: 'Automatically transcribe audio on the timeline and add synced text captions. Cost: 1 credit. Use when the user says "add captions", "subtitle this", "transcribe the audio", "add subtitles", etc.',
+      description: `Automatically transcribe audio on the timeline and add synced text captions. Cost: ${getCreditLabelLong('transcribe')}. Use when the user says "add captions", "subtitle this", "transcribe the audio", "add subtitles", etc.`,
       inputSchema: z.object({
         style: z.enum(['subtitle', 'karaoke', 'word-by-word', 'sentence']).default('subtitle')
           .describe('Caption style: subtitle (classic), karaoke (typewriter), word-by-word (Instagram Reels pop), sentence (full sentences)'),

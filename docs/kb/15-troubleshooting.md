@@ -5,7 +5,7 @@
 **Cause:** You've used all your monthly image credits and bonus credits.
 
 **Solutions:**
-1. Buy a credit pack (€5 for 50 images, €10 for 150 images, €20 for 400 images)
+1. Buy a credit pack (€{{pack:starter:price}} for {{pack:starter:images}} images, €{{pack:creator:price}} for {{pack:creator:images}} images, €{{pack:pro:price}} for {{pack:pro:images}} images)
 2. Upgrade your plan for more monthly credits
 3. Wait for monthly credit reset (every 30 days)
 4. Use free tools: Quick Filters, Auto Split, Place Products, basic Improve Photo presets
@@ -15,7 +15,7 @@
 **Cause:** You're on the Free plan and have no video credits.
 
 **Solutions:**
-1. Upgrade to Starter (€9/month — 20 video credits) or Pro (€19/month — 60 video credits)
+1. Upgrade to Starter (€{{plan:starter:price}}/month — {{plan:starter:videos}} video credits) or Pro (€{{plan:pro:price}}/month — {{plan:pro:videos}} video credits)
 2. Buy a credit pack that includes video credits
 
 ## "No video credits remaining"
@@ -23,7 +23,7 @@
 **Cause:** You've used all your video credits for this period.
 
 **Solutions:**
-1. Buy a credit pack (€5 includes 3 video credits, €10 includes 8, €20 includes 20)
+1. Buy a credit pack (€{{pack:starter:price}} includes {{pack:starter:videos}} video credits, €{{pack:creator:price}} includes {{pack:creator:videos}}, €{{pack:pro:price}} includes {{pack:pro:videos}})
 2. Upgrade your plan for more video credits
 3. Wait for monthly credit reset
 

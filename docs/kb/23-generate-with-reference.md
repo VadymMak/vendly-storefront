@@ -27,4 +27,4 @@ Create variations of an existing image. Upload a reference image and describe wh
 
 ## Credits
 
-Same as standard image generation based on quality tier (1-3 credits).
+{{cost:reference-generate}} per image.

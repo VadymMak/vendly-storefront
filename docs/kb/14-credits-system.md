@@ -50,9 +50,9 @@ Reels are charged when generation starts. If a reel fails, the credits are retur
 
 | Plan | Image Credits | Video Credits |
 |------|--------------|---------------|
-| Free | 5/month | 0 |
-| Starter (€9) | 100/month | 20/month |
-| Pro (€19) | 300/month | 60/month |
+| Free | {{plan:free:images}}/month | {{plan:free:videos}} |
+| Starter (€{{plan:starter:price}}) | {{plan:starter:images}}/month | {{plan:starter:videos}}/month |
+| Pro (€{{plan:pro:price}}) | {{plan:pro:images}}/month | {{plan:pro:videos}}/month |
 
 ## Credit Deduction Priority
 
@@ -74,6 +74,6 @@ Your current credit balance is shown in the Studio top bar (on mobile: the count
 
 - Image generation shows "No image credits remaining"
 - Video generation shows "No video credits remaining"
-- You can buy a credit pack (from €5) for immediate top-up
+- You can buy a credit pack (from €{{pack:starter:price}}) for immediate top-up
 - Or upgrade your plan for a higher monthly allowance
 - Free tools (basic Improve presets, Auto Split, Place Products, Quick Filters) continue to work

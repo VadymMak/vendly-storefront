@@ -114,15 +114,25 @@ export function creditText(opId: OperationId): string {
   return `${amount} ${type} credit${amount === 1 ? '' : 's'}`;
 }
 
+function toOperation(id: string): OperationId {
+  if (!(id in OPERATION_COSTS)) throw new Error(`Unknown pricing operation in KB doc: ${id}`);
+  return id as OperationId;
+}
+
 /**
- * Fills pricing placeholders in KB markdown (scripts/ingest-kb.ts): {{cost:<op>}} → "2 image credits",
- * {{credits:<op>}} → "2". An unknown operation id throws, so a typo fails the ingest instead of
- * reaching the help bot.
+ * Fills pricing placeholders in KB markdown (via src/lib/kb/placeholders.ts): {{cost:<op>}} →
+ * "2 image credits", {{credits:<op>}} → "2", {{sum:<op>+<op>}} → the total of same-kind operations,
+ * e.g. a workflow. An unknown operation id throws, so a typo fails the ingest instead of reaching
+ * the help bot.
  */
 export function renderPricingPlaceholders(text: string): string {
-  return text.replace(/\{\{(cost|credits):([a-z0-9-]+)\}\}/g, (_m, kind: string, id: string) => {
-    if (!(id in OPERATION_COSTS)) throw new Error(`Unknown pricing operation in KB doc: ${id}`);
-    const op = id as OperationId;
+  return text.replace(/\{\{(cost|credits|sum):([a-z0-9+-]+)\}\}/g, (_m, kind: string, arg: string) => {
+    if (kind === 'sum') {
+      const charges = arg.split('+').map((id) => operationCharge(toOperation(id)));
+      if (new Set(charges.map((c) => c.type)).size > 1) throw new Error(`KB {{sum:${arg}}} mixes image and video credits`);
+      return String(charges.reduce((n, c) => n + c.amount, 0));
+    }
+    const op = toOperation(arg);
     return kind === 'cost' ? creditText(op) : String(operationCharge(op).amount);
   });
 }

@@ -50,10 +50,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const charge = operationCharge('transcribe');
   let consume: Awaited<ReturnType<typeof consumeCredits>> | null = null;
   const refund = async () => {
     if (consume?.success && !consume.byok) {
-      await refundCredits(userId, 'image', consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
+      await refundCredits(userId, charge.type, consume.fromBonus ?? 0, consume.fromMonthly ?? 0);
     }
   };
 
@@ -109,8 +110,7 @@ export async function POST(req: NextRequest) {
 
     // Atomically reserve the credit BEFORE the paid Whisper call — refunded below on failure
     if (!superuser) {
-      const { type, amount } = operationCharge('transcribe');
-      consume = await consumeCredits(userId, type, amount);
+      consume = await consumeCredits(userId, charge.type, charge.amount);
       if (!consume.success) {
         return NextResponse.json({ error: consume.reason ?? 'Insufficient credits' }, { status: 402 });
       }

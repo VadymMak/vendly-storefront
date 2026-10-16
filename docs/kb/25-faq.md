@@ -17,7 +17,7 @@ Yes. All images generated in AI Studio are yours to use for any commercial purpo
 ## Credits & Billing
 
 ### How many free credits do I get?
-Free plan includes 5 image credits per month. No video credits on free plan.
+Free plan includes {{plan:free:images}} image credits per month. No video credits on free plan.
 
 ### Do unused credits carry over?
 Monthly credits do NOT carry over — they reset every 30 days. Bonus credits from credit packs DO carry over indefinitely.
@@ -26,24 +26,24 @@ Monthly credits do NOT carry over — they reset every 30 days. Bonus credits fr
 Every 30 days — from your last reset, or when your subscription renews.
 
 ### Can I get more credits without upgrading?
-Yes. Buy a credit pack: Starter Pack (€5 — 50 image + 3 video credits), Creator Pack (€10 — 150 image + 8 video credits) or Pro Pack (€20 — 400 image + 20 video credits).
+Yes. Buy a credit pack: Starter Pack (€{{pack:starter:price}} — {{pack:starter:images}} image + {{pack:starter:videos}} video credits), Creator Pack (€{{pack:creator:price}} — {{pack:creator:images}} image + {{pack:creator:videos}} video credits) or Pro Pack (€{{pack:pro:price}} — {{pack:pro:images}} image + {{pack:pro:videos}} video credits).
 
 ### What happens if I run out of credits mid-month?
 You can buy a credit pack for immediate top-up, or wait for your monthly reset. Free tools (Auto Split, Place Products, Quick Filters) continue to work.
 
 ### Are there any free tools?
-Yes! These tools cost 0 credits: the basic Improve Photo presets, Auto Split, Place Products (manual compositing), Quick Filters. AI Style in Improve Photo and AI Blend after Place Products cost 1 credit each.
+Yes! These tools cost 0 credits: the basic Improve Photo presets, Auto Split, Place Products (manual compositing), Quick Filters. AI Style in Improve Photo ({{cost:ai-style}}) and AI Blend after Place Products ({{cost:ai-blend}}) are paid.
 
 ## Technical
 
 ### What image quality can I expect?
-Quality depends on your tier: Quick (1 credit) is good for drafts, Best (2 credits) is high quality for social media, HD (3 credits) is the highest quality for print and professional use.
+Quality depends on your tier: Quick ({{cost:image-quick}}) is good for drafts, Best ({{cost:image-best}}) is high quality for social media, HD ({{cost:image-hd}}) is the highest quality for print and professional use.
 
 ### How long does generation take?
 Images: 3-15 seconds depending on quality tier. Videos: 30-120 seconds depending on duration. Longer videos take more time.
 
 ### Can I generate videos?
-Yes, but video credits are required. Free plan has no video credits. Upgrade to Starter (€9/month — 20 video credits) or Pro (€19/month — 60 video credits), or buy a credit pack.
+Yes, but video credits are required. Free plan has no video credits. Upgrade to Starter (€{{plan:starter:price}}/month — {{plan:starter:videos}} video credits) or Pro (€{{plan:pro:price}}/month — {{plan:pro:videos}} video credits), or buy a credit pack.
 
 ### Can I use my own API keys (BYOK)?
 No — own API keys are not offered. All plans run on VendShop's AI with monthly credits; buy a credit pack if you need more.

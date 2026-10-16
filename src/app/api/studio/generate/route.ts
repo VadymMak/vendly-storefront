@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { checkCredits, consumeCredits, refundCredits, getOrCreateCredits, isSuperuser, hasUserApiKey } from '@/lib/credits';
+import { OPERATION_COSTS } from '@/lib/pricing';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { isAbusivePrompt } from '@/lib/spam-check';
 import { getModel, LEGACY_GENERATE_ALIAS, TIER_ROUTES, MODEL_CATALOG, type ModelEntry } from '@/lib/studio/config';
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
   // so the BYOK provider) isn't known yet: byok_creator users get the real check at the reserve below.
   const quickCreditCheck = planType === 'byok_creator'
     ? { allowed: true, byok: true, reason: undefined }
-    : await checkCredits(session.user.id, 'image');
+    : await checkCredits(session.user.id, 'image', OPERATION_COSTS['image-quick'].imageCredits);
   if (!quickCreditCheck.allowed) {
     return NextResponse.json({ error: quickCreditCheck.reason, needsUpgrade: true }, { status: 403 });
   }

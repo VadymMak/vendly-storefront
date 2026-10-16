@@ -4,7 +4,7 @@
 
 1. Go to [vendshop.shop/register](https://vendshop.shop/register)
 2. Enter your email and create a password
-3. You automatically start on the Free plan with 5 image credits
+3. You automatically start on the Free plan with {{plan:free:images}} image credits
 
 Sign-up rules (to keep free credits fair):
 - Temporary / disposable email addresses are not accepted — use your real email

@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { PrismaClient } from '@prisma/client';
-import { renderPricingPlaceholders } from '../src/lib/pricing';
+import { renderKbPlaceholders } from '../src/lib/kb/placeholders';
 
 const db = new PrismaClient();
 
@@ -121,9 +121,9 @@ async function main() {
   for (const file of files) {
     const filePath = `docs/kb/${file}`;
     const fullPath = join(KB_DIR, file);
-    // Credit numbers come from src/lib/pricing.ts ({{cost:…}} placeholders) — the checksum covers the
-    // rendered text, so a price change re-ingests the docs that mention it
-    const content = renderPricingPlaceholders(readFileSync(fullPath, 'utf-8'));
+    // Prices and credits come from src/lib/pricing.ts + constants.ts ({{…}} placeholders) — the checksum
+    // covers the rendered text, so a price change re-ingests the docs that mention it
+    const content = renderKbPlaceholders(readFileSync(fullPath, 'utf-8'));
     const checksum = createHash('md5').update(content).digest('hex');
     const slug = file.replace(/^\d+-/, '').replace(/\.md$/, '');
 

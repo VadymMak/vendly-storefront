@@ -1806,7 +1806,9 @@
       "ctaDefault1": "Свіже щодня",
       "ctaDefault2": "Замовити зараз →",
       "ctaLine1": "Заголовок",
-      "ctaLine2": "Заклик до дії"
+      "ctaLine2": "Заклик до дії",
+      "ctaFont": "Стиль шрифту",
+      "ctaSize": "Розмір"
     },
     "removeBgEditor": {
       "title": "Видалити фон",

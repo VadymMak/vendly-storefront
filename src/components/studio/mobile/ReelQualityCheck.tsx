@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readReelPhotos, writeReelPhotos } from '@/lib/studio/mobile/reel';
-import type { ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
+import type { FontPreset, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
+import { FONT_PRESETS, REEL_CTA_FONT_SIZE } from '@/lib/constants';
 import { ImproveBottomSheet } from './ImproveBottomSheet';
 import { useBrandKit } from '@/hooks/useBrandKit';
 
@@ -73,6 +74,10 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
   const [cta2, setCta2] = useState(defaultCta2);
   const [userEditedCta1, setUserEditedCta1] = useState(false);
   const [userEditedCta2, setUserEditedCta2] = useState(false);
+  // CTA font follows the Brand Kit (it loads async) until the user picks one here
+  const [pickedFont, setPickedFont] = useState<FontPreset | null>(null);
+  const ctaFont: FontPreset = pickedFont ?? brand?.fontPreset ?? 'modern';
+  const [ctaFontSize, setCtaFontSize] = useState<number>(REEL_CTA_FONT_SIZE.default);
   // Brand Kit loaded or locale changed — refresh the fields the user hasn't typed in
   const [syncedDefaults, setSyncedDefaults] = useState(`${defaultCta1}\n${defaultCta2}`);
   if (syncedDefaults !== `${defaultCta1}\n${defaultCta2}`) {
@@ -424,12 +429,51 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
           />
         </div>
 
+        {/* CTA font and size */}
+        <div className="space-y-2">
+          <p className="text-xs text-gray-400">{t('ctaFont')}</p>
+          <div className="flex gap-2" role="radiogroup" aria-label={t('ctaFont')}>
+            {FONT_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                role="radio"
+                aria-checked={ctaFont === preset.id}
+                onClick={() => setPickedFont(preset.id)}
+                translate="no"
+                className={`min-h-11 flex-1 rounded-xl border text-center text-sm font-medium transition-colors ${
+                  ctaFont === preset.id
+                    ? 'border-green-500 bg-green-500/20 text-green-400'
+                    : 'border-white/10 bg-white/5 text-gray-400 active:bg-white/10'
+                }`}
+                style={{ fontFamily: preset.cssStack, fontWeight: preset.weight }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <label className="flex min-h-11 items-center gap-3">
+            <span className="w-16 text-xs text-gray-500">{t('ctaSize')}</span>
+            <input
+              type="range"
+              min={REEL_CTA_FONT_SIZE.min}
+              max={REEL_CTA_FONT_SIZE.max}
+              step={REEL_CTA_FONT_SIZE.step}
+              value={ctaFontSize}
+              onChange={(e) => setCtaFontSize(Number(e.target.value))}
+              className="flex-1 accent-green-500"
+            />
+            <span className="w-8 text-right text-xs text-gray-400 tabular-nums">{ctaFontSize}</span>
+          </label>
+        </div>
+
         <button
           onClick={() => {
             try {
               sessionStorage.setItem('reel-mode', reelMode);
               sessionStorage.setItem('reel-cta1', cta1.trim());
               sessionStorage.setItem('reel-cta2', cta2.trim());
+              sessionStorage.setItem('reel-ctaFont', ctaFont);
+              sessionStorage.setItem('reel-ctaFontSize', String(ctaFontSize));
               const preferredMusic = localStorage.getItem('reel-preferred-music') || 'warm-cafe';
               sessionStorage.setItem('reel-musicTrackId', preferredMusic);
             } catch {}

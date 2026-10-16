@@ -1823,6 +1823,8 @@
       "ctaHint": "Tento text se zobrazí na posledním snímku vašeho reelu",
       "ctaLine1": "Nadpis",
       "ctaLine2": "Výzva k akci",
+      "ctaFont": "Styl písma",
+      "ctaSize": "Velikost",
       "musicTitle": "Hudba",
       "musicChange": "Změnit",
       "noMusic": "Bez hudby",

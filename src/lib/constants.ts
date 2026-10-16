@@ -996,6 +996,9 @@ export const FONT_PRESETS = [
   { id: 'bold',    label: 'Bold',    fontFamily: 'Anton',   cssStack: "'Anton', var(--font-geist-sans), sans-serif",   weight: 400, description: 'Heavy, bold' },
 ] as const;
 
+/** Reel CTA size slider (px at 1080 wide) — sets the main CTA line; reel-service clamps to the same range */
+export const REEL_CTA_FONT_SIZE = { min: 24, max: 72, step: 2, default: 48 } as const;
+
 export const SUBTITLE_PRESETS = [
   { id: 'clean',   label: 'Clean',   description: 'White text, subtle shadow' },
   { id: 'bold',    label: 'Bold',    description: 'Large text, dark background' },

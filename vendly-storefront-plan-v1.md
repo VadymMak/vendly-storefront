@@ -277,3 +277,10 @@
 - [x] Phone photos are `source: 'gallery'`, `operation: 'upload'`, id `phone-<ts>`; kept in component state only
 - [x] i18n keys in mobile.reel for en/ru/uk/cs/sk/de
 - [ ] Manual test on a phone: upload from each tab, mixed AI + phone selection → Quality Check → Generate
+
+### PROMPT-257 — Reel CTA font picker + "Image host not allowed" fix ✅
+- [x] reel-service `src/utils/download.js`: `https://vendshop.shop/uploads/...` URLs are read from UPLOAD_DIR on disk (traversal + symlink checked) — fixes phone uploads AND "My photos" since the 2026-10-12 local-storage move. No file:// URLs (backup `~/reel-service-backups/2026-10-16-pre257/`)
+- [x] Reel screen: font preset chips (Modern / Elegant / Bold) + size slider 24–72 (`REEL_CTA_FONT_SIZE`), defaults to the Brand Kit font
+- [x] `/api/reel/generate` validates and forwards `ctaFont` / `ctaFontSize`; reel-service `sanitizeCtaStyle` → branded CTA and default CTA (size = main line, top line ×4/3)
+- [x] i18n `ctaFont` / `ctaSize` for en/ru/uk/cs/sk/de
+- [ ] Manual test: reel with phone photo; reel with each font, with and without Brand Kit

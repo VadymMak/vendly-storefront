@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { consumeCredits, refundCredits, REEL_CREDIT_COST, type ReelMode } from '@/lib/credits';
 import { checkRateLimitWithBypass, RATE_LIMITS } from '@/lib/rate-limit';
 import { getUserBrandKit } from '@/lib/studio/brand-utils';
+import { FONT_PRESETS, REEL_CTA_FONT_SIZE } from '@/lib/constants';
 
 const REEL_SERVICE_URL = 'http://127.0.0.1:3010';
 
@@ -23,13 +24,21 @@ export async function POST(request: Request) {
   }
   const userId = session.user.id;
 
-  let body: { photos?: unknown; mode?: unknown; cta1?: unknown; cta2?: unknown; musicTrackId?: unknown };
+  let body: {
+    photos?: unknown; mode?: unknown; cta1?: unknown; cta2?: unknown; musicTrackId?: unknown;
+    ctaFont?: unknown; ctaFontSize?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
   const { photos, cta1, cta2, musicTrackId } = body;
+  // Per-reel CTA style — overrides the Brand Kit font; undefined keeps reel-service defaults
+  const ctaFont = FONT_PRESETS.find((p) => p.id === body.ctaFont)?.id;
+  const ctaFontSize = typeof body.ctaFontSize === 'number' && Number.isFinite(body.ctaFontSize)
+    ? Math.min(Math.max(Math.round(body.ctaFontSize), REEL_CTA_FONT_SIZE.min), REEL_CTA_FONT_SIZE.max)
+    : undefined;
 
   const mode = body.mode ?? 'images';
   if (mode !== 'images' && mode !== 'video') {
@@ -83,7 +92,12 @@ export async function POST(request: Request) {
     const response = await fetch(`${REEL_SERVICE_URL}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos, mode, cta1, cta2, userId, musicTrackId: musicTrackId || 'warm-cafe', brandKit: brandPayload }),
+      body: JSON.stringify({
+        photos, mode, cta1, cta2, userId,
+        musicTrackId: musicTrackId || 'warm-cafe',
+        ctaFont, ctaFontSize,
+        brandKit: brandPayload,
+      }),
     });
 
     const data = await response.json();

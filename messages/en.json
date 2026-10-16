@@ -1823,6 +1823,8 @@
       "ctaHint": "This text appears on the final frame of your reel",
       "ctaLine1": "Headline",
       "ctaLine2": "Call to action",
+      "ctaFont": "Font style",
+      "ctaSize": "Size",
       "musicTitle": "Music",
       "musicChange": "Change",
       "noMusic": "No music",

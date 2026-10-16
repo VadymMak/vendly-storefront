@@ -1814,6 +1814,8 @@
       "ctaHint": "Tento text sa zobrazí na poslednom zábere vášho reelu",
       "ctaLine1": "Nadpis",
       "ctaLine2": "Výzva na akciu",
+      "ctaFont": "Štýl písma",
+      "ctaSize": "Veľkosť",
       "musicTitle": "Hudba",
       "musicChange": "Zmeniť",
       "noMusic": "Bez hudby",

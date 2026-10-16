@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -17,6 +18,10 @@ const PAGE_SIZE = 30;
 // Phone multi-select uploads in flight at once — keeps the upload route and slow mobile links unclogged
 const PHONE_UPLOAD_CONCURRENCY = 3;
 const SELECT_MODE_PATH = '/studio/m/library';
+// Grid tiles go through Next's image optimizer (a ~5 KB thumbnail instead of the up-to-6 MB
+// original). Only hosts in next.config remotePatterns can be optimized — others load as-is.
+const OPTIMIZABLE_URL = /^https:\/\/(vendshop\.shop\/uploads\/|[^/]+\.public\.blob\.vercel-storage\.com\/)/;
+const TILE_SIZES = '(max-width: 640px) 34vw, 220px';
 const FILTERS: { id: Filter; key: 'filterAll' | 'filterImages' | 'filterVideos' }[] = [
   { id: 'all', key: 'filterAll' },
   { id: 'image', key: 'filterImages' },
@@ -417,8 +422,15 @@ export function MobileLibrary({ initialSelect = false, reelSelectMode = false }:
                   className="relative aspect-square overflow-hidden bg-white/[0.04] active:opacity-80"
                 >
                   {/* Generic alt — the prompt must never leak into the page as fallback text */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.url} alt={t('imageLabel')} loading="lazy" onError={() => markBroken(item.id)} className="h-full w-full object-cover" />
+                  <Image
+                    src={item.url}
+                    alt={t('imageLabel')}
+                    fill
+                    sizes={TILE_SIZES}
+                    unoptimized={!OPTIMIZABLE_URL.test(item.url)}
+                    onError={() => markBroken(item.id)}
+                    className="object-cover"
+                  />
                 </Link>
               ),
             )}
@@ -510,8 +522,15 @@ function SelectableTile({ url, label, selected, disabled, onToggle, onBroken }: 
       aria-pressed={selected}
       className="relative aspect-square overflow-hidden bg-white/[0.04] disabled:opacity-40"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={label} loading="lazy" onError={onBroken} className={`h-full w-full object-cover transition-transform ${selected ? 'scale-90 rounded-lg' : ''}`} />
+      <Image
+        src={url}
+        alt={label}
+        fill
+        sizes={TILE_SIZES}
+        unoptimized={!OPTIMIZABLE_URL.test(url)}
+        onError={onBroken}
+        className={`object-cover transition-transform ${selected ? 'scale-90 rounded-lg' : ''}`}
+      />
       <span
         className={`absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
           selected ? 'border-green-500 bg-green-500 text-white' : 'border-white/80 bg-black/30'

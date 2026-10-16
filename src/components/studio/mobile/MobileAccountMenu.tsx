@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { signOut } from 'next-auth/react';
+import { clearDeviceSessionState } from '@/lib/user-storage';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -30,6 +31,7 @@ export function MobileAccountMenu({ userEmail }: Props) {
 
   function handleLogout() {
     setSigningOut(true);
+    clearDeviceSessionState();
     signOut({ callbackUrl: LOGOUT_CALLBACK_URL });
   }
 

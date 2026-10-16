@@ -1,15 +1,17 @@
 import type { ReelCtaLayout, ReelCtaLinePlacement, ReelPhoto, ReelPhotoStatus, StudioWorkItem } from '@/lib/types';
 import { REEL_CTA_LAYOUT } from '@/lib/constants';
+import { userKey } from '@/lib/user-storage';
 
 /** Reel Creator holds at most this many photos */
 export const MAX_REEL_PHOTOS = 5;
 
+// Per user (userKey): another account in the same browser tab must not see these photos
 const STORAGE_KEY = 'reel-photos';
 
 // sessionStorage can throw (private mode, blocked storage) — the flow then just starts empty
 export function readReelPhotos(): ReelPhoto[] {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(userKey(STORAGE_KEY));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? (parsed as ReelPhoto[]).slice(0, MAX_REEL_PHOTOS) : [];
   } catch {
@@ -19,7 +21,7 @@ export function readReelPhotos(): ReelPhoto[] {
 
 export function writeReelPhotos(photos: ReelPhoto[]): void {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(photos.slice(0, MAX_REEL_PHOTOS)));
+    sessionStorage.setItem(userKey(STORAGE_KEY), JSON.stringify(photos.slice(0, MAX_REEL_PHOTOS)));
   } catch {
     // ignore — the next screen shows its empty state
   }
@@ -37,7 +39,7 @@ export function isPhonePhoto(photo: ReelPhoto): boolean {
 
 export function readPhonePhotos(): ReelPhoto[] {
   try {
-    const raw = sessionStorage.getItem(PHONE_STORAGE_KEY);
+    const raw = sessionStorage.getItem(userKey(PHONE_STORAGE_KEY));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? (parsed as ReelPhoto[]).slice(0, MAX_PHONE_PHOTOS) : [];
   } catch {
@@ -47,7 +49,7 @@ export function readPhonePhotos(): ReelPhoto[] {
 
 export function writePhonePhotos(photos: ReelPhoto[]): void {
   try {
-    sessionStorage.setItem(PHONE_STORAGE_KEY, JSON.stringify(photos.slice(0, MAX_PHONE_PHOTOS)));
+    sessionStorage.setItem(userKey(PHONE_STORAGE_KEY), JSON.stringify(photos.slice(0, MAX_PHONE_PHOTOS)));
   } catch {
     // ignore — uploads then last only until the library unmounts
   }
@@ -77,7 +79,7 @@ export function sanitizeCtaLayout(raw: unknown): ReelCtaLayout {
 
 export function readCtaLayout(): ReelCtaLayout {
   try {
-    const raw = sessionStorage.getItem(CTA_LAYOUT_STORAGE_KEY);
+    const raw = sessionStorage.getItem(userKey(CTA_LAYOUT_STORAGE_KEY));
     return raw ? sanitizeCtaLayout(JSON.parse(raw)) : {};
   } catch {
     return {};
@@ -86,8 +88,8 @@ export function readCtaLayout(): ReelCtaLayout {
 
 export function writeCtaLayout(layout: ReelCtaLayout): void {
   try {
-    if (layout.line1 || layout.line2) sessionStorage.setItem(CTA_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
-    else sessionStorage.removeItem(CTA_LAYOUT_STORAGE_KEY);
+    if (layout.line1 || layout.line2) sessionStorage.setItem(userKey(CTA_LAYOUT_STORAGE_KEY), JSON.stringify(layout));
+    else sessionStorage.removeItem(userKey(CTA_LAYOUT_STORAGE_KEY));
   } catch {
     // ignore — the layout then lasts until the page unmounts
   }

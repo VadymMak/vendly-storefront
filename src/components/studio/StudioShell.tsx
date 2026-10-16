@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
+import { clearDeviceSessionState } from '@/lib/user-storage';
 import CreditCounter from '@/components/studio/CreditCounter';
 import { SidebarProvider, useSidebarContext } from '@/components/studio/SidebarContext';
 import KbChatWidget from '@/components/studio/KbChatWidget';
@@ -261,7 +262,7 @@ function StudioShellInner({ userId, userEmail, children }: { userId: string; use
           <CreditCounter />
           <span className="hidden text-xs text-gray-400 sm:block">{userEmail}</span>
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => { clearDeviceSessionState(); signOut({ callbackUrl: '/login' }); }}
             className="cursor-pointer text-xs text-gray-500 transition-colors hover:text-white"
           >
             Logout

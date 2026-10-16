@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
+import { clearDeviceSessionState } from '@/lib/user-storage';
 import { useLocale, useTranslations } from 'next-intl';
 
 const LOCALE_OPTIONS = [
@@ -120,7 +121,7 @@ export default function AdminNav({ userName }: AdminNavProps) {
             {userName}
           </span>
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => { clearDeviceSessionState(); signOut({ callbackUrl: '/' }); }}
             className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
           >
             {tNav('logout')}

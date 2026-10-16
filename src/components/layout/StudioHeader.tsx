@@ -1,5 +1,6 @@
 'use client';
 import { signOut } from 'next-auth/react';
+import { clearDeviceSessionState } from '@/lib/user-storage';
 import CreditCounter from '@/components/studio/CreditCounter';
 
 interface Props {
@@ -17,7 +18,7 @@ export function StudioHeader({ userEmail }: Props) {
         <CreditCounter />
         <span className="text-xs text-gray-400">{userEmail}</span>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => { clearDeviceSessionState(); signOut({ callbackUrl: '/login' }); }}
           className="cursor-pointer text-xs text-gray-500 hover:text-white"
         >
           Logout

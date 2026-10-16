@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
+import { clearDeviceSessionState } from '@/lib/user-storage';
 import { useLocale, useTranslations } from 'next-intl';
 
 const LOCALE_OPTIONS = [
@@ -158,7 +159,7 @@ export default function DashboardNav({ user, isAdmin }: DashboardNavProps) {
             {user.name || user.email}
           </span>
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => { clearDeviceSessionState(); signOut({ callbackUrl: '/' }); }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
           >
             {t('logout')}

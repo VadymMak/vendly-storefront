@@ -8,6 +8,7 @@ import type { SlideshowConfig, SlideshowItem, TransitionType, VideoStyle, OnProg
 import ChatMessageBubble from './ChatMessage';
 import SkillPicker from './SkillPicker';
 import { groupWordsIntoCaptions } from '@/lib/studio/caption-utils';
+import { userKey } from '@/lib/user-storage';
 
 function isErrorMessage(content: string): boolean {
   if (!content) return false;
@@ -296,7 +297,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(SESSION_KEY);
+      const saved = localStorage.getItem(userKey(SESSION_KEY));
       if (saved) {
         const parsed = JSON.parse(saved) as { messages?: ChatMessage[]; context?: SessionContext };
         if (parsed.messages && parsed.messages.length > 0) {
@@ -312,7 +313,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   useEffect(() => {
     if (messages.length > 1) {
       try {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ messages, context }));
+        localStorage.setItem(userKey(SESSION_KEY), JSON.stringify({ messages, context }));
       } catch {
         // ignore quota errors
       }
@@ -1490,7 +1491,7 @@ export default function StudioChat({ userId, userEmail }: Props) {
   const handleNewSession = () => {
     setMessages([WELCOME_MESSAGE]);
     setContext({ lastImageUrl: null, lastVideoUrl: null, lastAudioUrl: null, characterReferenceUrl: null, uploadedReferenceUrl: null, businessType: null, brandName: null, slogan: null, loraModel: null, loraTriggerWord: null });
-    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(userKey(SESSION_KEY));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

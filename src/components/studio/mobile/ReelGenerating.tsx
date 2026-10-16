@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { userKey } from '@/lib/user-storage';
 import { operationCharge } from '@/lib/pricing';
 import { readCtaLayout, readReelPhotos } from '@/lib/studio/mobile/reel';
 import type { MusicTrack } from '@/lib/types';
@@ -82,17 +83,17 @@ export function ReelGenerating() {
       let ctaDuration: number | undefined;
       let ctaMotion: string | undefined;
       try {
-        mode = sessionStorage.getItem('reel-mode') ?? 'images';
-        cta1 = sessionStorage.getItem('reel-cta1') ?? '';
-        cta2 = sessionStorage.getItem('reel-cta2') ?? '';
-        musicTrackId = sessionStorage.getItem('reel-musicTrackId') ?? 'warm-cafe';
-        ctaFontFamily = sessionStorage.getItem('reel-ctaFont') ?? undefined;
-        ctaColor = sessionStorage.getItem('reel-ctaColor') ?? undefined;
-        const size = Number(sessionStorage.getItem('reel-ctaFontSize'));
+        mode = sessionStorage.getItem(userKey('reel-mode')) ?? 'images';
+        cta1 = sessionStorage.getItem(userKey('reel-cta1')) ?? '';
+        cta2 = sessionStorage.getItem(userKey('reel-cta2')) ?? '';
+        musicTrackId = sessionStorage.getItem(userKey('reel-musicTrackId')) ?? 'warm-cafe';
+        ctaFontFamily = sessionStorage.getItem(userKey('reel-ctaFont')) ?? undefined;
+        ctaColor = sessionStorage.getItem(userKey('reel-ctaColor')) ?? undefined;
+        const size = Number(sessionStorage.getItem(userKey('reel-ctaFontSize')));
         ctaFontSize = size > 0 ? size : undefined;
-        const duration = Number(sessionStorage.getItem('reel-ctaDuration'));
+        const duration = Number(sessionStorage.getItem(userKey('reel-ctaDuration')));
         ctaDuration = duration > 0 ? duration : undefined;
-        ctaMotion = sessionStorage.getItem('reel-ctaMotion') ?? undefined;
+        ctaMotion = sessionStorage.getItem(userKey('reel-ctaMotion')) ?? undefined;
       } catch {}
 
       setCurrentTrackId(musicTrackId);
@@ -185,7 +186,7 @@ export function ReelGenerating() {
           result: prev.result ? { ...prev.result, videoUrl: data.videoUrl } : prev.result,
         } : prev);
         setCurrentTrackId(trackId);
-        try { localStorage.setItem('reel-preferred-music', trackId); } catch {}
+        try { localStorage.setItem(userKey('reel-preferred-music'), trackId); } catch {}
       }
     } catch (err) {
       console.error('Re-mux failed:', err);
@@ -338,7 +339,7 @@ export function ReelGenerating() {
 
           <button
             onClick={() => {
-              try { sessionStorage.removeItem('reel-photos'); } catch {}
+              try { sessionStorage.removeItem(userKey('reel-photos')); } catch {}
               router.push('/studio/m/library?mode=reel-select');
             }}
             className="flex min-h-11 w-full items-center justify-center rounded-xl bg-white/5 text-sm font-medium text-white border border-white/10 active:bg-white/10"

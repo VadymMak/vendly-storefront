@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { userKey } from '@/lib/user-storage';
 import { MAX_REEL_PHOTOS, assessReelPhoto, readCtaLayout, readReelPhotos, writeCtaLayout, writeReelPhotos } from '@/lib/studio/mobile/reel';
 import type { BrandKitData, ReelCtaLayout, ReelCtaLinePlacement, ReelCtaMotion, ReelPhoto, ReelPhotoStatus, ReelScoreResult } from '@/lib/types';
 import { DEFAULT_REEL_CTA_MOTION, FONT_PRESETS, MOBILE_TEXT_COLORS, MOBILE_TEXT_FONTS, REEL_CTA_DURATION, REEL_CTA_FONT_SIZE, REEL_CTA_LAYOUT, REEL_CTA_MOTIONS } from '@/lib/constants';
@@ -606,17 +607,17 @@ function QualityCheck({ initialPhotos }: { initialPhotos: ReelPhoto[] }) {
         <button
           onClick={() => {
             try {
-              sessionStorage.setItem('reel-mode', reelMode);
-              sessionStorage.setItem('reel-cta1', cta1.trim());
-              sessionStorage.setItem('reel-cta2', cta2.trim());
-              sessionStorage.setItem('reel-ctaFont', ctaFontFamily);
-              sessionStorage.setItem('reel-ctaFontSize', String(ctaFontSize));
-              sessionStorage.setItem('reel-ctaDuration', String(ctaDuration));
-              sessionStorage.setItem('reel-ctaMotion', ctaMotion);
-              if (pickedColor) sessionStorage.setItem('reel-ctaColor', pickedColor);
-              else sessionStorage.removeItem('reel-ctaColor');
-              const preferredMusic = localStorage.getItem('reel-preferred-music') || 'warm-cafe';
-              sessionStorage.setItem('reel-musicTrackId', preferredMusic);
+              sessionStorage.setItem(userKey('reel-mode'), reelMode);
+              sessionStorage.setItem(userKey('reel-cta1'), cta1.trim());
+              sessionStorage.setItem(userKey('reel-cta2'), cta2.trim());
+              sessionStorage.setItem(userKey('reel-ctaFont'), ctaFontFamily);
+              sessionStorage.setItem(userKey('reel-ctaFontSize'), String(ctaFontSize));
+              sessionStorage.setItem(userKey('reel-ctaDuration'), String(ctaDuration));
+              sessionStorage.setItem(userKey('reel-ctaMotion'), ctaMotion);
+              if (pickedColor) sessionStorage.setItem(userKey('reel-ctaColor'), pickedColor);
+              else sessionStorage.removeItem(userKey('reel-ctaColor'));
+              const preferredMusic = localStorage.getItem(userKey('reel-preferred-music')) || 'warm-cafe';
+              sessionStorage.setItem(userKey('reel-musicTrackId'), preferredMusic);
             } catch {}
             router.push('/studio/m/reel/generate');
           }}

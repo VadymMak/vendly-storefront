@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { StudioShell } from './StudioShell';
+import { setStorageUser } from '@/lib/user-storage';
 
 interface Props {
   userId: string;
@@ -11,6 +12,8 @@ interface Props {
 
 export function StudioShellGuard({ userId, userEmail, children }: Props) {
   const pathname = usePathname();
+  // Before any studio page renders: per-user storage keys (src/lib/user-storage.ts) use this id
+  setStorageUser(userId);
 
   if (pathname === '/studio/m' || pathname.startsWith('/studio/m/')) {
     return <>{children}</>;

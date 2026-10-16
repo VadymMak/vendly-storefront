@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { userKey } from '@/lib/user-storage';
 import { DefaultChatTransport } from 'ai';
 import { usePathname, useRouter } from 'next/navigation';
 import { useStudioStore } from '@/lib/studio/store';
@@ -162,7 +163,7 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
 
   const [sessionId] = useState(() => {
     if (typeof window === 'undefined') return '';
-    const key = 'kb-chat-session';
+    const key = userKey('kb-chat-session');
     let id = sessionStorage.getItem(key);
     if (!id) {
       id = crypto.randomUUID();
@@ -259,7 +260,7 @@ export default function KbChatWidget({ userId: _userId }: KbChatWidgetProps) {
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
-    try { sessionStorage.removeItem('kb-chat-session'); } catch { /* ignored */ }
+    try { sessionStorage.removeItem(userKey('kb-chat-session')); } catch { /* ignored */ }
   }, [setMessages]);
 
   // ── Closed state ─────────────────────────────────────────────────────────

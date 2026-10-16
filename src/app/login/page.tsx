@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { clearDeviceSessionState } from '@/lib/user-storage';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Whoever signs in next must not inherit the previous session's studio editing state
+  useEffect(() => { clearDeviceSessionState(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

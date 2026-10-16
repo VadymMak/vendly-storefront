@@ -110,5 +110,8 @@ export async function GET(req: NextRequest) {
     items:      validItems,
     // Page fullness comes from the DB rows, not the filtered list — dropping an item must not end pagination
     nextCursor: jobs.length === limit ? jobs[jobs.length - 1].id : null,
+  }, {
+    // One user's library — never served from a browser or proxy cache to someone else
+    headers: { 'Cache-Control': 'private, no-store' },
   });
 }
